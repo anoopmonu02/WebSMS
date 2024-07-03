@@ -1,13 +1,7 @@
 package com.smsweb.sms.controllers;
 
-import com.smsweb.sms.models.universal.Bank;
-import com.smsweb.sms.models.universal.Grade;
-import com.smsweb.sms.models.universal.Medium;
-import com.smsweb.sms.models.universal.Section;
-import com.smsweb.sms.services.universal.BankService;
-import com.smsweb.sms.services.universal.GradeService;
-import com.smsweb.sms.services.universal.MediumService;
-import com.smsweb.sms.services.universal.SectionService;
+import com.smsweb.sms.models.universal.*;
+import com.smsweb.sms.services.universal.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -25,14 +19,17 @@ public class UniversalController {
     private GradeService gradeService;
     private SectionService sectionService;
     private BankService bankService;
+    private CategoryService categoryService;
 
 
     @Autowired
-    public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService) {
+    public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService,
+                               CategoryService categoryService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.bankService = bankService;
+        this.categoryService = categoryService;
     }
 
     @GetMapping("/medium")
@@ -167,6 +164,50 @@ public class UniversalController {
     }
 
     /*****************   Section Ends Here  *****************/
+
+    /*****************   category Starts Here  *****************/
+    @GetMapping("/category")
+    public String category(Model model){
+        List<Category> categories = categoryService.getAllCategories();
+        model.addAttribute("categories", categories);
+        model.addAttribute("hasCategories", !categories.isEmpty());
+        return "universal/category";
+    }
+
+    @GetMapping("/category/add")
+    public String addCategoryForm(Model model) {
+        model.addAttribute("category", new Category());
+        return "universal/add-category";
+    }
+
+    @PostMapping("/category")
+    public String saveCategory(@Valid @ModelAttribute("category") Category category, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-category";
+        }
+        categoryService.saveCategory(category);
+        return "redirect:/universal/category";
+    }
+
+    @GetMapping("/category/edit/{id}")
+    public String editCategoryForm(@PathVariable("id") Long id, Model model) {
+        Category category = categoryService.getCategoryById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid category Id:" + id));
+        model.addAttribute("category", category);
+        return "universal/edit-category";
+    }
+
+    @PostMapping("/category/{id}")
+    public String updateCategory(@PathVariable("id") Long id, @Valid @ModelAttribute("category") Category category, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            category.setId(id);
+            return "universal/edit-category";
+        }
+        categoryService.saveCategory(category);
+        return "redirect:/universal/category";
+    }
+
+    /*****************   category Ends Here  *****************/
 
     /*****************   Bank Starts Here  *****************/
     @GetMapping("/bank")

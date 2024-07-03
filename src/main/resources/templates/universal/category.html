@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Category</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-6  offset-md-2 ">
+        <div class="card-header fs-3">Category List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasCategories}">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          <tr th:each="category : ${categories}">
+            <td th:text="${category.id}"></td>
+            <td th:text="${category.categoryName}"></td>
+            <td>
+              <a class="btn btn-primary" th:href="@{/universal/category/edit/{id}(id=${category.id})}">
+                <i class="bi bi-pencil-square"></i> Edit</a>
+              <a class="btn btn-danger" th:href="@{/universal/category/delete/{id}(id=${category.id})}">
+                <i class="bi bi-journal-x"></i> Delete</a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasCategories}">
+          <p class="text-center">No Category found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/universal/category/add"><i class="bi bi-node-plus-fill"></i> Add Category</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</body>
+</html>
