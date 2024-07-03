@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Medium</title>
+</head>
+<body>
+    <section>
+
+        <div class="container">
+            <div class="row mt-2 gy-5">
+                <!--<div class="col-md-6 offset-md-2">
+                    <div class="card-header fs-3">Medium Form</div>
+                    <hr/>
+                    <div class="form pt-3">
+                        <form action="/universal/medium" method="post">
+                            <div class="mb-3">
+                                <label for="medium_name" class="form-label">Medium Name</label>
+                                <input type="text" class="form-control" id="medium_name" placeholder="Hindi" name="medium_name">
+                            </div>
+                            <div class="col-12 offset-6">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>-->
+                <div class="col-md-6  offset-md-2 ">
+                    <div class="card-header fs-3">Medium List</div>
+                    <hr/>
+
+
+                    <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasMediums}">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        <tr th:each="medium : ${mediums}">
+                            <td th:text="${medium.id}"></td>
+                            <td th:text="${medium.mediumName}"></td>
+                            <td>
+                                <a class="btn btn-primary" th:href="@{/universal/medium/edit/{id}(id=${medium.id})}">
+                                    <i class="bi bi-pencil-square"></i> Edit</a>
+                                <a class="btn btn-danger" th:href="@{/universal/medium/delete/{id}(id=${medium.id})}">
+                                    <i class="bi bi-journal-x"></i> Delete</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${!hasMediums}">
+                        <p class="text-center">No Medium found.</p>
+                    </div>
+                    <div class="">
+                        <a class="btn btn-success" href="/universal/medium/add"><i class="bi bi-node-plus-fill"></i> Add Medium</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</body>
+</html>
