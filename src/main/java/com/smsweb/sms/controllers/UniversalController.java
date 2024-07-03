@@ -1,8 +1,10 @@
 package com.smsweb.sms.controllers;
 
+import com.smsweb.sms.models.universal.Bank;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Medium;
 import com.smsweb.sms.models.universal.Section;
+import com.smsweb.sms.services.universal.BankService;
 import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.MediumService;
 import com.smsweb.sms.services.universal.SectionService;
@@ -22,13 +24,15 @@ public class UniversalController {
     private MediumService mediumService;
     private GradeService gradeService;
     private SectionService sectionService;
+    private BankService bankService;
 
 
     @Autowired
-    public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService) {
+    public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
+        this.bankService = bankService;
     }
 
     @GetMapping("/medium")
@@ -163,4 +167,48 @@ public class UniversalController {
     }
 
     /*****************   Section Ends Here  *****************/
+
+    /*****************   Bank Starts Here  *****************/
+    @GetMapping("/bank")
+    public String bank(Model model){
+        List<Bank> banks = bankService.getAllBanks();
+        model.addAttribute("banks", banks);
+        model.addAttribute("hasBanks", !banks.isEmpty());
+        return "universal/bank";
+    }
+
+    @GetMapping("/bank/add")
+    public String addBankForm(Model model) {
+        model.addAttribute("bank", new Bank());
+        return "universal/add-bank";
+    }
+
+    @PostMapping("/bank")
+    public String saveBank(@Valid @ModelAttribute("bank") Bank bank, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-bank";
+        }
+        bankService.saveBank(bank);
+        return "redirect:/universal/bank";
+    }
+
+    @GetMapping("/bank/edit/{id}")
+    public String editBankForm(@PathVariable("id") Long id, Model model) {
+        Bank bank = bankService.getBankById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid bank Id:" + id));
+        model.addAttribute("bank", bank);
+        return "universal/edit-bank";
+    }
+
+    @PostMapping("/bank/{id}")
+    public String updateBank(@PathVariable("id") Long id, @Valid @ModelAttribute("bank") Bank bank, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            bank.setId(id);
+            return "universal/edit-bank";
+        }
+        bankService.saveBank(bank);
+        return "redirect:/universal/bank";
+    }
+
+    /*****************   Bank Ends Here  *****************/
 }
