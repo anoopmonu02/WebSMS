@@ -15,5 +15,5 @@ public class Section {
     @NotBlank(message = "Section should not blank")
     @Size(max = 50, message = "Section should not exceed 50 chars")
     @Column(unique = true)
-    private String section;
+    private String sectionName;
 }

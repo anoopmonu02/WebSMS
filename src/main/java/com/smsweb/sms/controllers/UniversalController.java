@@ -2,8 +2,10 @@ package com.smsweb.sms.controllers;
 
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Medium;
+import com.smsweb.sms.models.universal.Section;
 import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.MediumService;
+import com.smsweb.sms.services.universal.SectionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -19,12 +21,14 @@ public class UniversalController {
 
     private MediumService mediumService;
     private GradeService gradeService;
+    private SectionService sectionService;
 
 
     @Autowired
-    public UniversalController(MediumService mediumService, GradeService gradeService) {
+    public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
+        this.sectionService = sectionService;
     }
 
     @GetMapping("/medium")
@@ -115,4 +119,48 @@ public class UniversalController {
     }
 
     /*****************   Grade Ends Here  *****************/
+
+    /*****************   Section Starts Here  *****************/
+    @GetMapping("/section")
+    public String section(Model model){
+        List<Section> sections = sectionService.getAllSections();
+        model.addAttribute("sections", sections);
+        model.addAttribute("hasSections", !sections.isEmpty());
+        return "universal/section";
+    }
+
+    @GetMapping("/section/add")
+    public String addSectionForm(Model model) {
+        model.addAttribute("section", new Section());
+        return "universal/add-section";
+    }
+
+    @PostMapping("/section")
+    public String saveSection(@Valid @ModelAttribute("section") Section section, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-section";
+        }
+        sectionService.saveSection(section);
+        return "redirect:/universal/section";
+    }
+
+    @GetMapping("/section/edit/{id}")
+    public String editSectionForm(@PathVariable("id") Long id, Model model) {
+        Section section = sectionService.getSectionById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid section Id:" + id));
+        model.addAttribute("section", section);
+        return "universal/edit-section";
+    }
+
+    @PostMapping("/section/{id}")
+    public String updateSection(@PathVariable("id") Long id, @Valid @ModelAttribute("section") Section section, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            section.setId(id);
+            return "universal/edit-section";
+        }
+        sectionService.saveSection(section);
+        return "redirect:/universal/section";
+    }
+
+    /*****************   Section Ends Here  *****************/
 }
