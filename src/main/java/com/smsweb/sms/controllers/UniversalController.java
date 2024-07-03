@@ -1,6 +1,8 @@
 package com.smsweb.sms.controllers;
 
+import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Medium;
+import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.MediumService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +18,13 @@ import java.util.List;
 public class UniversalController {
 
     private MediumService mediumService;
+    private GradeService gradeService;
 
 
     @Autowired
-    public UniversalController(MediumService mediumService) {
+    public UniversalController(MediumService mediumService, GradeService gradeService) {
         this.mediumService = mediumService;
+        this.gradeService = gradeService;
     }
 
     @GetMapping("/medium")
@@ -67,4 +71,48 @@ public class UniversalController {
         mediumService.saveMedium(medium);
         return "redirect:/universal/medium";
     }
+
+    /*****************   Grade Starts Here  *****************/
+    @GetMapping("/grade")
+    public String grade(Model model){
+        List<Grade> grades = gradeService.getAllGrades();
+        model.addAttribute("grades", grades);
+        model.addAttribute("hasGrades", !grades.isEmpty());
+        return "universal/grade";
+    }
+
+    @GetMapping("/grade/add")
+    public String addGradeForm(Model model) {
+        model.addAttribute("grade", new Grade());
+        return "universal/add-grade";
+    }
+
+    @PostMapping("/grade")
+    public String saveGrade(@Valid @ModelAttribute("grade") Grade grade, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-grade";
+        }
+        gradeService.saveGrade(grade);
+        return "redirect:/universal/grade";
+    }
+
+    @GetMapping("/grade/edit/{id}")
+    public String editGradeForm(@PathVariable("id") Long id, Model model) {
+        Grade grade = gradeService.getGradeById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid grade Id:" + id));
+        model.addAttribute("grade", grade);
+        return "universal/edit-grade";
+    }
+
+    @PostMapping("/grade/{id}")
+    public String updateGrade(@PathVariable("id") Long id, @Valid @ModelAttribute("grade") Grade grade, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            grade.setId(id);
+            return "universal/edit-grade";
+        }
+        gradeService.saveGrade(grade);
+        return "redirect:/universal/grade";
+    }
+
+    /*****************   Grade Ends Here  *****************/
 }
