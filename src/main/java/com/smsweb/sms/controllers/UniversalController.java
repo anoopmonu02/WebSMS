@@ -20,16 +20,18 @@ public class UniversalController {
     private SectionService sectionService;
     private BankService bankService;
     private CategoryService categoryService;
+    private CastService castService;
 
 
     @Autowired
     public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService,
-                               CategoryService categoryService) {
+                               CategoryService categoryService, CastService castService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.bankService = bankService;
         this.categoryService = categoryService;
+        this.castService = castService;
     }
 
     @GetMapping("/medium")
@@ -252,4 +254,48 @@ public class UniversalController {
     }
 
     /*****************   Bank Ends Here  *****************/
+
+    /*****************   Cast Starts Here  *****************/
+    @GetMapping("/cast")
+    public String cast(Model model){
+        List<Cast> casts = castService.getAllCasts();
+        model.addAttribute("casts", casts);
+        model.addAttribute("hasCasts", !casts.isEmpty());
+        return "universal/cast";
+    }
+
+    @GetMapping("/cast/add")
+    public String addCastForm(Model model) {
+        model.addAttribute("cast", new Cast());
+        return "universal/add-cast";
+    }
+
+    @PostMapping("/cast")
+    public String saveCast(@Valid @ModelAttribute("cast") Cast cast, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-cast";
+        }
+        castService.saveCast(cast);
+        return "redirect:/universal/cast";
+    }
+
+    @GetMapping("/cast/edit/{id}")
+    public String editCastForm(@PathVariable("id") Long id, Model model) {
+        Cast cast = castService.getCastById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid cast Id:" + id));
+        model.addAttribute("cast", cast);
+        return "universal/edit-cast";
+    }
+
+    @PostMapping("/cast/{id}")
+    public String updateCast(@PathVariable("id") Long id, @Valid @ModelAttribute("cast") Cast cast, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            cast.setId(id);
+            return "universal/edit-cast";
+        }
+        castService.saveCast(cast);
+        return "redirect:/universal/cast";
+    }
+
+    /*****************   Cast Ends Here  *****************/
 }
