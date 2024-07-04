@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Discounthead</title>
+</head>
+<body>
+
+<section>
+    <div class="container">
+        <div class="row mt-2 gy-5">
+
+            <div class="col-md-6 offset-md-2">
+                <div class="card-header fs-3">Edit Discounthead</div>
+                <hr/>
+                <div class="form pt-3">
+                    <form th:action="@{/universal/discounthead/{id}(id=${discounthead.id})}" th:object="${discounthead}" method="post">
+                        <div class="mb-3">
+                            <label for="dis_name" class="form-label">Discount Name</label>
+                            <input type="text" class="form-control" id="dis_name" placeholder="Employee Discount" name="dis_name" th:field="*{discountName}" />
+                            <p class="text-danger" th:if="${#fields.hasErrors('discountName')}" th:errors="*{discountName}">Name Error</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="feehead_des" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="feehead_des" name="feehead_des" th:field="*{description}" />
+                            <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Name Error</p>
+                        </div>
+                        <div class="col-12 offset-6">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-6  offset-md-2 ">
+                <a class="btn btn-info" href="/universal/discounthead"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>
+
+

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Feehead</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-8  offset-md-2 ">
+        <div class="card-header fs-3">Feehead List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFeeheads}">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Fee Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          <tr th:each="feehead : ${feeheads}">
+            <td th:text="${feehead.id}"></td>
+            <td th:text="${feehead.feeHeadName}"></td>
+            <td th:text="${feehead.description}"></td>
+            <td>
+              <a class="btn btn-primary" th:href="@{/universal/feehead/edit/{id}(id=${feehead.id})}">
+                <i class="bi bi-pencil-square"></i> Edit</a>
+              <a class="btn btn-danger" th:href="@{/universal/feehead/delete/{id}(id=${feehead.id})}">
+                <i class="bi bi-journal-x"></i> Delete</a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasFeeheads}">
+          <p class="text-center">No Feehead found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/universal/feehead/add"><i class="bi bi-node-plus-fill"></i> Add Feehead</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</body>
+</html>

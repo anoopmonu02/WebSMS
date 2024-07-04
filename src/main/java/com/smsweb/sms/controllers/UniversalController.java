@@ -15,23 +15,27 @@ import java.util.List;
 @RequestMapping("/universal")
 public class UniversalController {
 
-    private MediumService mediumService;
+    private final MediumService mediumService;
     private GradeService gradeService;
     private SectionService sectionService;
-    private BankService bankService;
-    private CategoryService categoryService;
-    private CastService castService;
+    private final BankService bankService;
+    private final CategoryService categoryService;
+    private final CastService castService;
+    private final FeeheadService feeheadService;
+    private final DiscountService discountService;
 
 
     @Autowired
     public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService,
-                               CategoryService categoryService, CastService castService) {
+                               CategoryService categoryService, CastService castService, FeeheadService feeheadService, DiscountService discountService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.bankService = bankService;
         this.categoryService = categoryService;
         this.castService = castService;
+        this.feeheadService = feeheadService;
+        this.discountService = discountService;
     }
 
     @GetMapping("/medium")
@@ -298,4 +302,92 @@ public class UniversalController {
     }
 
     /*****************   Cast Ends Here  *****************/
+
+    /*****************   Fee Head Starts Here  *****************/
+    @GetMapping("/feehead")
+    public String feehead(Model model){
+        List<Feehead> feeheads = feeheadService.getAllFeeheads();
+        model.addAttribute("feeheads", feeheads);
+        model.addAttribute("hasFeeheads", !feeheads.isEmpty());
+        return "universal/feehead";
+    }
+
+    @GetMapping("/feehead/add")
+    public String addFeeheadForm(Model model) {
+        model.addAttribute("feehead", new Feehead());
+        return "universal/add-feehead";
+    }
+
+    @PostMapping("/feehead")
+    public String saveFeehead(@Valid @ModelAttribute("feehead") Feehead feehead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-feehead";
+        }
+        feeheadService.saveFeehead(feehead);
+        return "redirect:/universal/feehead";
+    }
+
+    @GetMapping("/feehead/edit/{id}")
+    public String editFeeheadForm(@PathVariable("id") Long id, Model model) {
+        Feehead feehead = feeheadService.getFeeheadById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid fee head Id:" + id));
+        model.addAttribute("feehead", feehead);
+        return "universal/edit-feehead";
+    }
+
+    @PostMapping("/feehead/{id}")
+    public String updateFeehead(@PathVariable("id") Long id, @Valid @ModelAttribute("feehead") Feehead feehead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            feehead.setId(id);
+            return "universal/edit-feehead";
+        }
+        feeheadService.saveFeehead(feehead);
+        return "redirect:/universal/feehead";
+    }
+
+    /*****************   Fee Head Ends Here  *****************/
+
+    /*****************   Discount Head Starts Here  *****************/
+    @GetMapping("/discounthead")
+    public String discounthead(Model model){
+        List<Discounthead> discountheads = discountService.getAllDiscountheads();
+        model.addAttribute("discountheads", discountheads);
+        model.addAttribute("hasDiscountheads", !discountheads.isEmpty());
+        return "universal/discounthead";
+    }
+
+    @GetMapping("/discounthead/add")
+    public String addDiscountheadForm(Model model) {
+        model.addAttribute("discounthead", new Discounthead());
+        return "universal/add-discounthead";
+    }
+
+    @PostMapping("/discounthead")
+    public String saveDiscounthead(@Valid @ModelAttribute("discounthead") Discounthead discounthead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            return "universal/add-discounthead";
+        }
+        discountService.saveDiscounthead(discounthead);
+        return "redirect:/universal/discounthead";
+    }
+
+    @GetMapping("/discounthead/edit/{id}")
+    public String editDiscountheadForm(@PathVariable("id") Long id, Model model) {
+        Discounthead discounthead = discountService.getDiscountheadById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid discount head Id:" + id));
+        model.addAttribute("discounthead", discounthead);
+        return "universal/edit-discounthead";
+    }
+
+    @PostMapping("/discounthead/{id}")
+    public String updateDiscounthead(@PathVariable("id") Long id, @Valid @ModelAttribute("discounthead") Discounthead discounthead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            discounthead.setId(id);
+            return "universal/edit-discounthead";
+        }
+        discountService.saveDiscounthead(discounthead);
+        return "redirect:/universal/discounthead";
+    }
+
+    /*****************   Discount Head Ends Here  *****************/
 }
