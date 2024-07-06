@@ -365,6 +365,7 @@ public class UniversalController {
     @PostMapping("/discounthead")
     public String saveDiscounthead(@Valid @ModelAttribute("discounthead") Discounthead discounthead, BindingResult result, Model model) {
         if (result.hasErrors()) {
+            System.out.println(">>>>>>>>>>>"+result);
             return "universal/add-discounthead";
         }
         discountService.saveDiscounthead(discounthead);

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Customer</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-8  offset-md-2 ">
+        <div class="card-header fs-3">Customer's List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasCustomerData}">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Customer Name</th>
+            <th>Registration Date</th>
+            <th>Registration #</th>
+            <th>Email</th>
+            <th>Phone-1</th>
+            <th>Phone-2</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          <tr th:each="customer : ${customers}">
+            <td th:text="${customer.id}"></td>
+            <td th:text="${customer.name}"></td>
+            <td th:text="${customer.registrationDate}"></td>
+            <td th:text="${customer.registrationNo}"></td>
+            <td th:text="${customer.email}"></td>
+            <td th:text="${customer.mobile1}"></td>
+            <td th:text="${customer.mobile2}"></td>
+            <td th:text="${customer.status}"></td>
+            <td>
+              <a class="btn btn-primary" th:href="@{/v1/admin/customer/edit/{id}(id=${customer.id})}">
+                <i class="bi bi-pencil-square"></i> Edit</a>
+              <a class="btn btn-danger" th:href="@{/v1/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not undoable.')">
+                <i class="bi bi-journal-x"></i> Delete</a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasCustomerData}">
+          <p class="text-center">No Customer found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/v1/admin/customer/add"><i class="bi bi-node-plus-fill"></i> Add Customer</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</body>
+</html>
