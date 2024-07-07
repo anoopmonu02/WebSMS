@@ -27,9 +27,9 @@
             <td th:text="${grade.gradeName}"></td>
             <td>
               <a class="btn btn-primary" th:href="@{/universal/grade/edit/{id}(id=${grade.id})}">
-                <i class="bi bi-pencil-square"></i> Edit</a>
-              <a class="btn btn-danger" th:href="@{/universal/grade/delete/{id}(id=${grade.id})}">
-                <i class="bi bi-journal-x"></i> Delete</a>
+                <i class="bi bi-pencil-square"></i> </a>
+              <a class="btn btn-danger" th:href="@{/universal/grade/delete/{id}(id=${grade.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
+                <i class="bi bi-journal-x"></i> </a>
             </td>
           </tr>
           </tbody>

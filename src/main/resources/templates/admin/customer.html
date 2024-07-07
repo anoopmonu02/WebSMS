@@ -38,9 +38,11 @@
             <td th:text="${customer.address}"></td>
             <td th:text="${customer.status}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}">
+              <a class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
-              <a class="btn btn-danger" th:href="@{/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
+              <a class="btn btn-danger" th:href="@{/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                 data-bs-custom-class="custom-tooltip"
+                 data-bs-title="Delete the customer record">
                 <i class="bi bi-journal-x"></i> </a>
             </td>
           </tr>

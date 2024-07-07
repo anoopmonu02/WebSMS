@@ -29,9 +29,9 @@
             <td th:text="${feehead.description}"></td>
             <td>
               <a class="btn btn-primary" th:href="@{/universal/feehead/edit/{id}(id=${feehead.id})}">
-                <i class="bi bi-pencil-square"></i> Edit</a>
-              <a class="btn btn-danger" th:href="@{/universal/feehead/delete/{id}(id=${feehead.id})}">
-                <i class="bi bi-journal-x"></i> Delete</a>
+                <i class="bi bi-pencil-square"></i> </a>
+              <a class="btn btn-danger" th:href="@{/universal/feehead/delete/{id}(id=${feehead.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
+                <i class="bi bi-journal-x"></i> </a>
             </td>
           </tr>
           </tbody>
