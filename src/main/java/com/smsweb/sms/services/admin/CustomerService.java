@@ -1,7 +1,11 @@
 package com.smsweb.sms.services.admin;
 
 import com.smsweb.sms.models.admin.Customer;
+import com.smsweb.sms.models.universal.City;
+import com.smsweb.sms.models.universal.Province;
 import com.smsweb.sms.repositories.admin.CustomerRepository;
+import com.smsweb.sms.repositories.universal.CityRepository;
+import com.smsweb.sms.repositories.universal.ProvinceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -13,14 +17,18 @@ import java.util.Optional;
 @Service
 public class CustomerService {
     private final CustomerRepository customerRepository;
+    private final ProvinceRepository provinceRepository;
+    private final CityRepository cityRepository;
 
     @Autowired
-    public CustomerService(CustomerRepository customerRepository){
+    public CustomerService(CustomerRepository customerRepository, ProvinceRepository provinceRepository, CityRepository cityRepository){
         this.customerRepository = customerRepository;
+        this.provinceRepository = provinceRepository;
+        this.cityRepository = cityRepository;
     }
 
     public List<Customer> getAllCustomers(){
-        return customerRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        return customerRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
     }
 
     @Transactional(readOnly = true)
@@ -43,6 +51,14 @@ public class CustomerService {
 
     public List<Customer> getAllCustomerByStatus(String status){
         return customerRepository.findAllByStatus(status);
+    }
+
+    public List<Province> getAllProvinces(){
+        return provinceRepository.findAll(Sort.by(Sort.DEFAULT_DIRECTION,"provinceName"));
+    }
+
+    public List<City> getAllCitiesByProvince(Long provinceId){
+        return cityRepository.findByProvinceId(provinceId);
     }
 
 }

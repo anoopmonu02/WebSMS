@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Customer</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<section class="container">
+  <div class="offset-2 mt-2 gy-5">
+    <div class="card-header fs-3">Customer Form</div>
+    <hr/>
+
+      <form th:action="@{/admin/customer}" th:object="${customer}" method="post" enctype="multipart/form-data">
+        <div class="row g-2">
+          <div class="col-md-7">
+            <label for="customer_name" class="form-label">Customer Name</label>
+            <input type="text" class="form-control" id="customer_name" name="customer_name" th:field="*{name}" />
+            <p class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name Error</p>
+          </div>
+
+            <div class="col-md-7">
+              <label for="address" class="form-label">Address</label>
+              <div class="form-floating">
+                <textarea id="address" placeholder="Add address here" class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{address}"></textarea>
+                <label for="address">Add Address</label>
+              </div>
+              <p class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}">Address Error</p>
+            </div>
+            <div class="col-md-2">
+              &nbsp;
+            </div>
+
+          <div class="col-md-5">
+            <label for="province" class="form-label">Province</label>
+            <select id="province" class="form-select" name="province">
+              <option value="">Select Province</option>
+              <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"></option>
+            </select>
+            <p class="text-danger" th:if="${#fields.hasErrors('province')}" th:errors="*{province}">Province Error</p>
+          </div>
+
+          <div class="col-md-5">
+            <label for="city" class="form-label">City</label>
+            <select id="city" class="form-select" name="city">
+              <option value="">Select City</option>
+            </select>
+            <p class="text-danger" th:if="${#fields.hasErrors('city')}" th:errors="*{city}">City Error</p>
+          </div>
+
+          <div class="col-md-2">
+            &nbsp;
+          </div>
+
+          <div class="col-md-2">
+            <label for="pincode" class="form-label">Pincode</label>
+            <input type="text" class="form-control" id="pincode" th:field="*{pincode}"/>
+            <p class="text-danger" th:if="${#fields.hasErrors('pincode')}" th:errors="*{pincode}">pincode Error</p>
+          </div>
+          <div class="col-md-8">
+            &nbsp;
+          </div>
+
+          <div class="col-md-4">
+            <label for="mobile1" class="form-label">Mobile-1</label>
+            <input type="text" class="form-control" id="mobile1" th:field="*{mobile1}">
+            <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">mobile1 Error</p>
+          </div>
+          <div class="col-md-4">
+            <label for="mobile2" class="form-label">Mobile-2</label>
+            <input type="text" class="form-control" id="mobile2" th:field="*{mobile2}">
+            <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">mobile2 Error</p>
+          </div>
+          <div class="col-md-3">
+            &nbsp;
+          </div>
+
+          <div class="col-md-4">
+            <label for="email" class="form-label">Email</label>
+            <input type="text" class="form-control" id="email" th:field="*{email}">
+            <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Name Error</p>
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+
+          <div class="col-md-4">
+            <label for="website" class="form-label">Website</label>
+            <input type="text" class="form-control" id="website" th:field="*{website}">
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+
+          <div class="col-md-7">
+            <label for="description" class="form-label">Description</label>
+            <div class="form-floating">
+              <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+              <label for="address">Add Description Here</label>
+            </div>
+            <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+          </div>
+          <div class="col-md-2">
+            &nbsp;
+          </div>
+
+          <div class="col-md-4">
+            <label for="customerPic" class="form-label">Customer Image</label>
+            <input type="file" class="form-control" id="customerPic" name="customerPic">
+            <p class="text-danger" th:if="${#fields.hasErrors('pic')}" th:errors="*{pic}">pic Error</p>
+            <p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+
+          <div class="col-md-7 mb=5">
+            &nbsp;
+          </div>
+          <hr/>
+          <div class="col-md-4 offset-md-1 ">
+            <a class="btn btn-info" href="/admin/customer"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+          </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+        </div>
+      </div>
+      </form>
+
+
+
+
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script type="application/javascript">
+    $(document).ready(function(){
+      $('#province').change(function() {
+        let stateId = $(this).val();
+        if (stateId) {
+          $.ajax({
+            url: '/admin/customer/cities',
+            type: 'GET',
+            data: {provinceId: stateId},
+            success: function(data) {
+              $('#city').empty().append('<option value="">Select City</option>');
+              $.each(data, function(key, value) {
+                $('#city').append('<option value="' + value.id + '">' + value.cityName + '</option>');
+              });
+            }
+          });
+        } else {
+          $('#city').empty().append('<option value="">Select City</option>');
+        }
+      });
+    });
+
+  </script>
+</section>
+
+
+</body>
+</html>
+
+

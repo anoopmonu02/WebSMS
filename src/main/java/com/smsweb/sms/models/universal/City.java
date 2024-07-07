@@ -17,5 +17,6 @@ public class City {
     private String cityName;
 
     @ManyToOne
+    @JoinColumn(name = "province_id")
     private Province province;
 }
