@@ -26,10 +26,10 @@
             <th>Actions</th>
           </tr>
           </thead>
-          <tbody>
+          <tbody class="table-group-divider">
 
-          <tr th:each="customer : ${customers}">
-            <td th:text="${customer.id}"></td>
+          <tr th:each="customer,iterStat : ${customers}">
+            <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${customer.name}"></td>
             <td th:text="${#dates.format(customer.registrationDate, 'dd-MMM-yyyy')}"></td>
             <td th:text="${customer.registrationNo}"></td>
@@ -37,7 +37,7 @@
             <td th:text="${customer.mobile1}"></td>
             <td th:text="${customer.address}"></td>
             <td th:text="${customer.status}"></td>
-            <td style="white-space: nowrap">
+            <td style="white-space: nowrap" class="text-center">
               <a class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}">
                 <i class="bi bi-pencil-square"></i> </a>
               <a class="btn btn-danger" th:href="@{/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not recoverable.')">

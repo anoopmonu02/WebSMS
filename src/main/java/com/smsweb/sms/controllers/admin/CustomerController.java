@@ -3,8 +3,6 @@ package com.smsweb.sms.controllers.admin;
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.services.admin.CustomerService;
-import com.smsweb.sms.services.universal.CityService;
-import com.smsweb.sms.services.universal.ProvinceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
