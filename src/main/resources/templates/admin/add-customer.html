@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
 <head>
   <meta charset="UTF-8">
   <title>Add Customer</title>
@@ -34,20 +34,27 @@
 
           <div class="col-md-5">
             <label for="province" class="form-label">Province</label>
-            <select id="province" class="form-select" name="province">
+            <!--<select id="province" class="form-select" name="province" th:field="*{province}">
               <option value="">Select Province</option>
               <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"></option>
+            </select>-->
+            <select id="province" th:field="*{province}" class="form-select" name="province">
+              <option value="">Select State</option>
+              <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"
+                      th:selected="${province} == ${customer.province}">State</option>
             </select>
             <p class="text-danger" th:if="${#fields.hasErrors('province')}" th:errors="*{province}">Province Error</p>
           </div>
 
           <div class="col-md-5">
             <label for="city" class="form-label">City</label>
-            <select id="city" class="form-select" name="city">
+            <input type="hidden" th:value="${customer.city != null ? customer.city.id : ''}" id="hiddencity">
+            <select id="city" class="form-select" name="city" th:field="*{city}">
               <option value="">Select City</option>
             </select>
             <p class="text-danger" th:if="${#fields.hasErrors('city')}" th:errors="*{city}">City Error</p>
           </div>
+
 
           <div class="col-md-2">
             &nbsp;
@@ -135,29 +142,57 @@
   </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script type="application/javascript">
-    $(document).ready(function(){
-      $('#province').change(function() {
-        let stateId = $(this).val();
-        if (stateId) {
+
+
+  <script type="text/javascript" th:inline="javascript">
+    $(document).ready(function() {
+      function loadCities(state, selectedCity) {
+        if (state) {
           $.ajax({
-            url: '/admin/customer/cities',
             type: 'GET',
-            data: {provinceId: stateId},
-            success: function(data) {
-              $('#city').empty().append('<option value="">Select City</option>');
-              $.each(data, function(key, value) {
-                $('#city').append('<option value="' + value.id + '">' + value.cityName + '</option>');
+            url: '/admin/customer/cities',
+            data: { provinceId: state },
+            success: function(cities) {
+              console.log("cities: "+cities);
+              let $citySelect = $('#city');
+              $citySelect.empty();
+              $citySelect.append('<option value="">Select City</option>');
+              $.each(cities, function(index, city) {
+                $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
               });
+              console.log("selectedCity "+selectedCity);
+              // Set the previously selected city
+              if (selectedCity) {
+                $citySelect.val(selectedCity);
+              }
             }
           });
-        } else {
-          $('#city').empty().append('<option value="">Select City</option>');
         }
+      }
+
+      $('#province').change(function() {
+        let selectedState = $(this).val();
+        //let selectedCity = /*[[${customer.city}]]*/ '';
+        loadCities(selectedState);
       });
+
+      // Trigger change to load cities if a state is already selected
+      let initialSelectedState = $('#province').val();
+      let initialSelectedNewCity = $('#hiddencity').val();
+      /*<![CDATA[*/
+      let initialSelectedCity = [[${customer}]] ? '[[${customer.city}]]' : '';
+      /*]]>*/
+      console.log("initialSelectedState:> "+initialSelectedState);
+      console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
+      console.log("initial:> "+initialSelectedCity);
+      if (initialSelectedState) {
+        loadCities(initialSelectedState, initialSelectedNewCity);
+      }
     });
 
   </script>
+
+
 </section>
 
 
