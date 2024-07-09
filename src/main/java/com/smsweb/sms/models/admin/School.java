@@ -1,4 +1,4 @@
-package com.smsweb.sms.controllers.admin;
+package com.smsweb.sms.models.admin;
 
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.universal.City;

@@ -11,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -54,7 +55,8 @@ public class CustomerController {
     }
 
     @PostMapping("/customer")
-    public String saveCustomer(@Valid @ModelAttribute("customer")Customer customer, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic, Model model){
+    public String saveCustomer(@Valid @ModelAttribute("customer")Customer customer, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
+                               Model model, RedirectAttributes ra){
         if(result.hasErrors()){
             model.addAttribute("provinces", customerService.getAllProvinces());
             return "/admin/add-customer";
@@ -94,6 +96,9 @@ public class CustomerController {
         customer.setRegistrationNo(registrationNo);
         System.out.println("customer: "+customer);
         customerService.saveCustomer(customer);
+
+        ra.addFlashAttribute("savecustomer", customer);
+
         return "redirect:/admin/customer";
     }
 }
