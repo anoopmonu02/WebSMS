@@ -5,16 +5,20 @@ import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Province;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
+@Data
+@Entity
 public class School {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    //@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Customer name must not contain special characters")
     @NotBlank(message = "School name should not blank")
     @Size(max = 200, message = "School name should not exceed 200 chars")
     @Column(unique = true)

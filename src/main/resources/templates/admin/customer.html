@@ -18,10 +18,10 @@
             <th>#</th>
             <th>Customer Name</th>
             <th>Regis. Date</th>
-            <th>Regis. #</th>
+            <!--<th>Regis. #</th>-->
             <th>Email</th>
             <th>Phone-1</th>
-            <th>Address</th>
+            <!--<th>Address</th>-->
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -32,10 +32,10 @@
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${customer.name}"></td>
             <td th:text="${#dates.format(customer.registrationDate, 'dd-MMM-yyyy')}"></td>
-            <td th:text="${customer.registrationNo}"></td>
+            <!--<td th:text="${customer.registrationNo}"></td>-->
             <td th:text="${customer.email}"></td>
             <td th:text="${customer.mobile1}"></td>
-            <td th:text="${customer.address}"></td>
+            <!--<td th:text="${customer.address}"></td>-->
             <td th:text="${customer.status}"></td>
             <td style="white-space: nowrap" class="text-center">
               <a class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">

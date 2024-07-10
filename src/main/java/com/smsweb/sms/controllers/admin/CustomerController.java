@@ -157,7 +157,7 @@ public class CustomerController {
                 return "/admin/edit-customer";
             }
         } else{
-            customer.setPic(null);
+            //customer.setPic(null);
         }
         customerService.saveCustomer(customer);
 
