@@ -2,6 +2,8 @@ package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.universal.City;
+import com.smsweb.sms.models.universal.Discounthead;
+import com.smsweb.sms.models.universal.Province;
 import com.smsweb.sms.services.admin.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ public class CustomerController {
 
     private final CustomerService customerService;
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+    private static final String PIC_FILENAME_FORMAT_PREFIX = "ddMMyyyyhhmmss";
 
     @Autowired
     public CustomerController(CustomerService customerService){
@@ -61,6 +64,8 @@ public class CustomerController {
             model.addAttribute("provinces", customerService.getAllProvinces());
             return "/admin/add-customer";
         }
+        SimpleDateFormat sf = new SimpleDateFormat(PIC_FILENAME_FORMAT_PREFIX);
+        String registrationNo = sf.format(new Date());
         if(!customerPic.isEmpty()){
             try{
                 System.out.println("==== "+customerPic.getContentType());
@@ -77,7 +82,9 @@ public class CustomerController {
                     return "/admin/add-customer";
                 }
                 File imageFile = new ClassPathResource("static/images").getFile();
-                Path path = Paths.get(imageFile.getAbsolutePath() + File.separator + customerPic.getOriginalFilename());
+                //filename
+                String imageFileName = registrationNo + "_" + customerPic.getOriginalFilename();
+                Path path = Paths.get(imageFile.getAbsolutePath() + File.separator + imageFileName);
                 System.out.println("path: "+path);
                 long l = Files.copy(customerPic.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
                 System.out.println("File Name: "+customerPic.getOriginalFilename()+"  L: "+l);
@@ -86,19 +93,75 @@ public class CustomerController {
                 model.addAttribute("picUploadError", "Could not upload pic: "+e.getLocalizedMessage());
                 model.addAttribute("provinces", customerService.getAllProvinces());
                 e.printStackTrace();
+                ra.addFlashAttribute("imgerror",e.getLocalizedMessage());
                 return "/admin/add-customer";
             }
         } else{
             customer.setPic(null);
         }
-        SimpleDateFormat sf = new SimpleDateFormat("ddMMyyyyhhmmss");
-        String registrationNo = sf.format(new Date());
         customer.setRegistrationNo(registrationNo);
         System.out.println("customer: "+customer);
         customerService.saveCustomer(customer);
 
         ra.addFlashAttribute("savecustomer", customer);
 
+        return "redirect:/admin/customer";
+    }
+
+    @GetMapping("/customer/edit/{id}")
+    public String getEditPage(@PathVariable("id") Long id, Model model){
+        Customer customer = customerService.getCustomerById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid customer Id:" + id));
+        model.addAttribute("customer", customer);
+        model.addAttribute("provinces", customerService.getAllProvinces());
+        return "/admin/edit-customer";
+    }
+
+    @PostMapping("/customer/{id}")
+    public String updateCustomer(@PathVariable("id") Long id, @Valid @ModelAttribute("customer") Customer customer,
+                                 @RequestParam("customerPic")MultipartFile customerPic, BindingResult result, Model model, RedirectAttributes ra){
+        if(result.hasErrors()){
+            model.addAttribute("provinces", customerService.getAllProvinces());
+            return "/admin/edit-customer";
+        }
+        SimpleDateFormat sf = new SimpleDateFormat(PIC_FILENAME_FORMAT_PREFIX);
+        String imageFileNameFormat = sf.format(new Date());
+        if(!customerPic.isEmpty()){
+            try{
+                System.out.println("==== "+customerPic.getContentType());
+                if (!customerPic.getContentType().startsWith("image/")) {
+                    model.addAttribute("provinces", customerService.getAllProvinces());
+                    model.addAttribute("picUploadError", "Only image files are allowed.");
+                    return "/admin/add-customer";
+                }
+
+                // Check file size
+                if (customerPic.getSize() > MAX_FILE_SIZE) {
+                    model.addAttribute("provinces", customerService.getAllProvinces());
+                    model.addAttribute("picUploadError", "File size must be less than 2 MB.");
+                    return "/admin/edit-customer";
+                }
+                File imageFile = new ClassPathResource("static/images").getFile();
+                //filename
+                String imageFileName = imageFileNameFormat + "_" + customerPic.getOriginalFilename();
+                Path path = Paths.get(imageFile.getAbsolutePath() + File.separator + imageFileName);
+                System.out.println("path: "+path);
+                long l = Files.copy(customerPic.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("File Name: "+customerPic.getOriginalFilename()+"  L: "+l);
+                customer.setPic(customerPic.getOriginalFilename());
+            }catch(Exception e){
+                model.addAttribute("picUploadError", "Could not upload pic: "+e.getLocalizedMessage());
+                model.addAttribute("provinces", customerService.getAllProvinces());
+                e.printStackTrace();
+                ra.addFlashAttribute("imgerror",e.getLocalizedMessage());
+                return "/admin/edit-customer";
+            }
+        } else{
+            customer.setPic(null);
+        }
+        customerService.saveCustomer(customer);
+
+        ra.addFlashAttribute("update-customer", customer);
         return "redirect:/admin/customer";
     }
 }
