@@ -16,6 +16,7 @@
           <thead>
           <tr>
             <th>#</th>
+            <th>Customer</th>
             <th>School Name</th>
             <th>Board</th>
             <!--<th>Regis. #</th>-->
@@ -30,6 +31,7 @@
 
           <tr th:each="school,iterStat : ${schools}">
             <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${school.customer.name}"></td>
             <td th:text="${school.schoolName}"></td>
             <td th:text="${school.board}"></td>
             <!--<td th:text="${customer.registrationNo}"></td>-->

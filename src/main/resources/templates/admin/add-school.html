@@ -13,9 +13,20 @@
 
     <form th:action="@{/admin/school}" th:object="${school}" method="post" enctype="multipart/form-data">
       <div class="row g-2">
+
         <div class="col-md-7">
-          <label for="customer_name" class="form-label">School Name</label>
-          <input type="text" class="form-control" id="customer_name" name="customer_name" th:field="*{schoolName}" />
+          <label for="customer" class="form-label">Customer</label>
+          <select id="customer" th:field="*{customer}" class="form-select" name="customer">
+            <option value="">Select Customer</option>
+            <option th:each="cust : ${customer}" th:value="${cust.id}" th:text="${cust.name}"
+                    th:selected="${cust} == ${school.customer}">Customer</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('customer')}" th:errors="*{customer}">customer Error</p>
+        </div>
+
+        <div class="col-md-7">
+          <label for="schoolName" class="form-label">School Name</label>
+          <input type="text" class="form-control" id="schoolName" name="schoolName" th:field="*{schoolName}" />
           <p class="text-danger" th:if="${#fields.hasErrors('schoolName')}" th:errors="*{schoolName}">Name Error</p>
         </div>
         <div class="col-md-4">
@@ -129,12 +140,12 @@
           <p class="text-danger" th:if="${#fields.hasErrors('logo1')}" th:errors="*{logo1}">logo Error</p>
           <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
         </div>
-        <div class="col-md-4">
+        <!--<div class="col-md-4">
           <label for="customerPic" class="form-label">Logo-2</label>
           <input type="file" class="form-control" id="customerPic1" name="customerPic1">
           <p class="text-danger" th:if="${#fields.hasErrors('logo2')}" th:errors="*{logo2}">logo Error</p>
-          <!--<p class="text-danger" th:if="${picUploadError1}" th:text="${picUploadError1}"/>-->
-        </div>
+          &lt;!&ndash;<p class="text-danger" th:if="${picUploadError1}" th:text="${picUploadError1}"/>&ndash;&gt;
+        </div>-->
         <div class="col-md-2">
           &nbsp;
         </div>
