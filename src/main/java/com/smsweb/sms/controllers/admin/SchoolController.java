@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +32,7 @@ public class SchoolController {
     private final SchoolService schoolService;
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
-    private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/images/school/").getFile().getAbsolutePath();
+    private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
     @Autowired
     public SchoolController(SchoolService schoolService) throws IOException {
         this.schoolService = schoolService;
@@ -106,27 +105,28 @@ public class SchoolController {
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School" + school.getSchoolName() + " saved successfully";
             redirectAttribute.addFlashAttribute("success", msg);
+            return "redirect:/admin/school";
         }catch(FileFormatException ffe){
             redirectAttribute.addFlashAttribute("error", ffe.getMessage());
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
             ffe.printStackTrace();
-            return "/admin/add-customer";
+            return "/admin/add-school";
         } catch(FileSizeLimitExceededException ffle){
-            redirectAttribute.addFlashAttribute("error", ffle.getMessage());
+            //redirectAttribute.addFlashAttribute("error", ffle.getMessage());
+            model.addAttribute("error", ffle.getMessage());
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
             ffle.printStackTrace();
-            return "/admin/add-customer";
+            return "/admin/add-school";
         }
         catch(Exception ex){
             redirectAttribute.addFlashAttribute("error", "Error in saving school!");
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
             ex.printStackTrace();
-            return "/admin/add-customer";
+            return "/admin/add-school";
         }
-        return "redirect:/admin/school";
     }
 
     private boolean checkValidFileType(MultipartFile logo, Model model){

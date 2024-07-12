@@ -10,6 +10,10 @@
   <div class="offset-2 mt-2 gy-5 mb-5">
     <div class="card-header fs-3">School Form</div>
     <hr/>
+    <p class="text-success">${success}</p>
+    <p class="text-danger">${error}</p>
+    <div th:if="${error}" class="text-danger" th:text="${error}"></div>
+    <div th:if="${success}" class="text-success" th:text="${success}"></div>
 
     <form th:action="@{/admin/school}" th:object="${school}" method="post" enctype="multipart/form-data">
       <div class="row g-2">
@@ -170,7 +174,8 @@
   </div>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function() {
@@ -217,6 +222,18 @@
         loadCities(initialSelectedState, initialSelectedNewCity);
       }
     });
+
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      toastr.success(successMessage);
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      toastr.error(errorMessage);
+    }
 
   </script>
 

@@ -50,21 +50,22 @@ public class SchoolService {
     }
 
     @Transactional
-    public void saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+    public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
         String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "school");
         if(imageResponse!=null && imageResponse.equalsIgnoreCase("success")){
             try{
                 school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
                 school.setSchoolCode("SC-"+fileNameOrSchoolCode);
-                schoolRepository.save(school);
+                return schoolRepository.save(school);
             }catch(Exception e){
                 throw new ObjectNotSaveException("Failed to save school", e);
             }
         } else if(imageResponse.equalsIgnoreCase("fail")){
             throw new FileFormatException("Fail to save logo");
-        } else if(imageResponse.equalsIgnoreCase("Either image format or size exceeded 2MB.")){
-            throw new FileSizeLimitExceededException("Either image format or size exceeded 2MB.");
+        } else if(imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
+            throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
         }
+        return null;
     }
 
     public void deleteSchool(Long id){

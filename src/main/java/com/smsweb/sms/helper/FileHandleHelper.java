@@ -16,8 +16,8 @@ import java.util.Date;
 public class FileHandleHelper {
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private final String FILE_NAME_FORMAT_PREFIX = "ddMMyyyyhhmmss";
-    private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/images/school/").getFile().getAbsolutePath();
-    private final String STUDENT_IMG_FOLDER_PATH = new ClassPathResource("static/images/student/").getFile().getAbsolutePath();
+    private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
+    private final String STUDENT_IMG_FOLDER_PATH = new ClassPathResource("static/students/").getFile().getAbsolutePath();
     public FileHandleHelper() throws IOException
     {
     }
