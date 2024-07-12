@@ -41,6 +41,8 @@ public class FileHandleHelper {
                 } else{
                     fileName = "Either image format not supported or size exceeded 2MB.";
                 }
+            } else{
+                fileName = "Success_no_image";
             }
         }catch(Exception ex){
             ex.printStackTrace();

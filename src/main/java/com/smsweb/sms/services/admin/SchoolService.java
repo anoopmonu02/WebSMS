@@ -3,6 +3,7 @@ package com.smsweb.sms.services.admin;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
@@ -14,6 +15,7 @@ import com.smsweb.sms.repositories.universal.CityRepository;
 import com.smsweb.sms.repositories.universal.ProvinceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,11 +54,15 @@ public class SchoolService {
     @Transactional
     public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
         String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "school");
-        if(imageResponse!=null && imageResponse.equalsIgnoreCase("success")){
+        if(imageResponse!=null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))){
             try{
-                school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
+                if(!imageResponse.equalsIgnoreCase("Success_no_image")){
+                    school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
+                }
                 school.setSchoolCode("SC-"+fileNameOrSchoolCode);
                 return schoolRepository.save(school);
+            }catch (DataIntegrityViolationException ed) {
+                throw new UniqueConstraintsException("School Name: "+school.getSchoolName()+" already exists.", ed);
             }catch(Exception e){
                 throw new ObjectNotSaveException("Failed to save school", e);
             }

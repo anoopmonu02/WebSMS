@@ -3,6 +3,7 @@ package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.services.admin.SchoolService;
@@ -72,58 +73,33 @@ public class SchoolController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            /*if(!customerPic.isEmpty()){
-                boolean isGoingForward = checkValidFileType(customerPic, model);
-                System.out.println("isGoingForward---- "+isGoingForward);
-                if(!isGoingForward){
-                    System.out.println("MODEL: "+model.getAttribute("picUploadError"));
-                    //updated model found then will add redirect attribute
-                    return "/admin/add-customer";
-                }
-                if(isGoingForward){
-                    boolean isLogoSaved = saveLogoFile(fileNameOrSchoolCode, customerPic.getOriginalFilename(), customerPic, "school");
-                    if(isLogoSaved){
-                        school.setLogo1(customerPic.getOriginalFilename());
-                    } else{
-                        System.out.println("isLogoSaved -------- "+isLogoSaved);
-                        model.addAttribute("provinces", schoolService.getAllProvinces());
-                        model.addAttribute("customer", schoolService.getAllCustomers());
-                        redirectAttribute.addFlashAttribute("logo-save", "Unable to save logo");
-                        return "/admin/add-customer";
-                    }
-                }
-            } else{
-                school.setLogo1(null);
-            }
-            school.setSchoolCode(fileNameOrSchoolCode);
-            System.out.println("school: "+school);
-            schoolService.saveSchool(school);
-
-            redirectAttribute.addFlashAttribute("save-school", school);
-
-            return "redirect:/admin/school";*/
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
-            String msg = "School" + school.getSchoolName() + " saved successfully";
+            String msg = "School " + school.getSchoolName() + " saved successfully";
             redirectAttribute.addFlashAttribute("success", msg);
             return "redirect:/admin/school";
         }catch(FileFormatException ffe){
-            redirectAttribute.addFlashAttribute("error", ffe.getMessage());
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
+            model.addAttribute("error", ffe.getMessage());
             ffe.printStackTrace();
             return "/admin/add-school";
         } catch(FileSizeLimitExceededException ffle){
-            //redirectAttribute.addFlashAttribute("error", ffle.getMessage());
             model.addAttribute("error", ffle.getMessage());
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
             ffle.printStackTrace();
             return "/admin/add-school";
-        }
-        catch(Exception ex){
+        } catch(UniqueConstraintsException ue){
+            model.addAttribute("error", ue.getMessage());
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            ue.printStackTrace();
+            return "/admin/add-school";
+        } catch(Exception ex){
             redirectAttribute.addFlashAttribute("error", "Error in saving school!");
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
+            model.addAttribute("error", ex.getMessage());
             ex.printStackTrace();
             return "/admin/add-school";
         }

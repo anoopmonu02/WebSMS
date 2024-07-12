@@ -10,10 +10,6 @@
   <div class="offset-2 mt-2 gy-5 mb-5">
     <div class="card-header fs-3">School Form</div>
     <hr/>
-    <p class="text-success">${success}</p>
-    <p class="text-danger">${error}</p>
-    <div th:if="${error}" class="text-danger" th:text="${error}"></div>
-    <div th:if="${success}" class="text-success" th:text="${success}"></div>
 
     <form th:action="@{/admin/school}" th:object="${school}" method="post" enctype="multipart/form-data">
       <div class="row g-2">
@@ -226,13 +222,49 @@
     // Display success message
     const successMessage = [[${success}]];
     if (successMessage) {
-      toastr.success(successMessage);
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
     }
 
     // Display error message
     const errorMessage = [[${error}]];
     if (errorMessage) {
-      toastr.error(errorMessage);
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
     }
 
   </script>
