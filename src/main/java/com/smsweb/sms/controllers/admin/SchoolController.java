@@ -4,6 +4,7 @@ package com.smsweb.sms.controllers.admin;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
+import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.services.admin.SchoolService;
@@ -25,6 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin")
@@ -105,53 +107,67 @@ public class SchoolController {
         }
     }
 
-    private boolean checkValidFileType(MultipartFile logo, Model model){
-        boolean flag = true;
-        try{
-            if(!logo.getContentType().startsWith("image/")){
-                model.addAttribute("provinces", schoolService.getAllProvinces());
-                model.addAttribute("customer", schoolService.getAllCustomers());
-                model.addAttribute("picUploadError", "Only image files are allowed.");
-                return false;
-            }
-            // Check file size
-            if (logo.getSize() > MAX_FILE_SIZE) {
-                model.addAttribute("provinces", schoolService.getAllProvinces());
-                model.addAttribute("customer", schoolService.getAllCustomers());
-                model.addAttribute("picUploadError", "File size must be less than 2 MB.");
-                return false;
-            }
-        }catch(Exception e){
-            e.printStackTrace();
-            model.addAttribute("provinces", schoolService.getAllProvinces());
-            model.addAttribute("customer", schoolService.getAllCustomers());
-            model.addAttribute("picUploadError", "Could not upload logo: "+e.getLocalizedMessage());
-            flag = false;
-        }
-        return flag;
+    @GetMapping("/school/edit/{id}")
+    public String getEditPage(@PathVariable("id") Long id, Model model){
+        School school = schoolService.getSchoolById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid School Id:" + id));
+        model.addAttribute("school", school);
+        model.addAttribute("provinces", schoolService.getAllProvinces());
+        model.addAttribute("customer", schoolService.getAllCustomers());
+        return "/admin/edit-school";
     }
 
-    private boolean saveLogoFile(String fileName, String originalFileName, MultipartFile logo, String directoryName){
-        boolean flag = true;
-        try{
-            Path categoryPath = Paths.get("./images/", directoryName);
-            String imageFileName = fileName + "_" + originalFileName;
-            // Create directories if they don't exist
-            if (!Files.exists(categoryPath)) {
-                Files.createDirectories(categoryPath);
-            }
-
-            // Construct the file path
-            Path filePath = categoryPath.resolve(imageFileName);
-
-            // Save the file
-            Files.copy(logo.getInputStream(), filePath,  StandardCopyOption.REPLACE_EXISTING);
-
-        }catch(Exception e){
-            e.printStackTrace();
-            flag = false;
+    @PostMapping("/school/{id}")
+    public String updateSchool(@PathVariable("id") Long id, @Valid @ModelAttribute("school")School school, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
+                               Model model, RedirectAttributes redirectAttribute){
+        System.out.println("inside method");
+        if(result.hasErrors()){
+            //school.setId(id);
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            return "/admin/edit-school";
         }
-        return flag;
+        SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
+        String fileNameOrSchoolCode = sf.format(new Date());
+        try{
+            schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
+            String msg = "School " + school.getSchoolName() + " updated successfully";
+            redirectAttribute.addFlashAttribute("success", msg);
+            return "redirect:/admin/school";
+        }catch(FileFormatException ffe){
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            model.addAttribute("error", ffe.getMessage());
+            ffe.printStackTrace();
+            return "/admin/edit-school";
+        } catch(FileSizeLimitExceededException ffle){
+            model.addAttribute("error", ffle.getMessage());
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            ffle.printStackTrace();
+            return "/admin/edit-school";
+        } catch(UniqueConstraintsException ue){
+            model.addAttribute("error", ue.getMessage());
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            ue.printStackTrace();
+            return "/admin/edit-school";
+        } catch(Exception ex){
+            redirectAttribute.addFlashAttribute("error", "Error in updating school!");
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            model.addAttribute("error", ex.getMessage());
+            ex.printStackTrace();
+            return "/admin/edit-school";
+        }
+    }
+    @GetMapping("/school/show/{id}")
+    public String showSchoolForm(@PathVariable("id")Long id, Model model){
+        Optional<School> school = schoolService.getSchoolById(id);
+        model.addAttribute("provinces", schoolService.getAllProvinces());
+        model.addAttribute("customer", schoolService.getAllCustomers());
+        model.addAttribute("school", school.get());
+        return "admin/show-school";
     }
 
 }

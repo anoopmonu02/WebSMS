@@ -33,7 +33,10 @@
           <tr th:each="school,iterStat : ${schools}">
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${school.customer.name}"></td>
-            <td th:text="${school.schoolName}"></td>
+            <!--<td th:text="${school.schoolName}"></td>-->
+            <td>
+              <a th:href="@{/admin/school/show/{id}(id=${school.id})}" th:text="${school.schoolName}"></a>
+            </td>
             <td th:text="${school.board}"></td>
             <!--<td th:text="${customer.registrationNo}"></td>-->
             <td th:text="${school.email}"></td>

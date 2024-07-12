@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section class="container">
+  <div class="offset-2 mt-2 gy-5 mb-5">
+    <div class="card-header fs-3">School Detail</div>
+    <hr/>
+
+
+      <div class="row g-2">
+
+        <div class="col-md-7">
+          <label for="customer" class="form-label">Customer</label>
+          <input type="text" id="customer" readonly class="form-control" th:field="*{school.customer.name}" />
+          <!--<select id="customer" th:field="*{customer}" class="form-select" name="customer">
+            <option value="">Select Customer</option>
+            <option th:each="cust : ${customer}" th:value="${cust.id}" th:text="${cust.name}"
+                    th:selected="${cust} == ${school.customer}">Customer</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('customer')}" th:errors="*{customer}">customer Error</p>-->
+        </div>
+
+        <div class="col-md-7">
+          <label for="schoolName" class="form-label">School Name</label>
+          <input type="text" readonly class="form-control" id="schoolName" name="schoolName" th:field="*{school.schoolName}" />
+        </div>
+        <div class="col-md-4">
+          &nbsp;<label for="board" class="form-label">Board</label>
+           <input type="text" readonly class="form-control" id="board" name="board" th:field="*{school.board}" />
+        </div>
+
+        <div class="col-md-7">
+          <label for="address" class="form-label">Address</label>
+          <div class="form-floating">
+            <textarea id="address" placeholder="Add address here" readonly class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{school.address}"></textarea>
+            <label for="address">Add Address</label>
+          </div>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-5">
+          <label for="province" class="form-label">Province</label>
+          <input type="text" readonly class="form-control" id="province" name="province" th:field="*{school.province.provinceName}" />
+        </div>
+
+        <div class="col-md-5">
+          <label for="city" class="form-label">City</label>
+          <input type="text" readonly class="form-control" id="city" name="city" th:field="*{school.city.cityName}" />
+        </div>
+
+
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-2">
+          <label for="pincode" class="form-label">Pincode</label>
+          <input type="text"  readonly class="form-control" id="pincode" th:field="*{school.pincode}"/>
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="mobile1" class="form-label">Mobile-1</label>
+          <input type="text" readonly class="form-control" id="mobile1" th:field="*{school.mobile1}">
+        </div>
+        <div class="col-md-4">
+          <label for="mobile2" class="form-label">Mobile-2</label>
+          <input type="text" readonly class="form-control" id="mobile2" th:field="*{school.mobile2}">
+        </div>
+        <div class="col-md-3">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="email" class="form-label">Email</label>
+          <input type="text" readonly class="form-control" id="email" th:field="*{school.email}">
+        </div>
+        <div class="col-md-7">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="website" class="form-label">Website</label>
+          <input type="text" readonly class="form-control" id="website" th:field="*{school.website}">
+        </div>
+        <div class="col-md-7">
+          &nbsp;
+        </div>
+        <div class="col-md-7">
+          <label for="contact_person_name" class="form-label">Contact Person Name</label>
+          <input type="text" readonly class="form-control" id="contact_person_name" name="contactPersonName" th:field="*{school.contactPersonName}" />
+        </div>
+        <div class="col-md-4">
+          <label for="contactPersonMobile" class="form-label">Contact Person Mobile</label>
+          <input type="text" readonly class="form-control" id="contactPersonMobile" th:field="*{school.contactPersonMobile}">
+        </div>
+
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" readonly class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{school.description}"></textarea>
+            <label for="address">Add Description Here</label>
+          </div>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <div th:if="${school.logo1!=null}">
+            <img th:src="@{'/school/'+ *{school.logo1}}" width="100px" height="140px"/>&nbsp;
+          </div>
+          <div th:if="not ${school.logo1!=null}">
+            &nbsp;
+          </div>
+        </div>
+        <!--<div class="col-md-4">
+          <label for="customerPic" class="form-label">Logo-2</label>
+          <input type="file" class="form-control" id="customerPic1" name="customerPic1">
+          <p class="text-danger" th:if="${#fields.hasErrors('logo2')}" th:errors="*{logo2}">logo Error</p>
+          &lt;!&ndash;<p class="text-danger" th:if="${picUploadError1}" th:text="${picUploadError1}"/>&ndash;&gt;
+        </div>-->
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-7 mb=5">
+          &nbsp;
+        </div>
+        <hr/>
+        <div class="col-md-4 mb-5">
+          <a class="btn btn-info" href="/admin/school"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+      </div>
+
+
+
+
+
+
+  </div>
+
+</section>
+</body>
+</html>

@@ -53,13 +53,23 @@ public class SchoolService {
 
     @Transactional
     public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+        School existingSchool=null;
         String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "school");
         if(imageResponse!=null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))){
             try{
                 if(!imageResponse.equalsIgnoreCase("Success_no_image")){
                     school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
+                } else{
+                    // if school is going to update without new logo selection happen
+                    if(imageResponse.equalsIgnoreCase("Success_no_image")){
+                        existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
+                        school.setLogo1(existingSchool.getLogo1());
+                    }
                 }
                 school.setSchoolCode("SC-"+fileNameOrSchoolCode);
+                if(existingSchool!=null && existingSchool.getSchoolCode().length()>0){
+                    school.setSchoolCode(existingSchool.getSchoolCode());
+                }
                 return schoolRepository.save(school);
             }catch (DataIntegrityViolationException ed) {
                 throw new UniqueConstraintsException("School Name: "+school.getSchoolName()+" already exists.", ed);

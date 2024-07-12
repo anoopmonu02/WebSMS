@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section class="container">
+  <div class="offset-2 mt-2 gy-5 mb-5">
+    <div class="card-header fs-3">Edit School</div>
+    <hr/>
+
+    <form th:action="@{/admin/school/{id}(id=${school.id})}" th:object="${school}" method="post" enctype="multipart/form-data">
+      <div class="row g-2">
+
+        <div class="col-md-7">
+          <label for="customer" class="form-label">Customer</label>
+          <select id="customer" th:field="*{customer}" class="form-select" name="customer">
+            <option value="">Select Customer</option>
+            <option th:each="cust : ${customer}" th:value="${cust.id}" th:text="${cust.name}"
+                    th:selected="${cust} == ${school.customer}">Customer</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('customer')}" th:errors="*{customer}">customer Error</p>
+        </div>
+
+        <div class="col-md-7">
+          <label for="schoolName" class="form-label">School Name</label>
+          <input type="text" class="form-control" id="schoolName" name="schoolName" th:field="*{schoolName}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('schoolName')}" th:errors="*{schoolName}">Name Error</p>
+        </div>
+        <div class="col-md-4">
+          &nbsp;<label for="board" class="form-label">Board</label>
+          <input type="text" class="form-control" id="board" name="board" th:field="*{board}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('board')}" th:errors="*{board}">Board Error</p>
+        </div>
+
+        <div class="col-md-7">
+          <label for="address" class="form-label">Address</label>
+          <div class="form-floating">
+            <textarea id="address" placeholder="Add address here" class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{address}"></textarea>
+            <label for="address">Add Address</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}">Address Error</p>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-5">
+          <label for="province" class="form-label">Province</label>
+          <select id="province" th:field="*{province}" class="form-select" name="province">
+            <option value="">Select State</option>
+            <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"
+                    th:selected="${province} == ${school.province}">State</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('province')}" th:errors="*{province}">Province Error</p>
+        </div>
+
+        <div class="col-md-5">
+          <label for="city" class="form-label">City</label>
+          <input type="hidden" th:value="${school.city != null ? school.city.id : ''}" id="hiddencity">
+          <select id="city" class="form-select" name="city" th:field="*{city}">
+            <option value="">Select City</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('city')}" th:errors="*{city}">City Error</p>
+        </div>
+
+
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-2">
+          <label for="pincode" class="form-label">Pincode</label>
+          <input type="text" class="form-control" id="pincode" th:field="*{pincode}"/>
+          <p class="text-danger" th:if="${#fields.hasErrors('pincode')}" th:errors="*{pincode}">pincode Error</p>
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="mobile1" class="form-label">Mobile-1</label>
+          <input type="text" class="form-control" id="mobile1" th:field="*{mobile1}">
+          <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">mobile1 Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="mobile2" class="form-label">Mobile-2</label>
+          <input type="text" class="form-control" id="mobile2" th:field="*{mobile2}">
+          <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">mobile2 Error</p>
+        </div>
+        <div class="col-md-3">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="email" class="form-label">Email</label>
+          <input type="text" class="form-control" id="email" th:field="*{email}">
+          <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Name Error</p>
+        </div>
+        <div class="col-md-7">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="website" class="form-label">Website</label>
+          <input type="text" class="form-control" id="website" th:field="*{website}">
+        </div>
+        <div class="col-md-7">
+          &nbsp;
+        </div>
+        <div class="col-md-7">
+          <label for="contact_person_name" class="form-label">Contact Person Name</label>
+          <input type="text" class="form-control" id="contact_person_name" name="contactPersonName" th:field="*{contactPersonName}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('contactPersonName')}" th:errors="*{contactPersonName}">Name Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="contactPersonMobile" class="form-label">Contact Person Mobile</label>
+          <input type="text" class="form-control" id="contactPersonMobile" th:field="*{contactPersonMobile}">
+          <p class="text-danger" th:if="${#fields.hasErrors('contactPersonMobile')}" th:errors="*{contactPersonMobile}">mobile2 Error</p>
+        </div>
+
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+            <label for="address">Add Description Here</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="customerPic" class="form-label">Logo-1</label>
+          <input type="file" class="form-control" id="customerPic" name="customerPic">
+          <p class="text-danger" th:if="${#fields.hasErrors('logo1')}" th:errors="*{logo1}">logo Error</p>
+          <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
+        </div>
+        <!--<div class="col-md-4">
+          <label for="customerPic" class="form-label">Logo-2</label>
+          <input type="file" class="form-control" id="customerPic1" name="customerPic1">
+          <p class="text-danger" th:if="${#fields.hasErrors('logo2')}" th:errors="*{logo2}">logo Error</p>
+          &lt;!&ndash;<p class="text-danger" th:if="${picUploadError1}" th:text="${picUploadError1}"/>&ndash;&gt;
+        </div>-->
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+        <div class="col-md-7 mb=5">
+          &nbsp;
+        </div>
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/admin/school"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Update</button>
+        </div>
+      </div>
+    </form>
+
+
+
+
+
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    $(document).ready(function() {
+      function loadCities(state, selectedCity) {
+        if (state) {
+          $.ajax({
+            type: 'GET',
+            url: '/admin/school/cities',
+            data: { provinceId: state },
+            success: function(cities) {
+              console.log("cities: "+cities);
+              let $citySelect = $('#city');
+              $citySelect.empty();
+              $citySelect.append('<option value="">Select City</option>');
+              $.each(cities, function(index, city) {
+                $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
+              });
+              console.log("selectedCity "+selectedCity);
+              // Set the previously selected city
+              if (selectedCity) {
+                $citySelect.val(selectedCity);
+              }
+            }
+          });
+        }
+      }
+
+      $('#province').change(function() {
+        let selectedState = $(this).val();
+        //let selectedCity = /*[[${school.city}]]*/ '';
+        loadCities(selectedState);
+      });
+
+      // Trigger change to load cities if a state is already selected
+      let initialSelectedState = $('#province').val();
+      let initialSelectedNewCity = $('#hiddencity').val();
+      /*<![CDATA[*/
+      let initialSelectedCity = [[${school}]] ? '[[${school.city}]]' : '';
+      /*]]>*/
+      console.log("initialSelectedState:> "+initialSelectedState);
+      console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
+      console.log("initial:> "+initialSelectedCity);
+      if (initialSelectedState) {
+        loadCities(initialSelectedState, initialSelectedNewCity);
+      }
+    });
+
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+  </script>
+
+
+</section
+>
+</body>
+</html>
