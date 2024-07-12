@@ -1,5 +1,9 @@
 package com.smsweb.sms.services.admin;
 
+import com.smsweb.sms.exceptions.FileFormatException;
+import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
@@ -46,11 +50,21 @@ public class SchoolService {
     }
 
     @Transactional
-    public void saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode){
-
-        school.setLogo1("");
-        school.setSchoolCode("SC-"+fileNameOrSchoolCode);
-        schoolRepository.save(school);
+    public void saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+        String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "school");
+        if(imageResponse!=null && imageResponse.equalsIgnoreCase("success")){
+            try{
+                school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
+                school.setSchoolCode("SC-"+fileNameOrSchoolCode);
+                schoolRepository.save(school);
+            }catch(Exception e){
+                throw new ObjectNotSaveException("Failed to save school", e);
+            }
+        } else if(imageResponse.equalsIgnoreCase("fail")){
+            throw new FileFormatException("Fail to save logo");
+        } else if(imageResponse.equalsIgnoreCase("Either image format or size exceeded 2MB.")){
+            throw new FileSizeLimitExceededException("Either image format or size exceeded 2MB.");
+        }
     }
 
     public void deleteSchool(Long id){

@@ -1,6 +1,8 @@
 package com.smsweb.sms.controllers.admin;
 
 
+import com.smsweb.sms.exceptions.FileFormatException;
+import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.services.admin.SchoolService;
@@ -103,10 +105,22 @@ public class SchoolController {
             return "redirect:/admin/school";*/
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School" + school.getSchoolName() + " saved successfully";
-            redirectAttribute.addFlashAttribute("success-message", msg);
-
-        }catch(Exception ex){
-            redirectAttribute.addFlashAttribute("error-message", "Error in saving school!");
+            redirectAttribute.addFlashAttribute("success", msg);
+        }catch(FileFormatException ffe){
+            redirectAttribute.addFlashAttribute("error", ffe.getMessage());
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            ffe.printStackTrace();
+            return "/admin/add-customer";
+        } catch(FileSizeLimitExceededException ffle){
+            redirectAttribute.addFlashAttribute("error", ffle.getMessage());
+            model.addAttribute("provinces", schoolService.getAllProvinces());
+            model.addAttribute("customer", schoolService.getAllCustomers());
+            ffle.printStackTrace();
+            return "/admin/add-customer";
+        }
+        catch(Exception ex){
+            redirectAttribute.addFlashAttribute("error", "Error in saving school!");
             model.addAttribute("provinces", schoolService.getAllProvinces());
             model.addAttribute("customer", schoolService.getAllCustomers());
             ex.printStackTrace();

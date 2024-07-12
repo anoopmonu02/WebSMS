@@ -1,7 +1,5 @@
 package com.smsweb.sms.helper;
 
-import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
-import org.springframework.boot.autoconfigure.task.TaskSchedulingProperties;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +38,8 @@ public class FileHandleHelper {
                         long l = Files.copy(logo.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
                         fileName = "Success";
                     }
+                } else{
+                    fileName = "Either image format not supported or size exceeded 2MB.";
                 }
             }
         }catch(Exception ex){
