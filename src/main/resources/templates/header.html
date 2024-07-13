@@ -23,6 +23,7 @@
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="/universal/feehead"><i class="bi bi-patch-plus"></i> Fee head</a></li>
             <li><a class="dropdown-item" href="/universal/discounthead"><i class="bi bi-patch-plus"></i> Discount head</a></li>
+            <li><a class="dropdown-item" th:href="@{'/universal/finehead'}"><i class="bi bi-patch-plus"></i> Fine head</a></li>
             <li><hr class="dropdown-divider"></li>
           </ul>
         </li>
@@ -31,10 +32,20 @@
             <i class="bi bi-gear"></i> Global Settings
           </a>
           <ul class="dropdown-menu dropdown-menu-dark">
-            <li><a class="dropdown-item" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill"></i> Add Customer</a></li>
-            <li><a class="dropdown-item" th:href="@{'/admin/school'}"><i class="bi bi-building-add"></i> Add School</a></li>
-            <li><a class="dropdown-item" href="/universal/section">User</a></li>
-            <li><a class="dropdown-item" href="/universal/category">Role</a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill"></i> Customer </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/school'}"><i class="bi bi-building-add"></i> School </a></li>
+            <li><a class="dropdown-item" href="/universal/section"><i class="bi bi-person-circle"></i> User </a></li>
+            <li><a class="dropdown-item" href="/universal/category"><i class="bi bi-ui-checks"></i> Role </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range"></i> Academic Year </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3"></i> Fee Date </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/monthmapping'}"><i class="bi bi-border-style"></i> Month Mapping </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill"></i> Fine </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-diagram-3-fill"></i> Fee-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-diagram-3-fill"></i> Fee-Month Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-diagram-3-fill"></i> Discount-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-diagram-3-fill"></i> Discount-Month Map </a></li>
             <li><hr class="dropdown-divider"></li>
           </ul>
         </li>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Finehead</title>
+</head>
+<body>
+
+<section>
+  <div class="container">
+    <div class="row mt-2 ">
+
+      <div class="col-md-6 offset-md-2">
+        <div class="card-header fs-3">Finehead Form</div>
+        <hr/>
+        <div class="form pt-3">
+          <form th:action="@{/universal/finehead}" th:object="${finehead}" method="post">
+            <div class="mb-3">
+              <label for="feehead_name" class="form-label">Finehead Name</label>
+              <input type="text" class="form-control" id="feehead_name" placeholder="Late Fee" name="feehead_name" th:field="*{fineHeadName}" />
+              <p class="text-danger" th:if="${#fields.hasErrors('fineHeadName')}" th:errors="*{fineHeadName}">Name Error</p>
+            </div>
+            <div class="mb-3">
+              <label for="feehead_des" class="form-label">Description</label>
+              <input type="text" class="form-control" id="feehead_des" name="feehead_des" th:field="*{description}" />
+              <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Name Error</p>
+            </div>
+            <div class="col-12 offset-6">
+              <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="col-md-6  offset-md-2 ">
+        <a class="btn btn-info" href="/universal/finehead"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
+
+

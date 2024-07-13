@@ -23,11 +23,13 @@ public class UniversalController {
     private final CastService castService;
     private final FeeheadService feeheadService;
     private final DiscountService discountService;
+    private final FineheadService fineheadService;
 
 
     @Autowired
     public UniversalController(MediumService mediumService, GradeService gradeService, SectionService sectionService, BankService bankService,
-                               CategoryService categoryService, CastService castService, FeeheadService feeheadService, DiscountService discountService) {
+                               CategoryService categoryService, CastService castService, FeeheadService feeheadService, DiscountService discountService,
+                               FineheadService fineheadService) {
         this.mediumService = mediumService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
@@ -36,6 +38,7 @@ public class UniversalController {
         this.castService = castService;
         this.feeheadService = feeheadService;
         this.discountService = discountService;
+        this.fineheadService = fineheadService;
     }
 
     @GetMapping("/medium")
@@ -391,4 +394,49 @@ public class UniversalController {
     }
 
     /*****************   Discount Head Ends Here  *****************/
+
+    /*****************   Fine Head Starts Here  *****************/
+    @GetMapping("/finehead")
+    public String finehead(Model model){
+        List<Finehead> fineheads = fineheadService.getAllFineHeads();
+        model.addAttribute("fineheads", fineheads);
+        model.addAttribute("hasFineheads", !fineheads.isEmpty());
+        return "universal/finehead";
+    }
+
+    @GetMapping("/finehead/add")
+    public String addFineheadForm(Model model) {
+        model.addAttribute("finehead", new Finehead());
+        return "universal/add-finehead";
+    }
+
+    @PostMapping("/finehead")
+    public String saveFinehead(@Valid @ModelAttribute("finehead") Finehead finehead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            System.out.println(">>>>>>>>>>>"+result);
+            return "universal/add-finehead";
+        }
+        fineheadService.saveFinehead(finehead);
+        return "redirect:/universal/finehead";
+    }
+
+    @GetMapping("/finehead/edit/{id}")
+    public String editFineheadForm(@PathVariable("id") Long id, Model model) {
+        Finehead finehead = fineheadService.getFineheadById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid fine head Id:" + id));
+        model.addAttribute("finehead", finehead);
+        return "universal/edit-finehead";
+    }
+
+    @PostMapping("/finehead/{id}")
+    public String updateFinehead(@PathVariable("id") Long id, @Valid @ModelAttribute("finehead") Finehead finehead, BindingResult result, Model model) {
+        if (result.hasErrors()) {
+            finehead.setId(id);
+            return "universal/edit-finehead";
+        }
+        fineheadService.saveFinehead(finehead);
+        return "redirect:/universal/finehead";
+    }
+
+    /*****************   Fine Head Ends Here  *****************/
 }
