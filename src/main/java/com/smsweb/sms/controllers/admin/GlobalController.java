@@ -2,10 +2,14 @@ package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.Customer;
+import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.Finehead;
+import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.AcademicyearService;
+import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.admin.SchoolService;
+import com.smsweb.sms.services.universal.MonthMasterService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,32 +20,33 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Controller
 @RequestMapping("/admin")
 public class GlobalController {
 
     private final AcademicyearService academicyearService;
+    private final MonthmappingService monthmappingService;
     private final SchoolService schoolService;
+    private final MonthMasterService monthMasterService;
 
-    public GlobalController(AcademicyearService academicyearService, SchoolService schoolService){
+    public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
+        this.monthmappingService = monthmappingService;
+        this.monthMasterService = monthMasterService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
 
     @GetMapping("/academicyear")
     public String academciyear(Model model){
-        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears();
+        //Get data of school when loggedin
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(4L);
         model.addAttribute("academicYears", academicYears);
         model.addAttribute("hasAcademicyears", !academicYears.isEmpty());
         return "admin/academicyear";
@@ -117,6 +122,66 @@ public class GlobalController {
         }
 
         return "redirect:/admin/academicyear";
+    }
+
+    /********************************   Month-Mapping Code starts here   ************************************/
+
+    @GetMapping("/month-mapping")
+    public String getMonthmappings(Model model){
+        //Get data of school and academicyear when loggedin
+        List<MonthMapping> monthmappings = monthmappingService.getAllMonthMapping(14L, 4L);
+        model.addAttribute("monthmappings", monthmappings);
+        model.addAttribute("hasMonthMappings", !monthmappings.isEmpty());
+        return "/admin/monthmapping";
+    }
+
+    @GetMapping("/month-mapping/add")
+    public String getAddMonthMappingForm(Model model){
+        List<MonthMaster> months = monthMasterService.getAllMonths();
+        model.addAttribute("months", months);
+        model.addAttribute("monthMapping", new MonthMapping());
+        model.addAttribute("hasMonths", !months.isEmpty());
+        /*List<Integer> numbers = IntStream.rangeClosed(1, 12).boxed().collect(Collectors.toList());*/
+        //model.addAttribute("numbers", numbers);
+        return "/admin/add-month-mapping";
+    }
+
+
+    @PostMapping("/month-mapping")
+    public String saveMonthMapping(@RequestParam("monthMaster") Long monthMaster, RedirectAttributes redirectAttributes, Model model){
+        System.out.println("id----"+monthMaster);
+        MonthMaster selectedMonth = monthMasterService.getMonthById(monthMaster).get();
+        System.out.println("monthMapping----"+selectedMonth);
+        List<MonthMaster> months = monthMasterService.getAllMonths();
+        try{
+            if(selectedMonth!=null){
+                AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+                School school = schoolService.getSchoolById(4L).get();
+                String msg = monthmappingService.save(selectedMonth, academicYear, school);
+                if(msg.equalsIgnoreCase("success")){
+                    redirectAttributes.addFlashAttribute("success","Month mapping generated for this academic year-"+academicYear.getSessionFormat());
+                }
+                else{
+                    model.addAttribute("months", months);
+                    model.addAttribute("monthMapping", new MonthMapping());
+                    return "/admin/add-month-mapping";
+                }
+            }
+        }catch(RuntimeException re){
+            model.addAttribute("months", months);
+            model.addAttribute("monthMapping", new MonthMapping());
+            model.addAttribute("error","Error in saving: "+re.getMessage());
+            re.printStackTrace();
+            return "/admin/add-month-mapping";
+        }catch(Exception e){
+            model.addAttribute("months", months);
+            model.addAttribute("monthMapping", new MonthMapping());
+            model.addAttribute("error","Error in saving: "+e.getMessage());
+            e.printStackTrace();
+            return "/admin/add-month-mapping";
+        }
+
+        return "redirect:/admin/month-mapping";
     }
 
 }

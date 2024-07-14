@@ -19,8 +19,9 @@ public class AcademicyearService {
         this.academicyearRepository = academicyearRepository;
     }
 
-    public List<AcademicYear> getAllAcademiyears(){
-        return academicyearRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    public List<AcademicYear> getAllAcademiyears(Long schoolid){
+        //return academicyearRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+        return academicyearRepository.findAllBySchoolIdOrderByIdDesc(schoolid);
     }
 
     public Optional<AcademicYear> getAcademicyearById(Long id){

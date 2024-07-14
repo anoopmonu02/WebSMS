@@ -2,6 +2,8 @@ package com.smsweb.sms.models.admin;
 
 import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -24,7 +26,8 @@ public class MonthMapping {
     private MonthMaster monthMaster;
 
     @NotNull(message = "Priority must be set")
-    @Size(min = 1, max = 12, message = "Priority must be in 1-12")
+    @Min(1)
+    @Max(12)
     private int priority;
 
     @ManyToOne

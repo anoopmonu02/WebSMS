@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-11  offset-md-1 ">
+        <div class="card-header fs-3">Month-Mapping List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasMonthMappings}">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Month</th>
+            <th>Priority</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+
+          <tr th:each="monthmap,iterStat : ${monthmappings}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${monthmap.monthMaster.monthName}"></td>
+            <td th:text="${monthmap.priority}"></td>
+            <!--<td style="white-space: nowrap" class="text-center">
+              <a class="btn btn-primary" th:href="@{/admin/monthmap/edit/{id}(id=${monthmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i> </a>
+              <a class="btn btn-danger" th:href="@{/admin/monthmap/delete/{id}(id=${monthmap.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                 data-bs-custom-class="custom-tooltip"
+                 data-bs-title="Delete the school record">
+                <i class="bi bi-journal-x"></i> </a>
+            </td>-->
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasMonthMappings}">
+          <p class="text-center">No Month-Mapping found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/admin/month-mapping/add"
+             th:if="${hasMonthMappings}" onclick="return confirm('Are you sure? Only one time mapping will generated for each academic year. If want to generate again it will automatically remove the existing mapping for current academic year.')">
+            <i class="bi bi-node-plus-fill"></i> Add Month-Mapping</a>
+
+          <a class="btn btn-success" href="/admin/month-mapping/add"
+             th:if="${!hasMonthMappings}"><i class="bi bi-node-plus-fill"></i> Add Month-Mapping</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+  </script>
+</section>
+</body>
+</html>
