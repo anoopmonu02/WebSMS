@@ -1,29 +1,24 @@
 package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.models.admin.AcademicYear;
-import com.smsweb.sms.models.admin.Customer;
+import com.smsweb.sms.models.admin.FeeDate;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
-import com.smsweb.sms.models.universal.Finehead;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.AcademicyearService;
+import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.universal.MonthMasterService;
 import jakarta.validation.Valid;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Controller
 @RequestMapping("/admin")
@@ -33,12 +28,15 @@ public class GlobalController {
     private final MonthmappingService monthmappingService;
     private final SchoolService schoolService;
     private final MonthMasterService monthMasterService;
+    private final FeedateService feedateService;
 
-    public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService){
+    public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
+                            FeedateService feedateService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
         this.monthMasterService = monthMasterService;
+        this.feedateService = feedateService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -182,6 +180,52 @@ public class GlobalController {
         }
 
         return "redirect:/admin/month-mapping";
+    }
+
+    /********************************   Fee Date Code starts here   ************************************/
+
+    @GetMapping("/feedate")
+    public String getFeeDate(Model model){
+        //Get data of school and academicyear when loggedin
+        List<FeeDate> feeDateList = feedateService.getAllFeeDates(14L, 4L);
+        model.addAttribute("feedates", feeDateList);
+        model.addAttribute("isFeeDates", !feeDateList.isEmpty());
+        return "/admin/feedate";
+    }
+
+    @GetMapping("/feedate/add")
+    public String getAddFeeDateForm(Model model){
+        model.addAttribute("feedate", new FeeDate());
+        model.addAttribute("months", monthMasterService.getAllMonths());
+        return "/admin/add-feedate";
+    }
+
+    @PostMapping("/feedate")
+    public String save(@Valid @ModelAttribute("feedate")FeeDate feedate, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        if(result.hasErrors()){
+            model.addAttribute("months", monthMasterService.getAllMonths());
+            model.addAttribute("error", result.getFieldError());
+            return "/admin/add-feedate";
+        }
+        try{
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            feedate.setAcademicYear(academicYear);
+            feedate.setSchool(school);
+            feedateService.save(feedate);
+            redirectAttributes.addFlashAttribute("success","Fee Date saved successfully for: "+feedate.getMonthMaster().getMonthName());
+        }catch(DataIntegrityViolationException de){
+            model.addAttribute("error", "Duplicate entry for "+feedate.getMonthMaster().getMonthName());
+            model.addAttribute("months", monthMasterService.getAllMonths());
+            de.printStackTrace();
+            return "/admin/add-feedate";
+        }catch(Exception e){
+            model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
+            model.addAttribute("months", monthMasterService.getAllMonths());
+            e.printStackTrace();
+            return "/admin/add-feedate";
+        }
+        return "redirect:/admin/feedate";
     }
 
 }

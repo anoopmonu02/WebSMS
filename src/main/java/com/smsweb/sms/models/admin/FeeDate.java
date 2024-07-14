@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
@@ -20,6 +21,7 @@ public class FeeDate {
     private Long id;
 
     @NotNull(message = "Fee date is mandatory")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date feeSubmissiondate;
 
     @ManyToOne

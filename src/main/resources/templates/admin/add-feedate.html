@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Add academic year</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<section class="container">
+  <div class="offset-2 mt-2 gy-5 mb-5">
+    <div class="card-header fs-3">Fee-date Form</div>
+    <hr/>
+
+    <form th:action="@{/admin/feedate}" th:object="${feedate}" method="post" >
+      <div class="row g-2">
+
+        <div class="col-md-7">
+          <label for="school" class="form-label">School</label>
+          <input type="hidden" name="school_id" id="school_id" value="4"/>
+          <input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
+          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>
+        </div>
+        <div class="col-md-4">
+          &nbsp;<input type="text" name="academicYear" id="academicYear" th:field="*{academicYear.sessionFormat}" />
+        </div>
+
+        <div class="col-md-5">
+          <label for="province" class="form-label">Month</label>
+          <select id="province" th:field="*{monthMaster}" class="form-select" name="monthMaster">
+            <option value="">Select Month</option>
+            <option th:each="month : ${months}" th:value="${month.id}" th:text="${month.monthName}"
+                    th:selected="${month} == ${feedate.monthMaster}">Month</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('monthMaster')}" th:errors="*{monthMaster}">Province Error</p>
+        </div>
+        <div class="col-md-6">
+          &nbsp;
+        </div>
+
+
+        <div class="col-md-5">
+          <label for="customer_name" class="form-label">Fee Date</label>
+          <input type="date"  class="form-control" id="customer_name" name="feeSubmissiondate" th:field="*{feeSubmissiondate}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('feeSubmissiondate')}" th:errors="*{feeSubmissiondate}">date Error</p>
+        </div>
+        <div class="col-md-6">
+          &nbsp;
+        </div>
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+            <label for="description">Add Description Here</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/admin/feedate"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+        </div>
+      </div>
+    </form>
+
+
+
+
+
+  </div>
+
+  <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
+  <!--<script src="/js/jquery-3.6.0.min.js" />
+  <script src="/js/toastr.min.js" />-->
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+  </script>
+
+
+</section>
+
+
+</body>
+</html>
+
+
