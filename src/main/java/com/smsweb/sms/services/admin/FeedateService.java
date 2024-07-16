@@ -9,6 +9,7 @@ import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.admin.FeedateRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class FeedateService {
     private final FeedateRepository feedateRepository;
     private final MonthMasterRepository monthMasterRepository;
 
+    @Autowired
     public FeedateService(FeedateRepository feedateRepository, MonthMasterRepository monthMasterRepository){
         this.feedateRepository = feedateRepository;
         this.monthMasterRepository = monthMasterRepository;
@@ -43,7 +45,11 @@ public class FeedateService {
     }
 
     public String delete(Long id){
-        feedateRepository.deleteById(id);
+        try{
+            feedateRepository.deleteById(id);
+        }catch(Exception e){
+            throw new RuntimeException("Error in deletion "+e.getLocalizedMessage());
+        }
         return "success";
     }
 

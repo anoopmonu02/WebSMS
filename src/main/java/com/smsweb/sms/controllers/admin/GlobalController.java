@@ -230,12 +230,19 @@ public class GlobalController {
 
     //@DeleteMapping("/feedate/delete/{id}")
     @RequestMapping(value = "/feedate/delete/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
-    public String deleteFeeDate(@PathVariable("id")Long id, RedirectAttributes redirectAttributes){
-        String returnMsg = feedateService.delete(id);
-        if(returnMsg=="success"){
-            redirectAttributes.addFlashAttribute("info","Fee date deleted.");
+    public String deleteFeeDate(@PathVariable("id")Long id, RedirectAttributes redirectAttributes, Model model){
+        try{
+            String returnMsg = feedateService.delete(id);
+            if(returnMsg=="success"){
+                model.addAttribute("info","Fee date deleted.");
+                redirectAttributes.addFlashAttribute("info","Fee date deleted.");
+                return "redirect:/admin/feedate";
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            model.addAttribute("error","Error in deletion "+e.getLocalizedMessage());
         }
-        return "redirect:/admin/feedate";
+        return "/admin/feedate";
     }
 
 }
