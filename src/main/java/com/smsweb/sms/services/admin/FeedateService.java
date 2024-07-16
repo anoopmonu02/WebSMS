@@ -42,5 +42,10 @@ public class FeedateService {
         }
     }
 
+    public String delete(Long id){
+        feedateRepository.deleteById(id);
+        return "success";
+    }
+
 
 }

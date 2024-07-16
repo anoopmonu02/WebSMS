@@ -13,7 +13,7 @@ import java.util.Date;
 
 @Data
 @Entity
-@Table(uniqueConstraints = {@UniqueConstraint(columnNames = {"monthMaster", "academicYear", "school"})})
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_feedate",columnNames = {"month_master_id", "academic_year_id", "school_id"})})
 public class FeeDate {
 
     @Id

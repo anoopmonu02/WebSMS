@@ -228,4 +228,14 @@ public class GlobalController {
         return "redirect:/admin/feedate";
     }
 
+    //@DeleteMapping("/feedate/delete/{id}")
+    @RequestMapping(value = "/feedate/delete/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
+    public String deleteFeeDate(@PathVariable("id")Long id, RedirectAttributes redirectAttributes){
+        String returnMsg = feedateService.delete(id);
+        if(returnMsg=="success"){
+            redirectAttributes.addFlashAttribute("info","Fee date deleted.");
+        }
+        return "redirect:/admin/feedate";
+    }
+
 }
