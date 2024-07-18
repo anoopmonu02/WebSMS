@@ -1,16 +1,11 @@
 package com.smsweb.sms.controllers.admin;
 
-import com.smsweb.sms.models.admin.AcademicYear;
-import com.smsweb.sms.models.admin.FeeDate;
-import com.smsweb.sms.models.admin.MonthMapping;
-import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.MonthMaster;
-import com.smsweb.sms.services.admin.AcademicyearService;
-import com.smsweb.sms.services.admin.FeedateService;
-import com.smsweb.sms.services.admin.MonthmappingService;
-import com.smsweb.sms.services.admin.SchoolService;
+import com.smsweb.sms.services.admin.*;
 import com.smsweb.sms.services.universal.MonthMasterService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +13,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -29,14 +26,17 @@ public class GlobalController {
     private final SchoolService schoolService;
     private final MonthMasterService monthMasterService;
     private final FeedateService feedateService;
+    private final FineService fineService;
 
+    @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
-                            FeedateService feedateService){
+                            FeedateService feedateService, FineService fineService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
         this.monthMasterService = monthMasterService;
         this.feedateService = feedateService;
+        this.fineService = fineService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -229,20 +229,35 @@ public class GlobalController {
     }
 
     //@DeleteMapping("/feedate/delete/{id}")
-    @RequestMapping(value = "/feedate/delete/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
-    public String deleteFeeDate(@PathVariable("id")Long id, RedirectAttributes redirectAttributes, Model model){
+    @PostMapping("/feedate/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteFeeDate(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = feedateService.delete(id);
-            if(returnMsg=="success"){
-                model.addAttribute("info","Fee date deleted.");
-                redirectAttributes.addFlashAttribute("info","Fee date deleted.");
-                return "redirect:/admin/feedate";
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Fee date deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete fee date.");
             }
         }catch(Exception e){
-            e.printStackTrace();
-            model.addAttribute("error","Error in deletion "+e.getLocalizedMessage());
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
         }
-        return "/admin/feedate";
+        return response;
     }
+
+    /*********************************************  Fine Code Block starts here  *****************************************/
+
+    @GetMapping("/fine")
+    public String getFineForm(Model model){
+        List<Fine> fineList = fineService.getAllFines(4L, 14L);
+        model.addAttribute("fines", fineList);
+        model.addAttribute("isFine", !fineList.isEmpty());
+        return "/admin/fine";
+    }
+
 
 }

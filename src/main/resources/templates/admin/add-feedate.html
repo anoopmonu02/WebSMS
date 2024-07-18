@@ -16,13 +16,13 @@
       <div class="row g-2">
 
         <div class="col-md-7">
-          <label for="school" class="form-label">School</label>
-          <input type="hidden" name="school_id" id="school_id" value="4"/>
-          <input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
-          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>
+          <!--<label for="school" class="form-label">School</label>-->
+          <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+          <!--<input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
+          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>-->
         </div>
         <div class="col-md-4">
-          &nbsp;<input type="text" name="academicYear" id="academicYear" th:field="*{academicYear.sessionFormat}" />
+          &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
         </div>
 
         <div class="col-md-5">
