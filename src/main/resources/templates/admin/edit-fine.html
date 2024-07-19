@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Add academic year</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<section class="container">
+  <div class="offset-2 mt-2 gy-5 mb-5">
+    <div class="card-header fs-3">Edit Fine</div>
+    <hr/>
+
+    <form th:action="@{/admin/fine}" th:object="${fine}" method="post" >
+      <div class="row g-2">
+
+        <div class="col-md-7">
+          <!--<label for="school" class="form-label">School</label>-->
+          <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+          <input type="hidden" name="id" id="id" th:field="*{id}"/>
+          <!--<input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
+          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>-->
+        </div>
+        <div class="col-md-4">
+          &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
+        </div>
+
+        <div class="col-md-5">
+          <label for="fine" class="form-label">Fine</label>
+          <select id="fine" th:field="*{finehead}" class="form-select" name="fine">
+            <option value="">Select Fine</option>
+            <option th:each="fineObj : ${fineheads}" th:value="${fineObj.id}" th:text="${fineObj.fineHeadName}"
+                    th:selected="${fineObj} == ${fine.finehead}">Fine</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('finehead')}" th:errors="*{finehead}">Fine Error</p>
+        </div>
+        <div class="col-md-6">
+          &nbsp;
+        </div>
+
+
+        <div class="col-md-3">
+          <label for="frequency" class="form-label">Frequency</label>
+          <!--<input type="date"  class="form-control" id="frequency" name="frequency" th:field="*{frequency}" />-->
+          <select id="frequency" name="frequency" class="form-select" th:field="*{frequency}">
+            <option value=1 th:selected="1 == ${fine.frequency}">Monthly</option>
+            <option value=2 th:selected="2 == ${fine.frequency}">Quarterly</option>
+            <option value=3 th:selected="3 == ${fine.frequency}">Half Yearly</option>
+            <option value=4 th:selected="4 == ${fine.frequency}">Annually</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('frequency')}" th:errors="*{frequency}">date Error</p>
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+        <div class="col-md-3">
+          <label for="amount" class="form-label">Amount</label>
+          <input type="number"  class="form-control" id="amount" name="amount" th:field="*{fineAmount}" />
+
+          <p class="text-danger" th:if="${#fields.hasErrors('fineAmount')}" th:errors="*{fineAmount}">Amount Error</p>
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+        <div class="col-md-3">
+          <label for="maxcalculated" class="form-label">Max Calculated</label>
+          <input type="number"  class="form-control" id="maxcalculated" name="maxcalculated" th:field="*{maxCalculated}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('maxCalculated')}" th:errors="*{maxCalculated}">Amount Error</p>
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+            <label for="description">Add Description Here</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/admin/fine"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Update</button>
+        </div>
+      </div>
+    </form>
+
+
+
+
+
+  </div>
+
+  <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
+  <!--<script src="/js/jquery-3.6.0.min.js" />
+  <script src="/js/toastr.min.js" />-->
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+  </script>
+
+
+</section>
+
+
+</body>
+</html>
+
+

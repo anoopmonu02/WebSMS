@@ -34,7 +34,7 @@ public class Fine {
     //1-Monthly, 2-Quarterly, 3-Half-yearly, 4-Annually
 
     @NotNull(message = "Fine amount must be present")
-    BigDecimal fineAmount = BigDecimal.valueOf(0.0);
+    int fineAmount;
     @NotNull(message = "Max Calculated value must be set")
     int maxCalculated;
 

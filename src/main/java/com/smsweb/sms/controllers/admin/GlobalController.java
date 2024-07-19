@@ -3,6 +3,7 @@ package com.smsweb.sms.controllers.admin;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.*;
+import com.smsweb.sms.services.universal.FineheadService;
 import com.smsweb.sms.services.universal.MonthMasterService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,16 +28,18 @@ public class GlobalController {
     private final MonthMasterService monthMasterService;
     private final FeedateService feedateService;
     private final FineService fineService;
+    private final FineheadService fineheadService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
-                            FeedateService feedateService, FineService fineService){
+                            FeedateService feedateService, FineService fineService, FineheadService fineheadService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
         this.monthMasterService = monthMasterService;
         this.feedateService = feedateService;
         this.fineService = fineService;
+        this.fineheadService = fineheadService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -259,5 +262,72 @@ public class GlobalController {
         return "/admin/fine";
     }
 
+    @GetMapping("/fine/add")
+    public String getFineAddForm(Model model){
+        model.addAttribute("fine", new Fine());
+        model.addAttribute("fineheads", fineheadService.getAllFineHeads());
+        return "/admin/add-fine";
+    }
+
+    @PostMapping("/fine")
+    public String saveFineData(@Valid @ModelAttribute("fine")Fine fine, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        if(result.hasErrors()){
+            model.addAttribute("fineheads", fineheadService.getAllFineHeads());
+            model.addAttribute("error", result.getFieldError());
+            return "/admin/add-fine";
+        }
+        try{
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            fine.setAcademicYear(academicYear);
+            fine.setSchool(school);
+            String returnMsg = "Fine saved successfully for: "+fine.getFinehead().getFineHeadName();
+            if(fine.getId()!=null){
+                returnMsg = "Fine updated successfully for: "+fine.getFinehead().getFineHeadName();
+            }
+            fineService.saveFine(fine);
+            redirectAttributes.addFlashAttribute("success",returnMsg);
+        }catch(DataIntegrityViolationException de){
+            model.addAttribute("error","Duplicate entry for "+fine.getFinehead().getFineHeadName());
+            model.addAttribute("fineheads", fineheadService.getAllFineHeads());
+            de.printStackTrace();
+            return "/admin/add-fine";
+        }catch(Exception e){
+            model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
+            model.addAttribute("fineheads", fineheadService.getAllFineHeads());
+            e.printStackTrace();
+            return "/admin/add-fine";
+        }
+        return "redirect:/admin/fine";
+    }
+
+    @GetMapping("/fine/edit/{id}")
+    public String editFineForm(@PathVariable("id")Long id, Model model){
+        Fine fine = fineService.getFineById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid fine Id:" + id));
+        model.addAttribute("fine",fine);
+        model.addAttribute("fineheads", fineheadService.getAllFineHeads());
+        return "/admin/edit-fine";
+    }
+
+    @PostMapping("/fine/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteFineDate(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = fineService.deleteFine(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Fine deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete fine.");
+            }
+        }catch(Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
 
 }

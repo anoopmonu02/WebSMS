@@ -9,5 +9,4 @@ import java.util.Optional;
 public interface FineRepository extends JpaRepository<Fine, Long> {
     List<Fine> findAllByAcademicYear_IdAndSchool_Id(Long academic_id, Long school_id);
 
-    Optional<Fine> findById(Long fineId);
 }

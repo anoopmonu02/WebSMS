@@ -10,6 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FineService {
@@ -24,8 +25,8 @@ public class FineService {
         return fineRepository.findAllByAcademicYear_IdAndSchool_Id(academic_id, school_id);
     }
 
-    public Fine getFine(Long id){
-        return fineRepository.findById(id).get();
+    public Optional<Fine> getFineById(Long id){
+        return fineRepository.findById(id);
     }
 
     public Fine saveFine(Fine fine){

@@ -31,8 +31,8 @@
             <td th:text="${#dates.format(feedate.feeSubmissiondate, 'dd-MMM-yyyy')}"></td>
             <td th:text="${feedate.description}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/feedate/edit/{id}(id=${feedate.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
-                <i class="bi bi-pencil-square"></i> </a>
+              <!--<a class="btn btn-primary" th:href="@{/admin/feedate/edit/{id}(id=${feedate.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i> </a>-->
               <!--<a class="btn btn-danger" th:href="@{/admin/feedate/delete/{id}(id=${feedate.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
                  data-bs-custom-class="custom-tooltip"
                  data-bs-title="Delete the school record">

@@ -21,6 +21,7 @@
             <th>Amount</th>
             <th>Frequency</th>
             <th>Max Fine</th>
+            <th>Description</th>
             <th>Actions</th>
           </tr>
           </thead>
@@ -30,14 +31,21 @@
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${fine.finehead.fineHeadName}"></td>
             <td th:text="${fine.fineAmount}"></td>
-            <td th:text="${fine.frequency}"></td>
+            <td>
+              <span th:if="${fine.frequency == 1}">Monthly</span>
+              <span th:if="${fine.frequency == 2}">Quarterly</span>
+              <span th:if="${fine.frequency == 3}">Half Yearly</span>
+              <span th:if="${fine.frequency == 4}">Annually</span>
+
+            </td>
             <td th:text="${fine.maxCalculated}"></td>
+            <td th:text="${fine.description}"></td>
             <td style="white-space: nowrap" class="text-center">
               <a class="btn btn-primary" th:href="@{/admin/fine/edit/{id}(id=${fine.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <!--<button class="btn btn-danger delete-btn" th:attr="data-item-id=${feedate.id}"><i class="bi bi-trash3-fill"></i> </button>-->
-              <button class="btn btn-danger delete-btn" onclick="deleteFine([[${fine.id}]])"><i class="bi bi-trash3-fill"></i> </button>
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <!--<button class="btn btn-danger" onclick="deleteFine([[${fine.id}]])"><i class="bi bi-trash3-fill"></i> </button>-->
             </td>
           </tr>
           </tbody>
@@ -64,12 +72,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/feedate/delete/' + itemId,
+            url: '/admin/fine/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Fee Date deleted successfully.","Delete");
+                toastr["info"]("Fine deleted successfully.","Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,
@@ -178,9 +186,6 @@
       }
     }
 
-    function deleteFine(id){
-       alert("Inside delete fine & id: "+id);
-    }
 
   </script>
 </section>
