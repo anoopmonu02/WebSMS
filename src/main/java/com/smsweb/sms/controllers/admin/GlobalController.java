@@ -1,9 +1,14 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.exceptions.ObjectNotDeleteException;
 import com.smsweb.sms.models.admin.*;
+import com.smsweb.sms.models.universal.Feehead;
+import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.*;
+import com.smsweb.sms.services.universal.FeeheadService;
 import com.smsweb.sms.services.universal.FineheadService;
+import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.MonthMasterService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +19,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Controller
 @RequestMapping("/admin")
@@ -29,10 +32,15 @@ public class GlobalController {
     private final FeedateService feedateService;
     private final FineService fineService;
     private final FineheadService fineheadService;
+    private final FeeclassmapService feeclassmapService;
+
+    private final FeeheadService feeheadService;
+    private final GradeService gradeService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
-                            FeedateService feedateService, FineService fineService, FineheadService fineheadService){
+                            FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
+                            FeeheadService feeheadService, GradeService gradeService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -40,6 +48,9 @@ public class GlobalController {
         this.feedateService = feedateService;
         this.fineService = fineService;
         this.fineheadService = fineheadService;
+        this.feeclassmapService = feeclassmapService;
+        this.feeheadService = feeheadService;
+        this.gradeService = gradeService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -324,6 +335,148 @@ public class GlobalController {
                 response.put("message", "Failed to delete fine.");
             }
         }catch(Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
+
+    /****************************  Fee Mapping Code Starts Here  ******************************/
+
+    @GetMapping("/fee-class")
+    public String getFeeClassDetails(Model model){
+        List<FeeClassMap> feeClassMaps = feeclassmapService.getAllFeeClassMapping(4L, 14L);
+        model.addAttribute("feeclass", feeClassMaps);
+        model.addAttribute("hasFeeClassMap", !feeClassMaps.isEmpty());
+        return "/admin/feeclassmap";
+    }
+
+    @GetMapping("/fee-class/add")
+    public String getAddFeeClassMappingForm(Model model){
+        //model.addAttribute("feeheads", feeheadService.getAllFeeheads());
+        model.addAttribute("grades", gradeService.getAllGrades());
+        FeeClassMapWrapper feeClassMapWrapper = new FeeClassMapWrapper();
+        model.addAttribute("feeClassMapWrapper", feeClassMapWrapper);
+        return "/admin/add-feeclassmap";
+    }
+
+    @PostMapping("/fee-class/getAllFeeData/{classId}")
+    @ResponseBody
+    public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId){
+        Map<String, Map<String, String>> responseMap = new HashMap<>();
+        //map - fee - amount
+        try{
+            Map<String, String> finalMap = new HashMap<>();
+            Set<String> processedFeeheads = new HashSet<>();
+            List<FeeClassMap> feeClassMapList = feeclassmapService.getAllFeeClassMappingByGrade(classId, 4L, 14L);
+            List<Feehead> feeheadList = feeheadService.getAllFeeheads();
+            if(feeClassMapList!=null && !feeClassMapList.isEmpty()){
+                feeClassMapList.forEach(fcm -> {
+                    if(feeheadList.contains(fcm.getFeehead())){
+                        String feeheadKey = fcm.getFeehead().getId() + ":" + fcm.getFeehead().getFeeHeadName();
+                        String finalMapKey = feeheadKey + ":" + fcm.getId();
+                        finalMap.put(finalMapKey, fcm.getAmount().toString());
+                        processedFeeheads.add(feeheadKey); // Track processed feeheads
+                    }
+                });
+                // Add remaining feeheads that are not present in feeClassMapList
+                feeheadList.forEach(fh -> {
+                    String feeheadKey = fh.getId() + ":" + fh.getFeeHeadName();
+                    if (!processedFeeheads.contains(feeheadKey)) {
+                        finalMap.put(feeheadKey + ":-1", "0");
+                    }
+                });
+            } else{
+                // If feeClassMapList is empty, add all feeheads with default values
+                feeheadList.forEach(fh -> {
+                    System.out.println("fh"+fh.getClass());
+                    finalMap.put(fh.getId()+":"+fh.getFeeHeadName()+":-1", "0");
+                });
+            }
+            responseMap.put("success", finalMap);
+        }catch(Exception e){
+            responseMap.put("error", new HashMap<>());
+        }
+        System.out.println(responseMap);
+        return responseMap;
+    }
+
+    @PostMapping("/fee-class")
+    public String saveFeeClassMappings(@ModelAttribute FeeClassMapWrapper feeClassMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        List<FeeClassMap> feeClassMaps = feeClassMapWrapper.getFeeClassMaps();
+        System.out.println("feeClassMaps: "+feeClassMaps);
+        System.out.println("result: "+result);
+
+        try{
+            List<FeeClassMap> feeClassMapList = new ArrayList<>();
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            Grade grade = feeClassMaps.get(0).getGrade();
+            for (FeeClassMap fee : feeClassMaps) {
+                System.out.println("Fee Head Name: " + fee.getFeehead());
+                System.out.println("Amount: " + fee.getAmount());
+                fee.setAcademicYear(academicYear);
+                fee.setSchool(school);
+                fee.setGrade(grade);
+                System.out.println("Grade "+fee.getGrade());
+                feeClassMapList.add(feeclassmapService.save(fee));
+            }
+            //Can't use this method because school+academic-year+user details added separately
+            //List<FeeClassMap> feeClassMapList = feeclassmapService.saveAllFeeClassMap(feeClassMaps);
+            if(feeClassMapList!=null && feeClassMapList.size()>0){
+                redirectAttributes.addFlashAttribute("success","Fee-Class Mapping saved for Grade:"+grade.getGradeName());
+            } else{
+                redirectAttributes.addFlashAttribute("info","Data not saved, re-check the data.");
+            }
+        }catch(Exception e){
+            model.addAttribute("error", "Error: "+e.getLocalizedMessage());
+            return "/admin/add-feeclassmap";
+        }
+        return "redirect:/admin/fee-class";
+    }
+
+    @GetMapping("/fee-class/edit/{id}")
+    public String editFeeClassForm(@PathVariable("id")Long id, Model model){
+        FeeClassMap feeClassMap = feeclassmapService.getFeeClassMapById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid fee-class Id:" + id));
+        model.addAttribute("feeclassmap",feeClassMap);
+        model.addAttribute("gradename",feeClassMap.getGrade().getGradeName());
+        return "/admin/edit-feeclassmap";
+    }
+
+    @PostMapping("/edit-fee-class")
+    public String updateFeeClassMap(@Valid @ModelAttribute("feeclassmap")FeeClassMap feeClassMap, BindingResult result, Model model, RedirectAttributes ra){
+        if(result.hasErrors()){
+            return "/admin/edit-feeclassmap";
+        }
+        try{
+            feeclassmapService.save(feeClassMap);
+            ra.addFlashAttribute("info", "Fee-Class mapping updated for Grade: "+feeClassMap.getGrade().getGradeName());
+        }catch(Exception e){
+            e.printStackTrace();
+            model.addAttribute("error","Error: "+e.getLocalizedMessage());
+            return "/admin/edit-feeclassmap";
+        }
+        return "redirect:/admin/fee-class";
+    }
+
+    @PostMapping("/fee-class/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteFeeClassMap(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = feeclassmapService.delete(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Fine deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete fine.");
+            }
+        }catch(ObjectNotDeleteException oe){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + oe.getLocalizedMessage());
+        } catch (Exception e){
             response.put("status", "error");
             response.put("message", "Error in deletion: " + e.getLocalizedMessage());
         }

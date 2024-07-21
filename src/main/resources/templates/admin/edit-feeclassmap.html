@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-11  offset-md-1 ">
+        <div class="card-header fs-3">Edit Fee-Class Mapping</div>
+        <hr/>
+
+        <form th:action="@{/admin/edit-fee-class}" th:object="${feeclassmap}" method="post" >
+        <div class="row g-2">
+          <div class="col-md-2">
+            <input type="hidden" name="id" id="id" th:field="*{id}"/>
+          </div>
+          <div class="col-md-2">
+            <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+          </div>
+          <div class="col-md-3">
+            &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
+          </div>
+          <div class="col-md-3">
+            &nbsp;<input type="hidden" name="grade" id="grade" th:field="*{grade}" />
+             <input type="hidden" name="feehead" id="feehead" th:field="*{feehead}" />
+          </div>
+          <div class="col-md-4">
+            <label for="grade1" class="form-label">Grade</label>
+            <input type="text"  class="form-control" id="grade1" name="grade1" th:field="*{grade.gradeName}" readonly="readonly"/>
+
+            <p class="text-danger" th:if="${#fields.hasErrors('grade')}" th:errors="*{grade}">Grade Error</p>
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+          <div class="col-md-4">
+            <label for="feehead1" class="form-label">Feehead</label>
+            <input type="text"  class="form-control" id="feehead1" name="feehead1" th:field="*{feehead.feeHeadName}" readonly="readonly"/>
+
+            <p class="text-danger" th:if="${#fields.hasErrors('feehead')}" th:errors="*{feehead}">Feehead Error</p>
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+          <div class="col-md-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number"  class="form-control" id="amount" name="amount" th:field="*{amount}" />
+
+            <p class="text-danger" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}">Amount Error</p>
+          </div>
+          <div class="col-md-8">
+            &nbsp;
+          </div>
+          <div class="col-md-7">
+            <label for="description" class="form-label">Description</label>
+            <div class="form-floating">
+              <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+              <label for="description">Add Description Here</label>
+            </div>
+            <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+          </div>
+          <div class="col-md-2">
+            &nbsp;
+          </div>
+            <hr/>
+            <div class="col-md-4">
+              <a class="btn btn-info" href="/admin/fee-class"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+            </div>
+            <div class="col-md-4 mb-5">
+              <button id="savebtn" type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Update</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Delete");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+  </script>
+</section>
+</body>
+</html>
