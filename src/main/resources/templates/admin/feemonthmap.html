@@ -11,42 +11,44 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-11  offset-md-1 ">
-        <div class="card-header fs-3">Fee-Class Mapping List</div>
+        <div class="card-header fs-3">Fee-Month Mapping List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFeeClassMap}" id="feeDateTable">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFeeMonthMap}" id="feeDateTable">
           <thead>
           <tr>
             <th>#</th>
-            <th>Grade</th>
             <th>Feehead</th>
-            <th>Amount</th>
+            <th>Month</th>
+            <th>Applicable</th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
           </thead>
           <tbody class="table-group-divider">
 
-          <tr th:each="fcmap,iterStat : ${feeclass}">
-            <td th:text="${iterStat.index + 1}"></td><!--th:rowspan="${#lists.size(fcmap.feeClassMapSubs)}"-->
-            <td th:text="${fcmap.grade.gradeName}"></td>
-            <td th:text="${fcmap.feehead.feeHeadName}"></td>
-            <td th:text="${fcmap.amount}"></td>
-            <td th:text="${fcmap.description}"></td>
+          <tr th:each="fmmap,iterStat : ${feemonths}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${fmmap.feehead.feeHeadName}"></td>
+            <td th:text="${fmmap.monthMaster.monthName}"></td>
+            <td class="text-center">
+              <i th:classappend="${fmmap.isApplicable} ? 'bi bi-bookmark-check-fill text-success' : 'bi bi-bookmark-x-fill text-danger'"></i>
+            </td>
+            <td th:text="${fmmap.description}"></td>
 
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/fee-class/edit/{id}(id=${fcmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a class="btn btn-primary" th:href="@{/admin/fee-month/edit/{id}(id=${fmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fcmap.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
         </table>
-        <div th:if="${!hasFeeClassMap}">
-          <p class="text-center">No Fee-Class Mapping found.</p>
+        <div th:if="${!hasFeeMonthMap}">
+          <p class="text-center">No Fee-Month Mapping found.</p>
         </div>
         <div class="pt-5 mb-5">
-          <a class="btn btn-success" href="/admin/fee-class/add"><i class="bi bi-node-plus-fill"></i> Add Fee-Class Mapping</a>
+          <a class="btn btn-success" href="/admin/fee-month/add"><i class="bi bi-node-plus-fill"></i> Add Fee-Month Mapping</a>
         </div>
       </div>
     </div>
@@ -64,12 +66,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/fee-class/delete/' + itemId,
+            url: '/admin/fee-month/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Fee-Class mapping deleted successfully.","Delete");
+                toastr["info"]("Fee-Month mapping deleted successfully.","Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,
@@ -134,7 +136,7 @@
     const infoMessage = [[${info}]];
     if (infoMessage) {
       //toastr.success(successMessage);
-      toastr["info"](infoMessage,"Delete");
+      toastr["info"](infoMessage,"Info");
       toastr.options = {
         "closeButton": true,
         "debug": false,

@@ -33,6 +33,7 @@ public class GlobalController {
     private final FineService fineService;
     private final FineheadService fineheadService;
     private final FeeclassmapService feeclassmapService;
+    private final FeemonthmapService feemonthmapService;
 
     private final FeeheadService feeheadService;
     private final GradeService gradeService;
@@ -40,7 +41,7 @@ public class GlobalController {
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
-                            FeeheadService feeheadService, GradeService gradeService){
+                            FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -51,6 +52,7 @@ public class GlobalController {
         this.feeclassmapService = feeclassmapService;
         this.feeheadService = feeheadService;
         this.gradeService = gradeService;
+        this.feemonthmapService = feemonthmapService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -468,10 +470,10 @@ public class GlobalController {
             String returnMsg = feeclassmapService.delete(id);
             if ("success".equals(returnMsg)) {
                 response.put("status", "success");
-                response.put("message", "Fine deleted.");
+                response.put("message", "Fee-Class mapping deleted.");
             } else {
                 response.put("status", "error");
-                response.put("message", "Failed to delete fine.");
+                response.put("message", "Failed to delete Fee-Class mapping.");
             }
         }catch(ObjectNotDeleteException oe){
             response.put("status", "error");
@@ -483,4 +485,152 @@ public class GlobalController {
         return response;
     }
 
+    /*****************************  Fee-Month Mapping Code starts here  ********************************/
+
+    @GetMapping("/fee-month")
+    public String getFeeMonthDetails(Model model){
+        List<FeeMonthMap> feeMonthMaps = feemonthmapService.getAllFeeMonthMap(4L, 14L);
+        model.addAttribute("feemonths", feeMonthMaps);
+        model.addAttribute("hasFeeMonthMap", !feeMonthMaps.isEmpty());
+        return "/admin/feemonthmap";
+    }
+
+    @GetMapping("/fee-month/add")
+    public String getAddFeeMonthMappingForm(Model model){
+        model.addAttribute("fees", feeheadService.getAllFeeheads());
+        FeeMonthMapWrapper feeMonthMapWrapper = new FeeMonthMapWrapper();
+        model.addAttribute("feeMonthMapWrapper", feeMonthMapWrapper);
+        return "/admin/add-feemonthmap";
+    }
+
+    @PostMapping("/fee-month/getAllFeeMonthData/{feeId}")
+    @ResponseBody
+    public Map<String, Map<String, Boolean>> getAllFeeMonthData(@PathVariable("feeId")Long feeId){
+        Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
+        //map - fee - amount
+        try{
+            Map<String, Boolean> finalMap = new HashMap<>();
+            Set<String> processedMonths = new HashSet<>();
+            List<FeeMonthMap> feeMonthMapList = feemonthmapService.getAllFeeMonthMapByFee(4L, 14L, feeId);
+            List<MonthMaster> monthMasters = monthMasterService.getAllMonths();
+            if(feeMonthMapList!=null && !feeMonthMapList.isEmpty()){
+                feeMonthMapList.forEach(fcm -> {
+                    if(monthMasters.contains(fcm.getMonthMaster())){
+                        String finalMapKey = fcm.getMonthMaster().getId() + ":" + fcm.getMonthMaster().getMonthName() + ":" + fcm.getId();
+                        finalMap.put(finalMapKey, fcm.getIsApplicable());
+                        processedMonths.add(fcm.getMonthMaster().getId() + ":" + fcm.getMonthMaster().getMonthName()); // Track processed months
+                    }
+                });
+                // Add remaining months that are not present in feeClassMapList
+                monthMasters.forEach(fh -> {
+                    String feeheadKey = fh.getId() + ":" + fh.getMonthName();
+                    if (!processedMonths.contains(feeheadKey)) {
+                        finalMap.put(feeheadKey + ":-1", false);
+                    }
+                });
+            } else{
+                // If feeMonthMapList is empty, add all months with default values
+                monthMasters.forEach(fh -> {
+                    finalMap.put(fh.getId()+":"+fh.getMonthName()+":-1", false);
+                });
+            }
+            Map<String, Boolean> sortedSubMap = new TreeMap<>(new Comparator<String>() {
+                @Override
+                public int compare(String o1, String o2) {
+                    // Extract IDs from the keys and compare them
+                    int id1 = Integer.parseInt(o1.split(":")[0]);
+                    int id2 = Integer.parseInt(o2.split(":")[0]);
+                    return Integer.compare(id1, id2);
+                }
+            });
+            sortedSubMap.putAll(finalMap);
+            responseMap.put("success", sortedSubMap);
+        }catch(Exception e){
+            responseMap.put("error", new HashMap<>());
+        }
+        System.out.println(responseMap);
+        return responseMap;
+    }
+
+    @PostMapping("/fee-month")
+    public String saveFeeMonthMappings(@ModelAttribute FeeMonthMapWrapper feeMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        List<FeeMonthMap> feeMonthMaps = feeMonthMapWrapper.getFeeMonthMaps();
+        System.out.println("feeMonthMaps: "+feeMonthMaps);
+        System.out.println("result: "+result);
+
+        try{
+            List<FeeMonthMap> feeMonthMapList = new ArrayList<>();
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            Feehead feehead = feeMonthMaps.get(0).getFeehead();
+            for (FeeMonthMap fee : feeMonthMaps) {
+                System.out.println("Fee Head Name: " + fee.getMonthMaster());
+                System.out.println("Amount: " + fee.getIsApplicable());
+                fee.setAcademicYear(academicYear);
+                fee.setSchool(school);
+                fee.setFeehead(feehead);
+                System.out.println("Grade "+fee.getFeehead());
+                feeMonthMapList.add(feemonthmapService.saveFeeMonth(fee));
+            }
+            //Can't use this method because school+academic-year+user details added separately
+            //List<FeeClassMap> feeClassMapList = feeclassmapService.saveAllFeeClassMap(feeClassMaps);
+            if(feeMonthMapList!=null && feeMonthMapList.size()>0){
+                redirectAttributes.addFlashAttribute("success","Fee-Class Mapping saved for Fee:"+feehead.getFeeHeadName());
+            } else{
+                redirectAttributes.addFlashAttribute("info","Data not saved, re-check the data.");
+            }
+        }catch(Exception e){
+            model.addAttribute("error", "Error: "+e.getLocalizedMessage());
+            return "/admin/add-feemonthmap";
+        }
+        return "redirect:/admin/fee-month";
+    }
+
+    @GetMapping("/fee-month/edit/{id}")
+    public String editFeeMonthForm(@PathVariable("id")Long id, Model model){
+        FeeMonthMap feeMonthMap = feemonthmapService.getFeeMonthMapById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid fee-month Id:" + id));
+        model.addAttribute("feemonthmap",feeMonthMap);
+        model.addAttribute("monthname",feeMonthMap.getMonthMaster().getMonthName());
+        return "/admin/edit-feemonthmap";
+    }
+
+    @PostMapping("/edit-fee-month")
+    public String updateFeeMonthMap(@Valid @ModelAttribute("feemonthmap")FeeMonthMap feeMonthMap, BindingResult result, Model model, RedirectAttributes ra){
+        if(result.hasErrors()){
+            return "/admin/edit-feemonthmap";
+        }
+        try{
+            feemonthmapService.saveFeeMonth(feeMonthMap);
+            ra.addFlashAttribute("info", "Fee-Month mapping updated for Fee: "+feeMonthMap.getFeehead().getFeeHeadName());
+        }catch(Exception e){
+            e.printStackTrace();
+            model.addAttribute("error","Error: "+e.getLocalizedMessage());
+            return "/admin/edit-feemonthmap";
+        }
+        return "redirect:/admin/fee-month";
+    }
+
+    @PostMapping("/fee-month/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteFeeMonthMap(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = feemonthmapService.delete(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Fee-Month mapping deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete Fee-Month mapping.");
+            }
+        }catch(ObjectNotDeleteException oe){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + oe.getLocalizedMessage());
+        } catch (Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
 }

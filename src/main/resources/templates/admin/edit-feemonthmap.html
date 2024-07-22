@@ -11,10 +11,10 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-11  offset-md-1 ">
-        <div class="card-header fs-3">Edit Fee-Class Mapping</div>
+        <div class="card-header fs-3">Edit Fee-Month Mapping</div>
         <hr/>
 
-        <form th:action="@{/admin/edit-fee-class}" th:object="${feeclassmap}" method="post" >
+        <form th:action="@{/admin/edit-fee-month}" th:object="${feemonthmap}" method="post" >
         <div class="row g-2">
           <div class="col-md-2">
             <input type="hidden" name="id" id="id" th:field="*{id}"/>
@@ -26,32 +26,32 @@
             &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
           </div>
           <div class="col-md-3">
-            &nbsp;<input type="hidden" name="grade" id="grade" th:field="*{grade}" />
-             <input type="hidden" name="feehead" id="feehead" th:field="*{feehead}" />
+            &nbsp;<input type="hidden" name="feehead" id="feehead" th:field="*{feehead}" />
+             <input type="hidden" name="monthMaster" id="monthMaster" th:field="*{monthMaster}" />
           </div>
           <div class="col-md-4">
-            <label for="grade1" class="form-label">Grade</label>
-            <input type="text"  class="form-control" id="grade1" name="grade1" th:field="*{grade.gradeName}" readonly="readonly"/>
+            <label for="grade1" class="form-label">Feehead</label>
+            <input type="text"  class="form-control" id="grade1" name="grade1" th:field="*{feehead.feeHeadName}" readonly="readonly"/>
 
-            <p class="text-danger" th:if="${#fields.hasErrors('grade')}" th:errors="*{grade}">Grade Error</p>
+            <p class="text-danger" th:if="${#fields.hasErrors('feehead')}" th:errors="*{feehead}">feehead Error</p>
           </div>
           <div class="col-md-7">
             &nbsp;
           </div>
           <div class="col-md-4">
-            <label for="feehead1" class="form-label">Feehead</label>
-            <input type="text"  class="form-control" id="feehead1" name="feehead1" th:field="*{feehead.feeHeadName}" readonly="readonly"/>
+            <label for="feehead1" class="form-label">Month</label>
+            <input type="text"  class="form-control" id="feehead1" name="feehead1" th:field="*{monthMaster.monthName}" readonly="readonly"/>
 
-            <p class="text-danger" th:if="${#fields.hasErrors('feehead')}" th:errors="*{feehead}">Feehead Error</p>
+            <p class="text-danger" th:if="${#fields.hasErrors('monthMaster')}" th:errors="*{monthMaster}">Feehead Error</p>
           </div>
           <div class="col-md-7">
             &nbsp;
           </div>
           <div class="col-md-3">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="number"  class="form-control" id="amount" name="amount" th:field="*{amount}" />
+            <label for="isApplicable" class="form-label">Applicable</label>
+            <input type="checkbox"  class="form-check form-check-input" id="isApplicable" name="isApplicable" th:field="*{isApplicable}" />
 
-            <p class="text-danger" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}">Amount Error</p>
+            <p class="text-danger" th:if="${#fields.hasErrors('isApplicable')}" th:errors="*{isApplicable}">isApplicable Error</p>
           </div>
           <div class="col-md-8">
             &nbsp;
@@ -69,7 +69,7 @@
           </div>
             <hr/>
             <div class="col-md-4">
-              <a class="btn btn-info" href="/admin/fee-class"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+              <a class="btn btn-info" href="/admin/fee-month"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
             </div>
             <div class="col-md-4 mb-5">
               <button id="savebtn" type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Update</button>
