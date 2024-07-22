@@ -11,9 +11,9 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-11  offset-md-1 ">
-        <div class="card-header fs-3">Fee-Class Mapping List</div>
+        <div class="card-header fs-3">Discount-Class Mapping List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFeeClassMap}" id="feeDateTable">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasDiscountClassMap}" id="feeDateTable">
           <thead>
           <tr>
             <th>#</th>
@@ -26,27 +26,27 @@
           </thead>
           <tbody class="table-group-divider">
 
-          <tr th:each="fcmap,iterStat : ${feeclass}">
+          <tr th:each="dcmap,iterStat : ${discountclasses}">
             <td th:text="${iterStat.index + 1}"></td><!--th:rowspan="${#lists.size(fcmap.feeClassMapSubs)}"-->
-            <td th:text="${fcmap.grade.gradeName}"></td>
-            <td th:text="${fcmap.feehead.feeHeadName}"></td>
-            <td th:text="${fcmap.amount}"></td>
-            <td th:text="${fcmap.description}"></td>
+            <td th:text="${dcmap.grade.gradeName}"></td>
+            <td th:text="${dcmap.discounthead.discountName}"></td>
+            <td th:text="${dcmap.amount}"></td>
+            <td th:text="${dcmap.description}"></td>
 
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/fee-class/edit/{id}(id=${fcmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a class="btn btn-primary" th:href="@{/admin/discount-class/edit/{id}(id=${dcmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fcmap.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${dcmap.id}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
         </table>
-        <div th:if="${!hasFeeClassMap}">
-          <p class="text-center">No Fee-Class Mapping found.</p>
+        <div th:if="${!hasDiscountClassMap}">
+          <p class="text-center">No Discount-Class Mapping found.</p>
         </div>
         <div class="pt-5 mb-5">
-          <a class="btn btn-success" href="/admin/fee-class/add"><i class="bi bi-node-plus-fill"></i> Add Fee-Class Mapping</a>
+          <a class="btn btn-success" href="/admin/discount-class/add"><i class="bi bi-node-plus-fill"></i> Add Discount-Class Mapping</a>
         </div>
       </div>
     </div>
@@ -64,12 +64,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/fee-class/delete/' + itemId,
+            url: '/admin/discount-class/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Fee-Class mapping deleted successfully.","Delete");
+                toastr["info"]("Discount-Class mapping deleted successfully.","Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,
