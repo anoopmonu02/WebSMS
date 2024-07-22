@@ -32,17 +32,17 @@ public class GlobalController {
     private final FineheadService fineheadService;
     private final FeeclassmapService feeclassmapService;
     private final FeemonthmapService feemonthmapService;
-
     private final FeeheadService feeheadService;
     private final DiscountService discountService;
     private final GradeService gradeService;
     private final DiscountclassmapService discountclassmapService;
+    private final DiscountmonthmapService discountmonthmapService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -56,6 +56,7 @@ public class GlobalController {
         this.feemonthmapService = feemonthmapService;
         this.discountclassmapService = discountclassmapService;
         this.discountService = discountService;
+        this.discountmonthmapService = discountmonthmapService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -778,6 +779,156 @@ public class GlobalController {
         }
         return response;
     }
+
+    /*****************************  Discount-Month Mapping Code starts here  ********************************/
+
+    @GetMapping("/discount-month")
+    public String getDiscountMonthDetails(Model model){
+        List<DiscountMonthMap> discountMonthMaps = discountmonthmapService.getAllDiscountMonthMap(4L, 14L);
+        model.addAttribute("discountmonths", discountMonthMaps);
+        model.addAttribute("hasDiscountMonthMap", !discountMonthMaps.isEmpty());
+        return "/admin/discountmonthmap";
+    }
+
+    @GetMapping("/discount-month/add")
+    public String getAddDiscountMonthMappingForm(Model model){
+        model.addAttribute("discounts", discountService.getAllDiscountheads());
+        DiscountMonthMapWrapper discountMonthMapWrapper = new DiscountMonthMapWrapper();
+        model.addAttribute("discountMonthMapWrapper", discountMonthMapWrapper);
+        return "/admin/add-discountmonthmap";
+    }
+
+    @PostMapping("/discount-month/getAllDiscountMonthData/{feeId}")
+    @ResponseBody
+    public Map<String, Map<String, Boolean>> getAllDiscountMonthData(@PathVariable("feeId")Long feeId){
+        Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
+        //map - fee - amount
+        try{
+            Map<String, Boolean> finalMap = new HashMap<>();
+            Set<String> processedMonths = new HashSet<>();
+            List<DiscountMonthMap> discountMonthMapList = discountmonthmapService.getAllDiscountMonthMapByDiscount(4L, 14L, feeId);
+            List<MonthMaster> monthMasters = monthMasterService.getAllMonths();
+            if(discountMonthMapList!=null && !discountMonthMapList.isEmpty()){
+                discountMonthMapList.forEach(fcm -> {
+                    if(monthMasters.contains(fcm.getMonthMaster())){
+                        String finalMapKey = fcm.getMonthMaster().getId() + ":" + fcm.getMonthMaster().getMonthName() + ":" + fcm.getId();
+                        finalMap.put(finalMapKey, fcm.getIsApplicable());
+                        processedMonths.add(fcm.getMonthMaster().getId() + ":" + fcm.getMonthMaster().getMonthName()); // Track processed months
+                    }
+                });
+                // Add remaining months that are not present in feeClassMapList
+                monthMasters.forEach(fh -> {
+                    String feeheadKey = fh.getId() + ":" + fh.getMonthName();
+                    if (!processedMonths.contains(feeheadKey)) {
+                        finalMap.put(feeheadKey + ":-1", false);
+                    }
+                });
+            } else{
+                // If feeMonthMapList is empty, add all months with default values
+                monthMasters.forEach(fh -> {
+                    finalMap.put(fh.getId()+":"+fh.getMonthName()+":-1", false);
+                });
+            }
+            Map<String, Boolean> sortedSubMap = new TreeMap<>(new Comparator<String>() {
+                @Override
+                public int compare(String o1, String o2) {
+                    // Extract IDs from the keys and compare them
+                    int id1 = Integer.parseInt(o1.split(":")[0]);
+                    int id2 = Integer.parseInt(o2.split(":")[0]);
+                    return Integer.compare(id1, id2);
+                }
+            });
+            sortedSubMap.putAll(finalMap);
+            responseMap.put("success", sortedSubMap);
+        }catch(Exception e){
+            responseMap.put("error", new HashMap<>());
+        }
+        System.out.println(responseMap);
+        return responseMap;
+    }
+
+    @PostMapping("/discount-month")
+    public String saveDiscountMonthMappings(@ModelAttribute DiscountMonthMapWrapper discountMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        List<DiscountMonthMap> discountMonthMaps = discountMonthMapWrapper.getDiscountMonthMaps();
+        System.out.println("feeMonthMaps: "+discountMonthMaps);
+        System.out.println("result: "+result);
+
+        try{
+            List<DiscountMonthMap> discountMonthMapList = new ArrayList<>();
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            Discounthead feehead = discountMonthMaps.get(0).getDiscounthead();
+            for (DiscountMonthMap fee : discountMonthMaps) {
+                System.out.println("Fee Head Name: " + fee.getMonthMaster());
+                System.out.println("Amount: " + fee.getIsApplicable());
+                fee.setAcademicYear(academicYear);
+                fee.setSchool(school);
+                fee.setDiscounthead(feehead);
+                System.out.println("Grade "+fee.getDiscounthead());
+                discountMonthMapList.add(discountmonthmapService.saveDiscountMonth(fee));
+            }
+            //Can't use this method because school+academic-year+user details added separately
+            //List<FeeClassMap> feeClassMapList = feeclassmapService.saveAllFeeClassMap(feeClassMaps);
+            if(discountMonthMapList!=null && discountMonthMapList.size()>0){
+                redirectAttributes.addFlashAttribute("success","Discount-Class Mapping saved for Fee:"+feehead.getDiscountName());
+            } else{
+                redirectAttributes.addFlashAttribute("info","Data not saved, re-check the data.");
+            }
+        }catch(Exception e){
+            model.addAttribute("error", "Error: "+e.getLocalizedMessage());
+            return "/admin/add-discountmonthmap";
+        }
+        return "redirect:/admin/discount-month";
+    }
+
+    @GetMapping("/discount-month/edit/{id}")
+    public String editDiscountMonthForm(@PathVariable("id")Long id, Model model){
+        DiscountMonthMap discountMonthMap = discountmonthmapService.getDiscountMonthMapById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid discount-month Id:" + id));
+        model.addAttribute("discountmonthmap",discountMonthMap);
+        model.addAttribute("monthname",discountMonthMap.getMonthMaster().getMonthName());
+        return "/admin/edit-discountmonthmap";
+    }
+
+    @PostMapping("/edit-discount-month")
+    public String updateDiscountMonthMap(@Valid @ModelAttribute("discountmonthmap")DiscountMonthMap discountMonthMap, BindingResult result, Model model, RedirectAttributes ra){
+        if(result.hasErrors()){
+            return "/admin/edit-discountmonthmap";
+        }
+        try{
+            discountmonthmapService.saveDiscountMonth(discountMonthMap);
+            ra.addFlashAttribute("info", "Discount-Month mapping updated for Fee: "+discountMonthMap.getDiscounthead().getDiscountName());
+        }catch(Exception e){
+            e.printStackTrace();
+            model.addAttribute("error","Error: "+e.getLocalizedMessage());
+            return "/admin/edit-discountmonthmap";
+        }
+        return "redirect:/admin/discount-month";
+    }
+
+    @PostMapping("/discount-month/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteDiscountMonthMap(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = discountmonthmapService.delete(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Discount-Month mapping deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete Discount-Month mapping.");
+            }
+        }catch(ObjectNotDeleteException oe){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + oe.getLocalizedMessage());
+        } catch (Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
+
 
 
 }

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Add academic year</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<section class="container">
+  <div class="offset-1 mt-2 gy-5 mb-5">
+    <div class="card-header fs-3">Discount-Month Mapping Form</div>
+    <hr/>
+
+    <div class="row g-5">
+      <div class="col-auto">
+        <label for="feeclass" class="form-label">Select Discount</label>
+      </div>
+      <div class="col-auto">
+
+        <select id="feeclass" class="form-select" name="feeclass">
+          <option value="">Select Discount</option>
+          <option th:each="dfee : ${discounts}" th:value="${dfee.id}" th:text="${dfee.discountName}">DFee</option>
+        </select>
+      </div>
+      <div class="col-auto">
+         <label for="aa" class="visually-hidden">Button</label>
+        &nbsp;<button id="aa" class="btn btn-primary" onclick="loadFeeData()"><i class="bi bi-search"></i> Get Months</button>
+      </div>
+
+    </div>
+
+
+
+    <form th:action="@{/admin/discount-month}" th:object="${discountMonthMapWrapper}" method="post" >
+      <div class="row g-2">
+
+        <div class="col-md-7">
+          <!--<label for="school" class="form-label">School</label>-->
+          <input type="hidden" name="school_id" id="school_id" th:field="*{discountMonthMaps[0].school.id}"/>
+          <!--<input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
+          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>-->
+        </div>
+        <div class="col-md-4">
+          &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{discountMonthMaps[0].academicYear.id}" />
+        </div>
+        <div class="col-md-4">
+          &nbsp;<input type="hidden" name="feehead" id="feehead" th:field="*{discountMonthMaps[0].discounthead}" />
+        </div>
+
+        <div id="result">
+
+        </div>
+
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/admin/discount-month"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button id="savebtn"  disabled="disabled" type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+        </div>
+      </div>
+    </form>
+
+
+
+
+
+  </div>
+
+  <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
+  <!--<script src="/js/jquery-3.6.0.min.js" />
+  <script src="/js/toastr.min.js" />-->
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    function loadFeeData(){
+      $('#result').html('');
+      let feeId = $('#feeclass').val();
+      $.ajax({
+        url: '/admin/discount-month/getAllDiscountMonthData/'+feeId, // URL of the Spring Boot endpoint
+        type: 'POST',
+        success: function(response) {
+          let tableContent = '';
+          console.log("response:"+response);
+          $.each(response, function(key, subMap) {
+            console.log("key:"+key);
+            console.log("value:::"+subMap);
+            if(key === 'success'){
+              let index = 1;
+              tableContent = '<table class="table table-bordered table-striped table-hover table-sm" id="feeDataTable"><thead><tr><th>#</th><th>Month Name</th><th width="10%">Applicable</th><th>Description</th></tr></thead><tbody class="table-group-divider">';
+              $.each(subMap, function(subKey, value) {
+                //let feeObject = subKey.toJSON();
+                console.log("_____-----------__________"+value);
+                tableContent += '<tr>';
+                tableContent += '<td><input type="hidden" th:field="*{discountMonthMaps['+ (index-1) +'].id}" name="discountMonthMaps['+ (index-1) +'].id" value="'+ subKey.split(':')[2] +'" />' + index + '</td>';
+                tableContent += '<td><input type="hidden" th:field="*{discountMonthMaps['+ (index-1) +'].monthMaster}" name="discountMonthMaps['+ (index-1) +'].monthMaster" value="'+subKey.split(':')[0] +'" />' + subKey.split(':')[1] + '</td>';
+                let isChecked = value===true ? 'checked' : '';
+                tableContent += '<td class="text-center"><input type="checkbox" class="form-check form-check-input" id="fee_' + subKey.split(':')[0] + '" name="discountMonthMaps['+ (index-1) +'].isApplicable" th:checked="'+ isChecked +'" value="true"'+ isChecked +' /></td>';
+                tableContent += '<td><input type="text" class="form-control" id="description_' + subKey.split(':')[0] + '" name="discountMonthMaps['+ (index-1) +'].description"/></td>';
+                tableContent += '</tr>';
+                index++;
+              });
+              tableContent += '</tbody></table>';
+              $('#result').html(tableContent);
+              $('#feehead').val(feeId);
+              document.getElementById("savebtn").disabled = false;
+            }
+            else{
+              $('#result').html('<p class="text-center">No Discount-Month Mapping Data Found.</p>');
+              document.getElementById("savebtn").disabled = true;
+            }
+          });
+
+          /*response.forEach(function(item) {
+            tableContent += '<tr><td>' + item.col1 + '</td><td>' + item.col2 + '</td></tr>';
+          });*/
+
+
+
+        },
+        error: function(error) {
+          console.log(error);
+        }
+      });
+    }
+
+  </script>
+
+
+</section>
+
+
+</body>
+</html>
+
+

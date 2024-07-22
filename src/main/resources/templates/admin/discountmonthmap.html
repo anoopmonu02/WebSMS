@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-11  offset-md-1 ">
+        <div class="card-header fs-3">Discount-Month Mapping List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasDiscountMonthMap}" id="feeDateTable">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Discounthead</th>
+            <th>Month</th>
+            <th>Applicable</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+
+          <tr th:each="dmmap,iterStat : ${discountmonths}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${dmmap.discounthead.discountName}"></td>
+            <td th:text="${dmmap.monthMaster.monthName}"></td>
+            <td class="text-center">
+              <i th:classappend="${dmmap.isApplicable} ? 'bi bi-bookmark-check-fill text-success' : 'bi bi-bookmark-x-fill text-danger'"></i>
+            </td>
+            <td th:text="${dmmap.description}"></td>
+
+            <td style="white-space: nowrap" class="text-center">
+              <a class="btn btn-primary" th:href="@{/admin/discount-month/edit/{id}(id=${dmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i> </a>
+
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${dmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasDiscountMonthMap}">
+          <p class="text-center">No Discount-Month Mapping found.</p>
+        </div>
+        <div class="pt-5 mb-5">
+          <a class="btn btn-success" href="/admin/discount-month/add"><i class="bi bi-node-plus-fill"></i> Add Discount-Month Mapping</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script th:inline="javascript">
+    $(document).ready(function () {
+      $('.delete-btn').click(function (e) {
+        e.preventDefault(); // Prevent default action of the button
+        let itemId = $(this).data('item-id'); // Get the item ID from data attribute
+        console.log("itemId  "+itemId);
+        if (confirm('Are you sure you want to delete this record?')) {
+          // Send DELETE request using AJAX
+          $.ajax({
+            type: 'POST',
+            url: '/admin/discount-month/delete/' + itemId,
+            success: function (response) {
+              // Optionally handle success response
+              console.log('Item deleted successfully '+response);
+              if(response.status === "success"){
+                toastr["info"]("Discount-Month mapping deleted successfully.","Delete");
+                toastr.options = {
+                  "closeButton": true,
+                  "debug": false,
+                  "newestOnTop": false,
+                  "progressBar": false,
+                  "positionClass": "toast-top-right",
+                  "preventDuplicates": false,
+                  "onclick": null,
+                  "showDuration": "500",
+                  "hideDuration": "1000",
+                  "timeOut": "5000",
+                  "extendedTimeOut": "1000",
+                  "showEasing": "swing",
+                  "hideEasing": "linear",
+                  "showMethod": "fadeIn",
+                  "hideMethod": "fadeOut"
+                }
+              } else{
+                var errorMsg = "Failed to delete the record." + response.message;
+                toastr["error"](errorMsg, "Error");
+              }
+              //location.reload(); // Reload the page after successful deletion
+              $('#feeDateTable').load(location.href + " #feeDateTable > *");
+            },
+            error: function (xhr, status, error) {
+              // Handle error
+              console.error('Error deleting item:', error);
+              //alert('Failed to delete the record.');
+              toastr["error"]("Failed to delete the record.", "Error");
+            }
+          });
+        }
+      });
+    });
+  </script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Info");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+  </script>
+</section>
+</body>
+</html>
