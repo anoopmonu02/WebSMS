@@ -49,6 +49,56 @@
             <li><hr class="dropdown-divider"></li>
           </ul>
         </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-video2"></i> Student
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" th:href="@{'/student/student'}"><i class="bi bi-person-lines-fill"></i> Student Registration </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/school'}"><i class="bi bi-building-add"></i> School </a></li>
+            <li><a class="dropdown-item" href="/universal/section"><i class="bi bi-person-circle"></i> User </a></li>
+            <li><a class="dropdown-item" href="/universal/category"><i class="bi bi-ui-checks"></i> Role </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range"></i> Academic Year </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/month-mapping'}"><i class="bi bi-border-style"></i> Month Mapping </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3"></i> Fee Date </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill"></i> Fine </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fee-class'}"><i class="bi bi-diagram-3-fill"></i> Fee-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fee-month'}"><i class="bi bi-diagram-3-fill"></i> Fee-Month Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/discount-class'}"><i class="bi bi-diagram-3-fill"></i> Discount-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/discount-month'}"><i class="bi bi-diagram-3-fill"></i> Discount-Month Map </a></li>
+            <li><hr class="dropdown-divider"></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-card-text"></i> Fee
+          </a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            <li><a class="dropdown-item" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill"></i> Customer </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/school'}"><i class="bi bi-building-add"></i> School </a></li>
+            <li><a class="dropdown-item" href="/universal/section"><i class="bi bi-person-circle"></i> User </a></li>
+            <li><a class="dropdown-item" href="/universal/category"><i class="bi bi-ui-checks"></i> Role </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range"></i> Academic Year </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/month-mapping'}"><i class="bi bi-border-style"></i> Month Mapping </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3"></i> Fee Date </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill"></i> Fine </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fee-class'}"><i class="bi bi-diagram-3-fill"></i> Fee-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/fee-month'}"><i class="bi bi-diagram-3-fill"></i> Fee-Month Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/discount-class'}"><i class="bi bi-diagram-3-fill"></i> Discount-Class Map </a></li>
+            <li><a class="dropdown-item" th:href="@{'/admin/discount-month'}"><i class="bi bi-diagram-3-fill"></i> Discount-Month Map </a></li>
+            <li><hr class="dropdown-divider"></li>
+          </ul>
+        </li>
+
+
+
+
       </ul>
       <form class="d-flex" role="search">
         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">

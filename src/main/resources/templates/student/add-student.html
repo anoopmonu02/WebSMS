@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+
+  <div class="container">
+    <div class="offset-1 mt-2 gy-5 mb-5">
+      <div class="card-header fs-3">Student Registration Form</div>
+      <hr/>
+      <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data">
+        <!-- Personal Info -->
+        <div class="col-12">
+          <h4>Personal Information</h4>
+        </div>
+        <div class="col-md-7">
+          <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+          <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
+        </div>
+
+        <div class="col-md-6">
+          <label for="studentName" class="form-label">Student Name</label>
+          <input type="text" id="studentName" class="form-control" th:field="*{studentName}">
+          <p class="text-danger" th:if="${#fields.hasErrors('studentName')}" th:errors="*{studentName}">stu name Error</p>
+        </div>
+
+        <div class="col-md-3">
+          <label for="dob" class="form-label">Date of Birth</label>
+          <input type="text" id="dob" class="form-control" th:field="*{dob}">
+          <p class="text-danger" th:if="${#fields.hasErrors('dob')}" th:errors="*{dob}">f name Error</p>
+        </div>
+
+        <div class="col-md-3">
+
+        </div>
+
+
+        <div class="col-md-6">
+          <label for="fatherName" class="form-label">Father Name</label>
+          <input type="text" id="fatherName" class="form-control" th:field="*{fatherName}">
+          <p class="text-danger" th:if="${#fields.hasErrors('fatherName')}" th:errors="*{fatherName}">f name Error</p>
+        </div>
+
+        <div class="col-md-3">
+          <label for="fatherOccupation" class="form-label">Father Occupation</label>
+          <input type="text" id="fatherOccupation" class="form-control" th:field="*{fatherOccupation}">
+          <p class="text-danger" th:if="${#fields.hasErrors('fatherOccupation')}" th:errors="*{fatherOccupation}">f name Error</p>
+        </div>
+        <div class="col-md-3">
+
+        </div>
+
+        <div class="col-md-6">
+          <label for="motherName" class="form-label">Mother Name</label>
+          <input type="text" id="motherName" class="form-control" th:field="*{motherName}">
+          <p class="text-danger" th:if="${#fields.hasErrors('motherName')}" th:errors="*{motherName}">m name Error</p>
+        </div>
+
+        <div class="col-md-3">
+          <label for="motherOccupation" class="form-label">Mother Occupation</label>
+          <input type="text" id="motherOccupation" class="form-control" th:field="*{motherOccupation}">
+          <p class="text-danger" th:if="${#fields.hasErrors('motherOccupation')}" th:errors="*{motherOccupation}">m name Error</p>
+        </div>
+        <div class="col-md-3">
+
+        </div>
+
+        <div class="col-md-3">
+          <label for="religion" class="form-label">Religion</label>
+          <select id="religion" class="form-control" th:field="*{religion}">
+            <option th:each="religion : ${religions}" th:value="${religion}" th:text="${religion}"
+                    th:selected="${religion} == ${student.religion}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('religion')}" th:errors="*{religion}">m name Error</p>
+        </div>
+
+
+        <div class="col-md-3">
+          <label for="nationality" class="form-label">Nationality</label>
+          <input type="text" id="nationality" class="form-control" th:field="*{nationality}" readonly="readonly">
+        </div>
+
+        <div class="col-md-3">
+          <label for="gender" class="form-label">Gender</label>
+          <select id="gender" class="form-control" th:field="*{gender}">
+            <option value="Male" th:selected="Male == ${student.gender}">Male</option>
+            <option value="Female" th:selected="Female == ${student.gender}">Female</option>
+            <option value="No_Preference" th:selected="No_Preference == ${student.gender}">No Preference</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}">m name Error</p>
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <label for="category" class="form-label">Category</label>
+          <select id="category" class="form-control" th:field="*{category}">
+            <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.categoryName}"
+                    th:selected="${category} == ${student.category}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">m name Error</p>
+        </div>
+
+        <div class="col-md-3">
+          <label for="cast" class="form-label">Cast</label>
+          <select id="cast" class="form-control" th:field="*{cast.id}">
+            <option th:each="cast : ${casts}" th:value="${cast.id}" th:text="${cast.castName}"
+                    th:selected="${cast} == ${student.cast}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('cast')}" th:errors="*{cast}">m name Error</p>
+        </div>
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+            <label for="address">Add Description Here</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+        </div>
+        <div class="col-md-5">
+          &nbsp;
+        </div>
+
+        <div class="col-md-4">
+          <label for="customerPic" class="form-label">Student Image</label>
+          <input type="file" class="form-control" id="customerPic" name="customerPic">
+          <p class="text-danger" th:if="${#fields.hasErrors('pic')}" th:errors="*{pic}">pic Error</p>
+          <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
+        </div>
+        <div class="col-md-8">
+          &nbsp;
+        </div>
+
+
+        <!-- Physical Info -->
+        <div class="col-12">
+          <h4>Physical Information</h4>
+        </div>
+        <div class="col-md-3">
+          <label for="height" class="form-label">Height (cm)</label>
+          <input type="number" id="height" class="form-control" th:field="*{height}">
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <label for="weight" class="form-label">Weight (kg)</label>
+          <input type="number" id="weight" class="form-control" th:field="*{weight}">
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <label for="bloodGroup" class="form-label">Blood Group</label>
+          <select id="bloodGroup" class="form-control" th:field="*{bloodGroup}">
+            <option th:each="bloodGroup : ${bloodGroups}" th:value="${bloodGroup}" th:text="${bloodGroup}" th:selected="${bloodGroup} == ${student.bloodGroup}"></option>
+          </select>
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
+          <label for="bodyType" class="form-label">Body Type</label>
+          <!--<input type="text" id="bodyType" class="form-control" th:field="*{bodyType}">-->
+          <select id="bodyType" class="form-control" th:field="*{bodyType}">
+            <option th:each="bodyType : ${bodyTypes}" th:value="${bodyType}" th:text="${bodyType}" th:selected="${bodyType} == ${student.bodyType}"></option>
+          </select>
+        </div>
+        <div class="col-md-3">
+        </div>
+
+        <!-- Contact Info -->
+        <div class="col-12">
+          <h4>Contact Information</h4>
+        </div>
+        <div class="col-md-7">
+          <label for="address" class="form-label">Address</label>
+          <div class="form-floating">
+            <textarea id="address" placeholder="Add address here" class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{address}"></textarea>
+            <label for="address">Add Address</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}">Address Error</p>
+        </div>
+        <div class="col-md-5"></div>
+        <div class="col-md-4">
+          <label for="landmark" class="form-label">Landmark</label>
+          <input type="text" id="landmark" class="form-control" th:field="*{landmark}">
+        </div>
+        <div class="col-md-8"></div>
+        <div class="col-md-4">
+          <label for="province" class="form-label">Province</label>
+          <select id="province" th:field="*{province}" class="form-select" name="province">
+            <option value="">Select Province</option>
+            <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"
+                    th:selected="${province} == ${student.province}">State</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('province')}" th:errors="*{province}">Province Error</p>
+        </div>
+        <div class="col-md-2"></div>
+        <div class="col-md-4">
+          <label for="city" class="form-label">City</label>
+          <input type="hidden" th:value="${student.city != null ? student.city.id : ''}" id="hiddencity">
+          <select id="city" class="form-select" name="city" th:field="*{city}">
+            <option value="">Select City</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('city')}" th:errors="*{city}">City Error</p>
+        </div>
+        <div class="col-md-2"></div>
+        <div class="col-md-3">
+          <label for="pincode" class="form-label">Pincode</label>
+          <input type="text" id="pincode" class="form-control intfields" th:field="*{pincode}">
+          <p class="text-danger" th:if="${#fields.hasErrors('pincode')}" th:errors="*{pincode}">City Error</p>
+        </div>
+        <div class="col-md-9"></div>
+        <div class="col-md-3">
+          <label for="mobile1" class="form-label">Mobile 1</label>
+          <input type="text" id="mobile1" class="form-control intfields" th:field="*{mobile1}">
+          <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">City Error</p>
+        </div>
+        <div class="col-md-3"></div>
+        <div class="col-md-3">
+          <label for="mobile2" class="form-label">Mobile 2</label>
+          <input type="text" id="mobile2" class="form-control intfields" th:field="*{mobile2}">
+          <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">City Error</p>
+        </div>
+        <div class="col-md-3"></div>
+        <div class="col-md-4">
+          <label for="email" class="form-label">Email</label>
+          <input type="text" id="email" class="form-control" th:field="*{email}">
+          <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">City Error</p>
+        </div>
+        <div class="col-md-8"></div>
+
+        <!-- Previous Academic Details -->
+        <div class="col-12">
+          <h4>Previous Academic Details</h4>
+        </div>
+        <div class="col-md-6">
+          <label for="previousSchool" class="form-label">Previous School</label>
+          <input type="text" id="previousSchool" class="form-control" th:field="*{previousSchool}">
+        </div>
+        <div class="col-md-6">
+          <label for="removalCause" class="form-label">Removal Cause</label>
+          <input type="text" id="removalCause" class="form-control" th:field="*{removalCause}">
+        </div>
+        <div class="col-md-3">
+          <label for="previousClass" class="form-label">Previous Class</label>
+          <input type="text" id="previousClass" class="form-control" th:field="*{previousClass}">
+        </div><div class="col-md-1"></div>
+        <div class="col-md-3">
+          <label for="tcNo" class="form-label">TC Number</label>
+          <input type="text" id="tcNo" class="form-control" th:field="*{tcNo}">
+        </div><div class="col-md-1"></div>
+
+        <div class="col-md-3">
+          <label for="passingYear" class="form-label">Passing Year</label>
+          <input type="number" id="passingYear" class="form-control" th:field="*{passingYear}">
+        </div><div class="col-md-1"></div>
+
+        <!-- Emergency Contact -->
+        <div class="col-12">
+          <h4>In Case of Emergency</h4>
+        </div>
+        <div class="col-md-6">
+          <label for="personName" class="form-label">Contact Person Name</label>
+          <input type="text" id="personName" class="form-control" th:field="*{personName}">
+          <p class="text-danger" th:if="${#fields.hasErrors('personName')}" th:errors="*{personName}">Province Error</p>
+        </div>
+        <div class="col-md-3">
+          <label for="personContact" class="form-label">Contact Person Number</label>
+          <input type="text" id="personContact" class="form-control intfields" th:field="*{personContact}">
+          <p class="text-danger" th:if="${#fields.hasErrors('personContact')}" th:errors="*{personContact}">Province Error</p>
+        </div>
+        <div class="col-md-3">
+          <label for="relationship" class="form-label">Relationship</label>
+          <select id="relationship" class="form-control" th:field="*{relationship}">
+            <option th:each="entry : ${relationships}" th:value="${entry.key}" th:text="${entry.value}"
+            th:selected="${entry} == ${student.relationship}"></option>
+          </select>
+        </div>
+
+        <!-- Extra Information -->
+        <div class="col-12">
+          <h4>Academic Registration Information</h4>
+        </div>
+        <div class="col-md-4">
+          <label for="medium" class="form-label">Medium</label>
+          <select id="medium" class="form-control" th:field="*{medium}">
+            <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
+            th:selected="${medium} == ${student.medium}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">medium Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="grade" class="form-label">Grade</label>
+          <select id="grade" class="form-control" th:field="*{grade}">
+            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}"
+                    th:selected="${grade} == ${student.grade}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('grade')}" th:errors="*{grade}">grade Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="section" class="form-label">Section</label>
+          <select id="section" class="form-control" th:field="*{section}">
+            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}"
+                    th:selected="${section} == ${student.section}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('section')}" th:errors="*{section}">section Error</p>
+        </div>
+
+        <div class="col-md-4">
+          <label for="studentType" class="form-label">Student Type</label>
+          <!--<input type="text" id="studentType" class="form-control" th:field="*{studentType}">-->
+          <select id="studentType" class="form-control" th:field="*{studentType}">
+            <option value="Old" th:selected="Old == ${student.studentType}">Old</option>
+            <option value="New" th:selected="New == ${student.studentType}">New</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('studentType')}" th:errors="*{studentType}">studentType Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="schoolStatus" class="form-label">School Status</label>
+          <!--<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">-->
+          <select id="schoolStatus" class="form-control" th:field="*{schoolStatus}">
+            <option value="Own" th:selected="Own == ${student.schoolStatus}">Own</option>
+            <option value="Grant" th:selected="Grant == ${student.schoolStatus}">Grant</option>
+            <option value="Other" th:selected="Other == ${student.schoolStatus}">Other</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('schoolStatus')}" th:errors="*{schoolStatus}">schoolStatus Error</p>
+        </div>
+        <div class="col-md-2"></div>
+
+        <!--<div class="col-md-12">
+          <label for="remark" class="form-label">Remark</label>
+          <textarea id="remark" class="form-control" th:field="*{remark}"></textarea>
+        </div>-->
+        <div class="col-md-7">
+          <label for="remark" class="form-label">Remark</label>
+          <div class="form-floating">
+            <textarea id="remark" placeholder="Add Remark here, if any" class="form-control" name="remark" style="height: 100px;" rows="4" cols="50" th:field="*{remark}"></textarea>
+            <label for="address">Add Remark</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('remark')}" th:errors="*{remark}">remark Error</p>
+        </div>
+        <div class="col-md-5"></div>
+
+        <!-- Bank & Aadhar Details -->
+        <div class="col-12">
+          <h4>Bank & Aadhar Details</h4>
+        </div>
+        <div class="col-md-6">
+          <label for="bank" class="form-label">Bank</label>
+          <select id="bank" class="form-control" th:field="*{bank}">
+            <option th:each="bank : ${banks}" th:value="${bank.id}" th:text="${bank.bankName}"
+            th:selected="${bank} == ${student.bank}"></option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('bank')}" th:errors="*{bank}">bank Error</p>
+        </div>
+        <div class="col-md-6">
+          <label for="branchName" class="form-label">Branch Name</label>
+          <input type="text" id="branchName" class="form-control" th:field="*{branchName}">
+        </div>
+        <div class="col-md-4">
+          <label for="ifscCode" class="form-label">IFSC Code</label>
+          <input type="text" id="ifscCode" class="form-control" th:field="*{ifscCode}">
+        </div>
+        <div class="col-md-4">
+          <label for="accountNo" class="form-label">Account Number</label>
+          <input type="text" id="accountNo" class="form-control" th:field="*{accountNo}">
+        </div>
+        <div class="col-md-4">
+          <label for="aadharNo" class="form-label">Aadhar Number</label>
+          <input type="text" id="aadharNo" class="form-control" th:field="*{aadharNo}">
+          <p class="text-danger" th:if="${#fields.hasErrors('aadharNo')}" th:errors="*{aadharNo}">aadharNo Error</p>
+        </div>
+
+        <!-- Submit Button -->
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/jquery-ui.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    $(document).ready(function() {
+      function loadCities(state, selectedCity) {
+        if (state) {
+          $.ajax({
+            type: 'GET',
+            url: '/admin/customer/cities',
+            data: { provinceId: state },
+            success: function(cities) {
+              console.log("cities: "+cities);
+              let $citySelect = $('#city');
+              $citySelect.empty();
+              $citySelect.append('<option value="">Select City</option>');
+              $.each(cities, function(index, city) {
+                $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
+              });
+              console.log("selectedCity "+selectedCity);
+              // Set the previously selected city
+              if (selectedCity) {
+                $citySelect.val(selectedCity);
+              }
+            }
+          });
+        }
+      }
+
+      $('#province').change(function() {
+        let selectedState = $(this).val();
+        loadCities(selectedState);
+      });
+
+      // Trigger change to load cities if a state is already selected
+      let initialSelectedState = $('#province').val();
+      let initialSelectedNewCity = $('#hiddencity').val();
+      /*<![CDATA[*/
+      let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
+      /*]]>*/
+      console.log("initialSelectedState:> "+initialSelectedState);
+      console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
+      console.log("initial:> "+initialSelectedCity);
+      if (initialSelectedState) {
+        loadCities(initialSelectedState, initialSelectedNewCity);
+      }
+      $('.intfields').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+      });
+    });
+
+    $("#dob").datepicker({
+      dateFormat: "dd-MMM-yyyy"
+    });
+
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+  </script>
+
+
+</section>
+</body>
+</html>

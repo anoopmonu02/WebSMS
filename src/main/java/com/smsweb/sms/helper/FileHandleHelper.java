@@ -37,6 +37,11 @@ public class FileHandleHelper {
                         System.out.println("path: "+path);
                         long l = Files.copy(logo.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
                         fileName = "Success";
+                    } else if(imageFolder.equalsIgnoreCase("students")){
+                        path = Paths.get(STUDENT_IMG_FOLDER_PATH + File.separator + imageFileName);
+                        System.out.println("path: "+path);
+                        long l = Files.copy(logo.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+                        fileName = "Success";
                     }
                 } else{
                     fileName = "Either image format not supported or size exceeded 2MB.";
