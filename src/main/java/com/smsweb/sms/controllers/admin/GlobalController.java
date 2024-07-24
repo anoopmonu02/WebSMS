@@ -1,6 +1,8 @@
 package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.exceptions.ObjectNotDeleteException;
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
@@ -37,12 +39,13 @@ public class GlobalController {
     private final GradeService gradeService;
     private final DiscountclassmapService discountclassmapService;
     private final DiscountmonthmapService discountmonthmapService;
+    private final FullpaymentService fullpaymentService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -57,6 +60,7 @@ public class GlobalController {
         this.discountclassmapService = discountclassmapService;
         this.discountService = discountService;
         this.discountmonthmapService = discountmonthmapService;
+        this.fullpaymentService = fullpaymentService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -929,6 +933,86 @@ public class GlobalController {
         return response;
     }
 
+
+    /*****************************  Full payment discount Code starts here  ********************************/
+
+    @GetMapping("/full-payment-discount")
+    public String getFullPaymentDetails(Model model){
+        List<FullPayment> fullPaymentList = fullpaymentService.getAllFullPayments(4L, 14L);
+        model.addAttribute("fullpayments", fullPaymentList);
+        model.addAttribute("hasFullPayment", !fullPaymentList.isEmpty());
+        return "/admin/fullpayment";
+    }
+
+    @GetMapping("/full-payment-discount/add")
+    public String getAddFullPaymentForm(Model model){
+        model.addAttribute("grades", gradeService.getAllGrades());
+        model.addAttribute("fullpayment", new FullPayment());
+        return "/admin/add-fullpayment";
+    }
+
+    @PostMapping("/full-payment-discount")
+    public String saveFullPayment(@Valid @ModelAttribute("fullpayment") FullPayment fullPayment, BindingResult result, Model model, RedirectAttributes ra){
+        if(result.hasErrors()){
+            model.addAttribute("grades", gradeService.getAllGrades());
+            return "/admin/add-fullpayment";
+        }
+        try{
+            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            fullPayment.setAcademicYear(academicYear);
+            fullPayment.setSchool(school);
+            String returnMsg = "Full-payment saved successfully for: "+fullPayment.getGrade().getGradeName();
+            if(fullPayment.getId()!=null){
+                returnMsg = "Full-payment updated successfully for: "+fullPayment.getGrade().getGradeName();
+            }
+            fullpaymentService.save(fullPayment);
+            ra.addFlashAttribute("success", returnMsg);
+        }catch(UniqueConstraintsException de){
+            model.addAttribute("error", de.getLocalizedMessage());
+            model.addAttribute("grades", gradeService.getAllGrades());
+            return "/admin/add-fullpayment";
+        } catch(ObjectNotSaveException oe){
+            model.addAttribute("error", oe.getLocalizedMessage());
+            model.addAttribute("grades", gradeService.getAllGrades());
+            return "/admin/add-fullpayment";
+        } catch(Exception e){
+            model.addAttribute("error", e.getLocalizedMessage());
+            model.addAttribute("grades", gradeService.getAllGrades());
+            return "/admin/add-fullpayment";
+        }
+        return "redirect:/admin/full-payment-discount";
+    }
+    @GetMapping("/full-payment-discount/edit/{id}")
+    public String editFullPayment(@PathVariable("id")Long id, Model model){
+        FullPayment fullPayment = fullpaymentService.getFullPaymentById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid full-payment Id:" + id));
+        model.addAttribute("fullpayment",fullPayment);
+        return "/admin/edit-fullpayment";
+    }
+
+    @PostMapping("/full-payment-discount/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteFullPaymentMap(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = fullpaymentService.deleteFullPayment(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Full-Payment record deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete Full-Payment.");
+            }
+        }catch(ObjectNotDeleteException oe){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + oe.getLocalizedMessage());
+        } catch (Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
 
 
 }

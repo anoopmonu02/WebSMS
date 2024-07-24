@@ -11,54 +11,50 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-12  offset-md-1 ">
-        <div class="card-header fs-3">Fine List</div>
+        <div class="card-header fs-3">Full-Payment Discount List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${isFine}" id="feeDateTable">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFullPayment}" id="feeDateTable">
           <thead>
           <tr>
             <th>#</th>
-            <th>Fine</th>
+            <th>Academic Year</th>
+            <th>Payment Date</th>
+            <th>Grade</th>
             <th>Amount</th>
-            <th>Frequency</th>
-            <th>Max Fine</th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
           </thead>
           <tbody class="table-group-divider">
 
-          <tr th:each="fine,iterStat : ${fines}">
+          <tr th:each="fullpayment,iterStat : ${fullpayments}">
             <td th:text="${iterStat.index + 1}"></td>
-            <td th:text="${fine.finehead.fineHeadName}"></td>
-            <td th:text="${fine.fineAmount}"></td>
-            <td>
-              <span th:if="${fine.frequency == 1}">Monthly</span>
-              <span th:if="${fine.frequency == 2}">Quarterly</span>
-              <span th:if="${fine.frequency == 3}">Half Yearly</span>
-              <span th:if="${fine.frequency == 4}">Annually</span>
-
-            </td>
-            <td th:text="${fine.maxCalculated}"></td>
-            <td th:text="${fine.description}"></td>
+            <td th:text="${fullpayment.academicYear.sessionFormat}"></td>
+            <td th:text="${#dates.format(fullpayment.paymentLastDate, 'dd-MMM-yyyy')}"></td>
+            <td th:text="${fullpayment.grade.gradeName}"></td>
+            <td th:text="${fullpayment.amount}"></td>
+            <td th:text="${fullpayment.description}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/fine/edit/{id}(id=${fine.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a class="btn btn-primary" th:href="@{/admin/full-payment-discount/edit/{id}(id=${fullpayment.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
-              <!--<button class="btn btn-danger" onclick="deleteFine([[${fine.id}]])"><i class="bi bi-trash3-fill"></i> </button>-->
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fullpayment.id}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
         </table>
-        <div th:if="${!isFine}">
-          <p class="text-center">No Fine found.</p>
+        <div th:if="${!hasFullPayment}">
+          <p class="text-center">No Full-Payment details found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/admin/fine/add"><i class="bi bi-node-plus-fill"></i> Add Fine</a>
+          <a class="btn btn-success" href="/admin/full-payment-discount/add"><i class="bi bi-node-plus-fill"></i> Add Full-Payment</a>
         </div>
       </div>
     </div>
   </div>
+
+
+
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
 
@@ -72,12 +68,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/fine/delete/' + itemId,
+            url: '/admin/full-payment-discount/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Fine deleted successfully.","Delete");
+                toastr["info"](response.message,"Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,

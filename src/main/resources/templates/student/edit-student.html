@@ -10,7 +10,7 @@
 
   <div class="container">
     <div class="offset-1 mt-2 gy-5 mb-5">
-      <div class="card-header fs-3">Student Registration Form</div>
+      <div class="card-header fs-3">Edit Student </div>
       <hr/>
       <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data">
         <!-- Personal Info -->
@@ -30,7 +30,7 @@
 
         <div class="col-md-3">
           <label for="dob" class="form-label">Date of Birth</label>
-          <input type="date" id="dob" class="form-control" th:field="*{dob}">
+          <input type="text" id="dob" class="form-control" th:field="*{dob}">
           <p class="text-danger" th:if="${#fields.hasErrors('dob')}" th:errors="*{dob}">f name Error</p>
         </div>
 
@@ -276,7 +276,7 @@
           <label for="relationship" class="form-label">Relationship</label>
           <select id="relationship" class="form-control" th:field="*{relationship}">
             <option th:each="entry : ${relationships}" th:value="${entry.key}" th:text="${entry.value}"
-            th:selected="${entry} == ${student.relationship}"></option>
+                    th:selected="${entry} == ${student.relationship}"></option>
           </select>
         </div>
 
@@ -288,7 +288,7 @@
           <label for="medium" class="form-label">Medium</label>
           <select id="medium" class="form-control" th:field="*{medium}">
             <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
-            th:selected="${medium} == ${student.medium}"></option>
+                    th:selected="${medium} == ${student.medium}"></option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">medium Error</p>
         </div>
@@ -352,7 +352,7 @@
           <label for="bank" class="form-label">Bank</label>
           <select id="bank" class="form-control" th:field="*{bank}">
             <option th:each="bank : ${banks}" th:value="${bank.id}" th:text="${bank.bankName}"
-            th:selected="${bank} == ${student.bank}"></option>
+                    th:selected="${bank} == ${student.bank}"></option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('bank')}" th:errors="*{bank}">bank Error</p>
         </div>
@@ -437,9 +437,9 @@
       });
     });
 
-    /*$("#dob").datepicker({
+    $("#dob").datepicker({
       dateFormat: "dd-MMM-yyyy"
-    });*/
+    });
 
     // Display success message
     const successMessage = [[${success}]];
