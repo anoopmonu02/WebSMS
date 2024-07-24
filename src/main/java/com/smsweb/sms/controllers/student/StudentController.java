@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/student")
@@ -133,6 +134,14 @@ public class StudentController {
             ex.printStackTrace();
             return "/student/add-student";
         }
+    }
+
+    @GetMapping("/student/show/{id}")
+    public String showSchoolForm(@PathVariable("id")Long id, Model model){
+        Optional<Student> student = studentService.getStudentDetail(id, 4L);
+        model = getAllGlobalModels(model);
+        model.addAttribute("student", student.get());
+        return "student/show-student";
     }
 
 

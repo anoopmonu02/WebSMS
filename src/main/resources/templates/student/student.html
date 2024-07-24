@@ -31,7 +31,9 @@
 
           <tr th:each="student,iterStat : ${students}">
             <td th:text="${iterStat.index + 1}"></td>
-            <td th:text="${student.studentName}"></td>
+            <td>
+              <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
+            </td>
             <td th:text="${#dates.format(student.registrationDate, 'dd-MMM-yyyy')}"></td>
             <!--<td th:text="${customer.registrationNo}"></td>-->
             <td th:text="${student.motherName}"></td>

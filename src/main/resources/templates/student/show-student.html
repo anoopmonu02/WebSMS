@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+
+    <div class="container">
+        <div class="offset-1 mt-2 gy-5 mb-5">
+            <div class="card-header fs-3">Student Detail</div>
+            <hr/>
+            <div class="row g-3">
+                <!-- Personal Info -->
+                <div class="col-12">
+                    <h4>Personal Information</h4>
+                </div>
+                <div class="col-md-7">
+                    <input type="hidden" name="school_id" id="school_id" th:field="*{student.school.id}"/>
+                    <input type="hidden" name="academic_id" id="academic_id" th:field="*{student.academicYear.id}"/>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="studentName" class="form-label">Student Name</label>
+                    <input type="text" readonly disabled  id="studentName" class="form-control" th:field="*{student.studentName}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="dob" class="form-label">Date of Birth</label>
+                    <input type="text" readonly disabled  id="dob" class="form-control" th:field="*{student.dob}">
+                </div>
+
+                <div class="col-md-3">
+
+                </div>
+
+
+                <div class="col-md-6">
+                    <label for="fatherName" class="form-label">Father Name</label>
+                    <input type="text" readonly disabled  id="fatherName" class="form-control" th:field="*{student.fatherName}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="fatherOccupation" class="form-label">Father Occupation</label>
+                    <input type="text" readonly disabled  id="fatherOccupation" class="form-control" th:field="*{student.fatherOccupation}">
+                </div>
+                <div class="col-md-3">
+
+                </div>
+
+                <div class="col-md-6">
+                    <label for="motherName" class="form-label">Mother Name</label>
+                    <input type="text" readonly disabled  id="motherName" class="form-control" th:field="*{student.motherName}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="motherOccupation" class="form-label">Mother Occupation</label>
+                    <input type="text" readonly disabled  id="motherOccupation" class="form-control" th:field="*{student.motherOccupation}">
+                </div>
+                <div class="col-md-3">
+
+                </div>
+
+                <div class="col-md-3">
+                    <label for="religion" class="form-label">Religion</label>
+                    <input type="text" readonly disabled  id="religion" class="form-control" th:field="*{student.religion}">
+                </div>
+
+
+                <div class="col-md-3">
+                    <label for="nationality" class="form-label">Nationality</label>
+                    <input type="text" readonly disabled  id="nationality" class="form-control" th:field="*{student.nationality}">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="gender" class="form-label">Gender</label>
+                    <input type="text" readonly disabled  id="gender" class="form-control" th:field="*{student.gender}">                    
+                </div>
+                <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    <input type="text" readonly disabled  id="category" class="form-control" th:field="*{student.category.categoryName}">                    
+                </div>
+
+                <div class="col-md-3">
+                    <label for="cast" class="form-label">Cast</label>
+                    <input type="text" readonly disabled  id="cast" class="form-control" th:field="*{student.cast.castName}">                    
+                </div>
+
+                <div class="col-md-7">
+                    <label for="description" class="form-label">Description</label>
+                    <div class="form-floating">
+                        <textarea id="description" readonly disabled placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{student.description}"></textarea>
+                        <label for="address">Add Description Here</label>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    &nbsp;
+                </div>
+
+                <div class="col-md-4">
+                    <div th:if="${student.pic!=null}">
+                        <img th:src="@{'/students/'+ *{student.pic}}" width="100px" height="140px"/>&nbsp;
+                    </div>
+                    <div th:if="not ${student.pic!=null}">
+                        &nbsp;
+                    </div>
+                </div>
+                <div class="col-md-8">
+
+                </div>
+
+                <!-- Physical Info -->
+                <div class="col-12">
+                    <h4>Physical Information</h4>
+                </div>
+                <div class="col-md-3">
+                    <label for="height" class="form-label">Height (cm)</label>
+                    <input type="number" readonly disabled  id="height" class="form-control" th:field="*{student.height}">
+                </div>
+                <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <label for="weight" class="form-label">Weight (kg)</label>
+                    <input type="number" readonly disabled  id="weight" class="form-control" th:field="*{student.weight}">
+                </div>
+                <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <label for="bloodGroup" class="form-label">Blood Group</label>
+                    <input type="text" readonly disabled  id="bloodGroup" class="form-control" th:field="*{student.bloodGroup}">
+                </div>
+                <div class="col-md-3">
+                </div>
+                <div class="col-md-3">
+                    <label for="bodyType" class="form-label">Body Type</label>
+                    <input type="text" readonly disabled  id="bodyType" class="form-control" th:field="*{student.bodyType}">
+                </div>
+                <div class="col-md-3">
+                </div>
+
+                <!-- Contact Info -->
+                <div class="col-12">
+                    <h4>Contact Information</h4>
+                </div>
+                <div class="col-md-7">
+                    <label for="address" class="form-label">Address</label>
+                    <div class="form-floating">
+                        <textarea id="address" readonly disabled placeholder="Add address here" class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{student.address}"></textarea>
+                        <label for="address">Add Address</label>
+                    </div>
+                </div>
+                <div class="col-md-5"></div>
+                <div class="col-md-4">
+                    <label for="landmark" class="form-label">Landmark</label>
+                    <input type="text" readonly disabled  id="landmark" class="form-control" th:field="*{student.landmark}">
+                </div>
+                <div class="col-md-8"></div>
+                <div class="col-md-4">
+                    <label for="province" class="form-label">Province</label>
+                    <input type="text" readonly disabled  id="province" class="form-control intfields" th:field="*{student.province.provinceName}">
+                </div>
+                <div class="col-md-2"></div>
+                <div class="col-md-4">
+                    <label for="city" class="form-label">City</label>
+                    <input type="text" readonly disabled  id="city" class="form-control intfields" th:field="*{student.city.cityName}">
+                </div>
+                <div class="col-md-2"></div>
+                <div class="col-md-3">
+                    <label for="pincode" class="form-label">Pincode</label>
+                    <input type="text" readonly disabled  id="pincode" class="form-control intfields" th:field="*{student.pincode}">
+                </div>
+                <div class="col-md-9"></div>
+                <div class="col-md-3">
+                    <label for="mobile1" class="form-label">Mobile 1</label>
+                    <input type="text" readonly disabled  id="mobile1" class="form-control intfields" th:field="*{student.mobile1}">
+                </div>
+                <div class="col-md-3"></div>
+                <div class="col-md-3">
+                    <label for="mobile2" class="form-label">Mobile 2</label>
+                    <input type="text" readonly disabled  id="mobile2" class="form-control intfields" th:field="*{student.mobile2}">
+                </div>
+                <div class="col-md-3"></div>
+                <div class="col-md-4">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="text" readonly disabled  id="email" class="form-control" th:field="*{student.email}">
+                </div>
+                <div class="col-md-8"></div>
+
+                <!-- Previous Academic Details -->
+                <div class="col-12">
+                    <h4>Previous Academic Details</h4>
+                </div>
+                <div class="col-md-6">
+                    <label for="previousSchool" class="form-label">Previous School</label>
+                    <input type="text" readonly disabled  id="previousSchool" class="form-control" th:field="*{student.previousSchool}">
+                </div>
+                <div class="col-md-6">
+                    <label for="removalCause" class="form-label">Removal Cause</label>
+                    <input type="text" readonly disabled  id="removalCause" class="form-control" th:field="*{student.removalCause}">
+                </div>
+                <div class="col-md-3">
+                    <label for="previousClass" class="form-label">Previous Class</label>
+                    <input type="text" readonly disabled  id="previousClass" class="form-control" th:field="*{student.previousClass}">
+                </div><div class="col-md-1"></div>
+                <div class="col-md-3">
+                    <label for="tcNo" class="form-label">TC Number</label>
+                    <input type="text" readonly disabled  id="tcNo" class="form-control" th:field="*{student.tcNo}">
+                </div><div class="col-md-1"></div>
+
+                <div class="col-md-3">
+                    <label for="passingYear" class="form-label">Passing Year</label>
+                    <input type="number" readonly disabled  id="passingYear" class="form-control" th:field="*{student.passingYear}">
+                </div><div class="col-md-1"></div>
+
+                <!-- Emergency Contact -->
+                <div class="col-12">
+                    <h4>In Case of Emergency</h4>
+                </div>
+                <div class="col-md-6">
+                    <label for="personName" class="form-label">Contact Person Name</label>
+                    <input type="text" readonly disabled  id="personName" class="form-control" th:field="*{student.personName}">
+                </div>
+                <div class="col-md-3">
+                    <label for="personContact" class="form-label">Contact Person Number</label>
+                    <input type="text" readonly disabled  id="personContact" class="form-control intfields" th:field="*{student.personContact}">
+                </div>
+                <div class="col-md-3">
+                    <label for="relationship" class="form-label">Relationship</label>
+                    <input type="text" readonly disabled  id="relationship" class="form-control" th:field="*{student.relationship}">
+                </div>
+
+                <!-- Extra Information -->
+                <div class="col-12">
+                    <h4>Academic Registration Information</h4>
+                </div>
+                <div class="col-md-4">
+                    <label for="medium" class="form-label">Medium</label>
+                    <input type="text" readonly disabled  id="medium" class="form-control" th:field="*{student.medium.mediumName}">
+                </div>
+                <div class="col-md-4">
+                    <label for="grade" class="form-label">Grade</label>
+                    <input type="text" readonly disabled  id="grade" class="form-control" th:field="*{student.grade.gradeName}">
+                </div>
+                <div class="col-md-4">
+                    <label for="section" class="form-label">Section</label>
+                    <input type="text" readonly disabled  id="section" class="form-control" th:field="*{student.section.sectionName}">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="studentType" class="form-label">Student Type</label>
+                    <input type="text" readonly disabled  id="studentType" class="form-control" th:field="*{student.studentType}">
+                </div>
+                <div class="col-md-4">
+                    <label for="schoolStatus" class="form-label">School Status</label>
+                    <input type="text" readonly disabled  id="schoolStatus" class="form-control" th:field="*{student.schoolStatus}">
+                </div>
+                <div class="col-md-2"></div>
+
+                <!--<div class="col-md-12">
+                  <label for="remark" class="form-label">Remark</label>
+                  <textarea id="remark" class="form-control" th:field="*{remark}"></textarea>
+                </div>-->
+                <div class="col-md-7">
+                    <label for="remark" class="form-label">Remark</label>
+                    <div class="form-floating">
+                        <textarea  readonly disabled id="remark" placeholder="Add Remark here, if any" class="form-control" name="remark" style="height: 100px;" rows="4" cols="50" th:field="*{student.remark}"></textarea>
+                        <label for="address">Add Remark</label>
+                    </div>
+                </div>
+                <div class="col-md-5"></div>
+
+                <!-- Bank & Aadhar Details -->
+                <div class="col-12">
+                    <h4>Bank & Aadhar Details</h4>
+                </div>
+                <div class="col-md-6">
+                    <label for="bank" class="form-label">Bank</label>
+                    <input type="text" readonly disabled  id="bank" class="form-control" th:field="*{student.bank.bankName}">
+                </div>
+                <div class="col-md-6">
+                    <label for="branchName" class="form-label">Branch Name</label>
+                    <input type="text" readonly disabled  id="branchName" class="form-control" th:field="*{student.branchName}">
+                </div>
+                <div class="col-md-4">
+                    <label for="ifscCode" class="form-label">IFSC Code</label>
+                    <input type="text" readonly disabled  id="ifscCode" class="form-control" th:field="*{student.ifscCode}">
+                </div>
+                <div class="col-md-4">
+                    <label for="accountNo" class="form-label">Account Number</label>
+                    <input type="text" readonly disabled  id="accountNo" class="form-control" th:field="*{student.accountNo}">
+                </div>
+                <div class="col-md-4">
+                    <label for="aadharNo" class="form-label">Aadhar Number</label>
+                    <input type="text" readonly disabled  id="aadharNo" class="form-control" th:field="*{student.aadharNo}">
+                </div>
+
+                <!-- Submit Button -->
+                <hr/>
+                <div class="col-md-4">
+                    <a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
+
+    <script type="text/javascript" th:inline="javascript">
+        $(document).ready(function() {
+            function loadCities(state, selectedCity) {
+                if (state) {
+                    $.ajax({
+                        type: 'GET',
+                        url: '/admin/customer/cities',
+                        data: { provinceId: state },
+                        success: function(cities) {
+                            console.log("cities: "+cities);
+                            let $citySelect = $('#city');
+                            $citySelect.empty();
+                            $citySelect.append('<option value="">Select City</option>');
+                            $.each(cities, function(index, city) {
+                                $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
+                            });
+                            console.log("selectedCity "+selectedCity);
+                            // Set the previously selected city
+                            if (selectedCity) {
+                                $citySelect.val(selectedCity);
+                            }
+                        }
+                    });
+                }
+            }
+
+            $('#province').change(function() {
+                let selectedState = $(this).val();
+                loadCities(selectedState);
+            });
+
+            // Trigger change to load cities if a state is already selected
+            let initialSelectedState = $('#province').val();
+            let initialSelectedNewCity = $('#hiddencity').val();
+            /*<![CDATA[*/
+            let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
+            /*]]>*/
+            console.log("initialSelectedState:> "+initialSelectedState);
+            console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
+            console.log("initial:> "+initialSelectedCity);
+            if (initialSelectedState) {
+                loadCities(initialSelectedState, initialSelectedNewCity);
+            }
+            $('.intfields').on('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        });
+
+        $("#dob").datepicker({
+            dateFormat: "dd-MMM-yyyy"
+        });
+
+        // Display success message
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            //toastr.success(successMessage);
+            toastr["success"](successMessage,"Success");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        // Display error message
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            //toastr.error(errorMessage);
+            toastr["error"](errorMessage, "Error");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+
+    </script>
+
+
+</section>
+</body>
+</html>
