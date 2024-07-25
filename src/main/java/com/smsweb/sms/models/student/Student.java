@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.*;
@@ -174,6 +175,6 @@ public class Student {
     private String aadharNo;
 
     //TODO-will add 2 more attributes - createdBy, updatedBy
-
+    //@JsonIgnore - will use for user or to avoid circular reference
 
 }

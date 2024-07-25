@@ -13,4 +13,6 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findAllBySchool_IdOrderByStudentNameAsc(Long school_id);
 
     Optional<Student> findByIdAndSchool_Id(Long id, Long school_id);
+
+    public List<Student> findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(String name, Long school_id, String status);
 }

@@ -90,4 +90,8 @@ public class StudentService {
         return null;
     }
 
+    public List<Student> searchStudent(String stuname){
+        return repository.findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(stuname, 4L, "Active");
+    }
+
 }

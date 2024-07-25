@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12  offset-md-1 ">
+                <div class="card-header fs-3">Fee Submission</div>
+                <hr/>
+                <!--Search box-->
+                <div class="search-container my-3">
+                    <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                    <div class="search-result">
+
+                    </div>
+                </div>
+
+                <!--Student Details-->
+                <div class="student-detail mb-3">
+                    <h4>Student Detail</h4>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" th:inline="javascript">
+        // Display success message
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            //toastr.success(successMessage);
+            toastr["success"](successMessage,"Success");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            //toastr.success(successMessage);
+            toastr["info"](infoMessage,"Info");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        // Display error message
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            //toastr.error(errorMessage);
+            toastr["error"](errorMessage, "Error");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        const searchStuName=() =>{
+            let query=$("#search-input").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+
+                //Sending request to server
+                let url = `http://localhost:9090/searchStudentForFeePage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        //@{/fees/get-student-fee-detail/{id}(id=${student.id})}
+                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result").html(text);
+                    $(".search-result").show();
+                });
+
+
+            } else{
+                $(".search-result").hide();
+            }
+        }
+
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            if(id>0){
+                console.log("id::::"+id);
+                let url = `${window.location.origin}/getStudentDetailForFee/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log(data);
+
+                });
+            }
+        }
+
+    </script>
+
+</section>
+</body>
+</html>
