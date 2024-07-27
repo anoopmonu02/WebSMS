@@ -53,5 +53,8 @@ public class FeedateService {
         return "success";
     }
 
+    public FeeDate getByGivenMonth(Long academicYear_id, Long school_id, int monthGiven){
+        return feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(academicYear_id, school_id, monthGiven).get(0);
+    }
 
 }

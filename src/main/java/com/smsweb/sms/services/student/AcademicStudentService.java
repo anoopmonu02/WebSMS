@@ -23,4 +23,8 @@ public class AcademicStudentService {
     public AcademicStudent searchStudentById(Long academicStudentId, Long academicYear, Long school){
         return academicStudentRepository.findByAcademicYearAndSchoolAndAcademicStudentId(academicYear, school, academicStudentId);
     }
+
+    public int countNoOfYearsOfStudent(AcademicStudent academicStudent){
+        return academicStudentRepository.countByStudent(academicStudent.getStudent());
+    }
 }

@@ -21,8 +21,176 @@
                 </div>
 
                 <!--Student Details-->
+                <hr/>
                 <div class="student-detail mb-3">
-                    <h4>Student Detail</h4>
+                    <div class="academic-student-block">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <div class="card text-bg-light">
+                                    <h5 class="card-header">Student Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
+                                        <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
+                                        <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
+                                        <li class="list-group-item text-bg-light contactno"><strong>Contact No:</strong> </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-4">
+                                <div class="card text-bg-light">
+                                    <h5 class="card-header">Academic Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
+                                        <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
+                                        <li class="list-group-item text-bg-light csection"><strong>Section:</strong></li>
+                                        <li class="list-group-item text-bg-light csr"><strong>SR No:</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-4">
+                                <div class="mb-2 row">
+                                    <label for="feedate" class="col-sm-6 col-form-label"><b>Fee Date:</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control" id="feedate" name="feedate" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label for="feesubmissiondate" class="col-sm-6 col-form-label"><b>Submission Date:</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control" id="feesubmissiondate" name="feesubmissiondate" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label for="previousBalance" class="col-sm-6 col-form-label"><b>Previous Balance:</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control " id="previousBalance" name="previousBalance" value="">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!--Other Fee Detail-->
+                <hr/>
+                <div class="feeblock">
+                    <div class="row">
+                        <!--Months List-->
+                        <div class="col-sm-2 monthlist">
+                            <!--<div th:each="mon,iterStat : ${monthmapping}">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="mon_${mon.monthMaster.id}" name="mon_${mon.monthMaster.id}" th:checked="false" value="true" />
+                                    <label class="form-check-label" for="mon_${mon.monthMaster.id}" th:text="${mon.monthMaster.monthName}">
+                                        Default checkbox
+                                    </label>
+                                </div>
+                            </div>-->
+                            <table class="table table-bordered table-hover table-sm" th:if="${hasMonthMapping}">
+                                <tr th:each="mon,iterStat : ${monthmapping}">
+                                    <td><input type="checkbox" class="form-check form-check-input" id="${mon.monthMaster.monthName}" name="${mon.monthMaster.monthName}" value="${mon}" /></td>
+                                     <td th:text="${mon.monthMaster.monthName}"></td>
+                                </tr>
+                            </table>
+                            <div th:if="${!hasMonthMapping}">
+                                <p class="text-center">No Month-Mapping found.</p>
+                                <p class="text-center">Contact to your admin.</p>
+                            </div>
+                            <div class="row">
+                                <label id="discountMsg" name="discountMsg" class="text-success"></label>
+                                <label id="discountCount" name="discountCount" class="text-success"></label>
+                            </div>
+                        </div>
+
+                        <!--Fee Detail-->
+                        <div class="col-sm-6">
+                            <table class="table table-bordered table-hover table-sm">
+                                <thead>
+                                    <tr class="table-secondary">
+                                        <th>#</th>
+                                        <th>Fee-head Name</th>
+                                        <th>Qty</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1.</td>
+                                        <td>Fee name 1</td>
+                                        <td>1</td>
+                                        <td>100.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2.</td>
+                                        <td>Tution Fee</td>
+                                        <td>3</td>
+                                        <td>2100.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div>
+                                <span id="msgLabel"></span>
+                                <span id="msgAmount"></span>
+                                <input type="hidden" name="fullPaymentAmount" value=""/>
+                            </div>
+                        </div>
+
+                        <!--Amount Detail-->
+                        <div class="col-sm-4">
+                            <div class="row">
+                                <div class="mb-3 row">
+                                    <label for="fineAmount" class="col-sm-5 col-form-label">Fine Amount*</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" readonly="readonly" class="form-control" id="fineAmount" name="fineAmount" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="fineRemark" class="col-sm-5 col-form-label">Fine Remark</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" readonly="readonly" name="fineRemark" class="form-control" id="fineRemark" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="discountAmount" class="col-sm-5 col-form-label">Discount Amount*</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" readonly="readonly" class="form-control" id="discountAmount" name="discountAmount" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="totalAmount" class="col-sm-5 col-form-label">Total Amount*</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" readonly="readonly" class="form-control" id="totalAmount" name="totalAmount" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="paidAmount" class="col-sm-5 col-form-label">Paid Amount*</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" class="form-control" id="paidAmount" name="paidAmount" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="balanceAmount" class="col-sm-5 col-form-label">Balance Amount*</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" readonly="readonly" class="form-control" id="balanceAmount" name="balanceAmount" value="email@example.com">
+                                    </div>
+                                </div>
+                                <div class="mb-3 row">
+                                    <label for="feeRemark" class="col-sm-5 col-form-label">Remark</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" readonly="readonly" class="form-control" id="feeRemark" name="feeRemark" value="">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <hr/>
+                <div class="mb-3">
+
                 </div>
 
             </div>
@@ -139,10 +307,51 @@
                     return response.json();
                 }).then((data) => {
                     console.log(data);
+                    console.log(data.student);
+                    $(".studname").html(`<strong>Student Name:</strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                    $(".fname").html(`<strong>Father Name:</strong> ${data.student.student.fatherName}`);
+                    $(".mname").html(`<strong>Mother Name:</strong> ${data.student.student.motherName}`);
+                    $(".contactno").html(`<strong>Contact No:</strong> ${data.student.student.mobile1}`);
+
+                    $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+                    $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+                    $(".csection").html(`<strong>Section:</strong> ${data.student.section.sectionName}`);
+                    $(".csr").html(`<strong>SR No:</strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+
+                    let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate);
+                    $("#feedate").val(feeSubmissiondate);
+                    let todayDate = formatDate(data.todayDate);
+                    $("#feesubmissiondate").val(todayDate);
+                    $("#previousBalance").val(`${data.previousBalance}`);
+                    if(data.previousBalance>0){
+                        $("#previousBalance").addClass("text-bg-warning");
+                    } else{
+                        $("#previousBalance").addClass("");
+                    }
 
                 });
             }
         }
+
+        function formatDate(dateString) {
+            // Parse the date string
+            const date = new Date(dateString);
+
+            // Helper function to get month abbreviation
+            const getMonthAbbreviation = (monthIndex) => {
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return months[monthIndex];
+            };
+
+            // Extract day, month, and year from the date
+            const day = date.getDate();
+            const month = getMonthAbbreviation(date.getMonth());
+            const year = date.getFullYear();
+
+            // Format the date in dd-MMM-yyyy
+            return `${String(day).padStart(2, '0')}/${month}/${year}`;
+        }
+
 
     </script>
 
