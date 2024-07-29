@@ -94,4 +94,19 @@ public class StudentService {
         return repository.findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(stuname, 4L, "Active");
     }
 
+    @Transactional
+    public Long updateContact(String contactNo, Long studentId){
+        try{
+            Student student = repository.findById(studentId).orElse(null);
+            if(student!=null){
+                student.setMobile1(contactNo);
+                repository.save(student);
+                return studentId;
+            }
+        }catch(Exception e){
+            throw new ObjectNotSaveException("Unable to update contact number. Error: "+e.getLocalizedMessage(), e);
+        }
+        return 0L;
+    }
+
 }

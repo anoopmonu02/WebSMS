@@ -41,8 +41,6 @@ public class FeeSubmissionRestController {
     @GetMapping("/searchStudentForFeePage/{query}")
     public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query){
         List<AcademicStudent> students = academicStudentService.searchStudents(query, 14L, 4L);
-        //Only 10 top matching records will show
-        //List<AcademicStudent> limitedList = students.subList(0, Math.min(students.size(), 10));
         return ResponseEntity.ok(students);
     }
 
@@ -100,6 +98,27 @@ public class FeeSubmissionRestController {
                 result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
             }
 
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/updateContact")
+    public ResponseEntity<?> updateContact(@RequestBody Map<String, String> requestBody){
+        Map result = new HashMap<>();
+        try{
+            if(requestBody!=null){
+                String contactNo = requestBody.get("contactNumber");
+                Long stuId = Long.parseLong(requestBody.get("stuId"));
+                Long returnId = studentService.updateContact(contactNo, stuId);
+                if(returnId>0){
+                    result.put("success","Contact number: "+ contactNo +" updated successfully.");
+                }
+            } else{
+                result.put("empty_response", "Request params are empty");
+            }
         }catch(Exception e){
             e.printStackTrace();
             result.put("error", "Error: "+e.getLocalizedMessage());

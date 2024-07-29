@@ -32,7 +32,7 @@
                                         <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
                                         <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
                                         <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
-                                        <li class="list-group-item text-bg-light contactno"><strong>Contact No:</strong> </li>
+                                        <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong> </li>
                                     </ul>
                                 </div>
                             </div>
@@ -73,6 +73,7 @@
                         </div>
                     </div>
                     <input type="hidden" id="academicStudentId" value="" name="academicStudentId">
+                    <input type="hidden" id="StudentId" value="" name="StudentId">
                     <input type="hidden" id="gradeId" value="" name="gradeId">
                 </div>
 
@@ -180,6 +181,26 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" >
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Update Contact</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" id="updatedContactNumber" placeholder="Enter mobile no." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-square"></i> Close</button>
+                    <button type="button" class="btn btn-primary" id="updateContactBtn"><i class="bi bi-pencil-square"></i> Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script type="text/javascript" th:inline="javascript">
@@ -253,6 +274,10 @@
                 "hideMethod": "fadeOut"
             }
         }
+        // Event listener for dynamically added button
+        $(document).on('click', '.dynamic-btn', function() {
+            $('#myModal').modal('show');
+        });
 
         $("#paidAmount").keypress(function (e) {
             //if the letter is not digit then display error and don't type anything
@@ -364,7 +389,7 @@
                 $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
                 $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
                 $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
-                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
+                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}<button class="btn btn-success dynamic-btn"> <i class="bi bi-telephone-plus"></i> </button>`);
 
                 $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
                 $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
@@ -372,6 +397,7 @@
                 $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
 
                 $('#academicStudentId').val(`${data.student.id}`);
+                $('#StudentId').val(`${data.student.student.id}`);
                 $('#gradeId').val(`${data.student.grade.id}`);
                 let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate);
                 $("#feedate").val(feeSubmissiondate);
@@ -541,6 +567,57 @@
                 }
             });
         }
+
+        $('#updateContactBtn').click(function() {
+            const contactNumber = $('#updatedContactNumber').val();
+            const studentId = $('#StudentId').val();
+
+            if (contactNumber === '') {
+                toastr["error"]("Contact number cannot be empty","Missing");
+                return;
+            }
+
+            // Validate contact number
+            const isNumeric = /^\d{10}$/.test(contactNumber);
+            if (!isNumeric) {
+                toastr["error"]("Contact number must be exactly 10 digits and contain only numbers.","Message");
+                return;
+            }
+
+            // Example API URL and data
+            //const apiUrl = 'https://example.com/api/updateContact';
+            const apiUrl = `${window.location.origin}/updateContact`;
+            const requestData = {
+                contactNumber: contactNumber,
+                stuId: studentId
+            };
+
+            // Make the API call
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toastr["success"](data.success,"Success");
+                    $('#myModal').modal('hide');
+                } else if(data.error){
+                    toastr["error"](data.error,"Error");
+                } else if(data.empty_response){
+
+                } else {
+                    toastr["error"]("Failed to update contact number","Error");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                toastr["error"]("An error occurred while updating the contact number","Error");
+            });
+        });
 
 
     </script>

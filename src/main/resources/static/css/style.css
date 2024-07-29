@@ -8,8 +8,15 @@
     background: white;
     width: 100%;
     padding: 10px;
-    border: 1px solid #5c636a;
+    border: 1px solid #babbbc;
     display: none;
     z-index: 20; /* Ensure this container is above the cards */
+}
+
+.contact-update-btn button{
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
