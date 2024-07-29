@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12  offset-md-1 ">
+        <div class="card-header fs-3">Discount Assign Form - Student</div>
+        <hr/>
+        <!--Search box-->
+        <div class="search-container my-3">
+          <input class="form-control" id="search-input" onkeyup="searchStuName()" placeholder="Search student name"
+                 type="text">
+          <div class="search-result">
+
+          </div>
+        </div>
+
+        <!--Student Details-->
+        <hr/>
+        <div class="student-detail mb-3">
+          <div class="academic-student-block">
+            <div class="row">
+              <div class="col-sm-4">
+                <div class="card text-bg-light h-100">
+                  <h5 class="card-header">Student Detail</h5>
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
+                    <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
+                    <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
+                    <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="col-sm-4">
+                <div class="card text-bg-light h-100">
+                  <h5 class="card-header">Academic Detail</h5>
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
+                    <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
+                    <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
+                    <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="col-sm-4 discountassigned" style="display: none;">
+                <div class="card text-bg-success h-100">
+                  <h5 class="card-header">Discount Detail</h5>
+                  <ul class="list-group list-group-flush">
+                    <li class="list-group-item text-bg-success studiscount"><strong>Discount: </strong></li>
+                    <li class="list-group-item text-bg-success studescription"><strong>Description: </strong></li>
+
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!--Other Fee Detail-->
+        <hr/>
+        <div class="feeblock">
+          <form th:action="@{/student/assign-discount}" th:object="${studentDiscount}" method="post" >
+            <div class="row g-3">
+                <input id="academicStudent" name="academicStudent" type="hidden" value="" th:field="*{academicStudent.id}"/>
+                <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+                <input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
+                <input id="id" name="id" type="hidden" th:field="*{id}"/>
+                <div class="col-sm-6  monthlist">
+                  <!--dropdown-->
+                  <label for="discount" class="form-label">Select Discount</label>
+                  <select name="discount" id="discount" th:field="*{discounthead}" class="form-select">
+                    <option value="">Select Discount</option>
+                    <option th:each="discount : ${discounts}" th:value="${discount.id}" th:text="${discount.discountName}"
+                            th:selected="${discount} == ${studentDiscount.discounthead}">Discount</option>
+                  </select>
+                  <p class="text-danger" th:if="${#fields.hasErrors('discounthead')}" th:errors="*{discounthead}">Fine Error</p>
+                </div>
+                <div class="col-sm-6">
+
+                </div>
+                <div class="col-md-7">
+                  <label for="description" class="form-label">Description</label>
+                  <div class="form-floating">
+                    <textarea id="description" placeholder="Add description here" class="form-control" name="description" style="height: 100px;" rows="4" cols="50" th:field="*{description}"></textarea>
+                    <label for="description">Add Description Here</label>
+                  </div>
+                  <p class="text-danger" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">description Error</p>
+                </div>
+                <div class="col-sm-5">
+
+                </div>
+
+                <hr/>
+                <div class="col-md-4">
+                  <a class="btn btn-info" href="/student/stu-discount-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                </div>
+                <div class="col-md-6 mb-5">
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save </button>
+                </div>
+
+                <!--<div class="col-sm-1">
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save </button>
+                </div>
+                <div class="col-sm-3  mb-5">
+                  <a class="btn btn-info" href="/student/stu-discount-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                </div>-->
+
+
+
+            </div>
+          </form>
+        </div>
+
+
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+      // Display success message
+      const successMessage = [[${success}]];
+      if (successMessage) {
+        //toastr.success(successMessage);
+        toastr["success"](successMessage,"Success");
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "500",
+          "hideDuration": "1000",
+          "timeOut": "5000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        }
+      }
+
+      const infoMessage = [[${info}]];
+      if (infoMessage) {
+        //toastr.success(successMessage);
+        toastr["info"](infoMessage,"Info");
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "500",
+          "hideDuration": "1000",
+          "timeOut": "5000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        }
+      }
+
+      // Display error message
+      const errorMessage = [[${error}]];
+      if (errorMessage) {
+        //toastr.error(errorMessage);
+        toastr["error"](errorMessage, "Error");
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "500",
+          "hideDuration": "1000",
+          "timeOut": "5000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        }
+      }
+
+      const searchStuName=() =>{
+          let query=$("#search-input").val();
+          console.log('searched.....'+query);
+          if(query.trim().length>2){
+
+              //Sending request to server
+              let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+              fetch(url).then(response=>{
+                return response.json();
+              }).then((data)=>{
+                  console.log(data);
+                  let text = `<div class='list-group'>`;
+
+                  data.forEach((student) =>{
+                    text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                  });
+
+                  text+=`</div>`;
+                  $(".search-result").html(text);
+                  $(".search-result").show();
+              });
+
+
+          } else{
+            $(".search-result").hide();
+          }
+      }
+
+      const loadStudentData=(id)=>{
+          $(".search-result").hide();
+          $("#search-input").val('');
+          if(id>0){
+            console.log("id::::"+id);
+            let url = `${window.location.origin}/getStudentDetailForDiscount/${id}`;
+            fetch(url).then(response => {
+              return response.json();
+            }).then((data) => {
+              console.log(data);
+              console.log(data.student);
+              if('noAcademicStudent' in data){
+                toastr["warning"](data.noAcademicStudent,"Message");
+                setFeeRelatedData(data, 0)
+              } else{
+                if('noFeeDate' in data){
+                  toastr["warning"](data.noFeeDate,"Message");
+                } else{
+                  if('assignedDiscount' in data){
+                    toastr["info"]("Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student.","Message");
+                    $(".discountassigned").show();
+                    setDiscountData(data.assignedDiscount);
+                  }
+                  setFeeRelatedData(data, 1);
+                }
+              }
+            });
+          }
+      }
+
+      function setDiscountData(data){
+        $('.studiscount').html(`<strong>Discount: </strong> ${data.discounthead.discountName}`);
+        $('.studescription').html(`<strong>Description: </strong> ${data.description}`);
+      }
+
+      function setFeeRelatedData(data, flag){
+          if(flag===1){
+              $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} `);
+              $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName} `);
+              $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName} `);
+              $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1} `);
+
+              $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+              $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+              $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+              $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+
+              $('#academicStudent').val(`${data.student.id}`);
+              $('#id').val(`${data.assignedDiscount.id}`);
+
+          } else{
+              $(".studname").html(`<strong>Student Name: </strong>`);
+              $(".fname").html(`<strong>Father Name: </strong> `);
+              $(".mname").html(`<strong>Mother Name: </strong> `);
+              $(".contactno").html(`<strong>Contact No: </strong> `);
+
+              $(".cmedium").html(`<strong>Medium: </strong> `);
+              $(".cgrade").html(`<strong>Class: </strong> `);
+              $(".csection").html(`<strong>Section: </strong> `);
+              $(".csr").html(`<strong>SR No: </strong> `);
+              //$('#id').val(`${data.assignedDiscount.id}`);
+          }
+      }
+
+
+  </script>
+
+</section>
+</body>
+</html>

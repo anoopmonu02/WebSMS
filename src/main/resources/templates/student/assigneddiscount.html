@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12  offset-md-1 ">
+        <div class="card-header fs-3">Student Discount List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasDiscounts}">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Discount Name</th>
+            <th>Student Name</th>
+            <th>Father Name</th>
+            <th>Mother Name</th>
+            <th>Contact#</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+
+          <tr th:each="student,iterStat : ${studentDiscounts}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${student.discounthead.discountName}"></td>
+            <td th:text="${student.academicStudent.student.studentName}"></td>
+            <td th:text="${student.academicStudent.student.fatherName}"></td>
+            <td th:text="${student.academicStudent.student.motherName}"></td>
+            <td th:text="${student.academicStudent.student.mobile1}"></td>
+            <td th:text="${student.description}"></td>
+            <td style="white-space: nowrap" class="text-center">
+              <!--<a class="btn btn-primary" th:href="@{/student/assign-discount/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i> </a>-->
+              <a class="btn btn-danger" th:href="@{/student/assign-discount/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                 data-bs-custom-class="custom-tooltip"
+                 data-bs-title="Delete the customer record">
+                <i class="bi bi-trash3-fill"></i> </a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasDiscounts}">
+          <p class="text-center">No Student-Discount found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/student/assign-discount/add"><i class="bi bi-node-plus-fill"></i> Assign Discount</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Info");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+  </script>
+
+</section>
+</body>
+</html>

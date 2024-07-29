@@ -302,7 +302,7 @@
             if(query.trim().length>2){
 
                 //Sending request to server
-                let url = `http://localhost:9090/searchStudentForFeePage/${query}`;
+                let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
                 fetch(url).then(response=>{
                     return response.json();
                 }).then((data)=>{

@@ -5,10 +5,12 @@ import com.smsweb.sms.models.admin.FeeDate;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
+import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -27,15 +29,17 @@ public class FeeSubmissionRestController {
 
     private final FeeSubmissionService feeSubmissionService;
     private final FeedateService feedateService;
+    private final StudentDiscountService studentDiscountService;
 
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
-                                       FeeSubmissionService feeSubmissionService, FeedateService feedateService) {
+                                       FeeSubmissionService feeSubmissionService, FeedateService feedateService, StudentDiscountService studentDiscountService) {
         this.studentService = studentService;
         this.academicyearService = academicyearService;
         this.academicStudentService = academicStudentService;
         this.feeSubmissionService = feeSubmissionService;
         this.feedateService = feedateService;
+        this.studentDiscountService = studentDiscountService;
     }
 
     @GetMapping("/searchStudentForFeePage/{query}")
@@ -93,6 +97,32 @@ public class FeeSubmissionRestController {
                     }
                 } else{
                     result.put("Paid_Month_Error", "No fee submission data found.");
+                }
+            } else{
+                result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/getStudentDetailForDiscount/{id}")
+    public ResponseEntity<?> getStudentDetailForDiscount(@PathVariable("id") Long id){
+        Map result = new HashMap<>();
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        try{
+            if(academicStudent!=null){
+                Student student = academicStudent.getStudent();
+                //AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+                result.put("student",academicStudent);
+                //result.put("academicYear", academicYear);
+                //collect discount details if any?
+                StudentDiscount studentDiscount = studentDiscountService.getStudentDiscountForStudent(4L, 14L, id).orElse(null);
+                if(studentDiscount!=null){
+                    result.put("assignedDiscount", studentDiscount);
                 }
             } else{
                 result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
