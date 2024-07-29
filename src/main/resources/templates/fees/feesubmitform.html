@@ -43,8 +43,8 @@
                                     <ul class="list-group list-group-flush">
                                         <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
                                         <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
-                                        <li class="list-group-item text-bg-light csection"><strong>Section:</strong></li>
-                                        <li class="list-group-item text-bg-light csr"><strong>SR No:</strong></li>
+                                        <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
+                                        <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
                                     </ul>
                                 </div>
                             </div>
@@ -72,6 +72,8 @@
 
                         </div>
                     </div>
+                    <input type="hidden" id="academicStudentId" value="" name="academicStudentId">
+                    <input type="hidden" id="gradeId" value="" name="gradeId">
                 </div>
 
                 <!--Other Fee Detail-->
@@ -80,17 +82,9 @@
                     <div class="row">
                         <!--Months List-->
                         <div class="col-sm-2 monthlist">
-                            <!--<div th:each="mon,iterStat : ${monthmapping}">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="mon_${mon.monthMaster.id}" name="mon_${mon.monthMaster.id}" th:checked="false" value="true" />
-                                    <label class="form-check-label" for="mon_${mon.monthMaster.id}" th:text="${mon.monthMaster.monthName}">
-                                        Default checkbox
-                                    </label>
-                                </div>
-                            </div>-->
                             <table class="table table-bordered table-hover table-sm" th:if="${hasMonthMapping}">
                                 <tr th:each="mon,iterStat : ${monthmapping}">
-                                    <td><input type="checkbox" class="form-check form-check-input" id="${mon.monthMaster.monthName}" name="${mon.monthMaster.monthName}" value="${mon}" /></td>
+                                    <td><input type="checkbox" class="form-check form-check-input monthcheckbox" th:id="${mon.monthMaster.monthName}" th:name="${mon.monthMaster.monthName}" th:value="${mon.monthMaster.monthName}" /></td>
                                      <td th:text="${mon.monthMaster.monthName}"></td>
                                 </tr>
                             </table>
@@ -106,7 +100,7 @@
 
                         <!--Fee Detail-->
                         <div class="col-sm-6">
-                            <table class="table table-bordered table-hover table-sm">
+                            <table id="feeTable" class="table table-bordered table-hover table-sm">
                                 <thead>
                                     <tr class="table-secondary">
                                         <th>#</th>
@@ -116,18 +110,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>1.</td>
-                                        <td>Fee name 1</td>
-                                        <td>1</td>
-                                        <td>100.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2.</td>
-                                        <td>Tution Fee</td>
-                                        <td>3</td>
-                                        <td>2100.00</td>
-                                    </tr>
+
                                 </tbody>
                             </table>
                             <div>
@@ -167,13 +150,14 @@
                                 <div class="mb-3 row">
                                     <label for="paidAmount" class="col-sm-5 col-form-label">Paid Amount*</label>
                                     <div class="col-sm-4">
-                                        <input type="number" class="form-control" id="paidAmount" name="paidAmount" value="">
+                                        <input type="number" class="form-control" id="paidAmount" name="paidAmount" value="" autocomplete="off" />
+                                        <span id="errmsg"></span>
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label for="balanceAmount" class="col-sm-5 col-form-label">Balance Amount*</label>
                                     <div class="col-sm-4">
-                                        <input type="number" readonly="readonly" class="form-control" id="balanceAmount" name="balanceAmount" value="email@example.com">
+                                        <input type="number" readonly="readonly" class="form-control" id="balanceAmount" name="balanceAmount" value="">
                                     </div>
                                 </div>
                                 <div class="mb-3 row">
@@ -196,6 +180,8 @@
             </div>
         </div>
     </div>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
     <script type="text/javascript" th:inline="javascript">
         // Display success message
         const successMessage = [[${success}]];
@@ -268,6 +254,23 @@
             }
         }
 
+        $("#paidAmount").keypress(function (e) {
+            //if the letter is not digit then display error and don't type anything
+            if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
+                //display error message
+                $("#errmsg").html("Digits Only").show().fadeOut("slow");
+                return false;
+            }
+        });
+
+        $('#paidAmount').keyup(function() {
+            var ta = $('#totalAmount').val();
+            //var ba = 0;
+
+            $('#balanceAmount').val((ta-$(this).val()));
+
+        });
+
         const searchStuName=() =>{
             let query=$("#search-input").val();
             console.log('searched.....'+query);
@@ -282,7 +285,6 @@
                     let text = `<div class='list-group'>`;
 
                     data.forEach((student) =>{
-                        //@{/fees/get-student-fee-detail/{id}(id=${student.id})}
                         text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
                     });
 
@@ -308,27 +310,32 @@
                 }).then((data) => {
                     console.log(data);
                     console.log(data.student);
-                    $(".studname").html(`<strong>Student Name:</strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
-                    $(".fname").html(`<strong>Father Name:</strong> ${data.student.student.fatherName}`);
-                    $(".mname").html(`<strong>Mother Name:</strong> ${data.student.student.motherName}`);
-                    $(".contactno").html(`<strong>Contact No:</strong> ${data.student.student.mobile1}`);
-
-                    $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
-                    $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
-                    $(".csection").html(`<strong>Section:</strong> ${data.student.section.sectionName}`);
-                    $(".csr").html(`<strong>SR No:</strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
-
-                    let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate);
-                    $("#feedate").val(feeSubmissiondate);
-                    let todayDate = formatDate(data.todayDate);
-                    $("#feesubmissiondate").val(todayDate);
-                    $("#previousBalance").val(`${data.previousBalance}`);
-                    if(data.previousBalance>0){
-                        $("#previousBalance").addClass("text-bg-warning");
+                    if('noAcademicStudent' in data){
+                        toastr["warning"](data.noAcademicStudent,"Message");
+                        setFeeRelatedData(data, 0)
                     } else{
-                        $("#previousBalance").addClass("");
+                        if('noFeeDate' in data){
+                            toastr["warning"](data.noFeeDate,"Message");
+                        } else{
+                            setFeeRelatedData(data, 1);
+                        }
+                        if('Paid_Month_Error' in data){
+                            //toastr["info"](data.Paid_Month_Error,"Message");
+                        } else{
+                            if(data.PaidMonths!=null){
+                                let j = 0;
+                                let month_checkboxes = $('.monthcheckbox');
+                                month_checkboxes.each(function() {
+                                    // Check if the value matches any value in the array
+                                    if (data.PaidMonths.includes($(this).attr('id'))) {
+                                        // Make the checkbox checked and disabled
+                                        $(this).prop('checked', true);
+                                        $(this).prop('disabled', true);
+                                    }
+                                });
+                            }
+                        }
                     }
-
                 });
             }
         }
@@ -350,6 +357,189 @@
 
             // Format the date in dd-MMM-yyyy
             return `${String(day).padStart(2, '0')}/${month}/${year}`;
+        }
+
+        function setFeeRelatedData(data, flag){
+            if(flag===1){
+                $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
+                $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
+                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
+
+                $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+                $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+                $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+                $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+
+                $('#academicStudentId').val(`${data.student.id}`);
+                $('#gradeId').val(`${data.student.grade.id}`);
+                let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate);
+                $("#feedate").val(feeSubmissiondate);
+                let todayDate = formatDate(data.todayDate);
+                $("#feesubmissiondate").val(todayDate);
+                $("#previousBalance").val(`${data.previousBalance}`);
+                if(data.previousBalance>0){
+                    $("#previousBalance").addClass("text-bg-warning");
+                } else{
+                    $("#previousBalance").addClass("");
+                }
+            } else{
+                $(".studname").html(`<strong>Student Name:</strong>`);
+                $(".fname").html(`<strong>Father Name:</strong> `);
+                $(".mname").html(`<strong>Mother Name:</strong> `);
+                $(".contactno").html(`<strong>Contact No:</strong> `);
+
+                $(".cmedium").html(`<strong>Medium: </strong> `);
+                $(".cgrade").html(`<strong>Class: </strong> `);
+                $(".csection").html(`<strong>Section:</strong> `);
+                $(".csr").html(`<strong>SR No:</strong> `);
+                $("#feedate").val('');
+                $("#feesubmissiondate").val('');
+                $('#academicStudentId').val('');
+                $('#gradeId').val('');
+                $("#previousBalance").val('');
+                $("#previousBalance").addClass("");
+            }
+        }
+
+        $('.monthcheckbox').on('click', function (e){
+            console.log("Value clicked "+$(this));
+            const academicStudentId = $('#academicStudentId').val();
+            if(academicStudentId === null || academicStudentId === ''){
+                toastr["error"]("No Student found.\nPlease select a student for fee submission.","Message");
+                resetMonthCheckBoxes();
+                return;
+            }
+            let checkBoxes = "";
+            let monthArr = "";
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                if($(this).is(':enabled') && $(this).is(':checked')){
+                    if(checkBoxes===""){
+                        checkBoxes = $(this).attr("id");
+                    } else{
+                        checkBoxes = checkBoxes + "-" + $(this).attr("id");
+                    }
+                }
+                if($(this).is(':enabled')){
+                    monthArr = monthArr + $(this).attr("id") + "-";
+                }
+            });
+            //check all checkboxes selected in a sequence or not?
+            const sequenceResult = checkMonthSequence(checkBoxes.split("-"));
+            if(sequenceResult === false){
+                toastr["warning"]("Selection Not Allowed.\nPlease select month in sequence","Message");
+                resetMonthCheckBoxes();
+                resetFeeFields(0);
+                return;
+            }
+            let total = 0;
+            $('#feeTable').find("tr:gt(0)").remove();
+            resetFeeFields(1);
+            const gradeId = $('#gradeId').val();
+            let prevBalAmount = 0;
+            let tot = 0;
+            prevBalAmount = parseInt($('#previousBalance').val());
+            console.log("academicStudentId ------ "+academicStudentId);
+            const requestBody = {
+                checkBoxes: checkBoxes,
+                gradeId: gradeId,
+                academicStudentId: academicStudentId
+            };
+            //let url = `${window.location.origin}/getFeeDetailsBasedOnMonth/${checkBoxes}/${gradeId}/${academicStudentId}`;
+            let url = `${window.location.origin}/getFeeDetailsBasedOnMonth`;
+            fetch(url, {
+                method: 'POST', // Specify the method
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody) // Convert the body to JSON
+            }).then(response =>{
+                if (!response.ok) {
+                    //throw new Error('Network response was not ok ' + response.statusText);
+                    toastr["error"]("Network response was not ok " + response.statusText,"Error");
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Process the data
+                console.log(data);
+                let headList = data.feelist;
+                let olist = data.paymentlist;
+                //alert(olist);
+                if(headList!=null) {
+                    let options = '';
+                    tot = tot + prevBalAmount;
+                    for (let i = 0; i < headList.length; i++) {
+                        let value = headList[i];
+                        $('#feeTable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ value.feehead+'</td><td>'+ value.quantity +'</td><td>'+value.amount+'<input type="hidden" name="headName" value="'+value.feehead+','+value.amount+','+ value.feeid +'" /></td></tr>');
+                        tot = tot + value.amount;
+                    }
+                    if(olist.amount>0){
+                        $("#msgLabel").html("<strong>Full Payment: </strong>").show();
+                        $("#msgAmount").html(olist.amount).show();
+                        tot = tot - olist.amount;
+                        //alert(olist.amount);
+                        $('#fullPaymentAmount').val(olist.amount);
+                    }
+                    else{
+                        $('#fullPaymentAmount').val(0.0);
+                    }
+                    console.log("TOT:  "+tot);
+                    $('#totalAmount').val(tot);
+                    $('#balanceAmount').val(tot);
+                    $('#paidAmount').val(tot);
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                toastr["error"]("There was a problem with the fetch operation: "+error,"Error");
+            });
+        });
+
+        function checkMonthSequence(monthArr){
+            let monthsInOrder = [];
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                monthsInOrder.push($(this).attr("id"));
+            });
+            // Get the indices of the months in the input list
+            const indices = monthArr.map(month => monthsInOrder.indexOf(month));
+            indices.sort((a, b) => a - b);
+
+            // Check for missing months
+            for (let i = 0; i < indices.length - 1; i++) {
+                if (indices[i + 1] - indices[i] !== 1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function resetFeeFields(flag){
+            if(flag === 0){
+                $('#feeTable tr').slice(1).remove();
+            }
+            $('#discountAmount').val('');
+            $('#discountHead').val('');
+            $('#discountMsg').val('');
+            $('#discountCount').val('');
+            $('#fineAmount').val('');
+            $('#fineRemark').val('');
+            $('#totalAmount').val('');
+            $('#balanceAmount').val('');
+            $('#paidAmount').val('');
+            $('#remark').val('');
+        }
+
+        function resetMonthCheckBoxes(){
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                if($(this).is(':enabled') && $(this).is(':checked')){
+                    //$(this).is('checked', false);
+                    $(this).prop('checked', false);
+                }
+            });
         }
 
 

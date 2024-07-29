@@ -11,10 +11,10 @@ import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
@@ -40,8 +40,9 @@ public class FeeSubmissionRestController {
 
     @GetMapping("/searchStudentForFeePage/{query}")
     public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query){
-        //List<Student> students = studentService.searchStudent(query);
         List<AcademicStudent> students = academicStudentService.searchStudents(query, 14L, 4L);
+        //Only 10 top matching records will show
+        //List<AcademicStudent> limitedList = students.subList(0, Math.min(students.size(), 10));
         return ResponseEntity.ok(students);
     }
 
@@ -87,15 +88,46 @@ public class FeeSubmissionRestController {
                 //Calculate Paid months
                 Map paidMonths = feeSubmissionService.getPaidMonths(4L, 14L, academicStudent.getId());
                 if(paidMonths!=null && !paidMonths.isEmpty()){
-                    result.put("PaidMonths", paidMonths.get("paidMonths"));
+                    if(paidMonths.containsKey("MonthError")){
+                        result.put("Paid_Month_Error", paidMonths.get("MonthError"));
+                    } else{
+                        result.put("PaidMonths", paidMonths.get("paidMonths"));
+                    }
                 } else{
-                    result.put("Paid-Month-Error", "Paid mount not found");
+                    result.put("Paid_Month_Error", "No fee submission data found.");
                 }
             } else{
                 result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
             }
-            System.out.println("Result----"+result);
 
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+
+    @PostMapping("/getFeeDetailsBasedOnMonth")
+    public ResponseEntity<?> getFeeDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody){
+        System.out.println("-=-=-=-=--=-== "+requestBody);
+        Map result = new HashMap<>();
+        try{
+            //{checkBoxes=July, gradeId=2, academicStudentId=5}
+            if(requestBody!=null){
+                Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
+                Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
+                Map serviceResultMap = feeSubmissionService.getFeeDetailsBasedOnMonth(4L, 14L, academicStuId, requestBody.get("checkBoxes"), gradeId);
+                System.out.println("========================================================================= "+serviceResultMap);
+                if(serviceResultMap!=null && !serviceResultMap.isEmpty()){
+                    result.put("feelist", serviceResultMap.get("feelist"));
+                    result.put("paymentlist", serviceResultMap.get("paymentlist"));
+                } else{
+                    result.put("data_error","Unable to fetch data. Contact to Admin.");
+                }
+            } else{
+                result.put("empty_response", "Request params are empty");
+            }
         }catch(Exception e){
             e.printStackTrace();
             result.put("error", "Error: "+e.getLocalizedMessage());

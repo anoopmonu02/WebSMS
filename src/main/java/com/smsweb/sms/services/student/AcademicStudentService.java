@@ -4,6 +4,8 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,7 +19,8 @@ public class AcademicStudentService {
     }
 
     public List<AcademicStudent> searchStudents(String stuname, Long academicYear, Long school){
-        return academicStudentRepository.findAllByAcademicYearAndSchoolAndStudentName(academicYear, school, stuname);
+        Pageable pageable = PageRequest.of(0, 10);
+        return academicStudentRepository.findAllByAcademicYearAndSchoolAndStudentName(academicYear, school, stuname, pageable).getContent();
     }
 
     public AcademicStudent searchStudentById(Long academicStudentId, Long academicYear, Long school){
