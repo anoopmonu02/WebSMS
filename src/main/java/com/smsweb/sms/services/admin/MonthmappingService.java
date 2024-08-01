@@ -9,6 +9,7 @@ import com.smsweb.sms.repositories.universal.MonthMasterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,46 @@ public class MonthmappingService {
 
     public List<MonthMapping> getAllMonthMapping(Long academicYear_id, Long school_id){
         return monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear_id, school_id);
+    }
+
+    public int monthDifference(Long academicYear_id, Long school_id, String monnm, String subdt){
+        try {
+            return monthmappingRepository.findMonthDifference(academicYear_id, school_id, monnm, subdt);
+        } catch (Exception e) {
+            // Handle exception, e.g., log it and return a default value or throw a custom exception
+            e.printStackTrace();
+            return 0; // or another default value
+        }
+    }
+
+    public int currentDateDifference(String feeDate, String subDate){
+        try {
+            return monthmappingRepository.currentFeeDateDifference(feeDate, subDate);
+        } catch (Exception e) {
+            // Handle exception, e.g., log it and return a default value or throw a custom exception
+            e.printStackTrace();
+            return 0; // or another default value
+        }
+    }
+
+    public int firstMonthDifference(String feeDate, Date subDate){
+        try {
+            return monthmappingRepository.firstMonthDifference(feeDate, subDate);
+        } catch (Exception e) {
+            // Handle exception, e.g., log it and return a default value or throw a custom exception
+            e.printStackTrace();
+            return 0; // or another default value
+        }
+    }
+
+    public int findMonthDifferenceToNullify(Long academicYear_id, Long school_id, String monnm){
+        try {
+            return monthmappingRepository.findMonthDifferenceToNullify(academicYear_id, school_id, monnm);
+        } catch (Exception e) {
+            // Handle exception, e.g., log it and return a default value or throw a custom exception
+            e.printStackTrace();
+            return 0; // or another default value
+        }
     }
 
     public String save(MonthMaster startMonth, AcademicYear academicYear, School school){

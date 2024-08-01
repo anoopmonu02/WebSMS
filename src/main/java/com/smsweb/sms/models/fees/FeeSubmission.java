@@ -4,6 +4,7 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.universal.Discounthead;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -26,7 +27,7 @@ public class FeeSubmission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private Date feeSubmissionDate;
 
     private String receiptNo;//auto-generated
@@ -56,8 +57,8 @@ public class FeeSubmission {
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @ManyToOne(optional = true) // Allowing null values
-    @JoinColumn(name = "discount_class_map_id")
-    private DiscountClassMap discountClassMap;
+    @JoinColumn(name = "discounthead_id")
+    private Discounthead discounthead;
 
     @Digits(integer = 10, fraction = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
@@ -82,13 +83,13 @@ public class FeeSubmission {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @OneToMany(mappedBy = "feeSubmission")
+    @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
     private List<FeeSubmissionSub> feeSubmissionSub = new ArrayList<>();
 
-    @OneToMany(mappedBy = "feeSubmission")
+    @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
     private List<FeeSubmissionMonths> feeSubmissionMonths = new ArrayList<>();
 
-    @OneToOne(mappedBy = "feeSubmission")
+    @OneToOne(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
     private FeeSubmissionBalance feeSubmissionBalance;
 
     //TODO-will add 2 more attributes - createdBy, updatedBy

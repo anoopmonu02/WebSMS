@@ -11,6 +11,6 @@ public interface StudentDiscountRepository extends JpaRepository<StudentDiscount
     Optional<StudentDiscount> findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndDiscounthead_Id(Long school_id, Long academic_id, Long student_id, Long discount_id);
     Optional<StudentDiscount> findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(Long school_id, Long academic_id, Long student_id);
 
-    List<StudentDiscount> findAllBySchool_IdAndAcademicYear_Id(Long school_id, Long academic_id);
+    List<StudentDiscount> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school_id, Long academic_id, String status);
 
 }

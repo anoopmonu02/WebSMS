@@ -74,11 +74,14 @@ public class StudentDiscountController {
             studentDiscount.setAcademicYear(academicYear);
             studentDiscount.setSchool(school);
             studentDiscount.setAcademicStudent(student);
-            System.out.println("studentDiscount 1: "+studentDiscount);
-            String returnMsg = "Discount assigned successfully for: "+studentDiscount.getAcademicStudent().getStudent().getStudentName();
+            String returnMsg = "Discount assigned successfully to: "+studentDiscount.getAcademicStudent().getStudent().getStudentName();
             if(studentDiscount.getId()!=null){
-                returnMsg = "Discount assigning updated successfully for: "+studentDiscount.getAcademicStudent().getStudent().getStudentName();
+                if(!studentDiscount.getStatus().equalsIgnoreCase("Inactive")){
+                    returnMsg = "Discount assigning updated successfully for: "+studentDiscount.getAcademicStudent().getStudent().getStudentName();
+                }
             }
+            studentDiscount.setStatus("Active");
+            System.out.println("studentDiscount 1: "+studentDiscount);
             studentDiscountService.save(studentDiscount);
             ra.addFlashAttribute("success", returnMsg);
         }catch(UniqueConstraintsException de){
@@ -96,6 +99,21 @@ public class StudentDiscountController {
             List<Discounthead> discountheads = discountService.getAllDiscountheads();
             model.addAttribute("discounts",discountheads);
             return "/student/discountassign";
+        }
+        return "redirect:/student/stu-discount-list";
+    }
+
+    @GetMapping("/assign-discount/delete/{id}")
+    public String deleteDiscount(@PathVariable("id")Long id, RedirectAttributes model){
+        try{
+            String msg = studentDiscountService.deactivateStudentDiscount(id);//deleteStudentDiscount(id);
+            if(msg.equalsIgnoreCase("success")){
+                model.addFlashAttribute("success","Discount successfully removed from student");
+            } else{
+                model.addFlashAttribute("error","Unable to remove mapping");
+            }
+        }catch(Exception e){
+            model.addFlashAttribute("error", "Error: "+e.getLocalizedMessage());
         }
         return "redirect:/student/stu-discount-list";
     }

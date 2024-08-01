@@ -249,9 +249,12 @@
                   toastr["warning"](data.noFeeDate,"Message");
                 } else{
                   if('assignedDiscount' in data){
-                    toastr["info"]("Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student.","Message");
-                    $(".discountassigned").show();
-                    setDiscountData(data.assignedDiscount);
+                    if(data.assignedDiscount.status==='Active'){
+                      const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
+                      toastr["info"](msg,"Message");
+                      $(".discountassigned").show();
+                      setDiscountData(data.assignedDiscount);
+                    }
                   }
                   setFeeRelatedData(data, 1);
                 }

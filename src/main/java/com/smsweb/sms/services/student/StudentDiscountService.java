@@ -21,7 +21,7 @@ public class StudentDiscountService {
     }
 
     public List<StudentDiscount> getAllStudentDiscounts(Long school_id, Long academic_id){
-        return studentDiscountRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
+        return studentDiscountRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_id, "Active");
     }
 
     public Optional<StudentDiscount> getStudentDiscountForStudent(Long school_id, Long academic_id, Long stuId){
@@ -44,7 +44,22 @@ public class StudentDiscountService {
             studentDiscountRepository.deleteById(id);
             return "success";
         }catch(Exception e){
-            throw new ObjectNotDeleteException("Unable to delete Fine", e);
+            throw new ObjectNotDeleteException("Unable to delete discount mapping", e);
+        }
+    }
+
+    public String deactivateStudentDiscount(Long id){
+        try{
+            StudentDiscount studentDiscount = studentDiscountRepository.findById(id).orElse(null);
+            if(studentDiscount!=null){
+                studentDiscount.setStatus("Inactive");
+                studentDiscountRepository.save(studentDiscount);
+                return "success";
+            } else{
+                return "not-found";
+            }
+        }catch(Exception e){
+            throw new ObjectNotDeleteException("Unable to delete discount mapping", e);
         }
     }
 

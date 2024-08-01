@@ -19,164 +19,173 @@
 
                     </div>
                 </div>
+                <form name="feesubmission" th:action="@{/fees/feesubmit}" th:object="${feesubmissionobj}" method="post">
+                    <!--Student Details-->
+                    <hr/>
+                    <div class="student-detail mb-3">
+                        <div class="academic-student-block">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="card text-bg-light">
+                                        <h5 class="card-header">Student Detail</h5>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
+                                            <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
+                                            <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
+                                            <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong> </li>
+                                        </ul>
+                                    </div>
+                                </div>
 
-                <!--Student Details-->
-                <hr/>
-                <div class="student-detail mb-3">
-                    <div class="academic-student-block">
+                                <div class="col-sm-4">
+                                    <div class="card text-bg-light">
+                                        <h5 class="card-header">Academic Detail</h5>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
+                                            <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
+                                            <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
+                                            <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-4">
+                                    <div class="mb-2 row">
+                                        <label for="feedate" class="col-sm-6 col-form-label"><b>Fee Date:</b></label>
+                                        <div class="col-sm-6">
+                                            <input type="text" readonly class="form-control" id="feedate" name="feedate" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 row">
+                                        <label for="feesubmissiondate" class="col-sm-6 col-form-label"><b>Submission Date:</b></label>
+                                        <div class="col-sm-6">
+                                            <input type="text" readonly class="form-control" id="feesubmissiondate" name="feesubmissiondate" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 row">
+                                        <label for="previousBalance" class="col-sm-6 col-form-label"><b>Previous Balance:</b></label>
+                                        <div class="col-sm-6">
+                                            <input type="text" readonly class="form-control " id="previousBalance" name="previousBalance" value="">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <input type="hidden" id="academicStudentId" value="" name="academicStudentId" th:field="*{academicStudent.id}">
+                        <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+                        <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
+                        <input type="hidden" id="StudentId" value="" name="StudentId">
+                        <input type="hidden" id="gradeId" value="" name="gradeId">
+                    </div>
+
+                    <!--Other Fee Detail-->
+                    <hr/>
+                    <div class="feeblock">
                         <div class="row">
-                            <div class="col-sm-4">
-                                <div class="card text-bg-light">
-                                    <h5 class="card-header">Student Detail</h5>
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
-                                        <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
-                                        <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
-                                        <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong> </li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="col-sm-4">
-                                <div class="card text-bg-light">
-                                    <h5 class="card-header">Academic Detail</h5>
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
-                                        <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
-                                        <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
-                                        <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="col-sm-4">
-                                <div class="mb-2 row">
-                                    <label for="feedate" class="col-sm-6 col-form-label"><b>Fee Date:</b></label>
-                                    <div class="col-sm-6">
-                                        <input type="text" readonly class="form-control" id="feedate" name="feedate" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-2 row">
-                                    <label for="feesubmissiondate" class="col-sm-6 col-form-label"><b>Submission Date:</b></label>
-                                    <div class="col-sm-6">
-                                        <input type="text" readonly class="form-control" id="feesubmissiondate" name="feesubmissiondate" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-2 row">
-                                    <label for="previousBalance" class="col-sm-6 col-form-label"><b>Previous Balance:</b></label>
-                                    <div class="col-sm-6">
-                                        <input type="text" readonly class="form-control " id="previousBalance" name="previousBalance" value="">
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                    <input type="hidden" id="academicStudentId" value="" name="academicStudentId">
-                    <input type="hidden" id="StudentId" value="" name="StudentId">
-                    <input type="hidden" id="gradeId" value="" name="gradeId">
-                </div>
-
-                <!--Other Fee Detail-->
-                <hr/>
-                <div class="feeblock">
-                    <div class="row">
-                        <!--Months List-->
-                        <div class="col-sm-2 monthlist">
-                            <table class="table table-bordered table-hover table-sm" th:if="${hasMonthMapping}">
-                                <tr th:each="mon,iterStat : ${monthmapping}">
-                                    <td><input type="checkbox" class="form-check form-check-input monthcheckbox" th:id="${mon.monthMaster.monthName}" th:name="${mon.monthMaster.monthName}" th:value="${mon.monthMaster.monthName}" /></td>
-                                     <td th:text="${mon.monthMaster.monthName}"></td>
-                                </tr>
-                            </table>
-                            <div th:if="${!hasMonthMapping}">
-                                <p class="text-center">No Month-Mapping found.</p>
-                                <p class="text-center">Contact to your admin.</p>
-                            </div>
-                            <div class="row">
-                                <label id="discountMsg" name="discountMsg" class="text-success"></label>
-                                <label id="discountCount" name="discountCount" class="text-success"></label>
-                            </div>
-                        </div>
-
-                        <!--Fee Detail-->
-                        <div class="col-sm-6">
-                            <table id="feeTable" class="table table-bordered table-hover table-sm">
-                                <thead>
-                                    <tr class="table-secondary">
-                                        <th>#</th>
-                                        <th>Fee-head Name</th>
-                                        <th>Qty</th>
-                                        <th>Amount</th>
+                            <!--Months List-->
+                            <div class="col-sm-2 monthlist">
+                                <table class="table table-bordered table-hover table-sm" th:if="${hasMonthMapping}">
+                                    <tr th:each="mon,iterStat : ${monthmapping}">
+                                        <td><input type="checkbox" class="form-check form-check-input monthcheckbox" th:id="${mon.monthMaster.monthName}" th:name="months" th:value="${mon.monthMaster.monthName}" /></td>
+                                         <td th:text="${mon.monthMaster.monthName}"></td>
                                     </tr>
-                                </thead>
-                                <tbody>
-
-                                </tbody>
-                            </table>
-                            <div>
-                                <span id="msgLabel"></span>
-                                <span id="msgAmount"></span>
-                                <input type="hidden" name="fullPaymentAmount" value=""/>
-                            </div>
-                        </div>
-
-                        <!--Amount Detail-->
-                        <div class="col-sm-4">
-                            <div class="row">
-                                <div class="mb-3 row">
-                                    <label for="fineAmount" class="col-sm-5 col-form-label">Fine Amount*</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" readonly="readonly" class="form-control" id="fineAmount" name="fineAmount" value="">
-                                    </div>
+                                </table>
+                                <div th:if="${!hasMonthMapping}">
+                                    <p class="text-center">No Month-Mapping found.</p>
+                                    <p class="text-center">Contact to your admin.</p>
                                 </div>
-                                <div class="mb-3 row">
-                                    <label for="fineRemark" class="col-sm-5 col-form-label">Fine Remark</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" readonly="readonly" name="fineRemark" class="form-control" id="fineRemark" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-3 row">
-                                    <label for="discountAmount" class="col-sm-5 col-form-label">Discount Amount*</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" readonly="readonly" class="form-control" id="discountAmount" name="discountAmount" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-3 row">
-                                    <label for="totalAmount" class="col-sm-5 col-form-label">Total Amount*</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" readonly="readonly" class="form-control" id="totalAmount" name="totalAmount" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-3 row">
-                                    <label for="paidAmount" class="col-sm-5 col-form-label">Paid Amount*</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" class="form-control" id="paidAmount" name="paidAmount" value="" autocomplete="off" />
-                                        <span id="errmsg"></span>
-                                    </div>
-                                </div>
-                                <div class="mb-3 row">
-                                    <label for="balanceAmount" class="col-sm-5 col-form-label">Balance Amount*</label>
-                                    <div class="col-sm-4">
-                                        <input type="number" readonly="readonly" class="form-control" id="balanceAmount" name="balanceAmount" value="">
-                                    </div>
-                                </div>
-                                <div class="mb-3 row">
-                                    <label for="feeRemark" class="col-sm-5 col-form-label">Remark</label>
-                                    <div class="col-sm-7">
-                                        <input type="text" readonly="readonly" class="form-control" id="feeRemark" name="feeRemark" value="">
-                                    </div>
+                                <div class="row mb-3">
+                                    <label id="discountMsg" name="discountMsg" class="text-success"></label>
+                                    <label id="discountCount" name="discountCount" class="text-success"></label>
                                 </div>
                             </div>
-                        </div>
 
+                            <!--Fee Detail-->
+                            <div class="col-sm-6">
+                                <table id="feeTable" class="table table-bordered table-hover table-sm">
+                                    <thead>
+                                        <tr class="table-secondary">
+                                            <th>#</th>
+                                            <th>Fee-head Name</th>
+                                            <th>Qty</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    </tbody>
+                                </table>
+                                <div>
+                                    <span id="msgLabel"></span>
+                                    <span id="msgAmount"></span>
+                                    <input type="hidden" name="fullPaymentAmount" value=""/>
+                                </div>
+                            </div>
+
+                            <!--Amount Detail-->
+                            <div class="col-sm-4">
+                                <div class="row">
+                                    <div class="mb-3 row">
+                                        <label for="fineAmount" class="col-sm-5 col-form-label">Fine Amount*</label>
+                                        <div class="col-sm-4">
+                                            <input type="number" readonly="readonly" class="form-control" id="fineAmount" name="fineAmount" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="fineRemark" class="col-sm-5 col-form-label">Fine Remark</label>
+                                        <div class="col-sm-7">
+                                            <input type="text" readonly="readonly" name="fineRemark" class="form-control" id="fineRemark" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="discountAmount" class="col-sm-5 col-form-label">Discount Amount*</label>
+                                        <div class="col-sm-4">
+                                            <input type="number" readonly="readonly" class="form-control" id="discountAmount" name="discountAmount" value="">
+                                            <input type="hidden" class="form-control" id="discountHead" name="discountHead" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="totalAmount" class="col-sm-5 col-form-label">Total Amount*</label>
+                                        <div class="col-sm-4">
+                                            <input type="number" readonly="readonly" class="form-control" id="totalAmount" name="totalAmount" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="paidAmount" class="col-sm-5 col-form-label">Paid Amount*</label>
+                                        <div class="col-sm-4">
+                                            <input type="number" class="form-control" id="paidAmount" name="paidAmount" value="" autocomplete="off" />
+                                            <span id="errmsg"></span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="balanceAmount" class="col-sm-5 col-form-label">Balance Amount*</label>
+                                        <div class="col-sm-4">
+                                            <input type="number" readonly="readonly" class="form-control" id="balanceAmount" name="balanceAmount" value="">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
+                                        <label for="feeRemark" class="col-sm-5 col-form-label">Remark</label>
+                                        <div class="col-sm-7">
+                                            <input type="text" class="form-control" id="feeRemark" name="feeRemark" value="">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-                </div>
 
-                <hr/>
-                <div class="mb-3">
-
-                </div>
+                    <hr/>
+                    <div class="row">
+                        <div class="col-md-5">
+                            <!--<a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>-->
+                        </div>
+                        <div class="col-md-6 mb-5">
+                            <button onclick="checkMonths()" class="btn btn-primary" id="feeSubmitBtn"><i class="bi bi-save2-fill"></i> Submit Fee</button>
+                        </div>
+                    </div>
+                </form>
 
             </div>
         </div>
@@ -328,6 +337,8 @@
             $(".search-result").hide();
             $("#search-input").val('');
             if(id>0){
+                resetMonthCheckBoxes();
+                resetFeeFields(0);
                 console.log("id::::"+id);
                 let url = `${window.location.origin}/getStudentDetailForFee/${id}`;
                 fetch(url).then(response => {
@@ -379,9 +390,12 @@
             const day = date.getDate();
             const month = getMonthAbbreviation(date.getMonth());
             const year = date.getFullYear();
+            const hrs = date.getHours();
+            const mins = date.getMinutes();
+            const seconds = date.getSeconds();
 
             // Format the date in dd-MMM-yyyy
-            return `${String(day).padStart(2, '0')}/${month}/${year}`;
+            return `${String(day).padStart(2, '0')}/${month}/${year} ${hrs}:${mins}:${seconds}`;
         }
 
         function setFeeRelatedData(data, flag){
@@ -428,7 +442,7 @@
             }
         }
 
-        $('.monthcheckbox').on('click', function (e){
+        $('.monthcheckbox').on('click', async function (e){
             console.log("Value clicked "+$(this));
             const academicStudentId = $('#academicStudentId').val();
             if(academicStudentId === null || academicStudentId === ''){
@@ -473,22 +487,32 @@
                 academicStudentId: academicStudentId
             };
             //let url = `${window.location.origin}/getFeeDetailsBasedOnMonth/${checkBoxes}/${gradeId}/${academicStudentId}`;
+            await calculateFee(requestBody);
+
+            await calculateDiscount(requestBody);
+            await calculateFine(requestBody);
+
+        });
+
+        async function calculateFee(requestBody){
             let url = `${window.location.origin}/getFeeDetailsBasedOnMonth`;
-            fetch(url, {
-                method: 'POST', // Specify the method
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody) // Convert the body to JSON
-            }).then(response =>{
+            let total = 0;
+            let prevBalAmount = 0;
+            let tot = 0;
+            prevBalAmount = parseInt($('#previousBalance').val());
+            try{
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
                 if (!response.ok) {
-                    //throw new Error('Network response was not ok ' + response.statusText);
-                    toastr["error"]("Network response was not ok " + response.statusText,"Error");
+                    throw new Error('Network response was not ok ' + response.statusText);
                 }
-                return response.json();
-            })
-            .then(data => {
-                // Process the data
+
+                const data = await response.json();
                 console.log(data);
                 let headList = data.feelist;
                 let olist = data.paymentlist;
@@ -498,7 +522,7 @@
                     tot = tot + prevBalAmount;
                     for (let i = 0; i < headList.length; i++) {
                         let value = headList[i];
-                        $('#feeTable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ value.feehead+'</td><td>'+ value.quantity +'</td><td>'+value.amount+'<input type="hidden" name="headName" value="'+value.feehead+','+value.amount+','+ value.feeid +'" /></td></tr>');
+                        $('#feeTable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ value.feehead+'</td><td>'+ value.quantity +'</td><td>'+value.amount+'<input type="hidden" name="headName" value="'+value.feehead+'###'+value.amount+'###'+ value.feeid +'" /></td></tr>');
                         tot = tot + value.amount;
                     }
                     if(olist.amount>0){
@@ -511,28 +535,134 @@
                     else{
                         $('#fullPaymentAmount').val(0.0);
                     }
-                    console.log("TOT:  "+tot);
+                    console.log("TOT:  "+$('#discountAmount').val());
                     $('#totalAmount').val(tot);
-                    $('#balanceAmount').val(tot);
+                    $('#balanceAmount').val("0");
                     $('#paidAmount').val(tot);
                 }
-            })
-            .catch(error => {
+            }catch (error) {
                 console.error('There was a problem with the fetch operation:', error);
-                toastr["error"]("There was a problem with the fetch operation: "+error,"Error");
-            });
-        });
+                toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+            }
+        }
+
+        async function calculateDiscount(requestBody){
+            let url = `${window.location.origin}/getDiscountDetailsBasedOnMonth`;
+            let tot = $('#totalAmount').val();
+            console.log("TOTAL AMT: "+tot +"   ::: ");
+            try {
+                // Await the fetch request
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                // Check if the response is not ok
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                // Await the response JSON parsing
+                const data = await response.json();
+                console.log("discount Data:", data);
+
+                // Process the data as needed
+                let headList = data.discountlist;
+                console.log("<><><><> >>."+tot)
+                if(headList!=null) {
+                    let options = '';
+                    for (let i = 0; i < headList.length; i++) {
+                        const value = headList[i];
+                        console.log("value<><><> "+value);
+                        $('#discountAmount').val(value.amount);
+                        $('#discountHead').val(value.discountHeadName);
+                        $('#discountMsg').text(value.discountHeadName);
+                        $('#discountCount').text("("+value.quantity+" x "+value.amt+" : "+value.amount+")")
+                        tot = tot - value.amount;
+                        $('#totalAmount').val(tot);
+                        $('#balanceAmount').val("0");
+                        $('#paidAmount').val(tot);
+                    }
+                }
+
+            } catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+                toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+            }
+        }
+
+        async function calculateFine(requestBody){
+            //getFineDetailsBasedOnMonth
+            let subDate = $('#feesubmissiondate').val();
+            let feeDate = $('#feedate').val();
+            const newRequestBody = {
+                ...requestBody,
+                'submissionDate' : subDate,
+                'feeDate' : feeDate,
+            };
+            console.log("requestbody---------------------"+newRequestBody);
+            let url = `${window.location.origin}/getFineDetailsBasedOnMonth`;
+            let tot = $('#totalAmount').val();
+            console.log("TOTAL AMT: "+tot +"   ::: ");
+            try {
+                // Await the fetch request
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newRequestBody)
+                });
+
+                // Check if the response is not ok
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                // Await the response JSON parsing
+                const data = await response.json();
+                console.log("fine Data:", data);
+
+                // Process the data as needed
+                let headList = data.fineamount;
+                if(headList!=null) {
+                    if($.isNumeric(headList) && headList!=0)
+                    {
+                        $('#fineAmount').val(headList);
+                        $('#fineRemark').val("FINE APPLICABLE");
+                    }
+                    else{
+                        $('#fineAmount').val(headList);
+                        $('#fineRemark').val("FINE NOT APPLICABLE");
+                    }
+                    tot = parseInt(tot) + parseInt(headList);
+                    $('#totalAmount').val(tot);
+                    $('#balanceAmount').val("0");
+                    $('#paidAmount').val(tot);
+                }
+            } catch (error) {
+                console.error('There was a problem with the fine operation:', error);
+                toastr["error"]("There was a problem with the fine operation: " + error, "Error");
+            }
+        }
 
         function checkMonthSequence(monthArr){
             let monthsInOrder = [];
             let month_checkboxes = $('.monthcheckbox');
             month_checkboxes.each(function() {
-                monthsInOrder.push($(this).attr("id"));
+                if($(this).is(':enabled')){
+                    monthsInOrder.push($(this).attr("id"));
+                }
             });
             // Get the indices of the months in the input list
+            if(monthsInOrder.indexOf(monthArr[0])!=0){
+                return false;
+            }
             const indices = monthArr.map(month => monthsInOrder.indexOf(month));
             indices.sort((a, b) => a - b);
-
             // Check for missing months
             for (let i = 0; i < indices.length - 1; i++) {
                 if (indices[i + 1] - indices[i] !== 1) {
@@ -556,6 +686,9 @@
             $('#balanceAmount').val('');
             $('#paidAmount').val('');
             $('#remark').val('');
+            $('#discountHead').val('');
+            $('#discountMsg').text('');
+            $('#discountCount').text('')
         }
 
         function resetMonthCheckBoxes(){
@@ -618,6 +751,60 @@
                 toastr["error"]("An error occurred while updating the contact number","Error");
             });
         });
+
+        function checkMonths(){
+            event.preventDefault();
+            if($('#academicStudentId').val().toString()===''){
+                showWarningMsg("error","Student is missing, please select a student!","Message");
+                return false;
+            }
+
+            if($("#feedate").val().toString()==''){
+                //toastr["warning"]("Fee Date is missing!","Message");
+                showWarningMsg("error","Fee Date is missing!","Message");
+                return false;
+            }
+            if($("#totalAmount").val().toString()==''){
+                showWarningMsg("error","Total Amount is missing!","Message");
+                //toastr["warning"]("Total Amount is missing!","Message");
+                return false;
+            }
+            if($("#paidAmount").val().toString()==''){
+                //toastr["warning"]("Paid Amount is missing!","Message");
+                showWarningMsg("error","Paid Amount is missing!","Message");
+                return false;
+            }
+            if($("#balanceAmount").val().toString()==''){
+                //toastr["warning"]("Balance Amount is missing!","Message");
+                showWarningMsg("error","Balance Amount is missing!","Message");
+                return false;
+            }
+
+            $('#feeSubmitBtn').attr('disabled',true);
+            document.forms.feesubmission.submit();
+            return true;
+        }
+
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr[msgType](msg,headerValue);
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
 
 
     </script>
