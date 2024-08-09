@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AcademicStudentService {
@@ -29,5 +30,9 @@ public class AcademicStudentService {
 
     public int countNoOfYearsOfStudent(AcademicStudent academicStudent){
         return academicStudentRepository.countByStudent(academicStudent.getStudent());
+    }
+
+    public Optional<AcademicStudent> getAcademicStudent(Long id){
+        return academicStudentRepository.findById(id);
     }
 }

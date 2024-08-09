@@ -9,19 +9,23 @@ import com.smsweb.sms.models.fees.FeeSubmissionMonths;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.student.StudentDiscount;
+import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.admin.FineService;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
+import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.thymeleaf.TemplateEngine;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -40,11 +44,16 @@ public class FeeSubmissionRestController {
     private final StudentDiscountService studentDiscountService;
     private final FineService fineService;
     private final MonthmappingService monthmappingService;
+    private final FeeReceiptService receiptService;
+    private final MonthmappingService mmService;
+
+    @Autowired
+    private TemplateEngine templateEngine;
 
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
                                        FeeSubmissionService feeSubmissionService, FeedateService feedateService, StudentDiscountService studentDiscountService,
-                                       FineService fineService, MonthmappingService monthmappingService) {
+                                       FineService fineService, MonthmappingService monthmappingService, FeeReceiptService receiptService, MonthmappingService mmService) {
         this.studentService = studentService;
         this.academicyearService = academicyearService;
         this.academicStudentService = academicStudentService;
@@ -53,6 +62,8 @@ public class FeeSubmissionRestController {
         this.studentDiscountService = studentDiscountService;
         this.fineService = fineService;
         this.monthmappingService = monthmappingService;
+        this.receiptService = receiptService;
+        this.mmService = mmService;
     }
 
     @GetMapping("/searchStudentForFeePage/{query}")
@@ -319,5 +330,7 @@ public class FeeSubmissionRestController {
         //return Map.of("fineAmount", fineAmount);
         return ResponseEntity.ok(fineMap);
     }
+
+
 
 }

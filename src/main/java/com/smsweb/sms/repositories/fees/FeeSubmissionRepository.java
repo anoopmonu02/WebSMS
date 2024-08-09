@@ -18,6 +18,7 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     List<FeeSubmission> findAllBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(Long school_id, Long academic_id, Long academic_student_id);
 
     List<FeeSubmission> findAllByAcademicStudent_Id(Long academic_student_id);
+    List<FeeSubmission> findAllByAcademicStudent_IdAndStatus(Long academic_student_id, String status);
 
     @Query("SELECT f FROM FeeSubmission f JOIN f.feeSubmissionBalance b WHERE f.school.id = :schoolId AND f.academicStudent.Id = :academicStudentId AND f.status='Active' AND b.status='Active' ORDER BY f.id DESC")
     List<FeeSubmission> findTopBySchoolIdAndAcademicYearIdAndAcademicStudentIdOrderByIdDesc(@Param("schoolId") Long schoolId, @Param("academicStudentId") Long academicStudentId);
@@ -32,8 +33,8 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
 
     default boolean canSubmitFee(Date submissionDate) {
         Date maxSubmissionDate = findMaxSubmissionDate();
-        //System.out.println(":::::::::: "+submissionDate.after(maxSubmissionDate));
-        System.out.println(":::::::::: "+submissionDate+"  :::::  "+maxSubmissionDate);
         return maxSubmissionDate == null || submissionDate.after(maxSubmissionDate);
     }
+
+
 }

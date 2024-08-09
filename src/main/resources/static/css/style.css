@@ -20,3 +20,13 @@
     transform: translateY(-50%);
 }
 
+.feereceiptbox{
+    display: none;
+    width: 100%;
+    padding: 10px;
+}
+
+.fee-month-detail{
+    font-size: 14px;
+}
+

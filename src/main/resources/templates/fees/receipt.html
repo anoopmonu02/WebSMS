@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12  offset-md-1 ">
+
+        <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
+        <div th:if="${studentError!=null}">
+          <p class="text-center">No Student found.</p>
+        </div>
+        <hr/>
+        <div class="row">
+            <div class="col-md-3">
+                <button class="btn btn-success" id="printreceipt" onclick="printDiv('contentToExport','receipt')" data-div-id="contentToExport"><i class="bi bi-printer-fill"></i> Print</button>
+            </div>
+            <div class="col-md-3">
+                <a class="btn btn-info" href="/fees/fee-submit-form"><i class="bi bi-arrow-left-circle-fill"></i> Back to Fee Submission</a>
+            </div>
+
+        </div>
+
+
+        <div class="row mt-4">
+            <!--<div class="col-sm-2"></div>-->
+            <div class="col-sm-8">
+                <div class="card text-bg-light">
+                    <h5 class="card-header">Fee Receipt</h5>
+                    <div class="card-body" id="contentToExport">
+                        <input type="hidden" id="feeid" th:value="${feeSubmission.id}">
+                        <div class="text-center"><strong>[[${school.getSchoolName().toUpperCase()}]]</strong></div>
+                        <div class="text-center"><strong>[[${school.getAddress().toUpperCase()}]]</strong></div>
+                        <div class="text-center"><strong>CONTACT NO: (+91) [[${school.getMobile1()}]]<span th:if="${school.getMobile2() != null}">, [[${school.getMobile2()}]]</span></strong></div>
+                        <div class="text-center" th:if="${school.getEmail() != null}"><strong>Email: [[${school.getEmail()}]]</strong></div>
+                        <hr/>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Academic Year: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${academicYear}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-2"></label>
+                                <label class="col-md-4"><strong>Submission Date: </strong></label>
+                                <label class="col-md-5" th:text="${#dates.format(feeSubmission.feeSubmissionDate,'dd-MMM-yyyy HH:mm:ss')}"><strong>Submission Date: </strong></label>
+                            </div>
+                            <div class="col-md-8">
+                              <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                              <label class="col-md-5 col-form-label" th:text="${feeSubmission.receiptNo}"></label>
+                            </div>
+                        </div>
+                        <hr/>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().studentName}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-3"></label>
+                                <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
+                                <label class="col-md-4 col-form-label" th:text="${student.getGrade().gradeName}+'-'+${student.getSection().sectionName}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().fatherName}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-3"></label>
+                                <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
+                                <label class="col-md-4 col-form-label" th:text="${student.getClassSrNo()}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().motherName}"></label>
+                            </div>
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
+                            </div>
+                            <div class="col-md-6">
+                            </div>
+                        </div>
+                        <hr/>
+                        <div class="row fee-month-detail">
+                            <div class="col-md-6" th:each="feelist,iterStat : ${feeSubmittedMonths}">
+                                <strong><label class="col-md-3" th:text="${feelist.split('####')[0]}"></label></strong>
+                                <label class="col-md-3" th:text="${feelist.split('####')[1]}"></label>
+                                <span th:if="${feelist.contains('PAID')}">
+                                    <i><u><label class="col-md-5" th:text="${feelist.split('####')[2]}"></label></u></i>
+                                </span>
+                            </div>
+                        </div>
+                        <hr/>
+                        <!--Fee Details-->
+                        <div class="row feedetails">
+                            <div class="col-md-12">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                    <tr>
+                                        <th width="10%">SNo.</th>
+                                        <th>Head Name</th>
+                                        <th width="25%">Amount</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="table-group-divider">
+                                        <tr th:each="fsub, iter: ${feesublist}">
+                                            <td th:text="${iter.index + 1}+'.'"></td>
+                                            <td th:text="${fsub.feehead.feeHeadName}"></td>
+                                            <td class="text-end" th:text="'&#8377; '+${fsub.amount}"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <hr/>
+                        <!--Amount Details-->
+                        <div class="row amountdetails">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-8"><strong>Fine Remark: </strong><span th:text="${feeSubmission.fineRemark}"></span></div>
+
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Fine Amount: </strong></div>
+                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.fineAmount}"></div>
+                        </div>
+                        <hr/>
+                        <div class="row" th:if="${feeSubmission.discounthead}">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission.discounthead.discountName}"></span></div>
+
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Discount Amount: </strong></div>
+                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.discountAmount}"></div>
+                        </div>
+                        <hr/>
+                        <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Total Amount: </strong></div>
+                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.totalAmount}"></div>
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Paid Amount: </strong></div>
+                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.paidAmount}"></div>
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Balance Amount: </strong></div>
+                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.balanceAmount}"></div>
+                        </div>
+                        <br/><br/>
+                        <div class="row mb-3"><div class="col-md-12 text-end">(Authorized Signatory)</div></div>
+
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4"></div>
+        </div>
+        <div class="mb-5"></div>
+      </div>
+    </div>
+  </div>
+
+
+    <!--<script src="/js/html2canvas.min.js"></script>
+    <script src="/js/jspdf.umd.min.js"></script>-->
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/printThis.js"></script>
+    <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Info");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+    function showWarningMsg(msgType, msg, headerValue){
+      toastr[msgType](msg,headerValue);
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    /*document.getElementById("printreceipt").addEventListener("click", function() {
+        const divId = this.getAttribute("data-div-id");
+        const idVal = $('#feeid').val();
+        fetch("/exportPdf", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+                divId: divId,
+                id: idVal
+            })
+        })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "receipt.pdf";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => console.error("Error:", error));
+    });*/
+
+
+    /*async function printDivToPDF() {
+        const { jsPDF } = window.jspdf;
+
+        // Select the div to be printed
+        const content = document.getElementById('contentToExport');
+
+        // Use html2canvas to capture the div as an image
+        html2canvas(content).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+
+            // Create a PDF document
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            // Calculate image dimensions and add it to the PDF
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 295; // A4 height in mm
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            // Add a new page if necessary
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            // Save the PDF
+            pdf.save('document.pdf');
+        });
+    }*/
+
+
+    function printDivToPDF(){
+        $('#contentToExport').printThis();
+    }
+
+    function printDiv(divId, title) {
+        let mywindow = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+
+        // Check if the window opened successfully
+        if (!mywindow) {
+            alert('Popup blocked! Please allow popups for this site.');
+            return;
+        }
+        //<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+        mywindow.document.write('<html><head><title>' + title + '</title>');
+        mywindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>');
+        mywindow.document.write('</head><body >');
+        mywindow.document.write(document.getElementById(divId).innerHTML);
+        mywindow.document.write('</body></html>');
+
+        mywindow.document.close(); // necessary for IE >= 10
+        mywindow.focus(); // necessary for IE >= 10
+
+        // Add a delay before calling print to ensure content is fully loaded
+        setTimeout(function() {
+            mywindow.print();
+            mywindow.close();
+        }, 1000); // Adjust the delay as needed
+    }
+
+    window.onload = function() {
+        // Assign functions to buttons 'contentToExport','receipt'
+        document.querySelector('button[onclick="printDiv(\'contentToExport\',\'receipt\')"]').addEventListener('click', () => printDiv('contentToExport', 'receipt'));
+    }
+
+  </script>
+
+</section>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>UAIC - Student</title>
+
+    <style>
+        .fee-month-detail{
+            font-size: 18px;
+            color: #6a1a21;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        .col-md-8 {
+            flex: 0 0 66.66%;
+            max-width: 66.66%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        .col-md-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        .text-center {
+            text-align: center !important;
+        }
+    </style>
+
+
+
+    <link rel="stylesheet" th:href="@{${baseUrl}/css/bootstrap.min.css}" />
+    <link rel="stylesheet" th:href="@{${baseUrl}/css/jquery-ui.min.css}" />
+    <link rel="stylesheet" th:href="@{${baseUrl}/css/style.css}" />
+
+</head>
+<body>
+
+<div th:if="${divId == 'contentToExport'}">
+    <div class="card-body" id="contentToExport">
+        <div class="text-center"><strong>[[${school.getSchoolName().toUpperCase()}]]</strong></div>
+        <div class="text-center"><strong>[[${school.getAddress().toUpperCase()}]]</strong></div>
+        <div class="text-center"><strong>CONTACT NO: (+91) [[${school.getMobile1()}]]<span th:if="${school.getMobile2() != null}">, [[${school.getMobile2()}]]</span></strong></div>
+        <div class="text-center" th:if="${school.getEmail() != null}"><strong>Email: [[${school.getEmail()}]]</strong></div>
+        <hr/>
+        <div class="row">
+            <div class="col-md-6">
+                <label class="col-md-4 col-form-label"><strong>Academic Year: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="${academicYear}"></label>
+            </div>
+            <div class="col-md-6">
+                <label class="col-md-2"></label>
+                <label class="col-md-4"><strong>Submission Date: </strong></label>
+                <label class="col-md-5" th:text="${#dates.format(feeSubmission.feeSubmissionDate,'dd-MMM-yyyy HH:mm:ss')}"><strong>Submission Date: </strong></label>
+            </div>
+            <div class="col-md-8">
+                <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="${feeSubmission.receiptNo}"></label>
+            </div>
+        </div>
+        <hr/>
+        <div class="row">
+            <div class="col-md-6">
+                <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="${student.getStudent().studentName}"></label>
+            </div>
+            <div class="col-md-6">
+                <label class="col-md-3"></label>
+                <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
+                <label class="col-md-4 col-form-label" th:text="${student.getGrade().gradeName}+'-'+${student.getSection().sectionName}"></label>
+            </div>
+            <div class="col-md-6">
+                <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="${student.getStudent().fatherName}"></label>
+            </div>
+            <div class="col-md-6">
+                <label class="col-md-3"></label>
+                <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
+                <label class="col-md-4 col-form-label" th:text="${student.getClassSrNo()}"></label>
+            </div>
+            <div class="col-md-6">
+                <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="${student.getStudent().motherName}"></label>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
+                <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
+                <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
+            </div>
+            <div class="col-md-6">
+            </div>
+        </div>
+        <hr/>
+        <div class="row fee-month-detail">
+            <div class="col-md-6" th:each="feelist,iterStat : ${feeSubmittedMonths}">
+                <strong><label class="col-md-3" th:text="${feelist.split('####')[0]}"></label></strong>
+                <label class="col-md-3" th:text="${feelist.split('####')[1]}"></label>
+                <span th:if="${feelist.contains('PAID')}">
+                    <i><u><label class="col-md-5" th:text="${feelist.split('####')[2]}"></label></u></i>
+                </span>
+            </div>
+        </div>
+        <hr/>
+        <!--Fee Details-->
+        <div class="row feedetails">
+
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>

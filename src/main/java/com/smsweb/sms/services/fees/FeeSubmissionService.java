@@ -80,9 +80,16 @@ public class FeeSubmissionService {
         return feeSubmissionRepository.findAllByAcademicStudent_Id(academic_stu_id);
     }
 
+    public List<FeeSubmission> getAllActiveFeeSubmissionByAcademicStudent(Long academic_stu_id){
+        return feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(academic_stu_id, "Active");
+    }
     public FeeSubmission getLastFeeSubmissionOfStudentForBalance(Long school_id, Long academic_id, Long academic_stu_id){
         List<FeeSubmission> feeSubmissionList = feeSubmissionRepository.findTopBySchoolIdAndAcademicYearIdAndAcademicStudentIdOrderByIdDesc(school_id, academic_stu_id);
         return feeSubmissionList!=null && !feeSubmissionList.isEmpty()?feeSubmissionList.get(0):null;
+    }
+
+    public Optional<FeeSubmission> getFeeSubmissionById(Long id){
+        return feeSubmissionRepository.findById(id);
     }
 
 
@@ -323,7 +330,9 @@ public class FeeSubmissionService {
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
-
+                        resultMap.put("feeid", feeSubmission.getId());
+                    } else{
+                        resultMap.put("fee_submission_not_allowed", "Fee Submission not allowed, Current submission date is less than the last submitted date.");
                     }
                 }
             }

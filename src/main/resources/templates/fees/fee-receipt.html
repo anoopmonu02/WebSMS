@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+      <div class="row mt-2 ">
+          <div class="col-md-12  offset-md-1 ">
+
+              <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
+              <div th:if="${studentError!=null}">
+                <p class="text-center">No Student found.</p>
+              </div>
+              <hr/>
+
+              <div class="fee-detail-box row">
+                  <!--Fees List-->
+                  <div class="col-md-6 card text-bg-light feedetailslistbox">
+                      <div class="card-body">
+                          <h5 class="card-subtitle mb-2 text-muted">Fee Detail(s)</h5>
+                      </div>
+
+                      <table class="table table-bordered table-hover" th:if="${hasFeeSubmission}">
+                          <thead>
+                              <tr>
+                                  <th>#</th>
+                                  <th>Submit Date</th>
+                                  <th>Receipt#</th>
+                                  <th>Total</th>
+                                  <th>Paid</th>
+                                  <th>Balance</th>
+                                  <th>Action</th>
+                              </tr>
+                          </thead>
+                          <tbody class="table-group-divider">
+                              <tr th:each="fee,iterStat : ${feeSubmissions}">
+                                  <td th:text="${iterStat.index + 1}"></td>
+                                  <td th:text="${#dates.format(fee.feeSubmissionDate, 'dd-MMM-yy')}"></td>
+                                  <td th:text="${fee.receiptNo.substring(0,12)}"></td>
+                                  <td th:text="${fee.totalAmount}"></td>
+                                  <td th:text="${fee.paidAmount}"></td>
+                                  <td th:text="${fee.balanceAmount}"></td>
+                                  <td class="text-center">
+                                      <a href="#" onclick="loadFeesReceipt()" class="btn btn-success"> <i class="bi bi-printer-fill"></i> </a>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                      <div th:if="${!hasFeeSubmission}">
+                          <p class="text-center">No fee detail(s) found.</p>
+                      </div>
+                  </div>
+                  <!--Fee Receipt-->
+                  <div class="col-md-6 card text-bg-light feereceiptbox">
+                      <div class="card-body">
+                          <h5 class="card-subtitle mb-2 text-muted">Fee Receipt</h5>
+                      </div>
+                  </div>
+              </div>
+
+          </div>
+      </div>
+  </div>
+
+
+
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Info");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+    function showWarningMsg(msgType, msg, headerValue){
+      toastr[msgType](msg,headerValue);
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+  </script>
+
+</section>
+</body>
+</html>
