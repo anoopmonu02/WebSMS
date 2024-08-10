@@ -86,7 +86,12 @@ public class FeeSubmissionRestController {
                 //Calculating current month -
                 //TODO - Can get date from server, so no dependent on client machine date, for now using local date
                 int currentMonth = Calendar.getInstance().get(Calendar.MONTH)+1;
-                FeeDate fd = feedateService.getByGivenMonth(14L, 4L, currentMonth);
+                List<FeeDate> fdList = feedateService.getByGivenMonth(14L, 4L, currentMonth);
+                FeeDate fd = null;
+                if(fdList!=null && !fdList.isEmpty()){
+                    fd = fdList.get(0);
+                }
+                // = feedateService.getByGivenMonth(14L, 4L, currentMonth).get(0);
                 if (fd != null) {
                     //if any pending fees left then redirect to pending fee page
                     //NEED TO DISCUSS HOW TO HANDLE THIS:- 1). REDIRECT TO PENDING PAGE 2). OPEN A POPUP MODEL AND SUBMIT

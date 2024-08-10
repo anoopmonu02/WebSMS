@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.fees;
 
+import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import lombok.Data;
@@ -27,4 +28,8 @@ public class FeeSubmissionBalance {
     private Date feeDate;
 
     private String status = "Active";
+
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    private Student student;
 }

@@ -4,10 +4,7 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.FullPayment;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
-import com.smsweb.sms.models.fees.FeeSubmission;
-import com.smsweb.sms.models.fees.FeeSubmissionBalance;
-import com.smsweb.sms.models.fees.FeeSubmissionMonths;
-import com.smsweb.sms.models.fees.FeeSubmissionSub;
+import com.smsweb.sms.models.fees.*;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.Discounthead;
@@ -16,6 +13,7 @@ import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.admin.*;
 import com.smsweb.sms.repositories.fees.FeeSubmissionRepository;
+import com.smsweb.sms.repositories.fees.ReceiptSequenceRepository;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.universal.DiscountRepository;
 import com.smsweb.sms.repositories.universal.FeeheadRepository;
@@ -28,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Year;
 import java.util.*;
 
 @Service
@@ -46,12 +45,13 @@ public class FeeSubmissionService {
     private final MonthMasterRepository monthMasterRepository;
     private final FeeheadRepository feeheadRepository;
     private final DiscountRepository discountRepository;
+    private final ReceiptSequenceRepository receiptSequenceRepository;
 
     @Autowired
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
                                 FullpaymentRepository fullpaymentRepository, FeemonthmapRepository feemonthmapRepository, FeeclassmapRepository feeclassmapRepository, DiscountclassmapRepository discountclassmapRepository,
                                 DiscountmonthmapRepository discountmonthmapRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, MonthMasterRepository monthMasterRepository,
-                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository){
+                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository, ReceiptSequenceRepository receiptSequenceRepository){
         this.feeSubmissionRepository = feeSubmissionRepository;
         this.monthmappingRepository = monthmappingRepository;
         this.gradeRepository = gradeRepository;
@@ -66,6 +66,7 @@ public class FeeSubmissionService {
         this.monthMasterRepository = monthMasterRepository;
         this.feeheadRepository = feeheadRepository;
         this.discountRepository = discountRepository;
+        this.receiptSequenceRepository = receiptSequenceRepository;
     }
 
     public List<FeeSubmission> getAllFeeSubmissionByAcademicYear(Long school_id, Long academic_id){
@@ -242,6 +243,43 @@ public class FeeSubmissionService {
     }
 
     @Transactional
+    public String generateReceiptNumber(String branchCode) {
+        int currentYear = Year.now().getValue(); // Get the current year
+
+        // Fetch the sequence for the branch and current year
+        ReceiptSequence sequence = receiptSequenceRepository
+                .findByBranchCodeAndYear(branchCode, currentYear)
+                .orElse(new ReceiptSequence(branchCode, 0, currentYear));
+
+        // Increment the sequence value
+        int nextSequence = sequence.getCurrentValue() + 1;
+
+        // Update the currentValue in the database
+        sequence.setCurrentValue(nextSequence);
+        receiptSequenceRepository.save(sequence);
+
+        // Generate and return the receipt number
+        //return String.format("%s/%04d/%d", branchCode, nextSequence, currentYear);
+        return String.format("%s/%d/%04d", branchCode, currentYear, nextSequence);
+    }
+
+    private String getCodeValue(String schoolName) {
+        if (schoolName == null || schoolName.isEmpty()) {
+            throw new IllegalArgumentException("School name cannot be null or empty");
+        }
+
+        String lowerCaseName = schoolName.toLowerCase();
+
+        if (lowerCaseName.contains("college")) {
+            return "UC";
+        } else if (lowerCaseName.contains("school")) {
+            return "US";
+        }
+
+        return ""; // Return an empty string or throw an exception if no match is found
+    }
+
+    @Transactional
     public Map save(Map<String, String[]> paramsMap){
         Map resultMap = new HashMap();
         try{
@@ -252,6 +290,7 @@ public class FeeSubmissionService {
                 AcademicStudent student;// = academicStudentRepository.findById(Long.parseLong("0")).orElse(null);
                 AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
                 School school = schoolRepository.findById(4L).orElse(null);
+                String schoolCodeVal = getCodeValue(school.getSchoolName());
                 //Saving fee submission object
                 Map<String, Map> feeDataMap = getColumnsValue(paramsMap, feeSubmissionModelColumns);
                 if(feeDataMap!=null){
@@ -292,7 +331,8 @@ public class FeeSubmissionService {
                             feeSubmission.setFeeSubmissionDate(feeMap.containsKey("feesubmissiondate")?(Date)feeMap.get("feesubmissiondate"):new Date());
                             feeSubmission.setFineRemark(feeMap.containsKey("fineRemark")?feeMap.get("fineRemark").toString().trim():null);
                             feeSubmission.setFullPaymentRemark("");
-                            feeSubmission.setReceiptNo("UA/RCT/"+dateFormat.format(new Date()));
+                            feeSubmission.setReceiptNo(generateReceiptNumber(schoolCodeVal));
+                            //feeSubmission.setReceiptNo("UA/RCT/"+dateFormat.format(new Date()));
                             feeSubmission.setSchool(school);
                             feeSubmission.setStatus("Active");
                         }
@@ -322,6 +362,7 @@ public class FeeSubmissionService {
                         FeeSubmissionBalance submissionBalance = new FeeSubmissionBalance();
                         submissionBalance.setBalanceAmount(feeSubmission.getBalanceAmount());
                         submissionBalance.setFeeDate(feeSubmission.getFeeSubmissionDate());
+                        submissionBalance.setStudent(feeSubmission.getAcademicStudent().getStudent());
                         submissionBalance.setStatus("Active");
 
                         feeSubmission.setFeeSubmissionBalance(submissionBalance);
