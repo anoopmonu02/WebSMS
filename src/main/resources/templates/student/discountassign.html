@@ -233,6 +233,7 @@
       const loadStudentData=(id)=>{
           $(".search-result").hide();
           $("#search-input").val('');
+          $(".discountassigned").hide();
           if(id>0){
             console.log("id::::"+id);
             let url = `${window.location.origin}/getStudentDetailForDiscount/${id}`;

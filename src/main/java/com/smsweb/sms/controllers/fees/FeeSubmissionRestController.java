@@ -337,5 +337,20 @@ public class FeeSubmissionRestController {
     }
 
 
+    @PostMapping("/getFeeReminderDetails")
+    public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody){
+        Map result = new HashMap<>();
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                result = feeSubmissionService.calculateFeeReminder(requestBody);
+                System.out.println("responseMap "+result);
+                //System.out.println("result "+result.keySet());
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return ResponseEntity.ok(result);
+    }
 
 }

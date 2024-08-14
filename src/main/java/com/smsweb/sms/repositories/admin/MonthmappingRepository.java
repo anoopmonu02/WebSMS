@@ -36,4 +36,14 @@ public interface MonthmappingRepository extends JpaRepository<MonthMapping, Long
                                      @Param("schoolId") Long schoolId,
                                      @Param("monthName") String monthName);
 
+    @Query(value = "SELECT * FROM month_mapping m WHERE m.academic_year_id = :academicYearId " +
+            "AND m.school_id = :schoolId " +
+            "AND m.priority <= (SELECT MAX(sub.priority) FROM month_mapping sub WHERE sub.academic_year_id = :academicYearId " +
+            "AND sub.school_id = :schoolId " +
+            "AND sub.month_master_id IN (:monthMasterIds))",
+            nativeQuery = true)
+    List<MonthMapping> findMonthsByPriority(@Param("academicYearId") Long academicYearId,
+                                            @Param("schoolId") Long schoolId,
+                                            @Param("monthMasterIds") List<Long> monthMasterIds);
+
 }

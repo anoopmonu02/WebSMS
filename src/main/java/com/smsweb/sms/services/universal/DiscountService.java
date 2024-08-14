@@ -19,7 +19,8 @@ public class DiscountService {
     }
 
     public List<Discounthead> getAllDiscountheads(){
-        return discountRepository.findAll(Sort.by(Sort.DEFAULT_DIRECTION, "id"));
+        //return discountRepository.findAll(Sort.by(Sort.DEFAULT_DIRECTION, "id"));
+        return discountRepository.findByDiscountNameNotContains("Sibling");
     }
 
     public void saveDiscounthead(Discounthead discounthead) {

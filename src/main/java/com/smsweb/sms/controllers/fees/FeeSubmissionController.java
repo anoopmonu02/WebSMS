@@ -3,24 +3,20 @@ package com.smsweb.sms.controllers.fees;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.fees.FeeSubmissionMonths;
-import com.smsweb.sms.models.fees.FeeSubmissionSub;
 import com.smsweb.sms.models.student.AcademicStudent;
-import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.universal.GradeService;
+import com.smsweb.sms.services.universal.MediumService;
+import com.smsweb.sms.services.universal.SectionService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -36,14 +32,21 @@ public class FeeSubmissionController {
     private final MonthmappingService mmService;
     private final FeeSubmissionService feeSubmissionService;
     private final FeeReceiptService receiptService;
+    private final GradeService gradeService;
+    private final SectionService sectionService;
+    private final MediumService mediumService;
 
     @Autowired
-    public FeeSubmissionController(StudentService studentService, MonthmappingService mmService, FeeSubmissionService feeSubmissionService, AcademicStudentService academicStudentService, FeeReceiptService receiptService){
+    public FeeSubmissionController(StudentService studentService, MonthmappingService mmService, FeeSubmissionService feeSubmissionService, AcademicStudentService academicStudentService, FeeReceiptService receiptService,
+                                   GradeService gradeService, SectionService sectionService, MediumService mediumService){
         this.studentService = studentService;
         this.mmService = mmService;
         this.feeSubmissionService = feeSubmissionService;
         this.academicStudentService = academicStudentService;
         this.receiptService = receiptService;
+        this.gradeService = gradeService;
+        this.sectionService = sectionService;
+        this.mediumService = mediumService;
     }
 
     @GetMapping("/fee-submit-form")
@@ -176,6 +179,18 @@ public class FeeSubmissionController {
         return "/fees/receipt";
     }
 
+    @GetMapping("fee-reminder")
+    public String reminderpage(Model model){
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(14L, 4L);
+        model.addAttribute("monthmapping", monthMappingList);
+        model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+        model.addAttribute("grades",gradeService.getAllGrades());
+        model.addAttribute("sections",sectionService.getAllSections());
+        model.addAttribute("mediums", mediumService.getAllMediums());
+
+
+        return "/fees/feereminder";
+    }
 
 
 }
