@@ -13,6 +13,21 @@
     z-index: 20; /* Ensure this container is above the cards */
 }
 
+#search-result1{
+    position: absolute;
+    background: white;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #babbbc;
+    display: none;
+    z-index: 20; /* Ensure this container is above the cards */
+}
+
+/*.search-block{
+    position: absolute;
+    z-index: 20;
+}*/
+
 .contact-update-btn button{
     position: absolute;
     right: 5px;

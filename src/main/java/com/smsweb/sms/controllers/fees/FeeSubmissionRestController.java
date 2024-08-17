@@ -72,6 +72,12 @@ public class FeeSubmissionRestController {
         return ResponseEntity.ok(students);
     }
 
+    @GetMapping("/searchStudentForOtherPage/{query}")
+    public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query){
+        List<AcademicStudent> students = academicStudentService.searchStudents(query, 14L, 4L);
+        return ResponseEntity.ok(students);
+    }
+
     @GetMapping("/getStudentDetailForFee/{id}")
     public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id){
         Map result = new HashMap<>();
@@ -130,7 +136,46 @@ public class FeeSubmissionRestController {
             } else{
                 result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
             }
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
 
+    @GetMapping("/getStudentDetailsForSibling/{id}")
+    public ResponseEntity<?> getStudentDetailsForSibling(@PathVariable("id") Long id){
+        Map result = new HashMap<>();
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        try{
+            if(academicStudent!=null){
+                List<AcademicStudent> allSiblingsList = academicStudentService.searchSiblings(14L, academicStudent);
+                if(allSiblingsList!=null && !allSiblingsList.isEmpty()){
+                    result.put("siblingList", allSiblingsList);
+                    result.put("hasSiblings", !allSiblingsList.isEmpty());
+                } else{
+                    result.put("noSibling", "No Sibling(s) found");
+                }
+            } else{
+                result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/searchStudentIndividual/{id}")
+    public ResponseEntity<?> getStudentDetail(@PathVariable("id")Long id){
+        Map result = new HashMap<>();
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        try{
+            if(academicStudent!=null){
+                result.put("academicStudent", academicStudent);
+            } else{
+                result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+            }
         }catch(Exception e){
             e.printStackTrace();
             result.put("error", "Error: "+e.getLocalizedMessage());

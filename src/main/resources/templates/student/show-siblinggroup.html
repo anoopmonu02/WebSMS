@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+    <section>
+        <div class="container">
+            <div class="row mt-2">
+                <div class="col-md-12  offset-md-1">
+                    <div class="card-header fs-3">Sibling Group Detail</div>
+                    <hr/>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <span class=""><b>Group Name: </b></span><span class="mb-4" th:text="${siblinggroup.groupName}"></span>
+                        </div>
+
+                    </div>
+
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Student Name</th>
+                                <th>Grade</th>
+                                <th>Father Name</th>
+                                <th>Mother Name</th>
+                                <th>Contact</th>
+                                <th>School</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-group-divider">
+                            <tr th:each="stu, iter : ${siblinggroup.getSiblingGroupStudents()}">
+                                <td th:text="${iter.index+1}"></td>
+                                <td th:text="${stu.academicStudent.student.studentName}"></td>
+                                <td th:text="${stu.academicStudent.grade.gradeName}+' - '+${stu.academicStudent.section.sectionName}"></td>
+                                <td th:text="${stu.academicStudent.student.fatherName}"></td>
+                                <td th:text="${stu.academicStudent.student.motherName}"></td>
+                                <td th:text="${stu.academicStudent.student.mobile1}"></td>
+                                <td th:text="${stu.academicStudent.school.schoolName}"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="pt-5">
+                        <a class="btn btn-info" href="/sibling/sibling-group"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="/js/jquery-3.6.0.min.js"></script>
+        <script src="/js/toastr.min.js"></script>
+        <script type="text/javascript" th:inline="javascript">
+            const successMessage = [[${success}]];
+            if (successMessage) {
+                showMsg("success", successMessage, "Success");
+            }
+
+            const infoMessage = [[${info}]];
+            if (infoMessage) {
+                showMsg("info", infoMessage, "Info");
+            }
+
+            const errorMessage = [[${error}]];
+            if (errorMessage) {
+                showMsg("error", errorMessage, "Error");
+            }
+
+            function showMsg(msgType, msg, headerValue){
+                toastr[msgType](msg,headerValue);
+                toastr.options = {
+                    "closeButton": true,
+                    "debug": false,
+                    "newestOnTop": false,
+                    "progressBar": false,
+                    "positionClass": "toast-top-right",
+                    "preventDuplicates": false,
+                    "onclick": null,
+                    "showDuration": "500",
+                    "hideDuration": "1000",
+                    "timeOut": "5000",
+                    "extendedTimeOut": "1000",
+                    "showEasing": "swing",
+                    "hideEasing": "linear",
+                    "showMethod": "fadeIn",
+                    "hideMethod": "fadeOut"
+                }
+            }
+        </script>
+    </section>
+</body>
+
+</html>

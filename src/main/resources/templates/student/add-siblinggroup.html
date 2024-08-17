@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2">
+            <div class="col-md-12  offset-md-1">
+                <div class="card-header fs-3">Sibling Group Form</div>
+                <hr/>
+                <!--Search box-->
+                <div class="search-container my-3">
+                    <!--<input  type="text" class="form-control" id="search-input" placeholder="Search student name">-->
+                    <input type="text" onkeyup="searchStuName()" class="form-control" id="search-input" placeholder="Search student name">
+                    <div class="search-result">
+                    </div>
+                </div>
+                <!--Add Individual Student-->
+                <h4>Add Manually, if not sure</h4>
+                <hr/>
+                <div class="row search-container1 my-3">
+                    <div class="col-md-6 search-block">
+                        <label for="search-input1" class="form-label">Student Name</label>
+                        <input type="text" onkeyup="searchStuNameIndividual()" class="form-control" id="search-input1" placeholder="Search student name" name="stuname">
+                        <div class="search-result1">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <input type="hidden" id="academic_student" name="academic_student" />
+                    </div>
+                    <div class="col-md-5 align-self-end mb-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="col-sm-4">
+                            <button onclick="checkStudentData()" class="btn btn-primary" id="siblingAddBtn"><i class="bi bi-person-plus-fill"></i> Add Student</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="group-data" style="display: none">
+                    <div class="card-header fs-3">Create Group</div>
+                    <hr/>
+                    <form name="siblinggroup" th:action="@{/sibling/savesiblinggroup}" method="post">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label for="groupname" class="form-label">Group Name</label>
+                                <input type="text" class="form-control" name="groupname" id="groupname">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <h6><b>Sibling List</b></h6>
+                                <table class="table table-bordered table-striped table-sm" id="siblingTable">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Student Name</th>
+                                        <th>Father Name</th>
+                                        <th>Mother Name</th>
+                                        <th>Grade</th>
+                                        <th>Branch</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="table-group-divider">
+
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <a class="btn btn-info" href="/sibling/sibling-group"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                            </div>
+                            <div class="col-md-6 mb-5">
+                                <button type="button" onclick="checkData()" class="btn btn-primary" id="siblingSubmitBtn"><i class="bi bi-save2-fill"></i> Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr[msgType](msg,headerValue);
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        const searchStuName=() =>{
+            let query=$("#search-input").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+                //Sending request to server
+                let url = `${window.location.origin}/searchStudentForOtherPage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result").html(text);
+                    $(".search-result").show();
+                });
+            } else{
+                $(".search-result").hide();
+            }
+        }
+
+        const searchStuNameIndividual = () =>{
+            let query=$("#search-input1").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+                let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        text+=`<a onclick="loadStudentData1(${student.id},'${student.student.studentName}')" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result1").html(text);
+                    $(".search-result1").show();
+                });
+            } else{
+                $(".search-result1").hide();
+            }
+        }
+
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            $('.group-data').hide();
+            if(id>0){
+                console.log("id::::"+id);
+                let url = `${window.location.origin}/getStudentDetailsForSibling/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log(data);
+                    console.log(data.siblingList);
+                    if('noSibling' in data){
+                        showMsg("warning",data.noSibling,"Message");
+                        //toastr["warning"](data.noSibling,"Message");
+                    } else{
+                        $('.group-data').show();
+                        let siblings = data.siblingList;
+                        for (let i = 0; i < siblings.length; i++) {
+                            console.log("-----> "+siblings[i]);
+                            let value = siblings[i];
+                            $('#siblingTable > tbody').append('<tr><td>'+ (i+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
+                        }
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    showMsg("error", error, "Error");
+                });
+            }
+        }
+
+        const loadStudentData1=(id, stuName)=>{
+            $(".search-result1").hide();
+            $("#search-input1").val('');
+            if(id>0){
+                console.log("id::::"+id);
+                $('#academic_student').val(""+id);
+                $("#search-input1").val(stuName);
+                /*let url = `${window.location.origin}/searchStudentIndividual/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log(data);
+                    console.log(data.siblingList);
+                    if('noSibling' in data){
+                        showMsg("warning",data.noSibling,"Message");
+                        //toastr["warning"](data.noSibling,"Message");
+                    } else{
+                        $('.group-data').show();
+                        let siblings = data.siblingList;
+                        for (let i = 0; i < siblings.length; i++) {
+                            console.log("-----> "+siblings[i]);
+                            let value = siblings[i];
+                            $('#siblingTable > tbody').append('<tr><td>'+ (i+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
+                        }
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    showMsg("error", error, "Error");
+                });*/
+            } else{
+                $('.group-data').hide();
+            }
+        }
+
+        const checkStudentData = () =>{
+            let academic_student_id = $('#academic_student').val();
+            const stuName = $("#search-input1").val();
+            if(academic_student_id>0){
+                let url = `${window.location.origin}/searchStudentIndividual/${academic_student_id}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    if('noAcademicStudent' in data){
+                        showMsg("warning", data.noAcademicStudent, "Error");
+                    } else{
+                        const value = data.academicStudent;
+                        const rowCount = $('#siblingTable tbody tr').length;
+                        $('.group-data').show();
+                        $('#siblingTable > tbody').append('<tr><td>'+ (rowCount+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
+                        $('#academic_student').val('');
+                        $("#search-input1").val('');
+                    }
+                }).catch(err=>{
+                    showMsg("error", error, "Error");
+                });
+
+            } else{
+                showMsg("warning","No student found to add!","Message");
+            }
+        }
+
+        const checkData = ()=>{
+            const grpName = $('#groupname').val();
+            if(grpName.trim()===''){
+                showMsg("error","No sibling group name found. Please add a group name.","Message");
+                return;
+            }
+            const rowCount = $('#siblingTable tbody tr').length;
+            console.log("Row Count': "+rowCount);
+            if(rowCount>2){
+                document.forms.siblinggroup.submit();
+                return true;
+            } else if(rowCount<3){
+                showMsg("info","Atleast 3 sibling must be available to avail this discount","Info");
+                return;
+            } else{
+                showMsg("warning","No student data found for sibling group!","Message");
+                return;
+            }
+        }
+
+    </script>
+</section>
+</body>
+</html>
+
+</body>
+</html>

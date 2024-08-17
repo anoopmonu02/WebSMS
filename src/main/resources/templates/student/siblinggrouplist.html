@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+    <body>
+        <section>
+            <div class="container">
+                <div class="row mt-2">
+                    <div class="col-md-12  offset-md-1">
+                        <div class="card-header fs-3">Sibling Group List</div>
+                        <hr/>
+                        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasSiblingGroup}">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Group Name</th>
+                                    <th>Description</th>
+                                    <th>Siblings#</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table-group-divider">
+                                <tr th:each="sibgrp,iterStat : ${siblingGroups}">
+                                    <td th:text="${iterStat.index + 1}"></td>
+                                    <td th:text="${sibgrp.groupName}"></td>
+                                    <td th:text="${sibgrp.description}"></td>
+                                    <td th:text="${sibgrp.getSiblingGroupStudents().size()}">
+                                        <!--<table class="table table-sm">
+                                            <tr th:each="stu, iter: ${sibgrp.getSiblingGroupStudents()}">
+                                                <td th:text="${iter.index+1}+'. '"></td>
+                                                <td th:text="${stu.academicStudent.student.studentName}"></td>
+                                                <td th:text="${stu.academicStudent.grade.gradeName}+' - '+${stu.academicStudent.section.sectionName}"></td>
+                                            </tr>
+                                        </table>-->
+
+                                    </td>
+                                    <td style="white-space: nowrap" class="text-center">
+                                        <div class="col align-self-center">
+                                            <a class="btn btn-dark" th:href="@{/sibling/sibling-group/show/{id}(id=${sibgrp.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                                                <i class="bi bi-list"></i> </a>
+                                            <!--<a class="btn btn-danger" th:href="@{/sibling/sibling-group/delete/{id}(id=${sibgrp.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                                                <i class="bi bi-trash3-fill"></i> </a>-->
+                                            <a class="btn btn-danger" th:data-id="${sibgrp.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
+                                                <i class="bi bi-trash3-fill"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div th:if="${!hasSiblingGroup}">
+                            <p class="text-center">No Sibling-Group found.</p>
+                        </div>
+                        <div class="pt-5">
+                            <a class="btn btn-success" href="/sibling/sibling-group/add"><i class="bi bi-node-plus-fill"></i> Add Sibling-Group</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure you want to delete this record?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="/js/jquery-3.6.0.min.js"></script>
+            <script src="/js/toastr.min.js"></script>
+            <script type="text/javascript" th:inline="javascript">
+                const successMessage = [[${success}]];
+                if (successMessage) {
+                    //toastr.success(successMessage);
+                    toastr["success"](successMessage,"Success");
+                    toastr.options = {
+                        "closeButton": true,
+                        "debug": false,
+                        "newestOnTop": false,
+                        "progressBar": false,
+                        "positionClass": "toast-top-right",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "500",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
+                    }
+                }
+
+                const infoMessage = [[${info}]];
+                if (infoMessage) {
+                    //toastr.success(successMessage);
+                    toastr["info"](infoMessage,"Info");
+                    toastr.options = {
+                        "closeButton": true,
+                        "debug": false,
+                        "newestOnTop": false,
+                        "progressBar": false,
+                        "positionClass": "toast-top-right",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "500",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
+                    }
+                }
+
+                // Display error message
+                const errorMessage = [[${error}]];
+                if (errorMessage) {
+                    //toastr.error(errorMessage);
+                    toastr["error"](errorMessage, "Error");
+                    toastr.options = {
+                        "closeButton": true,
+                        "debug": false,
+                        "newestOnTop": false,
+                        "progressBar": false,
+                        "positionClass": "toast-top-right",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "500",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
+                    }
+                }
+
+                let deleteId = null;
+
+                // Capture the ID of the record to be deleted when the delete button is clicked
+                $('a[data-bs-target="#deleteConfirmationModal"]').on('click', function () {
+                    deleteId = $(this).data('id');
+                });
+
+                // Handle the deletion when "Delete" button is clicked in the modal
+                $('#confirmDeleteButton').on('click', function () {
+                    if (deleteId) {
+                        // Redirect to the delete URL
+                        window.location.href = `/sibling/sibling-group/delete/${deleteId}`;
+                    }
+                });
+            </script>
+        </section>
+    </body>
+</html>

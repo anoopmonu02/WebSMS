@@ -24,8 +24,16 @@ public class AcademicStudentService {
         return academicStudentRepository.findAllByAcademicYearAndSchoolAndStudentName(academicYear, school, stuname, pageable).getContent();
     }
 
+    public List<AcademicStudent> searchStudentsFromAllBranches(String stuname, Long academicYear){
+        Pageable pageable = PageRequest.of(0, 10);
+        return academicStudentRepository.findAllByAcademicYearAndStudentName(academicYear, stuname, pageable).getContent();
+    }
     public AcademicStudent searchStudentById(Long academicStudentId, Long academicYear, Long school){
         return academicStudentRepository.findByAcademicYearAndSchoolAndAcademicStudentId(academicYear, school, academicStudentId);
+    }
+
+    public List<AcademicStudent> searchSiblings(Long academiYear, AcademicStudent academicStudent){
+        return academicStudentRepository.findAllByAcademicYear(academiYear, academicStudent.getStudent().getFatherName(), academicStudent.getStudent().getMotherName());
     }
 
     public int countNoOfYearsOfStudent(AcademicStudent academicStudent){
