@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SiblingGroupService {
@@ -65,6 +66,14 @@ public class SiblingGroupService {
                     }
                 }
                 int counter = 0;
+                //Get student detail if already saved in any group
+                String proceedMsg = validateExistingGroupStudent(academicStudentList);
+                if(proceedMsg != null && proceedMsg.trim() != ""){
+                    if(proceedMsg.startsWith("Found")){
+                        resultMap.put("STUDENT_EXIST","Operation not allowed, Student already assigned to a group");
+                        return resultMap;
+                    }
+                }
                 if(academicStudentList!=null && !academicStudentList.isEmpty()){
                     SiblingGroup siblingGroup = new SiblingGroup();
                     siblingGroup.setGroupName(groupName);
@@ -97,6 +106,40 @@ public class SiblingGroupService {
         return resultMap;
     }
 
+    public String validateExistingGroupStudent(List<AcademicStudent> academicStudents) {
+        String msg = "";
+        if (academicStudents == null || academicStudents.isEmpty()) {
+            return "Error:No academic student found in list.";
+        }
+
+        try {
+            List<SiblingGroup> siblingGroups = siblingGroupRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(4L, 14L, "Active");
+
+            if (siblingGroups == null || siblingGroups.isEmpty()) {
+                return "Error:No Sibling-group found.";
+            }
+
+            // Collect all AcademicStudents from all sibling groups in one pass
+            Set<AcademicStudent> groupStudentSet = siblingGroups.stream()
+                    .flatMap(group -> siblingGroupStudentRepository.findAllBySiblingGroup(group).stream())
+                    .map(SiblingGroupStudent::getAcademicStudent)
+                    .collect(Collectors.toSet());
+
+            // Check if any of the provided academicStudents exist in the group
+            boolean isExist = academicStudents.stream().anyMatch(groupStudentSet::contains);
+
+            if (isExist) {
+                msg = "Found:Student already assigned to a group.";
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            msg = "Error:"+e.getLocalizedMessage();
+        }
+        return msg;
+    }
+
+
     public Optional<SiblingGroup> getSiblingGroupDetail(Long id){
         return siblingGroupRepository.findById(id);
     }
@@ -115,5 +158,22 @@ public class SiblingGroupService {
             msg = "Error: "+e.getLocalizedMessage();
         }
         return msg;
+    }
+
+    public List<SiblingGroupStudent> getAllStudentByGroup(Long siblingId){
+        System.out.println("Sibling ID: "+siblingId);
+        System.out.println("Sibling ID: "+siblingId.getClass());
+        try{
+            SiblingGroup siblingGroup = siblingGroupRepository.findById(siblingId).orElse(null);
+            System.out.println("siblingGroup "+siblingGroup);
+            if(siblingGroup!=null){
+                List<SiblingGroupStudent> lst = siblingGroup.getSiblingGroupStudents();
+                return lst;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

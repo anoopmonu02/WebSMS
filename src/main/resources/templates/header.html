@@ -58,11 +58,15 @@
           <ul class="dropdown-menu dropdown-menu-dark">
             <li><a class="dropdown-item" th:href="@{'/student/student'}"><i class="bi bi-person-lines-fill"></i> Student Registration </a></li>
             <li><a class="dropdown-item" th:href="@{'/admin/school'}"><i class="bi bi-building-add"></i> Update Aadhar/Bank Detail </a></li>
+            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" th:href="@{'/sibling/sibling-group'}"><i class="bi bi-person-circle"></i> Sibling Group </a></li>
-            <li><a class="dropdown-item" href="/universal/category"><i class="bi bi-ui-checks"></i> Assign Sibling </a></li>
+            <li><a class="dropdown-item" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-ui-checks"></i> Assign Sibling Discount </a></li>
             <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks"></i> Assign Discount </a></li>
             <li><hr class="dropdown-divider"></li>
-
+            <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-pass-fill"></i> Assign SR </a></li>
+            <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill"></i> Migrate Student </a></li>
+            <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-mortarboard-fill"></i> Edit Grade/Section </a></li>
+            <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-person-x"></i> Remove Student </a></li>
             <li><hr class="dropdown-divider"></li>
           </ul>
         </li>

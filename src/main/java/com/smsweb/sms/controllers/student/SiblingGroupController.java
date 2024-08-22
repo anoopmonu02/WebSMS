@@ -46,7 +46,12 @@ public class SiblingGroupController {
         try{
             Map paramMap = request.getParameterMap();
             System.out.println("==== "+paramMap.keySet());
+
             Map responseMap = siblingGroupService.save(paramMap);
+            if(responseMap.containsKey("STUDENT_EXIST")){
+                redirectAttributes.addFlashAttribute("error", responseMap.get("STUDENT_EXIST"));
+                return "/student/add-siblinggroup";
+            }
             if(responseMap.containsKey("error")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("error"));
                 return "/student/add-siblinggroup";

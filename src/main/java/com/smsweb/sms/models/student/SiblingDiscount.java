@@ -1,6 +1,7 @@
 package com.smsweb.sms.models.student;
 
 import com.smsweb.sms.models.admin.AcademicYear;
+import com.smsweb.sms.models.admin.DiscountClassMap;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.Discounthead;
 import jakarta.persistence.*;
@@ -48,9 +49,9 @@ public class SiblingDiscount {
     private AcademicStudent academicStudent;
 
     @ManyToOne
-    @JoinColumn(name = "discount_head_id")
-    @NotNull(message = "Discount should be available")
-    private Discounthead discounthead;
+    @JoinColumn(name = "discount_class_id")
+    @NotNull(message = "Discount-Class Map should be available")
+    private DiscountClassMap discountClassMap;
 
     @CreationTimestamp
     @Column(updatable = false)

@@ -336,6 +336,7 @@
         const loadStudentData=(id)=>{
             $(".search-result").hide();
             $("#search-input").val('');
+            resetMonthsSelection();
             if(id>0){
                 resetMonthCheckBoxes();
                 resetFeeFields(0);
@@ -376,7 +377,15 @@
             }
         }
 
-        function formatDate(dateString) {
+        const resetMonthsSelection = ()=>{
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                $(this).prop('checked', false);
+                $(this).prop('disabled', false);
+            });
+        }
+
+        function formatDate(dateString, dlen) {
             // Parse the date string
             const date = new Date(dateString);
 
@@ -395,6 +404,9 @@
             const seconds = date.getSeconds();
 
             // Format the date in dd-MMM-yyyy
+            if(dlen === 'short'){
+                return `${String(day).padStart(2, '0')}/${month}/${year}`;
+            }
             return `${String(day).padStart(2, '0')}/${month}/${year} ${hrs}:${mins}:${seconds}`;
         }
 
@@ -403,7 +415,7 @@
                 $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
                 $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
                 $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
-                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}<button class="btn btn-success dynamic-btn"> <i class="bi bi-telephone-plus"></i> </button>`);
+                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}<button type="button" class="btn btn-success dynamic-btn"> <i class="bi bi-telephone-plus"></i> </button>`);
 
                 $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
                 $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
@@ -413,9 +425,9 @@
                 $('#academicStudentId').val(`${data.student.id}`);
                 $('#StudentId').val(`${data.student.student.id}`);
                 $('#gradeId').val(`${data.student.grade.id}`);
-                let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate);
+                let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate, 'short');
                 $("#feedate").val(feeSubmissiondate);
-                let todayDate = formatDate(data.todayDate);
+                let todayDate = formatDate(data.todayDate, 'full');
                 $("#feesubmissiondate").val(todayDate);
                 $("#previousBalance").val(`${data.previousBalance}`);
                 if(data.previousBalance>0){

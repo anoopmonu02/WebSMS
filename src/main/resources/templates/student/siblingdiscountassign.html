@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2">
+            <div class="col-md-12  offset-md-1">
+                <div class="card-header fs-3">Assign Sibling Group Discount</div>
+                <hr/>
+                <div class="row">
+                    <div class="col-md-2"><label class="form-label">Select Group</label> </div>
+                    <div class="col-md-4">
+                        <select name="grpname" id="grpname" class="form-select">
+                            <option value="">Select Group</option>
+                            <option th:each="sibgrp : ${siblingGroups}" th:value="${sibgrp.id}" th:text="${sibgrp.groupName}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="datadiv" style="display: none;">
+                    <form name="siblingdiscount" method="post" th:action="@{/sibling/savesiblinggroupdiscount}">
+                        <div class="row py-5 pb-5">
+                            <table id="group-detail" class="table table-sm table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student Name</th>
+                                    <th>Grade</th>
+                                    <th>Father Name</th>
+                                    <th>Mother Name</th>
+                                    <th>School</th>
+                                    <th class="text-center"><input type="radio" class="form-check form-check-input" disabled></th>
+                                </tr>
+                                </thead>
+                                <tbody class="table-group-divider">
+
+                                </tbody>
+                            </table>
+                            <input type="hidden" id="grp" name="grp"/>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <a class="btn btn-info" href="/sibling/sibling-group"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                            </div>
+                            <div class="col-md-6 mb-5">
+                                <button type="button" onclick="checkData()" class="btn btn-primary" id="siblingSubmitBtn"><i class="bi bi-save2-fill"></i> Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr[msgType](msg,headerValue);
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        let deleteId = null;
+
+        // Capture the ID of the record to be deleted when the delete button is clicked
+        $('a[data-bs-target="#deleteConfirmationModal"]').on('click', function () {
+            deleteId = $(this).data('id');
+        });
+
+        // Handle the deletion when "Delete" button is clicked in the modal
+        $('#confirmDeleteButton').on('click', function () {
+            if (deleteId) {
+                // Redirect to the delete URL
+                window.location.href = `/sibling/sibling-group/delete/${deleteId}`;
+            }
+        });
+
+        $('#grpname').change(function() {
+            $('#grp').val('');
+            $('.datadiv').hide();
+            const groupId = $(this).val();
+            console.log("Selected Group ID: " + groupId);
+            if (groupId) {
+                $('#grp').val(groupId);
+                $.ajax({
+                    url: '/sibling/groups/by-group/' + groupId,
+                    type: 'GET',
+                    success: function(data) {
+                        $('.datadiv').show();
+                        console.log("Received Data: ", data);
+                        let rows = '';
+
+                        if (!data || data.length === 0) {
+                            rows = '<tr><td colspan="5">No students found for this group.</td></tr>';
+                        } else {
+                            $.each(data, function(index, student) {
+                                rows += '<tr>';
+                                rows += '<td>' + (index + 1) + '</td>'; // Display index starting from 1
+                                rows += '<td>' + student.academicStudent.student.studentName + '</td>';
+                                rows += '<td>' + student.academicStudent.grade.gradeName + ' - ' + student.academicStudent.section.sectionName + '</td>';
+                                rows += '<td>' + student.academicStudent.student.fatherName + '</td>';
+                                rows += '<td>' + student.academicStudent.student.motherName + '</td>';
+                                rows += '<td>' + student.academicStudent.school.schoolName + '</td>';
+                                rows += '<td> <input type="radio" class="form-check form-check-input" name="assignedstu" id="assignedstu" value="'+ student.academicStudent.id +'"> </td>';
+                                rows += '</tr>';
+                            });
+                        }
+
+                        $('#group-detail tbody').html(rows);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error fetching data: " + error);
+                    }
+                });
+            } else {
+                $('#group-detail tbody').html('');
+            }
+        });
+
+        const checkData = ()=>{
+            const groupId = $('#grpname').val();
+            if(groupId===''){
+                showMsg("error","No sibling group name found. Please select a group name.","Message");
+                return;
+            }
+            const rowCount = $('#group-detail tbody tr').length;
+            console.log("Row Count': "+rowCount);
+            if(rowCount>2){
+                const selectedValue = $('input[name="assignedstu"]:checked').val();
+                if (selectedValue) {
+                    console.log("Selected value: " + selectedValue);
+                    $.ajax({
+                        url: '/sibling/validate-student/'+selectedValue,
+                        type: 'GET',
+                        success: function(response) {
+                            console.log("Response: "+response.error);
+                            console.log("Response: "+response.success);
+                            if('error' in response){
+                                showMsg("error",response.error,"Error");
+                                return;
+                            } else if ('success' in response){
+                                document.forms.siblingdiscount.submit();
+                                return true;
+                            }
+                        },
+                        error: function(error) {
+                            console.error("Error fetching data:", error.responseText);
+                            showMsg("error","Error fetching data:"+ error.responseText,"Error");
+                            return;
+                        }
+                    });
+                } else {
+                    showMsg("error","No Student selected for assigning the discount","Error");
+                    return;
+                }
+            } else if(rowCount<3){
+                showMsg("info","Atleast 3 sibling must be available to avail this discount","Info");
+                return;
+            } else{
+                showMsg("warning","No student data found for sibling group!","Message");
+                return;
+            }
+        }
+
+    </script>
+</section>
+</body>
+</html>

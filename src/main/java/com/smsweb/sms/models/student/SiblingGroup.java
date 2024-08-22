@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,6 +18,7 @@ import java.util.List;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_student_sibling_grp",columnNames = {"groupName", "academic_year_id", "school_id"})})
+@ToString(exclude = "siblingGroupStudents")
 public class SiblingGroup {
 
     @Id
@@ -42,6 +45,7 @@ public class SiblingGroup {
     private AcademicYear academicYear;
 
     @OneToMany(mappedBy = "siblingGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<SiblingGroupStudent> siblingGroupStudents;
 
     @CreationTimestamp

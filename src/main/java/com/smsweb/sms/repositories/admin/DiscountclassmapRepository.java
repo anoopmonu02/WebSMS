@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DiscountclassmapRepository extends JpaRepository<DiscountClassMap, Long> {
     List<DiscountClassMap> findAllBySchool_IdAndAcademicYear_Id(Long school_id, Long academic_id);
@@ -30,4 +31,6 @@ public interface DiscountclassmapRepository extends JpaRepository<DiscountClassM
                                                   @Param("schoolId") Long schoolId,
                                                   @Param("monthMasterIds") List<Long> monthMasterIds,
                                                   @Param("gradeId") Long gradeId);
+
+    Optional<DiscountClassMap> findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(String discountName, Long academic_year, Long school, Long grade);
 }

@@ -43,6 +43,9 @@ public class DiscountclassmapService {
     public Optional<DiscountClassMap> getDiscountClassMapById(Long id){
         return repository.findById(id);
     }
+    public Optional<DiscountClassMap> getDiscountClassMapByDiscountName(String discountName, Long academic_id, Long school_id, Long grade_id){
+        return repository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(discountName, academic_id, school_id, grade_id);
+    }
 
     public String delete(Long id){
         try{
