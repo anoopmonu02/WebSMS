@@ -38,17 +38,23 @@
 </div>
 <!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>-->
 
-<script src="/js/bootstrap.js"></script>
-<script src="/js/bootstrap.bundle.js"></script>
-<script src="/js/popper.min.js"></script>
-<script src="/js/jquery-3.6.0.min.js"></script>
-<script src="/js/toastr.min.js"></script>
-<script src="/js/jquery-ui.min.js"></script>
+
 <th:block th:if="${page == 'datatable'}">
     <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/popper.min.js"></script>
     <script src="/dtbl/bootstrap.bundle.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/dataTables.js"></script>
     <script src="/js/dataTables.bootstrap5.js"></script>
+</th:block>
+<th:block th:unless="${page == 'datatable'}">
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <!--<script src="/js/bootstrap.js"></script>-->
+    <script src="/js/bootstrap.bundle.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
 </th:block>
 <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>-->

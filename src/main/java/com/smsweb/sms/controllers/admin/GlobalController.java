@@ -71,6 +71,7 @@ public class GlobalController {
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(4L);
         model.addAttribute("academicYears", academicYears);
         model.addAttribute("hasAcademicyears", !academicYears.isEmpty());
+        model.addAttribute("page", "datatable");
         return "admin/academicyear";
     }
 

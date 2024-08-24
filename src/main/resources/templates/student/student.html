@@ -17,6 +17,7 @@
         <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}" id="student-list">
             <thead>
             <tr>
+              <th>#</th>
               <th>Student Name</th>
               <th>Regis. Date</th>
               <!--<th>Regis. #</th>-->
@@ -31,6 +32,7 @@
             <tbody class="table-group-divider">
 
             <tr th:each="student,iterStat : ${students}">
+              <td th:text="${iterStat.index+1}"></td>
               <td>
                 <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
               </td>
@@ -78,7 +80,10 @@
           [5, 10, 25, 50, 100, -1],
           [5, 10, 25, 50, 100, 'All']
         ],
-        pageLength: 25
+        pageLength: 25,
+        columnDefs: [
+          { "orderable": false, "targets": [0] } // Disable sorting on the first and fourth columns
+        ]
       });
     });
 

@@ -8,7 +8,7 @@
 <body>
 
 <section class="container">
-    <div class="offset-2 mt-2 gy-5 mb-5">
+    <div class="offset-1 mt-2 gy-5 mb-5">
         <div class="card-header fs-3">Edit Academic-Year</div>
         <hr/>
 
@@ -32,7 +32,7 @@
 
                 <div class="col-md-5">
                     <label for="customer_name" class="form-label">Start Date</label>
-                    <input type="date" class="form-control" id="customer_name" name="customer_name" th:field="*{startDate}" />
+                    <input type="text" class="form-control" id="customer_name" name="customer_name" th:field="*{startDate}" />
                     <p class="text-danger" th:if="${#fields.hasErrors('startDate')}" th:errors="*{startDate}">date Error</p>
                 </div>
                 <div class="col-md-6">
@@ -41,7 +41,7 @@
 
                 <div class="col-md-5">
                     <label for="endDate" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="endDate" name="endDate" th:field="*{endDate}" />
+                    <input type="text" class="form-control" id="endDate" name="endDate" th:field="*{endDate}" />
                     <p class="text-danger" th:if="${#fields.hasErrors('endDate')}" th:errors="*{endDate}">enddate Error</p>
                 </div>
                 <div class="col-md-6">
@@ -70,7 +70,6 @@
                     &nbsp;
                 </div>
 
-
                 <hr/>
                 <div class="col-md-4">
                     <a class="btn btn-info" href="/admin/academicyear"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
@@ -82,15 +81,39 @@
         </form>
 
 
-
-
-
     </div>
 
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
+    <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+    <script src="/js/flatpickr.js"></script>
 
     <script type="text/javascript" th:inline="javascript">
+        flatpickr("#endDate", {
+            dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+        });
+        flatpickr("#customer_name", {
+            dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+        });
+
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "600",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
         const successMessage = [[${success}]];
         if (successMessage) {
             //toastr.success(successMessage);

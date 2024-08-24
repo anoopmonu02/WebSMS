@@ -17,11 +17,13 @@ public class AcademicYear {
 
 
     @NotNull(message = "Start date should not blank")
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date startDate;
 
     @NotNull(message = "End date should not blank")
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date endDate;
 
     @NotBlank(message = "Academic year format should not blank")

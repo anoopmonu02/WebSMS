@@ -10,10 +10,10 @@
 
   <div class="container">
     <div class="row mt-2 ">
-      <div class="col-md-11  offset-md-1 ">
+      <div class="col-md-12  offset-md-1 ">
         <div class="card-header fs-3">Academic-Year List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasAcademicyears}">
+        <table id="academic-year-list" class="table table-bordered table-striped table-hover table-sm" th:if="${hasAcademicyears}">
           <thead>
           <tr>
             <th>#</th>
@@ -29,8 +29,8 @@
 
           <tr th:each="academic,iterStat : ${academicYears}">
             <td th:text="${iterStat.index + 1}"></td>
-            <td th:text="${#dates.format(academic.startDate, 'dd-MMM-yyyy')}"></td>
-            <td th:text="${#dates.format(academic.endDate, 'dd-MMM-yyyy')}"></td>
+            <td th:text="${#dates.format(academic.startDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#dates.format(academic.endDate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${academic.sessionFormat}"></td>
             <td th:text="${academic.description}"></td>
             <td style="white-space: nowrap" class="text-center">
@@ -39,7 +39,7 @@
               <a class="btn btn-danger" th:href="@{/admin/academicyear/delete/{id}(id=${academic.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
                  data-bs-custom-class="custom-tooltip"
                  data-bs-title="Delete the school record">
-                <i class="bi bi-journal-x"></i> </a>
+                <i class="bi bi-trash3-fill"></i> </a>
             </td>
           </tr>
           </tbody>
@@ -53,31 +53,53 @@
       </div>
     </div>
   </div>
+  <script src="/js/jquery-3.7.1.js"></script>
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
 
   <script type="text/javascript" th:inline="javascript">
+
+    $(document).ready(function () {
+      $('#academic-year-list').DataTable({
+        layout: {
+          bottomEnd: {
+            paging: {
+              firstLast: false
+            }
+          }
+        },
+        lengthMenu: [
+          [5, 10, 25, 50, 100, -1],
+          [5, 10, 25, 50, 100, 'All']
+        ],
+        pageLength: 10,
+        columnDefs: [
+          { "orderable": false, "targets": [0] } // Disable sorting on the first and fourth columns
+        ]
+      });
+    });
+
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);
       toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
     }
 
     // Display error message
