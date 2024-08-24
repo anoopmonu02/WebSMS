@@ -30,7 +30,7 @@
           <tr th:each="fullpayment,iterStat : ${fullpayments}">
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${fullpayment.academicYear.sessionFormat}"></td>
-            <td th:text="${#dates.format(fullpayment.paymentLastDate, 'dd-MMM-yyyy')}"></td>
+            <td th:text="${#dates.format(fullpayment.paymentLastDate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${fullpayment.grade.gradeName}"></td>
             <td th:text="${fullpayment.amount}"></td>
             <td th:text="${fullpayment.description}"></td>
@@ -111,6 +111,23 @@
   </script>
 
   <script type="text/javascript" th:inline="javascript">
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

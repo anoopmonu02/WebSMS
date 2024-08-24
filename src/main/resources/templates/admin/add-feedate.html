@@ -8,7 +8,7 @@
 <body>
 
 <section class="container">
-  <div class="offset-2 mt-2 gy-5 mb-5">
+  <div class="offset-1 mt-2">
     <div class="card-header fs-3">Fee-date Form</div>
     <hr/>
 
@@ -41,7 +41,7 @@
 
         <div class="col-md-5">
           <label for="customer_name" class="form-label">Fee Date</label>
-          <input type="date"  class="form-control" id="customer_name" name="feeSubmissiondate" th:field="*{feeSubmissiondate}" />
+          <input type="text"  class="form-control" id="customer_name" name="feeSubmissiondate" th:field="*{feeSubmissiondate}" />
           <p class="text-danger" th:if="${#fields.hasErrors('feeSubmissiondate')}" th:errors="*{feeSubmissiondate}">date Error</p>
         </div>
         <div class="col-md-6">
@@ -77,13 +77,32 @@
 
   </div>
 
-  <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
-  <!--<script src="/js/jquery-3.6.0.min.js" />
-  <script src="/js/toastr.min.js" />-->
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
-
+  <script src="/js/jquery-ui.min.js"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script src="/js/flatpickr.js"></script>
   <script type="text/javascript" th:inline="javascript">
+      flatpickr("#customer_name", {
+        dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+      });
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

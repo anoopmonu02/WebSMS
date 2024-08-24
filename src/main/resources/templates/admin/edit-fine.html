@@ -8,25 +8,18 @@
 <body>
 
 <section class="container">
-  <div class="offset-2 mt-2 gy-5 mb-5">
+  <div class="offset-1 mt-2">
     <div class="card-header fs-3">Edit Fine</div>
     <hr/>
 
     <form th:action="@{/admin/fine}" th:object="${fine}" method="post" >
       <div class="row g-2">
 
-        <div class="col-md-7">
-          <!--<label for="school" class="form-label">School</label>-->
+        <div class="col-md-5">
           <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
           <input type="hidden" name="id" id="id" th:field="*{id}"/>
-          <!--<input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>
-          <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>-->
-        </div>
-        <div class="col-md-4">
-          &nbsp;<input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
-        </div>
+          <input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
 
-        <div class="col-md-5">
           <label for="fine" class="form-label">Fine</label>
           <select id="fine" th:field="*{finehead}" class="form-select" name="fine">
             <option value="">Select Fine</option>

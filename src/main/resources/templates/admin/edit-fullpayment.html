@@ -8,7 +8,7 @@
 <body>
 
 <section class="container">
-  <div class="offset-2 mt-2 gy-5 mb-5">
+  <div class="offset-1 mt-2 mb-5">
     <div class="card-header fs-3">Edit Full-Payment Discount</div>
     <hr/>
 
@@ -19,7 +19,6 @@
         <input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
         <input type="hidden" name="grade" id="grade" th:field="*{grade}" />
 
-
         <div class="col-md-5">
           <label for="grade1" class="form-label">Grade</label>
           <input type="text"  class="form-control" id="grade1" name="grade1" th:field="*{grade.gradeName}" readonly="readonly"/>
@@ -28,10 +27,9 @@
           &nbsp;
         </div>
 
-
         <div class="col-md-3">
           <label for="frequency" class="form-label">Last Date</label>
-          <input type="date"  class="form-control" id="frequency" name="frequency" th:field="*{paymentLastDate}" />
+          <input type="text"  class="form-control" id="frequency" name="frequency" th:field="*{paymentLastDate}" />
           <p class="text-danger" th:if="${#fields.hasErrors('paymentLastDate')}" th:errors="*{paymentLastDate}">date Error</p>
         </div>
         <div class="col-md-8">
@@ -78,13 +76,34 @@
 
   </div>
 
-  <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
-  <!--<script src="/js/jquery-3.6.0.min.js" />
-  <script src="/js/toastr.min.js" />-->
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
-
+  <script src="/js/jquery-ui.min.js"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script src="/js/flatpickr.js"></script>
   <script type="text/javascript" th:inline="javascript">
+
+    flatpickr("#frequency", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
+
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

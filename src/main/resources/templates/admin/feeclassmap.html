@@ -10,7 +10,7 @@
 
   <div class="container">
     <div class="row mt-2 ">
-      <div class="col-md-11  offset-md-1 ">
+      <div class="col-md-12  offset-md-1 ">
         <div class="card-header fs-3">Fee-Class Mapping List</div>
         <hr/>
         <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasFeeClassMap}" id="feeDateTable">
@@ -51,6 +51,7 @@
       </div>
     </div>
   </div>
+  <script src="/js/jquery-3.7.1.js"></script>
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
 
@@ -107,6 +108,43 @@
   </script>
 
   <script type="text/javascript" th:inline="javascript">
+      $(document).ready(function () {
+          $('#feeDateTable').DataTable({
+              layout: {
+                  bottomEnd: {
+                      paging: {
+                          firstLast: false
+                      }
+                  }
+              },
+              lengthMenu: [
+                  [5, 10, 25, 50, 100, -1],
+                  [5, 10, 25, 50, 100, 'All']
+              ],
+              pageLength: 25,
+              columnDefs: [
+                  { "orderable": false, "targets": [0,5] } // Disable sorting on the first and fourth columns
+              ]
+          });
+      });
+
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

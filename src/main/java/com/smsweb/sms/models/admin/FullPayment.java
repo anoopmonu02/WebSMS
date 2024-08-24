@@ -31,7 +31,8 @@ public class FullPayment {
     @NotNull(message = "School should be available")
     School school;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     @NotNull(message = "Last payment date should be available")
     private Date paymentLastDate;
 

@@ -21,7 +21,8 @@ public class FeeDate {
     private Long id;
 
     @NotNull(message = "Fee date is mandatory")
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date feeSubmissiondate;
 
     @ManyToOne

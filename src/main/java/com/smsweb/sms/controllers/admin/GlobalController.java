@@ -244,6 +244,11 @@ public class GlobalController {
             model.addAttribute("months", monthMasterService.getAllMonths());
             de.printStackTrace();
             return "/admin/add-feedate";
+        }catch(UniqueConstraintsException de){
+            model.addAttribute("error", "Duplicate entry for "+feedate.getMonthMaster().getMonthName()+". "+de.getLocalizedMessage());
+            model.addAttribute("months", monthMasterService.getAllMonths());
+            de.printStackTrace();
+            return "/admin/add-feedate";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             model.addAttribute("months", monthMasterService.getAllMonths());
@@ -359,6 +364,7 @@ public class GlobalController {
         List<FeeClassMap> feeClassMaps = feeclassmapService.getAllFeeClassMapping(4L, 14L);
         model.addAttribute("feeclass", feeClassMaps);
         model.addAttribute("hasFeeClassMap", !feeClassMaps.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/admin/feeclassmap";
     }
 
@@ -501,6 +507,7 @@ public class GlobalController {
         List<FeeMonthMap> feeMonthMaps = feemonthmapService.getAllFeeMonthMap(4L, 14L);
         model.addAttribute("feemonths", feeMonthMaps);
         model.addAttribute("hasFeeMonthMap", !feeMonthMaps.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/admin/feemonthmap";
     }
 
@@ -651,6 +658,7 @@ public class GlobalController {
         List<DiscountClassMap> discountClassMaps = discountclassmapService.getAllDiscountClassMapping(4L, 14L);
         model.addAttribute("discountclasses", discountClassMaps);
         model.addAttribute("hasDiscountClassMap", !discountClassMaps.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/admin/discountclassmap";
     }
 
@@ -792,6 +800,7 @@ public class GlobalController {
         List<DiscountMonthMap> discountMonthMaps = discountmonthmapService.getAllDiscountMonthMap(4L, 14L);
         model.addAttribute("discountmonths", discountMonthMaps);
         model.addAttribute("hasDiscountMonthMap", !discountMonthMaps.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/admin/discountmonthmap";
     }
 

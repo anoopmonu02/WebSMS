@@ -28,7 +28,7 @@
           <tr th:each="feedate,iterStat : ${feedates}">
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${feedate.monthMaster.monthName}"></td>
-            <td th:text="${#dates.format(feedate.feeSubmissiondate, 'dd-MMM-yyyy')}"></td>
+            <td th:text="${#dates.format(feedate.feeSubmissiondate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${feedate.description}"></td>
             <td style="white-space: nowrap" class="text-center">
               <!--<a class="btn btn-primary" th:href="@{/admin/feedate/edit/{id}(id=${feedate.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
@@ -108,6 +108,25 @@
   </script>
 
   <script type="text/javascript" th:inline="javascript">
+
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
+
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);
