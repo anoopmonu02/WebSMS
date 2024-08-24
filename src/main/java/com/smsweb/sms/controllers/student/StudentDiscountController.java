@@ -48,6 +48,7 @@ public class StudentDiscountController {
         List<StudentDiscount> studentDiscountList = studentDiscountService.getAllStudentDiscounts(4L, 14L);
         model.addAttribute("studentDiscounts", studentDiscountList);
         model.addAttribute("hasDiscounts", !studentDiscountList.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/student/assigneddiscount";
     }
 
