@@ -9,7 +9,7 @@
 
   <div class="container">
     <div class="row mt-2 ">
-      <div class="col-md-6  offset-md-2 ">
+      <div class="col-md-6  offset-md-1 ">
         <div class="card-header fs-3">Bank List</div>
         <hr/>
         <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasBanks}">
@@ -29,7 +29,7 @@
               <a class="btn btn-primary" th:href="@{/universal/bank/edit/{id}(id=${bank.id})}">
                 <i class="bi bi-pencil-square"></i> </a>
               <a class="btn btn-danger" th:href="@{/universal/bank/delete/{id}(id=${bank.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
-                <i class="bi bi-journal-x"></i> </a>
+                <i class="bi bi-trash3-fill"></i> </a>
             </td>
           </tr>
           </tbody>

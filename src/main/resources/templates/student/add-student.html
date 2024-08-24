@@ -30,7 +30,7 @@
 
         <div class="col-md-3">
           <label for="dob" class="form-label">Date of Birth</label>
-          <input type="date" id="dob" class="form-control" th:field="*{dob}">
+          <input type="text" id="dob" class="form-control" th:field="*{dob}">
           <p class="text-danger" th:if="${#fields.hasErrors('dob')}" th:errors="*{dob}">f name Error</p>
         </div>
 
@@ -388,8 +388,13 @@
 
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/jquery-ui.min.js"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script src="/js/flatpickr.js"></script>
 
   <script type="text/javascript" th:inline="javascript">
+    flatpickr("#dob", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
     $(document).ready(function() {
       function loadCities(state, selectedCity) {
         if (state) {

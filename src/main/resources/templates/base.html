@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>United Avadh Inter College - Siksha Web Portal</title>
+
     <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}" />
+    <th:block th:if="${page == 'datatable'}">
+        <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
+        <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
+    </th:block>
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
     <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -18,6 +23,7 @@
             --bs-tooltip-bg: var(--bs-danger);
         }
     </style>
+
 </head>
 <body class="bg-light">
 
@@ -38,6 +44,12 @@
 <script src="/js/jquery-3.6.0.min.js"></script>
 <script src="/js/toastr.min.js"></script>
 <script src="/js/jquery-ui.min.js"></script>
+<th:block th:if="${page == 'datatable'}">
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/dtbl/bootstrap.bundle.min.js"></script>
+    <script src="/js/dataTables.js"></script>
+    <script src="/js/dataTables.bootstrap5.js"></script>
+</th:block>
 <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>-->
 

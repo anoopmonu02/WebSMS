@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -50,24 +51,13 @@ public class StudentController {
         List<Student> studentList = studentService.getAllActiveStudents(4L);
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
+        model.addAttribute("page", "datatable");
         return "/student/student";
     }
 
     @GetMapping("/student/add")
     public String addStudentData(Model model){
         model.addAttribute("student", new Student());
-        /*model.addAttribute("categories", dropdownService.getCategories());
-        model.addAttribute("casts", dropdownService.getCasts());
-        model.addAttribute("provinces", dropdownService.getProvinces());
-        //model.addAttribute("cities", dropdownService.getCities(-1L));
-        model.addAttribute("grades", dropdownService.getGrades());
-        model.addAttribute("sections", dropdownService.getSections());
-        model.addAttribute("mediums", dropdownService.getMediums());
-        model.addAttribute("banks", dropdownService.getBanks());
-        model.addAttribute("relationships", dropdownService.getRelationships());
-        model.addAttribute("bloodGroups", dropdownService.getBloodGroups());
-        model.addAttribute("religions", dropdownService.getReligions());
-        model.addAttribute("bodyTypes", dropdownService.getBodyTypes());*/
         model = getAllGlobalModels(model);
         return "/student/add-student";
     }
@@ -95,7 +85,7 @@ public class StudentController {
 
     @PostMapping("/student")
     public String saveStudent(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
-                             Model model, RedirectAttributes redirectAttribute){
+                             Model model, RedirectAttributes redirectAttribute) {
         //@RequestParam("customerPic1")MultipartFile customerPic1,
         if(result.hasErrors()){
             model = getAllGlobalModels(model);

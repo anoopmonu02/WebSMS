@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
+
+
 </head>
 <body>
 <section>
@@ -12,80 +14,97 @@
       <div class="col-md-12  offset-md-1 ">
         <div class="card-header fs-3">Student List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}">
-          <thead>
-          <tr>
-            <th>#</th>
-            <th>Student Name</th>
-            <th>Regis. Date</th>
-            <!--<th>Regis. #</th>-->
-            <th>Mother Name</th>
-            <th>Father Name</th>
-            <th>Mobile</th>
-            <th>Address</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-          </thead>
-          <tbody class="table-group-divider">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}" id="student-list">
+            <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Regis. Date</th>
+              <!--<th>Regis. #</th>-->
+              <th>Mother Name</th>
+              <th>Father Name</th>
+              <th>Mobile</th>
+              <th>Address</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody class="table-group-divider">
 
-          <tr th:each="student,iterStat : ${students}">
-            <td th:text="${iterStat.index + 1}"></td>
-            <td>
-              <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
-            </td>
-            <td th:text="${#dates.format(student.registrationDate, 'dd-MMM-yyyy')}"></td>
-            <!--<td th:text="${customer.registrationNo}"></td>-->
-            <td th:text="${student.motherName}"></td>
-            <td th:text="${student.fatherName}"></td>
-            <td th:text="${student.mobile1}"></td>
-            <td th:text="${student.address}"></td>
-            <td th:text="${student.status}"></td>
-            <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
-                <i class="bi bi-pencil-square"></i> </a>
-              <a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
-                 data-bs-custom-class="custom-tooltip"
-                 data-bs-title="Delete the customer record">
-                <i class="bi bi-trash3-fill"></i> </a>
-            </td>
-          </tr>
-          </tbody>
+            <tr th:each="student,iterStat : ${students}">
+              <td>
+                <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
+              </td>
+              <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
+              <!--<td th:text="${customer.registrationNo}"></td>-->
+              <td th:text="${student.motherName}"></td>
+              <td th:text="${student.fatherName}"></td>
+              <td th:text="${student.mobile1}"></td>
+              <td th:text="${student.address}"></td>
+              <td th:text="${student.status}"></td>
+              <td style="white-space: nowrap" class="text-center">
+                <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                  <i class="bi bi-pencil-square"></i> </a>
+                <a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                   data-bs-custom-class="custom-tooltip"
+                   data-bs-title="Delete the customer record">
+                  <i class="bi bi-trash3-fill"></i> </a>
+              </td>
+            </tr>
+            </tbody>
         </table>
         <div th:if="${!hasStudent}">
           <p class="text-center">No Student found.</p>
         </div>
-        <div class="pt-5">
+        <div class="pt-5 mb-5">
           <a class="btn btn-success" href="/student/student/add"><i class="bi bi-node-plus-fill"></i> Add Student</a>
         </div>
       </div>
     </div>
   </div>
+  <script src="/js/jquery-3.7.1.js"></script>
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
   <script type="text/javascript" th:inline="javascript">
+    $(document).ready(function () {
+      $('#student-list').DataTable({
+        layout: {
+          bottomEnd: {
+            paging: {
+              firstLast: false
+            }
+          }
+        },
+        lengthMenu: [
+          [5, 10, 25, 50, 100, -1],
+          [5, 10, 25, 50, 100, 'All']
+        ],
+        pageLength: 25
+      });
+    });
+
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": true,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
+
     // Display success message
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);
       toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
     }
 
     const infoMessage = [[${info}]];

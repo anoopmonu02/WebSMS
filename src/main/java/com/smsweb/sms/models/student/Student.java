@@ -44,7 +44,8 @@ public class Student {
     @Size(max = 200, message = "Mother name should not exceed 200 chars")
     private String motherName;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date dob;
     @Column(nullable = false)
     private String nationality = "INDIAN";
