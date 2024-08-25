@@ -9,7 +9,7 @@
 
 <section class="container">
   <div class="offset-1 mt-2 gy-5 mb-5">
-    <div class="card-header fs-3">Discount-Class Mapping Form</div>
+    <div class="card-header fs-3">Discount-Grade Mapping Form</div>
     <hr/>
 
     <div class="row g-5">
@@ -78,6 +78,23 @@
   <script src="/js/toastr.min.js"></script>
 
   <script type="text/javascript" th:inline="javascript">
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

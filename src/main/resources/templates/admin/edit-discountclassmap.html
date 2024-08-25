@@ -11,7 +11,7 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-11  offset-md-1 ">
-        <div class="card-header fs-3">Edit Discount-Class Mapping</div>
+        <div class="card-header fs-3">Edit Discount-Grade Mapping</div>
         <hr/>
 
         <form th:action="@{/admin/edit-discount-class}" th:object="${discountclassmap}" method="post" >
@@ -84,6 +84,23 @@
 
 
   <script type="text/javascript" th:inline="javascript">
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);

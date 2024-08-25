@@ -412,6 +412,7 @@ public class GlobalController {
             }
             responseMap.put("success", finalMap);
         }catch(Exception e){
+            e.printStackTrace();
             responseMap.put("error", new HashMap<>());
         }
         System.out.println(responseMap);

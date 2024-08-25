@@ -1,5 +1,7 @@
-package com.smsweb.sms.models.employee;
+package com.smsweb.sms.models.Users;
 
+import com.smsweb.sms.models.Users.UserEntity;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -11,15 +13,15 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.util.Date;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Entity
-public class Employee{
+@Table(name = "employees")  // Specifies the table name for Employee entities
+public class Employee extends UserEntity {  // Extend UserEntity
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    // Removed the @Id field as it is inherited from UserEntity
 
     @Column(nullable = false, unique = true)
-    private String employeeCode; // auto-generated unique code for each employee
+    private String employeeCode; // Auto-generated unique code for each employee
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -27,20 +29,20 @@ public class Employee{
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Employee name must not contain special characters")
     @NotBlank(message = "Employee name should not be blank")
-    @Size(max = 200, message = "Employee name should not exceed 200 chars")
+    @Size(max = 200, message = "Employee name should not exceed 200 characters")
     private String employeeName;
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Father name must not contain special characters")
-    @NotBlank(message = "Father name should not be blank")
-    @Size(max = 200, message = "Father name should not exceed 200 chars")
+    @Column(nullable = true)
+    @Size(max = 200, message = "Father name should not exceed 200 characters")
     private String fatherName;
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Mother name must not contain special characters")
-    @NotBlank(message = "Mother name should not be blank")
-    @Size(max = 200, message = "Mother name should not exceed 200 chars")
+    @Size(max = 200, message = "Mother name should not exceed 200 characters")
+    @Column(nullable = true)
     private String motherName;
 
-    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date dob;
 
     @Column(nullable = false)
@@ -50,9 +52,8 @@ public class Employee{
 
     private String department;
 
-
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Description should not exceed 500 chars")
+    @Size(max = 500, message = "Description should not exceed 500 characters")
     private String description;
 
     private String pic;
@@ -60,7 +61,7 @@ public class Employee{
     // Contact Info
     @NotBlank(message = "Address should not be blank")
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Address should not exceed 500 chars")
+    @Size(max = 500, message = "Address should not exceed 500 characters")
     private String address;
 
     private String landmark;
@@ -73,8 +74,12 @@ public class Employee{
     @Column(length = 10)
     private String mobile2;
 
-    @Email(message = "Please enter a valid email")
-    private String email;
+    /*@Email(message = "Please enter a valid email")
+    @Column(nullable = false)
+    private String email;*/
+
+    @Column(nullable = false)
+    private String status = "Active";
 
     // Additional Fields
     @CreationTimestamp
@@ -86,5 +91,5 @@ public class Employee{
 
     // TODO: Add createdBy, updatedBy, and other fields if needed
 
-    // @JsonIgnore - will use for user or to avoid circular reference
+    // Use @JsonIgnore if needed to avoid circular references
 }

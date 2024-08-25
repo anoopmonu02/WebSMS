@@ -1,6 +1,7 @@
 package com.smsweb.sms.models.student;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity; // Import the UserEntity class
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.*;
@@ -13,40 +14,38 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
-
 @Data
 @Entity
-public class Student {
+@Table(name = "students")  // Specifies the table name for Student entities
+public class Student extends UserEntity { // Extend UserEntity
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    // Removed the `id` field as it is inherited from UserEntity
 
-    private String registrationNo;//auto-generated
+    private String registrationNo; // Auto-generated
 
     @CreationTimestamp
     @Column(updatable = false)
     private Date registrationDate;
 
-    //Personal Info
+    // Personal Info
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Student name must not contain special characters")
-    @NotBlank(message = "Student name should not blank")
-    @Size(max = 200, message = "Student name should not exceed 200 chars")
+    @NotBlank(message = "Student name should not be blank")
+    @Size(max = 200, message = "Student name should not exceed 200 characters")
     private String studentName;
 
-    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Father name must not contain special characters")
-    @NotBlank(message = "Father name should not blank")
-    @Size(max = 200, message = "Father name should not exceed 200 chars")
+    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Father's name must not contain special characters")
+    @NotBlank(message = "Father's name should not be blank")
+    @Size(max = 200, message = "Father's name should not exceed 200 characters")
     private String fatherName;
 
-    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Mother name must not contain special characters")
-    @NotBlank(message = "Mother name should not blank")
-    @Size(max = 200, message = "Mother name should not exceed 200 chars")
+    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Mother's name must not contain special characters")
+    @NotBlank(message = "Mother's name should not be blank")
+    @Size(max = 200, message = "Mother's name should not exceed 200 characters")
     private String motherName;
 
-    /*@DateTimeFormat(pattern = "yyyy-MM-dd")*/
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date dob;
+
     @Column(nullable = false)
     private String nationality = "INDIAN";
 
@@ -62,25 +61,28 @@ public class Student {
     @JoinColumn(name = "cast_id")
     @NotNull(message = "Cast should be available")
     private Cast cast;
-    private String gender="No_Preference";
+
+    private String gender = "No_Preference";
 
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Description should not exceed 500 chars")
+    @Size(max = 500, message = "Description should not exceed 500 characters")
     private String description;
-    private String pic;
-    private String religion="No Preference";
 
-    //Physical Info
+    private String pic;
+    private String religion = "No Preference";
+
+    // Physical Info
     private Integer height = 0;
     private Integer weight = 0;
     private String bloodGroup = "No Preference";
     private String bodyType = "Normal";
 
-    //Contact Info
-    @NotBlank(message = "Address should not blank")
+    // Contact Info
+    @NotBlank(message = "Address should not be blank")
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Address should not exceed 500 chars")
+    @Size(max = 500, message = "Address should not exceed 500 characters")
     private String address;
+
     private String landmark;
 
     @ManyToOne
@@ -96,31 +98,36 @@ public class Student {
     @Pattern(regexp = "^$|^[0-9]{6}$", message = "Pincode must be a 6-digit number")
     @Column(length = 6)
     private String pincode;
+
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
     @Column(length = 10)
     private String mobile1;
+
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
     @Column(length = 10)
     private String mobile2;
-    @Email(message = "Please enter valid email")
-    private String email;
 
-    //Previous Academic Details
+    @Email(message = "Please enter a valid email")
+    private String email; // Consider removing this if it's already in UserEntity and should not be duplicated
+
+    // Previous Academic Details
     private String previousSchool;
     private String previousClass;
     private String tcNo;
     private String removalCause;
     private Integer passingYear;
 
-    //Emergency
+    // Emergency
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Emergency contact person name must not contain special characters")
     private String personName;
+
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
     @Column(length = 10)
     private String personContact;
+
     private String relationship;
 
-    //Extra
+    // Extra
     @ManyToOne
     @JoinColumn(name = "grade_id")
     @NotNull(message = "Grade should be available")
@@ -135,14 +142,18 @@ public class Student {
     @JoinColumn(name = "medium_id")
     @NotNull(message = "Medium should be available")
     private Medium medium;
+
     @Column(nullable = false)
     private String studentType = "New";
+
     @Column(nullable = false)
     private String schoolStatus = "Own";
+
     @Column(nullable = false)
     private String status = "Active";
+
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Remark should not exceed 500 chars")
+    @Size(max = 500, message = "Remark should not exceed 500 characters")
     private String remark;
 
     @CreationTimestamp
@@ -162,11 +173,12 @@ public class Student {
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
 
-    //Bank & Aadhar details
+    // Bank & Aadhar details
     @ManyToOne
     @JoinColumn(name = "bank_id")
     @NotNull(message = "Bank should be available")
     private Bank bank;
+
     private String branchName;
     private String ifscCode;
     private String accountNo;
@@ -175,7 +187,5 @@ public class Student {
     @Column(length = 12)
     private String aadharNo;
 
-    //TODO-will add 2 more attributes - createdBy, updatedBy
-    //@JsonIgnore - will use for user or to avoid circular reference
-
+    // TODO: Add createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
 }

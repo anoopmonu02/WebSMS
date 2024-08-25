@@ -11,7 +11,7 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-12  offset-md-1 ">
-        <div class="card-header fs-3">Discount-Class Mapping List</div>
+        <div class="card-header fs-3">Discount-Grade Mapping List</div>
         <hr/>
         <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasDiscountClassMap}" id="feeDateTable">
           <thead>
@@ -43,10 +43,10 @@
           </tbody>
         </table>
         <div th:if="${!hasDiscountClassMap}">
-          <p class="text-center">No Discount-Class Mapping found.</p>
+          <p class="text-center">No Discount-Grade Mapping found.</p>
         </div>
         <div class="pt-5 mb-5">
-          <a class="btn btn-success" href="/admin/discount-class/add"><i class="bi bi-node-plus-fill"></i> Add Discount-Class Mapping</a>
+          <a class="btn btn-success" href="/admin/discount-class/add"><i class="bi bi-node-plus-fill"></i> Add Discount-Grade Mapping</a>
         </div>
       </div>
     </div>

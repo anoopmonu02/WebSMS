@@ -62,8 +62,11 @@ public class SchoolService {
                 } else{
                     // if school is going to update without new logo selection happen
                     if(imageResponse.equalsIgnoreCase("Success_no_image")){
-                        existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
-                        school.setLogo1(existingSchool.getLogo1());
+                        school.setLogo1(null);
+                        if(school.getId()!=null){
+                            existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
+                            school.setLogo1(existingSchool.getLogo1());
+                        }
                     }
                 }
                 school.setSchoolCode("SC-"+fileNameOrSchoolCode);
