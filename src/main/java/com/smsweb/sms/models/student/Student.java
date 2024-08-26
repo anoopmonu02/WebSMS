@@ -107,8 +107,7 @@ public class Student extends UserEntity { // Extend UserEntity
     @Column(length = 10)
     private String mobile2;
 
-    @Email(message = "Please enter a valid email")
-    private String email; // Consider removing this if it's already in UserEntity and should not be duplicated
+
 
     // Previous Academic Details
     private String previousSchool;

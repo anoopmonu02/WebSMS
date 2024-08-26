@@ -122,7 +122,10 @@
                 <p th:text="${errorMessage}"></p>
             </div>
             <div class="row">
-                <a href="#" class="link-success">Forgot Password?</a>
+
+                    <a th:href="@{/auth/forgot-password}" class="text-primary">Forgot Password?</a>
+
+                <!--<a href="#" class="link-success">Forgot Password?</a>-->
             </div>
             <div class="row justify-content-center mt-5">
                 <span class="justify-content-center" style="font-size: 10px;">Copyright &copy; Pronoc Technologies Pvt. Ltd. - 2024</span>

@@ -6,6 +6,7 @@ import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +14,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public void saveUser(UserEntity userEntity) throws DuplicateUserException {
         try {
@@ -37,5 +41,16 @@ public class UserService {
     private void saveStudent(Student student) {
         // Save logic specific to Student if needed
         userRepository.save(student);
+    }
+
+
+
+    public UserEntity findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public void updatePassword(UserEntity user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }
