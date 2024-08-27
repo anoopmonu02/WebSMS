@@ -1,6 +1,5 @@
 package com.smsweb.sms.controllers.student;
 
-
 import com.smsweb.sms.models.Users.PasswordResetToken;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.globalaccess.EmailService;
@@ -37,8 +36,15 @@ public class AuthController {
             return "forgot-password";
         }
 
-        PasswordResetToken token = passwordResetTokenService.createToken(user);
-        String resetLink = "http://localhost:9090/auth/reset-password?token=" + token.getToken();
+        // Check if a token already exists for this user and delete it if necessary
+        PasswordResetToken existingToken = passwordResetTokenService.findByUser(user);
+        if (existingToken != null) {
+            passwordResetTokenService.delete(existingToken);
+        }
+
+        // Create a new token for the user
+        PasswordResetToken newToken = passwordResetTokenService.createToken(user);
+        String resetLink = "http://localhost:9090/auth/reset-password?token=" + newToken.getToken();
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
 
         model.addAttribute("message", "Password reset link has been sent to your email address.");
@@ -68,7 +74,8 @@ public class AuthController {
         UserEntity user = resetToken.getUser();
         userService.updatePassword(user, password);
 
-        model.addAttribute("message", "Your password has been successfully reset.");
-        return "login";
+        // Return the success page instead of login
+        return "successResetPassword";
     }
+
 }

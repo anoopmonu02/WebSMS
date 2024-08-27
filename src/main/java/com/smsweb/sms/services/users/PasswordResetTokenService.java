@@ -1,6 +1,5 @@
 package com.smsweb.sms.services.users;
 
-
 import com.smsweb.sms.models.Users.PasswordResetToken;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.repositories.users.PasswordResetTokenRepository;
@@ -27,5 +26,14 @@ public class PasswordResetTokenService {
 
     public Optional<PasswordResetToken> findByToken(String token) {
         return passwordResetTokenRepository.findByToken(token);
+    }
+
+    public PasswordResetToken findByUser(UserEntity user) {
+        return passwordResetTokenRepository.findByUser(user);
+    }
+
+    // New method to delete an existing token
+    public void delete(PasswordResetToken token) {
+        passwordResetTokenRepository.delete(token);
     }
 }
