@@ -2,6 +2,7 @@ package com.smsweb.sms.config;
 
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.Roles;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -36,15 +37,12 @@ public class RoleInitializer {
                 roleRepository.save(superAdminRole);
             }
             if (userRepository.findByUsername("super_admin") == null) {
-                Employee superAdmin = new Employee();
-                superAdmin.setUsername("super_admin");
-                superAdmin.setPassword(passwordEncoder.encode("password"));
-                superAdmin.setEmail("anoopmonu02@gmail.com");
-                superAdmin.setEnabled(true);
-                superAdmin.setEmployeeCode("SUPER_ADMIN");
-                superAdmin.getRoles().add(superAdminRole);
-                superAdmin.setAddress("ADDRESS1");
-                superAdmin.setEmployeeName("Super Admin");
+                    UserEntity superAdmin = new UserEntity();
+                    superAdmin.setUsername("super_admin");
+                    superAdmin.setPassword(passwordEncoder.encode("password"));
+                    superAdmin.setEmail("anoopmonu02@gmail.com");
+                    superAdmin.setEnabled(true);
+                    superAdmin.getRoles().add(superAdminRole);
 
                 userRepository.save(superAdmin);
             }

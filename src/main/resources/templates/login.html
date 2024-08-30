@@ -115,11 +115,11 @@
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
-            <div th:if="${successMessage}" style="color: green;">
-                <p th:text="${successMessage}"></p>
+            <div th:if="${param.error}" style="color: red;">
+                <p>Invalid username or password. Please try again.</p>
             </div>
-            <div th:if="${errorMessage}" style="color: red;">
-                <p th:text="${errorMessage}"></p>
+            <div th:if="${param.logout}" style="color: green;">
+                <p>You have been logged out successfully.</p>
             </div>
             <div class="row">
 

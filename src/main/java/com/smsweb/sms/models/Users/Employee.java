@@ -1,6 +1,7 @@
 package com.smsweb.sms.models.Users;
 
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.School;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -88,6 +89,11 @@ public class Employee extends UserEntity {  // Extend UserEntity
 
     @UpdateTimestamp
     private Date lastUpdated;
+
+    @ManyToOne
+    @JoinColumn(name = "school_id")
+    @NotNull(message = "School should be available")
+    private School school;
 
     // TODO: Add createdBy, updatedBy, and other fields if needed
 

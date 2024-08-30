@@ -32,7 +32,7 @@ public class WebSecurityConfig {
                 .csrf().disable()
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/images/**", "/css/**", "/js/**").permitAll()
-                        .requestMatchers( "/auth/forgot-password", "/auth/forgot-password", "/auth/reset-password","/auth/reset-password").permitAll() // Allow access to reset endpoints
+                        .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll() // Fixed duplicate matchers
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/admin/**", "/").hasAnyRole("ADMIN","SUPERADMIN")
                         .requestMatchers("/student/**", "/").hasAnyRole("ACCOUNTENT","SUPERADMIN","ADMIN")
