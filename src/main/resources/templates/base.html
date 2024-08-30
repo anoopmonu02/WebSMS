@@ -23,21 +23,48 @@
             --bs-tooltip-bg: var(--bs-danger);
         }
     </style>
+    <style>
+        /* Sticky Footer CSS */
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
 
+        #content {
+            flex: 1;
+        }
 
+        footer {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            text-align: center;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
 <div th:replace="~{header :: navbar}">
-
 </div>
 
-<div class="content" th:replace="${content}"></div>
+<div id="content" class="content" th:replace="${content}"></div>
 
 
-<div th:replace="~{footer :: footer}">
-</div>
-<!--<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>-->
+<!--<div th:replace="~{footer :: footer}">
+</div>-->
+<!--<footer class="py-3 my-4">
+    <ul class="nav justify-content-center border-bottom pb-3 mb-3">
+    </ul>
+    <p class="text-center text-muted">&copy; 2024 United Avadh</p>
+</footer>-->
+
+<!--<footer class="py-5">
+    <div class="d-flex flex-column flex-sm-row justify-content-between py-4 my-4 border-top">
+        <p>&copy; <span th:text="${T(java.time.Year).now()}"></span> United Avadh. All rights reserved.</p>
+    </div>
+</footer>-->
+
 
 
 <th:block th:if="${page == 'datatable'}">
@@ -48,7 +75,6 @@
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/dataTables.js"></script>
     <script src="/js/dataTables.bootstrap5.js"></script>
-    <!--<script src="sidebars.js"></script>-->
 </th:block>
 <th:block th:unless="${page == 'datatable'}">
     <script src="/js/jquery-3.6.0.min.js"></script>
@@ -57,10 +83,7 @@
     <script src="/js/bootstrap.bundle.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script src="/js/jquery-ui.min.js"></script>
-    <!--<script src="sidebars.js"></script>-->
 </th:block>
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>-->
 
 
 </body>

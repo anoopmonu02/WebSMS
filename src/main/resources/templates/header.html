@@ -63,7 +63,7 @@
             <li><a class="dropdown-item" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-ui-checks"></i> Assign Sibling Discount </a></li>
             <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks"></i> Assign Discount </a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-pass-fill"></i> Assign SR </a></li>
+            <li><a class="dropdown-item" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill"></i> Assign SR </a></li>
             <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill"></i> Migrate Student </a></li>
             <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-mortarboard-fill"></i> Edit Grade/Section </a></li>
             <li><a class="dropdown-item" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-person-x"></i> Remove Student </a></li>
@@ -117,7 +117,7 @@
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
             Welcome, User
           </a>
-          <ul class="dropdown-menu dropdown-menu-dark">
+          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
               <li><a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill"></i> Change Password </a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left"></i> Logout </a></li>

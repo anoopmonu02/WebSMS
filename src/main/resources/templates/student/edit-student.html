@@ -9,10 +9,10 @@
 
 
   <div class="container">
-    <div class="offset-1 mt-2 gy-5 mb-5">
+    <div class="mt-2 gy-5 mb-5">
       <div class="card-header fs-3">Edit Student </div>
       <hr/>
-      <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data">
+      <form th:action="@{/student/edit-details}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data">
         <!-- Personal Info -->
         <div class="col-12">
           <h4>Personal Information</h4>
@@ -20,6 +20,13 @@
         <div class="col-md-7">
           <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
           <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
+          <input type="hidden" name="id" id="student_id" th:field="*{id}"/>
+          <input type="hidden" name="stu_personal" id="stu_personal" th:field="*{id}"/>
+
+          <!--<input type="hidden" name="medium" id="medium" th:field="*{medium.id}"/>
+          <input type="hidden" name="grade" id="grade" th:field="*{grade.id}"/>
+          <input type="hidden" name="section" id="section" th:field="*{section.id}"/>
+          <input type="hidden" name="bank" id="bank" th:field="*{bank.id}"/>-->
         </div>
 
         <div class="col-md-6">
@@ -232,7 +239,7 @@
         </div>
         <div class="col-md-8"></div>
 
-        <!-- Previous Academic Details -->
+        <!--&lt;!&ndash; Previous Academic Details &ndash;&gt;
         <div class="col-12">
           <h4>Previous Academic Details</h4>
         </div>
@@ -256,7 +263,7 @@
         <div class="col-md-3">
           <label for="passingYear" class="form-label">Passing Year</label>
           <input type="number" id="passingYear" class="form-control" th:field="*{passingYear}">
-        </div><div class="col-md-1"></div>
+        </div><div class="col-md-1"></div>-->
 
         <!-- Emergency Contact -->
         <div class="col-12">
@@ -281,7 +288,7 @@
         </div>
 
         <!-- Extra Information -->
-        <div class="col-12">
+        <!--<div class="col-12">
           <h4>Academic Registration Information</h4>
         </div>
         <div class="col-md-4">
@@ -311,7 +318,7 @@
 
         <div class="col-md-4">
           <label for="studentType" class="form-label">Student Type</label>
-          <!--<input type="text" id="studentType" class="form-control" th:field="*{studentType}">-->
+          &lt;!&ndash;<input type="text" id="studentType" class="form-control" th:field="*{studentType}">&ndash;&gt;
           <select id="studentType" class="form-control" th:field="*{studentType}">
             <option value="Old" th:selected="Old == ${student.studentType}">Old</option>
             <option value="New" th:selected="New == ${student.studentType}">New</option>
@@ -320,7 +327,7 @@
         </div>
         <div class="col-md-4">
           <label for="schoolStatus" class="form-label">School Status</label>
-          <!--<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">-->
+          &lt;!&ndash;<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">&ndash;&gt;
           <select id="schoolStatus" class="form-control" th:field="*{schoolStatus}">
             <option value="Own" th:selected="Own == ${student.schoolStatus}">Own</option>
             <option value="Grant" th:selected="Grant == ${student.schoolStatus}">Grant</option>
@@ -330,10 +337,10 @@
         </div>
         <div class="col-md-2"></div>
 
-        <!--<div class="col-md-12">
+        &lt;!&ndash;<div class="col-md-12">
           <label for="remark" class="form-label">Remark</label>
           <textarea id="remark" class="form-control" th:field="*{remark}"></textarea>
-        </div>-->
+        </div>&ndash;&gt;
         <div class="col-md-7">
           <label for="remark" class="form-label">Remark</label>
           <div class="form-floating">
@@ -342,10 +349,10 @@
           </div>
           <p class="text-danger" th:if="${#fields.hasErrors('remark')}" th:errors="*{remark}">remark Error</p>
         </div>
-        <div class="col-md-5"></div>
+        <div class="col-md-5"></div>-->
 
         <!-- Bank & Aadhar Details -->
-        <div class="col-12">
+        <!--<div class="col-12">
           <h4>Bank & Aadhar Details</h4>
         </div>
         <div class="col-md-6">
@@ -372,7 +379,7 @@
           <label for="aadharNo" class="form-label">Aadhar Number</label>
           <input type="text" id="aadharNo" class="form-control" th:field="*{aadharNo}">
           <p class="text-danger" th:if="${#fields.hasErrors('aadharNo')}" th:errors="*{aadharNo}">aadharNo Error</p>
-        </div>
+        </div>-->
 
         <!-- Submit Button -->
         <hr/>
@@ -390,105 +397,120 @@
   <script src="/js/jquery-ui.min.js"></script>
 
   <script type="text/javascript" th:inline="javascript">
-    $(document).ready(function() {
-      function loadCities(state, selectedCity) {
-        if (state) {
-          $.ajax({
-            type: 'GET',
-            url: '/admin/customer/cities',
-            data: { provinceId: state },
-            success: function(cities) {
-              console.log("cities: "+cities);
-              let $citySelect = $('#city');
-              $citySelect.empty();
-              $citySelect.append('<option value="">Select City</option>');
-              $.each(cities, function(index, city) {
-                $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
-              });
-              console.log("selectedCity "+selectedCity);
-              // Set the previously selected city
-              if (selectedCity) {
-                $citySelect.val(selectedCity);
+      $(document).ready(function() {
+        function loadCities(state, selectedCity) {
+          if (state) {
+            $.ajax({
+              type: 'GET',
+              url: '/admin/customer/cities',
+              data: { provinceId: state },
+              success: function(cities) {
+                console.log("cities: "+cities);
+                let $citySelect = $('#city');
+                $citySelect.empty();
+                $citySelect.append('<option value="">Select City</option>');
+                $.each(cities, function(index, city) {
+                  $citySelect.append('<option value="' + city.id + '">' + city.cityName + '</option>');
+                });
+                console.log("selectedCity "+selectedCity);
+                // Set the previously selected city
+                if (selectedCity) {
+                  $citySelect.val(selectedCity);
+                }
               }
-            }
-          });
+            });
+          }
+        }
+
+        $('#province').change(function() {
+          let selectedState = $(this).val();
+          loadCities(selectedState);
+        });
+
+        // Trigger change to load cities if a state is already selected
+        let initialSelectedState = $('#province').val();
+        let initialSelectedNewCity = $('#hiddencity').val();
+        /*<![CDATA[*/
+        let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
+        /*]]>*/
+        console.log("initialSelectedState:> "+initialSelectedState);
+        console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
+        console.log("initial:> "+initialSelectedCity);
+        if (initialSelectedState) {
+          loadCities(initialSelectedState, initialSelectedNewCity);
+        }
+        $('.intfields').on('input', function() {
+          this.value = this.value.replace(/[^0-9]/g, '');
+        });
+      });
+
+      $("#dob").datepicker({
+        dateFormat: "dd-MMM-yyyy"
+      });
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      // Display success message
+      const successMessage = [[${success}]];
+      if (successMessage) {
+        //toastr.success(successMessage);
+        toastr["success"](successMessage,"Success");
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "500",
+          "hideDuration": "1000",
+          "timeOut": "5000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
         }
       }
 
-      $('#province').change(function() {
-        let selectedState = $(this).val();
-        loadCities(selectedState);
-      });
-
-      // Trigger change to load cities if a state is already selected
-      let initialSelectedState = $('#province').val();
-      let initialSelectedNewCity = $('#hiddencity').val();
-      /*<![CDATA[*/
-      let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
-      /*]]>*/
-      console.log("initialSelectedState:> "+initialSelectedState);
-      console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
-      console.log("initial:> "+initialSelectedCity);
-      if (initialSelectedState) {
-        loadCities(initialSelectedState, initialSelectedNewCity);
+      // Display error message
+      const errorMessage = [[${error}]];
+      if (errorMessage) {
+        //toastr.error(errorMessage);
+        toastr["error"](errorMessage, "Error");
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "500",
+          "hideDuration": "1000",
+          "timeOut": "5000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        }
       }
-      $('.intfields').on('input', function() {
-        this.value = this.value.replace(/[^0-9]/g, '');
-      });
-    });
-
-    $("#dob").datepicker({
-      dateFormat: "dd-MMM-yyyy"
-    });
-
-    // Display success message
-    const successMessage = [[${success}]];
-    if (successMessage) {
-      //toastr.success(successMessage);
-      toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
-    }
-
-    // Display error message
-    const errorMessage = [[${error}]];
-    if (errorMessage) {
-      //toastr.error(errorMessage);
-      toastr["error"](errorMessage, "Error");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
-    }
-
 
   </script>
 

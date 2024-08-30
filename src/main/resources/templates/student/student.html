@@ -11,19 +11,19 @@
 
   <div class="container">
     <div class="row mt-2 ">
-      <div class="col-md-12  offset-md-1 ">
+      <div class="col-md-12">
         <div class="card-header fs-3">Student List</div>
         <hr/>
         <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}" id="student-list">
             <thead>
             <tr>
-              <th>#</th>
               <th>Student Name</th>
               <th>Regis. Date</th>
               <!--<th>Regis. #</th>-->
               <th>Mother Name</th>
               <th>Father Name</th>
               <th>Mobile</th>
+              <th>Email</th>
               <th>Address</th>
               <th>Status</th>
               <th>Actions</th>
@@ -32,7 +32,6 @@
             <tbody class="table-group-divider">
 
             <tr th:each="student,iterStat : ${students}">
-              <td th:text="${iterStat.index+1}"></td>
               <td>
                 <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
               </td>
@@ -41,6 +40,7 @@
               <td th:text="${student.motherName}"></td>
               <td th:text="${student.fatherName}"></td>
               <td th:text="${student.mobile1}"></td>
+              <td th:text="${student.getEmail()}"></td>
               <td th:text="${student.address}"></td>
               <td th:text="${student.status}"></td>
               <td style="white-space: nowrap" class="text-center">

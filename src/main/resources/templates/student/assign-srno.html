@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12 ">
+                <div class="card-header fs-3">Assign SR-No</div>
+                <hr/>
+            </div>
+            <div class="row mt-3 pb-3">
+                <div class="col-md-2">
+                    <label for="medium" class="form-label">Medium</label>
+                    <select name="medium" id="medium" class="form-select">
+                        <option value="">Select Medium</option>
+                        <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="grade" class="form-label">Grade</label>
+                    <select name="grade" id="grade" class="form-select">
+                        <option value="">Select Grade</option>
+                        <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select">
+                        <option value="">Select Section</option>
+                        <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                    </select>
+                </div>
+                <div class="col-md-2 align-self-end">
+                    <div class="col-sm-10">
+                        <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
+                    </div>
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary"><i class="bi bi-upload"></i> Upload SR</button>
+                        <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="visually-hidden">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Garde</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Full</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" onclick="downloadSample()" href="#"><i class="bi bi-download"></i> Download Sample File</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <hr/>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "600",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            toastr["success"](successMessage,"Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            toastr["info"](infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            toastr["error"](errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr[msgType](msg,headerValue);
+        }
+
+        let medium, grade, section;
+
+        const getStudentsData = () =>{
+            const medium = $('#medium').val();
+            const grade = $('#grade').val();
+            const section = $('#section').val();
+        }
+
+        const validateMandatoryValues=()=>{
+            medium = $('#medium').val();
+            grade = $('#grade').val();
+            section = $('#section').val();
+            if(medium === '' || grade === '' || section === ''){
+                showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+                return false;
+            }
+            return true;
+        }
+
+        const downloadSample=() =>{
+            let proceed = validateMandatoryValues();
+            if(proceed){
+                let url = `${window.location.origin}/downloadSRSampleFile`;
+                const requestData = {
+                    mediumId: medium.toString(),
+                    gradeId: grade.toString(),
+                    sectionId: section.toString()
+                };
+                console.log("requestData::: "+JSON.stringify(requestData));
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('DATA::::'+data);
+                    if (data.success) {
+                        toastr["success"](data.success,"Success");
+                        $('#myModal').modal('hide');
+                    } else if(data.error){
+                        toastr["error"](data.error,"Error");
+                    } else if(data.empty_response){
+
+                    } else {
+                        toastr["error"]("Failed to update contact number","Error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr["error"]("An error occurred while updating the contact number","Error");
+                });
+            }
+        }
+
+    </script>
+</section>
+
+</body>
+</html>
