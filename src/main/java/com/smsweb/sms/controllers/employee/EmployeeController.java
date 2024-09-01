@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Controller
@@ -94,19 +95,29 @@ public class EmployeeController {
     }
 
     @GetMapping("/employee-edit/{uuid}")
-    public String editEmployeeForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes){
-        Employee employee = employeeService.getEmployeeByUUID(uuid).orElse(null);
-        if(employee==null){
-            redirectAttributes.addFlashAttribute("error", "Employee not found");
-            List<Employee> employees = employeeService.getAllActiveEmployees(4L);
-            model.addAttribute("employees", employees);
-            model.addAttribute("hasEmployee", !employees.isEmpty());
-            model.addAttribute("page", "datatable");
+    public String editEmployeeForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes) {
+        try {
+            Optional<Employee> employeeOptional = employeeService.getEmployeeByUUID(uuid);
+            if (employeeOptional.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Employee not found");
+                List<Employee> employees = employeeService.getAllActiveEmployees(4L);
+                model.addAttribute("employees", employees);
+                model.addAttribute("hasEmployee", !employees.isEmpty());
+                model.addAttribute("page", "datatable");
+                return "redirect:/employee/employee";
+            }
+            Employee employee = employeeOptional.get();
+            model.addAttribute("employee", employee);
+            return "/employee/edit-employee";
+        } catch (Exception e) {
+            // Log the error for debugging purposes
+            System.err.println("Error fetching employee: " + e.getMessage());
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "An error occurred while fetching the employee.");
             return "redirect:/employee/employee";
         }
-        model.addAttribute("employee", employee);
-        return "/employee/edit-employee";
     }
+
 
 
     @GetMapping("/student-images/{filename:.+}")

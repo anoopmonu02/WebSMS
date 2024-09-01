@@ -50,14 +50,14 @@
           <label for="customerPic" class="form-label">Employee Image</label>
           <input type="file" class="form-control" id="customerPic" name="customerPic">
           <p class="text-danger" th:if="${#fields.hasErrors('pic')}" th:errors="*{pic}">pic Error</p>
-          <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
         </div>
         <div class="col-md-3">
           <label for="nationality" class="form-label">Nationality</label>
           <input type="text" id="nationality" class="form-control" th:field="*{nationality}" readonly="readonly">
         </div>
         <div class="col-md-5">
-          <img src="..." class="rounded float-start" alt="..." th:field="*{pic}">
+          <!-- Update this image tag -->
+          <img th:src="@{'/images/employees/' + ${employee.pic}}" alt="Employee Image" />
         </div>
 
         <div class="col-md-7">
