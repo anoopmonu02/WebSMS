@@ -3,6 +3,7 @@ package com.smsweb.sms.models.Users;
 import jakarta.persistence.*;
 import lombok.Data;
 
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,11 +20,12 @@ public class PasswordResetToken {
     @JoinColumn(nullable = false, name = "user_id")
     private UserEntity user;
 
-    private LocalDateTime expiryDate;
+    private LocalDateTime expiryDate; // Expiry date of the token
 
-    // Getters and Setters
+    private boolean used = false; // Flag to track if the token has been used
+
+    // Helper method to check if the token is expired
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiryDate);
     }
-
 }

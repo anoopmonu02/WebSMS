@@ -10,6 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+
 @Controller
 @RequestMapping("/auth")
 public class AuthController {
@@ -63,19 +65,35 @@ public class AuthController {
         return "reset-password";  // This should be the name of your template
     }
 
+    // AuthController.java
+
     @PostMapping("/reset-password")
-    public String resetPassword(@RequestParam("token") String token, @RequestParam("password") String password, Model model) {
-        PasswordResetToken resetToken = passwordResetTokenService.findByToken(token).orElse(null);
-        if (resetToken == null || resetToken.isExpired()) {
+    public String resetPassword(@RequestParam("token") String token,
+                                @RequestParam("password") String password,
+                                Model model) {
+        Optional<PasswordResetToken> resetTokenOptional = passwordResetTokenService.findByToken(token);
+
+        if (!resetTokenOptional.isPresent()) {
+            model.addAttribute("error", "Invalid password reset token.");
+            return "forgot-password"; // Redirect or show the error page
+        }
+
+        PasswordResetToken resetToken = resetTokenOptional.get();
+
+        if (!passwordResetTokenService.isTokenValid(resetToken)) {
             model.addAttribute("error", "Invalid or expired password reset token.");
-            return "forgot-password";
+            return "forgot-password"; // Redirect or show the error page
         }
 
         UserEntity user = resetToken.getUser();
         userService.updatePassword(user, password);
 
-        // Return the success page instead of login
-        return "successResetPassword";
+        // Invalidate the token after successful password reset
+        passwordResetTokenService.invalidateToken(resetToken);
+
+        model.addAttribute("message", "Password has been reset successfully.");
+        return "successResetPassword"; // Adjust as needed for your success page
     }
+
 
 }
