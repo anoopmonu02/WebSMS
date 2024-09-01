@@ -12,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -98,4 +99,14 @@ public class Employee extends UserEntity {  // Extend UserEntity
     // TODO: Add createdBy, updatedBy, and other fields if needed
 
     // Use @JsonIgnore if needed to avoid circular references
+
+    @Column(updatable = false, nullable = false, unique = true)
+    private UUID uuid;
+
+    @PrePersist
+    protected void onCreate() {
+        if (uuid == null) {
+            uuid = UUID.randomUUID();
+        }
+    }
 }

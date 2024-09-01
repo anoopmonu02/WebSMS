@@ -13,6 +13,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -69,5 +70,16 @@ public class AcademicStudent {
 
     @UpdateTimestamp
     private Date lastUpdated;
+
+    @Column(updatable = false, nullable = false, unique = true)
+    private UUID uuid;
+
     //TODO-will add 2 more attributes - createdBy, updatedBy
+
+    @PrePersist
+    protected void onCreate() {
+        if (uuid == null) {
+            uuid = UUID.randomUUID();
+        }
+    }
 }

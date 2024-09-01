@@ -11,7 +11,11 @@ import com.smsweb.sms.services.universal.MediumService;
 import com.smsweb.sms.services.universal.SectionService;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ExcelService {
@@ -28,7 +32,8 @@ public class ExcelService {
     }
 
 
-    public String downloadSampleSRExcel(Long grade, Long section, Long medium, Long academic, Long school) {
+    public Map<String, Object> downloadSampleSRExcel(Long grade, Long section, Long medium, Long academic, Long school) {
+        Map<String, Object> responseMap = new HashMap<>();
         try {
             Grade gradeObj = gradeService.getGradeById(grade).orElse(null);
             Section secObj = sectionService.getSectionById(section).orElse(null);
@@ -36,16 +41,20 @@ public class ExcelService {
             List<AcademicStudent> academicStudentList = academicStudentService.getAllAcademicStudentByGrade(medium, grade, section, academic, school);
 
             if (gradeObj == null) {
-                return "error:Grade not found";
+                responseMap.put("error", "Grade not found");
+                return responseMap;
             }
             if (secObj == null) {
-                return "error:Section not found";
+                responseMap.put("error", "Section not found");
+                return responseMap;
             }
             if (mediumObj == null) {
-                return "error:Medium not found";
+                responseMap.put("error", "Medium not found");
+                return responseMap;
             }
             if (academicStudentList == null || academicStudentList.isEmpty()) {
-                return "error:No student found";
+                responseMap.put("error", "No student found");
+                return responseMap;
             }
 
             String[] mediumGradeSection = {
@@ -55,16 +64,13 @@ public class ExcelService {
             };
 
             // Generate and download the Excel file
-            String resultMessage = new ExcelFileHandler().LoadSampleSRFile("Academic_Students_SR_Sample_File.xlsx", academicStudentList, mediumGradeSection);
-
-            if ("success".equalsIgnoreCase(resultMessage)) {
-                return "success:File Downloaded";
-            } else {
-                return "error:Error in downloading file.";
-            }
+            ByteArrayInputStream excelFile = new ExcelFileHandler().LoadSampleSRFile("Academic_Students_SR_Sample_File.xlsx", academicStudentList, mediumGradeSection);
+            responseMap.put("filecreated", excelFile);
+            return responseMap;
         } catch (Exception e) {
             e.printStackTrace();
-            return "error:" + e.getLocalizedMessage();
+            responseMap.put("error", e.getLocalizedMessage());
+            return responseMap;
         }
     }
 

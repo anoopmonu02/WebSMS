@@ -99,11 +99,43 @@
 
         let medium, grade, section;
 
-        const getStudentsData = () =>{
-            const medium = $('#medium').val();
-            const grade = $('#grade').val();
-            const section = $('#section').val();
-        }
+        $('#getfee').click(function() {
+            let proceed = validateMandatoryValues();
+            if(proceed){
+                const apiUrl = `${window.location.origin}/fetchStudentForSR`;
+                const requestData = {
+                    mediumId: medium.toString(),
+                    gradeId: grade.toString(),
+                    sectionId: section.toString()
+                };
+
+                // Make the API call
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        toastr["success"](data.success,"Success");
+                        $('#myModal').modal('hide');
+                    } else if(data.error){
+                        toastr["error"](data.error,"Error");
+                    } else if(data.empty_response){
+
+                    } else {
+                        toastr["error"]("Failed to update contact number","Error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr["error"]("An error occurred while updating the contact number","Error");
+                });
+            }
+        });
 
         const validateMandatoryValues=()=>{
             medium = $('#medium').val();
@@ -133,23 +165,29 @@
                     },
                     body: JSON.stringify(requestData)
                 })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('DATA::::'+data);
-                    if (data.success) {
-                        toastr["success"](data.success,"Success");
-                        $('#myModal').modal('hide');
-                    } else if(data.error){
-                        toastr["error"](data.error,"Error");
-                    } else if(data.empty_response){
-
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();  // Download file as blob
                     } else {
-                        toastr["error"]("Failed to update contact number","Error");
+                        return response.json();  // Handle error as JSON
+                    }
+                })
+                .then(data => {
+                    if (data instanceof Blob) {
+                        const link = document.createElement('a');
+                        link.href = window.URL.createObjectURL(data);
+                        link.download = "Academic_Students_SR_Sample_File.xlsx";
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        toastr["success"]("File downloaded successfully", "Success");
+                    } else {
+                        toastr["error"](data.error || "An unknown error occurred", "Error");
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    toastr["error"]("An error occurred while updating the contact number","Error");
+                    toastr["error"]("An error occurred while downloading the file", "Error");
                 });
             }
         }
