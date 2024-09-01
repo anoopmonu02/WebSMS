@@ -20,7 +20,7 @@ public class PasswordResetTokenService {
         PasswordResetToken token = new PasswordResetToken();
         token.setToken(UUID.randomUUID().toString());
         token.setUser(user);
-        token.setExpiryDate(LocalDateTime.now().plusMinutes(5));  // 5 minutes expiry time
+        token.setExpiryDate(LocalDateTime.now().plusMinutes(5)); // Token expires in 5 minutes
         return passwordResetTokenRepository.save(token);
     }
 
@@ -32,8 +32,18 @@ public class PasswordResetTokenService {
         return passwordResetTokenRepository.findByUser(user);
     }
 
-    // New method to delete an existing token
+    // Method to invalidate token after successful password reset
+    public void invalidateToken(PasswordResetToken token) {
+        token.setUsed(true);
+        passwordResetTokenRepository.save(token);
+    }
+
     public void delete(PasswordResetToken token) {
         passwordResetTokenRepository.delete(token);
+    }
+
+    // Check if the token is valid (not expired and not used)
+    public boolean isTokenValid(PasswordResetToken token) {
+        return !token.isExpired() && !token.isUsed();
     }
 }
