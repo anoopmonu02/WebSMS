@@ -31,7 +31,7 @@ public class WebSecurityConfig {
         http
                 .csrf().disable()
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/images/**", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/images/**", "/css/**", "/js/**","/images/students/**","/images/employees/**").permitAll()
                         .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll() // Fixed duplicate matchers
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/admin/**", "/").hasAnyRole("ADMIN","SUPERADMIN")

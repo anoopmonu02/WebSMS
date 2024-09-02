@@ -10,8 +10,12 @@ import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.admin.SchoolService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -62,6 +66,12 @@ public class EmployeeController {
     public String saveEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
                                @RequestParam("customerPic") MultipartFile customerPic){
         String returnStr = "/employee/add-employee";
+        Employee existingEmployee = null;
+        try{
+            existingEmployee = employeeService.getEmployeeByUUID(employee.getUuid()).orElse(null);
+        }catch(Exception e){
+            existingEmployee = null;
+        }
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
             return returnStr;
@@ -71,8 +81,11 @@ public class EmployeeController {
         try{
             School school = schoolService.getSchoolById(4L).get();
             employee.setSchool(school);
-            Employee emp = employeeService.saveEmployee(employee, customerPic, fileNameOrSchoolCode);
+            Employee emp = employeeService.saveEmployee(employee, customerPic, fileNameOrSchoolCode, existingEmployee);
             String msg = "Employee: " + employee.getEmployeeName() + " saved successfully";
+            if(existingEmployee!=null){
+                msg = "Employee: " + employee.getEmployeeName() + " updated successfully";
+            }
             redirectAttributes.addFlashAttribute("success", msg);
             return "redirect:/employee/employee-list";
         } catch(FileFormatException ffe){
@@ -119,20 +132,23 @@ public class EmployeeController {
     }
 
 
-
-    @GetMapping("/student-images/{filename:.+}")
-    public Resource getImage(@PathVariable String filename) {
+    @GetMapping("/images/{filename}")
+    public Resource getImage(@PathVariable("filename") String filename) {
         try {
-            Path file = Paths.get(employeeImageDirectory).resolve(filename);
-            Resource resource = new UrlResource(file.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new RuntimeException("Could not read file: " + filename);
-            }
+            String imagePath = employeeImageDirectory + "/" + filename;
+            Resource resource = new FileSystemResource(imagePath);
+            return resource;
+
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Could not read file: " + filename, e);
         }
+    }
+
+    @PostMapping("/employee-delete")
+    public String deleteEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
+                                 @RequestParam("customerPic") MultipartFile customerPic){
+        return "redirect:/employee/employee";
     }
 
 }
