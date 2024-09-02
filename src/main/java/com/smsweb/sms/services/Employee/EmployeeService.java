@@ -33,7 +33,7 @@ public class EmployeeService {
     }
 
     @Transactional
-    public Employee saveEmployee(Employee employee, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+    public Employee saveEmployee(Employee employee, MultipartFile logo, String fileNameOrSchoolCode, Employee existingEmployee) throws IOException {
         String imageResponse = fileHandleHelper.saveImage("employee", logo);
         try{
             System.out.println("Image: "+imageResponse);
@@ -41,6 +41,12 @@ public class EmployeeService {
             boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
             if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
                 proceedFlag = true;
+                if(existingEmployee!=null){
+                    if(existingEmployee.getPic()!=null && existingEmployee.getPic()!=""){
+                        employee.setPic(existingEmployee.getPic());
+                        employee.setEmployeeCode(existingEmployee.getEmployeeCode());
+                    }
+                }
             } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
                 throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
             } else if (foundImageResponse && imageResponse.startsWith("Failed to save the image: ")) {
@@ -55,7 +61,9 @@ public class EmployeeService {
 
             if(proceedFlag){
                 //write employee code here
-                employee = generateUsernameAndPassword(employee);
+                if(existingEmployee==null){
+                    employee = generateUsernameAndPassword(employee);
+                }
             }
 
             //employee = generateUsernameAndPassword(employee);

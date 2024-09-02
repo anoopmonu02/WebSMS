@@ -94,7 +94,7 @@ public class FileHandleHelper {
                 if(isSizeOrTypeValid){
                     //String fileFormatName = new SimpleDateFormat(FILE_NAME_FORMAT_PREFIX).format(new Date());
                     String fileFormatName = UUID.randomUUID().toString();
-                    String imageFileName = fileFormatName + "####" + imageFile.getOriginalFilename();
+                    String imageFileName = fileFormatName + "_" + imageFile.getOriginalFilename();
                     if(imageFolderName.equalsIgnoreCase("school")){
                         Path savedImageFile = saveImageInDirectory(SCHOOL_IMG_FOLDER_PATH, imageFileName, imageFile);
                         return imageFileName;
