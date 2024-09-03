@@ -22,6 +22,7 @@
           <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
           <input type="hidden" name="id" id="student_id" th:field="*{id}"/>
           <input type="hidden" name="stu_personal" id="stu_personal" th:field="*{id}"/>
+          <input type="hidden" name="registration_no" id="registration_no" th:field="*{registrationNo}"/>
 
           <!--<input type="hidden" name="medium" id="medium" th:field="*{medium.id}"/>
           <input type="hidden" name="grade" id="grade" th:field="*{grade.id}"/>
@@ -139,7 +140,7 @@
           <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
         </div>
         <div class="col-md-8">
-          &nbsp;
+          &nbsp;<img th:src="@{'/images/students/' + ${student.pic}}" class="rounded float-start" alt="Employee Image" width="12%" height="100%" id="preImg"/>
         </div>
 
 

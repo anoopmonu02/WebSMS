@@ -27,12 +27,14 @@ public class StudentService {
     private final StudentRepository repository;
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileHandleHelper fileHandleHelper;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileHandleHelper = fileHandleHelper;
     }
 
     public List<Student> getAllActiveStudents(Long school_id) {
@@ -48,10 +50,56 @@ public class StudentService {
     }
 
     @Transactional
-    public Student saveStudent(Student student, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
-        Student existingStudent = null;
-        String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "students");
-        if (imageResponse != null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))) {
+    public Student saveStudent(Student student, MultipartFile logo, String fileNameOrSchoolCode, Student existingStudent) throws IOException {
+        String imageResponse = fileHandleHelper.saveImage("student", logo);
+        try{
+            boolean proceedFlag = false;
+            boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
+            if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
+                proceedFlag = true;
+                if(existingStudent!=null){
+                    if(existingStudent.getPic()!=null && existingStudent.getPic()!=""){
+                        student.setPic(existingStudent.getPic());
+                        student.setRegistrationNo(existingStudent.getRegistrationNo());
+                    }
+                }
+            } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
+                throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
+            } else if (foundImageResponse && imageResponse.startsWith("Failed to save the image: ")) {
+                throw new FileFormatException(imageResponse);
+            } else if (foundImageResponse && imageResponse.equalsIgnoreCase("Specified category not valid")) {
+                throw new RuntimeException(imageResponse);
+            } else{
+                student.setPic(imageResponse);
+                student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
+                proceedFlag = true;
+            }
+            if(proceedFlag){
+                if(existingStudent==null){
+                    // Set username as registration number
+                    student.setUsername(student.getRegistrationNo());
+                    // Generate password
+                    String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
+                    student.setPassword(passwordEncoder.encode(password));
+                }
+                Student savedStudent = repository.save(student);
+                if(existingStudent==null){
+                    AcademicStudent academicStudent = new AcademicStudent();
+                    academicStudent.setAcademicYear(savedStudent.getAcademicYear());
+                    academicStudent.setSchool(savedStudent.getSchool());
+                    academicStudent.setGrade(savedStudent.getGrade());
+                    academicStudent.setMedium(savedStudent.getMedium());
+                    academicStudent.setSection(savedStudent.getSection());
+                    academicStudent.setDescription("Saving at time of student creation.");
+                    academicStudent.setStudent(savedStudent);
+                    academicStudentRepository.save(academicStudent);
+                }
+                return savedStudent;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        /*if (imageResponse != null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))) {
             try {
                 //Handle Student Image
                 if (!imageResponse.equalsIgnoreCase("Success_no_image")) {
@@ -106,7 +154,7 @@ public class StudentService {
             throw new FileFormatException("Fail to save pic");
         } else if (imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")) {
             throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
-        }
+        }*/
         return null;
     }
 
@@ -149,49 +197,59 @@ public class StudentService {
         try{
             Student existingStudent = null;
             existingStudent = repository.findById(student.getId()).orElseThrow(()->new RuntimeException("Student not found"));
-            if(!logo.isEmpty()){
-                String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "students");
-                if(imageResponse.equalsIgnoreCase("Fail")){
-                    throw new RuntimeException("Image processing fails");
-                }
-                if(imageResponse.equalsIgnoreCase("success")){
-                    existingStudent.setPic(fileNameOrSchoolCode + "_" + logo.getOriginalFilename());
+            if(existingStudent!=null){
+                if(!logo.isEmpty()){
+                    String imageResponse = fileHandleHelper.saveImage("student", logo);
+
+                    boolean proceedFlag = false;
+                    boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
+                    if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
+                        throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
+                    } else if (foundImageResponse && imageResponse.startsWith("Failed to save the image: ")) {
+                        throw new FileFormatException(imageResponse);
+                    } else if (foundImageResponse && imageResponse.equalsIgnoreCase("Specified category not valid")) {
+                        throw new RuntimeException(imageResponse);
+                    } else{
+                        existingStudent.setPic(imageResponse);
+                        existingStudent.setRegistrationNo(student.getRegistrationNo());
+                        proceedFlag = true;
+                    }
                 } else{
-                    throw new FileFormatException("File format not supported or size exceeded.");
+                    //handle if image not selected but already saved previously
+                    if(existingStudent.getPic()!=null){
+                        String picnm = existingStudent.getPic();
+                        existingStudent.setPic(picnm);
+                    }
                 }
-            } else{
-                //handle if image not selected but already saved previously
-                if(existingStudent.getPic()!=null){
+                existingStudent.setStudentName(student.getStudentName());
+                existingStudent.setFatherName(student.getFatherName());
+                existingStudent.setFatherOccupation(student.getFatherOccupation());
+                existingStudent.setMotherName(student.getMotherName());
+                existingStudent.setMotherOccupation(student.getMotherOccupation());
+                existingStudent.setReligion(student.getReligion());
+                existingStudent.setGender(student.getGender());
+                existingStudent.setCategory(student.getCategory());
+                existingStudent.setCast(student.getCast());
+                existingStudent.setDescription(student.getDescription());
+                existingStudent.setHeight(student.getHeight());
+                existingStudent.setWeight(student.getWeight());
+                existingStudent.setBloodGroup(student.getBloodGroup());
+                existingStudent.setBodyType(student.getBodyType());
+                existingStudent.setAddress(student.getAddress());
+                existingStudent.setLandmark(student.getLandmark());
+                existingStudent.setProvince(student.getProvince());
+                existingStudent.setCity(student.getCity());
+                existingStudent.setPincode(student.getPincode());
+                existingStudent.setMobile1(student.getMobile1());
+                existingStudent.setMobile2(student.getMobile2());
+                existingStudent.setEmail(student.getEmail());
+                existingStudent.setPersonName(student.getPersonName());
+                existingStudent.setPersonContact(student.getPersonContact());
+                existingStudent.setRelationship(student.getRelationship());
 
-                }
+                existingStudent = repository.saveAndFlush(existingStudent);
+                return existingStudent;
             }
-            existingStudent.setStudentName(student.getStudentName());
-            existingStudent.setFatherName(student.getFatherName());
-            existingStudent.setFatherOccupation(student.getFatherOccupation());
-            existingStudent.setMotherName(student.getMotherName());
-            existingStudent.setMotherOccupation(student.getMotherOccupation());
-            existingStudent.setReligion(student.getReligion());
-            existingStudent.setGender(student.getGender());
-            existingStudent.setCategory(student.getCategory());
-            existingStudent.setCast(student.getCast());
-            existingStudent.setDescription(student.getDescription());
-            existingStudent.setHeight(student.getHeight());
-            existingStudent.setWeight(student.getWeight());
-            existingStudent.setBloodGroup(student.getBloodGroup());
-            existingStudent.setBodyType(student.getBodyType());
-            existingStudent.setAddress(student.getAddress());
-            existingStudent.setLandmark(student.getLandmark());
-            existingStudent.setProvince(student.getProvince());
-            existingStudent.setCity(student.getCity());
-            existingStudent.setPincode(student.getPincode());
-            existingStudent.setMobile1(student.getMobile1());
-            existingStudent.setMobile2(student.getMobile2());
-            existingStudent.setEmail(student.getEmail());
-            existingStudent.setPersonName(student.getPersonName());
-            existingStudent.setPersonContact(student.getPersonContact());
-            existingStudent.setRelationship(student.getRelationship());
-
-            existingStudent = repository.saveAndFlush(existingStudent);
 
         }catch(Exception e){
             e.printStackTrace();
@@ -202,5 +260,31 @@ public class StudentService {
 
     public List<AcademicStudent> getAllStudentsByGrade(Long medium, Long grade, Long section, Long academic, Long school){
         return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school, medium, grade, section, academic, "Active");
+    }
+
+    @Transactional
+    public String deleteStudent(Long id){
+        String msg = "";
+        try{
+            List<AcademicStudent> academicList = academicStudentRepository.findAllByStudent_IdAndStatus(id, "Active");
+
+            if(academicList == null || academicList.isEmpty()){
+                return "success#####Student not found";
+            }
+            for(AcademicStudent academicStudent : academicList){
+                academicStudent.setStatus("Inactive");
+            }
+            academicStudentRepository.saveAll(academicList);
+
+            Student student = academicList.get(0).getStudent();
+
+            student.setStatus("Inactive");
+            student = repository.save(student);
+            msg = "success#####Student: " + student.getStudentName() + " deleted successfully";
+
+        }catch(Exception e){
+            msg = "error#####"+e.getLocalizedMessage();
+        }
+        return msg;
     }
 }
