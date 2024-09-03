@@ -52,11 +52,11 @@
           <input type="file" class="form-control" id="customerPic" name="customerPic">
           <p class="text-danger" th:if="${#fields.hasErrors('pic')}" th:errors="*{pic}">pic Error</p>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label for="nationality" class="form-label">Nationality</label>
           <input type="text" id="nationality" class="form-control" th:field="*{nationality}" readonly="readonly">
         </div>
-        <div class="col-md-5">
+        <div class="col-md-6">
           <!-- Update this image tag -->
           <img th:src="@{'/images/employees/' + ${employee.pic}}" class="rounded float-start" alt="Employee Image" width="12%" height="100%" id="preImg"/>
           <!--<img th:src="@{/employee-images/{filename}(filename=${employee.pic})}"  alt="Employee Image2">-->

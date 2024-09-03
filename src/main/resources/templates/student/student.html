@@ -46,10 +46,11 @@
               <td style="white-space: nowrap" class="text-center">
                 <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                   <i class="bi bi-pencil-square"></i> </a>
-                <a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
-                   data-bs-custom-class="custom-tooltip"
-                   data-bs-title="Delete the customer record">
-                  <i class="bi bi-trash3-fill"></i> </a>
+                <!--<a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                   data-bs-custom-class="custom-tooltip" data-bs-title="Delete the customer record"> <i class="bi bi-trash3-fill"></i> </a>-->
+                <a class="btn btn-danger" th:data-id="${student.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
+                  <i class="bi bi-trash3-fill"></i>
+                </a>
               </td>
             </tr>
             </tbody>
@@ -63,6 +64,27 @@
       </div>
     </div>
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete this record?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel </button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteButton"><i class="bi bi-trash3-fill"></i> Delete </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <script src="/js/jquery-3.7.1.js"></script>
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
@@ -158,6 +180,23 @@
         "hideMethod": "fadeOut"
       }
     }
+
+    let deleteId = null;
+
+    // Capture the ID of the record to be deleted when the delete button is clicked
+    $('a[data-bs-target="#deleteConfirmationModal"]').on('click', function () {
+      deleteId = $(this).data('id');
+    });
+
+    // Handle the deletion when "Delete" button is clicked in the modal
+    $('#confirmDeleteButton').on('click', function () {
+      if (deleteId) {
+        // Redirect to the delete URL
+        window.location.href = `/student/delete-student/${deleteId}`;
+      }
+    });
+
+
   </script>
 
 </section>

@@ -4,9 +4,11 @@ import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
+import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.SiblingGroup;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Grade;
@@ -19,6 +21,9 @@ import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,6 +43,8 @@ import java.util.Optional;
 public class StudentController {
 
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+    @Value("${student.image.storage.path}")
+    private String studentImageDirectory;
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -106,9 +113,16 @@ public class StudentController {
                              Model model, RedirectAttributes redirectAttribute) {
         //@RequestParam("customerPic1")MultipartFile customerPic1,
         String returnStr = "/student/add-student";
-        boolean isStudentFound = isStudentExists(student);
+        /*boolean isStudentFound = isStudentExists(student);
         if(isStudentFound){
             returnStr = "/student/edit-student";
+        }*/
+        Student existingStudent = null;
+        try{
+            existingStudent = studentService.getStudentDetail(student.getId(), 4L).orElse(null);
+            returnStr = "/student/edit-student";
+        }catch(Exception e){
+            existingStudent = null;
         }
         if(result.hasErrors()){
             model = getAllGlobalModels(model);
@@ -117,16 +131,15 @@ public class StudentController {
         }
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
-
         try{
             AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
             School school = schoolService.getSchoolById(4L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
-            studentService.saveStudent(student, customerPic, fileNameOrSchoolCode);
+            Student savedStudent = studentService.saveStudent(student, customerPic, fileNameOrSchoolCode, existingStudent);
             String msg = "Student " + student.getStudentName() + " saved successfully";
             try{
-                if(student.getId()!=null){
+                if(existingStudent!=null){
                     msg = "Student " + student.getStudentName() + " updated successfully";
                 }
             }catch(Exception ex){
@@ -153,6 +166,19 @@ public class StudentController {
             model.addAttribute("error", "Error in saving student!"+ex.getMessage());
             ex.printStackTrace();
             return returnStr;
+        }
+    }
+
+    @GetMapping("/images/{filename}")
+    public Resource getImage(@PathVariable("filename") String filename) {
+        try {
+            String imagePath = studentImageDirectory + "/" + filename;
+            Resource resource = new FileSystemResource(imagePath);
+            return resource;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Could not read file: " + filename, e);
         }
     }
 
@@ -225,6 +251,21 @@ public class StudentController {
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
         return "/student/assign-srno";
+    }
+
+    @GetMapping("/delete-student/{deleteId}")
+    public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
+        String msg = studentService.deleteStudent(Long.valueOf(id));
+        if(msg.contains("success")){
+            redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
+        } else if(msg.contains("Error")){
+            List<Student> studentList = studentService.getAllActiveStudents(4L);
+            model.addAttribute("students", studentList);
+            model.addAttribute("hasStudent", !studentList.isEmpty());
+            model.addAttribute("page", "datatable");
+            redirectAttributes.addFlashAttribute("error",msg.split("#####")[1]);
+        }
+        return "redirect:/student/student";
     }
 
 }
