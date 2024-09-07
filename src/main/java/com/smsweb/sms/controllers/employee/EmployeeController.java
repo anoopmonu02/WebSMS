@@ -71,6 +71,7 @@ public class EmployeeController {
             existingEmployee = employeeService.getEmployeeByUUID(employee.getUuid()).orElse(null);
             returnStr = "/employee/edit-employee";
         }catch(Exception e){
+            e.printStackTrace();
             existingEmployee = null;
         }
         if(result.hasErrors()){

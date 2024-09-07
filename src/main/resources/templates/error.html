@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .error-title {
+            font-size: 5rem;
+            font-weight: bold;
+        }
+        .error-message {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <div class="error-title">
+        <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <div class="error-message">
+        <p th:text="${errorMessage}">An unexpected error occurred</p>
+    </div>
+    <a href="/" class="btn btn-primary mt-4">Go to Homepage</a>
+</div>
+<!-- Optional: Add FontAwesome for icons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+</body>
+</html>
