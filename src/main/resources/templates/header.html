@@ -1,6 +1,7 @@
 <nav class="navbar navbar-expand-lg" style="background-color: #e3f2fd;" data-th-fragment="navbar">
   <div class="container-fluid">
-    <a class="navbar-brand" mb-0 h1 href="#">United Avadh Inter College</a>
+    <a class="navbar-brand mb-0 h1" th:text="${#strings.defaultString(session.school?.schoolName, 'Default School Name')}">United Avadh Inter College</a>
+
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -109,27 +110,27 @@
       </ul>
       <ul class="navbar-nav d-flex">
         <li class="nav-item">
-            <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <b>Session: 2024-2025</b>
-            </a>
+          <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <b>Session: <span th:text="${#strings.defaultString(session.activeAcademicYear.sessionFormat, 'Not Set')}"></span></b>
+          </a>
         </li>
       </ul>
       <ul class="navbar-nav d-flex">
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Welcome, User
+            Welcome, <span th:text="${session.employee?.employeeName != null ? session.employee.employeeName : session.username}">Employee</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
-              <li><a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill"></i> Change Password </a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left"></i> Logout </a></li>
+            <li><a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill"></i> Change Password </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left"></i> Logout </a></li>
           </ul>
         </li>
       </ul>
       <ul class="navbar-nav d-flex">
-          <li class="nav-item">
-            <span>&nbsp;&nbsp;&nbsp;</span>
-          </li>
+        <li class="nav-item">
+          <span>&nbsp;&nbsp;&nbsp;</span>
+        </li>
       </ul>
 
       <!--<form class="d-flex" role="search">
