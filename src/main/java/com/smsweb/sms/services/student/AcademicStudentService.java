@@ -47,4 +47,8 @@ public class AcademicStudentService {
     public List<AcademicStudent> getAllAcademicStudentByGrade(Long medium, Long grade, Long section, Long academic, Long school){
         return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school, medium, grade, section, academic, "Active");
     }
+
+    public List<AcademicStudent> getAllAcademicStudent(Long academic, Long school){
+        return academicStudentRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school, academic, "Active");
+    }
 }

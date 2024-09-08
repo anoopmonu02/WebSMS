@@ -100,7 +100,6 @@
         }
 
         function showMsg(msgType, msg, headerValue){
-            toastr[msgType](msg,headerValue);
             toastr.options = {
                 "closeButton": true,
                 "debug": false,
@@ -109,7 +108,7 @@
                 "positionClass": "toast-top-right",
                 "preventDuplicates": false,
                 "onclick": null,
-                "showDuration": "500",
+                "showDuration": "600",
                 "hideDuration": "1000",
                 "timeOut": "5000",
                 "extendedTimeOut": "1000",
@@ -118,6 +117,7 @@
                 "showMethod": "fadeIn",
                 "hideMethod": "fadeOut"
             }
+            toastr[msgType](msg,headerValue);
         }
 
         const searchStuName=() =>{
