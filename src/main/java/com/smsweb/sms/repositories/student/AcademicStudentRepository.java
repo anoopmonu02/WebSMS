@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface AcademicStudentRepository extends JpaRepository<AcademicStudent, Long> {
 
@@ -34,6 +36,8 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     int countByStudent(Student student);
 
     List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(Long school, Long medium, Long grade, Long section, Long academic_year, String status);
+    List<AcademicStudent> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
 
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
+    Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_id(UUID uuid, String status, Long academic);
 }

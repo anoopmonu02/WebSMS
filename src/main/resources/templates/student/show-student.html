@@ -103,7 +103,7 @@
 
                 <div class="col-md-4">
                     <div th:if="${student.pic!=null}">
-                        <img th:src="@{'/students/'+ *{student.pic}}" width="100px" height="140px"/>&nbsp;
+                        <img th:src="@{'/images/students/'+ *{student.pic}}" width="100px" height="140px"/>&nbsp;
                     </div>
                     <div th:if="not ${student.pic!=null}">
                         &nbsp;

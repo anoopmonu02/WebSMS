@@ -18,8 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class StudentService {
@@ -287,4 +286,44 @@ public class StudentService {
         }
         return msg;
     }
+
+    @Transactional
+    public String uploadSR(List<Map<String, String>> srdata, Long academic){
+        int SRFailCounter = 0, srPassCounter = 0;
+        List<AcademicStudent> studentsToSave = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+        try{
+            for (Map<String, String> rowData : srdata) {
+                if (rowData.containsKey("SR") && rowData.get("SR")!=null && !rowData.get("SR").isEmpty()) {
+                    String uuid = rowData.get("ID#");
+                    if (uuid != null && !uuid.isEmpty()) {
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_id(
+                                UUID.fromString(uuid), "Active", academic).orElse(null);
+
+                        if (academicStudent != null) {
+                            academicStudent.setClassSrNo(rowData.get("SR"));
+                            studentsToSave.add(academicStudent);  // Collect the student for bulk saving
+                            srPassCounter++;
+                        } else {
+                            failedIds.add(uuid);  // Log the failure
+                            SRFailCounter++;
+                        }
+                    } else {
+                        failedIds.add("Invalid UUID");
+                        SRFailCounter++;
+                    }
+                } else {
+                    SRFailCounter++;
+                }
+            }
+
+            // Bulk save the students
+            academicStudentRepository.saveAll(studentsToSave);
+            return "Total SR updated: " + srPassCounter + " and SR not found for: "+SRFailCounter;
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
 }

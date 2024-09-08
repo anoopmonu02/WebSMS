@@ -46,96 +46,136 @@
                             <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Garde</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Full</a></li>
+                            <!--<li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Garde</a></li>-->
+                            <li><a class="dropdown-item" href="#" onclick="uploadFileGradeWise()"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Full</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" onclick="downloadSample()" href="#"><i class="bi bi-download"></i> Download Sample File</a></li>
+                            <!--<li><a class="dropdown-item" onclick="downloadSample('G')" href="#"><i class="bi bi-download"></i> Download Sample File(Grade)</a></li>-->
+                            <li><a class="dropdown-item" onclick="downloadSample('F')" href="#"><i class="bi bi-download"></i> Download Sample File(Full)</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
             <hr/>
+
+            <div class="col-12" id="student-grade-data">
+
+            </div>
+            <div id="btn-classes" style="display: none;" class="row">
+                <div class="col-md-5">
+
+                </div>
+                <div class="col-md-6 mb-5 pt-5">
+                    <button type="button" class="btn btn-primary" id="save-sr-from-table"><i class="bi bi-save2-fill"></i> Save SR</button>
+                </div>
+            </div>
+
+            <!--File Upload Modal-->
+            <div class="modal fade" id="fileUploadModal" tabindex="-1" aria-labelledby="fileUploadModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="fileUploadModalLabel">Upload File</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="fileUploadForm" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="formFile" class="form-label">Choose a file to upload the SR List</label>
+                                    <input class="form-control" type="file" id="formFile" name="file" accept=".xlsx">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close </button>
+                            <button type="button" class="btn btn-primary" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload SR File</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Modal: Show File Info -->
+            <div class="modal fade" id="fileInfoModal" tabindex="-1" aria-labelledby="fileInfoModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="fileInfoModalLabel">SR Information</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-primary" role="alert">
+                                <p id="fileInfo">Those rows are red which has no SR found for Student. Either cancel this window and upload updated file again or want to proceed?<br>
+                                    In case of proceed, validation failed records will not be process.
+                                </p>
+                            </div>
+
+                            <table id="stu-sr-data" class="table table-bordered table-sm">
+                                <thead>
+                                    <tr id="table-headers">
+                                        <th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Validation Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body" class="table-group-divider">
+                                </tbody>
+                                <tfoot id="table-foot1">
+                                </tfoot>
+                            </table>
+                            <div id="table-foot">
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" id="uploadAndCloseModals">Upload and Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
         </div>
     </div>
 
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script type="text/javascript" th:inline="javascript">
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": false,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "600",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
-        }
+
         const successMessage = [[${success}]];
         if (successMessage) {
-            toastr["success"](successMessage,"Success");
+            showMsg("success", successMessage, "Success");
         }
 
         const infoMessage = [[${info}]];
         if (infoMessage) {
-            toastr["info"](infoMessage, "Info");
+            showMsg("info", infoMessage, "Info");
         }
 
         const errorMessage = [[${error}]];
         if (errorMessage) {
-            toastr["error"](errorMessage, "Error");
+            showMsg("error", errorMessage, "Error");
         }
 
         function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
             toastr[msgType](msg,headerValue);
         }
 
         let medium, grade, section;
-
-        $('#getfee').click(function() {
-            let proceed = validateMandatoryValues();
-            if(proceed){
-                const apiUrl = `${window.location.origin}/fetchStudentForSR`;
-                const requestData = {
-                    mediumId: medium.toString(),
-                    gradeId: grade.toString(),
-                    sectionId: section.toString()
-                };
-
-                // Make the API call
-                fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        toastr["success"](data.success,"Success");
-                        $('#myModal').modal('hide');
-                    } else if(data.error){
-                        toastr["error"](data.error,"Error");
-                    } else if(data.empty_response){
-
-                    } else {
-                        toastr["error"]("Failed to update contact number","Error");
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    toastr["error"]("An error occurred while updating the contact number","Error");
-                });
-            }
-        });
 
         const validateMandatoryValues=()=>{
             medium = $('#medium').val();
@@ -148,15 +188,29 @@
             return true;
         }
 
-        const downloadSample=() =>{
-            let proceed = validateMandatoryValues();
+        const downloadSample=(val) =>{
+            let proceed = false;
+            if(val=='F'){
+                proceed = true;
+            } else{
+                proceed = validateMandatoryValues();
+            }
             if(proceed){
                 let url = `${window.location.origin}/downloadSRSampleFile`;
-                const requestData = {
-                    mediumId: medium.toString(),
-                    gradeId: grade.toString(),
-                    sectionId: section.toString()
+                let requestData = {
+                    mediumId: '',
+                    gradeId: '',
+                    sectionId: '',
+                    fileType: val
                 };
+                if(val=='G'){
+                    requestData = {
+                        mediumId: medium.toString(),
+                        gradeId: grade.toString(),
+                        sectionId: section.toString(),
+                        fileType: val
+                    };
+                }
                 console.log("requestData::: "+JSON.stringify(requestData));
                 fetch(url, {
                     method: 'POST',
@@ -180,9 +234,11 @@
                         document.body.appendChild(link);
                         link.click();
                         link.remove();
-                        toastr["success"]("File downloaded successfully", "Success");
+                        //toastr["success"]("File downloaded successfully", "Success");
+                        showMsg("success","File downloaded successfully","Success");
                     } else {
-                        toastr["error"](data.error || "An unknown error occurred", "Error");
+                        //toastr["error"](data.error || "An unknown error occurred", "Error");
+                        showMsg("error",(data.error || "An unknown error occurred"), "Error");
                     }
                 })
                 .catch(error => {
@@ -191,6 +247,269 @@
                 });
             }
         }
+
+        const uploadFileGradeWise=()=>{
+            const fileUploadModal = new bootstrap.Modal(document.getElementById('fileUploadModal'));
+            fileUploadModal.show();
+        }
+
+        const submitFile=()=> {
+            let form = document.getElementById('fileUploadForm');
+            let formData = new FormData(form);
+
+            // Perform your AJAX request or any other actions here
+            // Example: upload via AJAX
+            /*fetch('/upload-sr', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    alert('File uploaded successfully!');
+                    // Optionally, close the modal
+                    fileUploadModal.hide();
+                } else {
+                    alert('File upload failed.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+            });*/
+
+            uploadedFile = formData.get('file');
+
+            // Simulate file processing
+            if (uploadedFile) {
+                // Close the first modal
+                let fileUploadModal = bootstrap.Modal.getInstance(document.getElementById('fileUploadModal'));
+                fileUploadModal.hide();
+
+                // Show the file info in the second modal
+                document.getElementById('fileInfo').textContent = `File: ${uploadedFile.name}, Size: ${uploadedFile.size} bytes`;
+
+                // Open the second modal
+                const fileInfoModal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
+                fileInfoModal.show();
+            } else {
+                alert('Please select a file.');
+            }
+
+        }
+
+        document.getElementById("getfee").onclick = function(){
+            let proceed = validateMandatoryValues();
+            if(proceed){
+                let url = `${window.location.origin}/getStudentsForSR`;
+                let requestData = {
+                    mediumId: medium.toString(),
+                    gradeId: grade.toString(),
+                    sectionId: section.toString()
+                };
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // Handle HTTP errors (e.g., 400, 500)
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data === "No students found for the given criteria.") {
+                        //alert('No students found.');
+                        showMsg("warning", data, "Message");
+                    } else {
+                        // Assuming data is the student list, render it in the table
+                        //.alert('Data fetched successfully!');
+                        renderStudentData(data); // Call function to display student data
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr["error"]("An error occurred while fetching the student(s)", "Error");
+                });
+            }
+        };
+        function renderStudentData(studentData) {
+            let divTabId = $("#student-grade-data");
+            let btndiv = $("#btn-classes");
+            btndiv.hide();
+            divTabId.html('');
+            let rowCount = 0;
+            let tbl = '<table class="table table-bordered table-sm" id="sr-table-data"><thead><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th></thead><tbody class="table-group-divider">'
+            studentData.forEach(function(student) {
+                tbl += `<tr>
+                      <td>${++rowCount}</td>
+                      <td>${student.student.studentName}</td>
+                      <td>${student.student.fatherName}</td>
+                      <td>${student.student.motherName}</td>
+                      <td>${student.student.mobile1}</td>
+                      <td width="10%">
+                            <input type="text" id="sr_${student.uuid}" name="sr_${student.uuid}" value="${student.classSrNo}" class="form-control"/>
+                      </td>
+                   </tr>`;
+
+            });
+            tbl+='</tbody></table>';
+            divTabId.html(tbl);
+            btndiv.show();
+        }
+
+        document.getElementById("save-sr-from-table").onclick = function () {
+            const tableId = $("#sr-table-data");
+            let rowCount = $('#sr-table-data tbody tr').length;
+            if(rowCount > 0){
+                let allValues = {};
+
+                // Find all inputs inside the table
+                $('#sr-table-data input[type="text"]').each(function() {
+                    let id = $(this).attr('id');    // Get the ID of the input field
+                    let value = $(this).val();      // Get the value of the input field
+                    allValues[id] = value;          // Store in an object with ID as the key
+                });
+                let url = `${window.location.origin}/saveStudentSRFromTable`;
+                fetch('/saveStudentSRFromTable', {
+                    method: 'POST',              // Specify the HTTP method
+                    headers: {
+                        'Content-Type': 'application/json'  // Send JSON data
+                    },
+                    body: JSON.stringify(allValues)  // Convert allValues object to JSON string
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();  // Parse response as JSON
+                })
+                .then(data => {
+                    console.log('Success:', data);  // Handle success response from controller
+                    alert('Data submitted successfully');
+                })
+                .catch(error => {
+                    console.error('Error:', error);  // Handle error response
+                    alert('Error submitting data');
+                });
+            } else{
+                showMsg("warning","No data found","Message");
+            }
+        }
+
+        document.getElementById("uploadBtn").onclick = function (){
+            $("#table-body").empty();
+            $("#errorMessage").hide();
+            $("#table-foot").html('');
+            const formData = new FormData();
+            const fileInput = document.getElementById("formFile");
+            formData.append("file", fileInput.files[0]);
+
+            // AJAX call to send the file to the server
+            fetch('/upload-sr-file', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("DATA:::: "+data);
+                    if (data.hasOwnProperty("success")) {
+                        // Display the validation result on the page
+                        //document.getElementById("validationResult").innerHTML = JSON.stringify(data.result);
+                        console.log("DATA::>>>> "+data.success);
+                        const fileInfoModal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
+
+                        if (data.hasOwnProperty("success")) {
+                            let rowData = data.success;
+
+                            if (rowData.length > 0) {
+                                // Assuming the first row contains the column headers
+                                //let headers = rowData[0];
+
+                                // Dynamically create table headers
+                                /*headers.forEach(header => {
+                                    $("#tableHeaders").append(`<th>${header}</th>`);
+                                });*/
+
+                                // Create table rows for each array in the list
+                                let passed = 0;
+                                let failed = 0;
+                                for (let i = 0; i < rowData.length; i++) {
+                                    let row = rowData[i];
+                                    //console.log("ROW>>>>>>>>>>>>>>>>> "+row[row.length - 1].includes("error"));
+                                    let tableRow = "<tr>";
+                                    if(row[row.length - 1].includes("error")){
+                                        tableRow = "<tr class='table-danger'>";
+                                        failed++;
+                                    } else{
+                                        passed++;
+                                    }
+                                    row.forEach(cell => {
+                                        tableRow += (cell.includes("#####")? `<td>${cell.split("#####")[1]}</td>` : `<td>${cell}</td>`);
+                                    });
+                                    tableRow += "</tr>";
+                                    //console.log("ROW DATA:::: "+tableRow);
+                                    $("#table-body").append(tableRow);
+                                }
+                                let msg = "<div class='row'><div class='col-md-2'><span><strong>Total: </strong>" + rowData.length + "</span></div><div class='col-md-2'><span class='text-success'><strong>Passed: </strong>"+ passed +"</span></div><div class='col-md-2'><span class='text-danger'><strong>Failed: </strong>" + failed;
+                                msg+="</span></div><div class='col-md-6'></div></div>";
+                                $("#table-foot").html(msg);
+                            }
+                        } else if (data.hasOwnProperty("error")) {
+                            // If the key is "error", display the error message
+                            let errorMessage = data.error.join(', '); // Assuming the error is a list of strings
+                            $("#errorMessage").text(errorMessage).show();
+                        }
+
+                        fileInfoModal.show();
+                    } else if(data.hasOwnProperty("error")) {
+                        //alert(data.message);
+                        console.log("eRROR: "+data.error[0]);
+                        showMsg("error", data.error[0]);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        };
+
+        document.getElementById("uploadAndCloseModals").onclick = function (){
+            //stu-sr-data
+            const tableData = [];
+
+            // Iterate through each row in the table
+            $('#stu-sr-data tbody tr').each(function() {
+                const rowData = {};
+                $(this).find('td').each(function(index) {
+                    const header = $('#stu-sr-data thead th').eq(index).text();
+                    rowData[header] = $(this).text();
+                });
+                tableData.push(rowData);
+            });
+
+            // Send data to the Spring Boot controller via AJAX
+            $.ajax({
+                url: '/upload-sr-data', // Replace with your controller endpoint
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(tableData),
+                success: function(response) {
+                    console.log('Data sent successfully:', response);
+                    $('.modal').modal('hide');
+                    if(response.includes('error')){
+                        showMsg("error", response.split("#####")[1],"Error");
+                    } else{
+                        showMsg("success", response, "Updated");
+                    }
+
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error sending data:', error);
+                    showMsg("error", 'Error sending data:'+ error,"Error");
+                }
+            });
+        };
+
 
     </script>
 </section>
