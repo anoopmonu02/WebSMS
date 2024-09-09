@@ -3,15 +3,12 @@ package com.smsweb.sms.services.student;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
-import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class StudentService {
@@ -316,6 +314,46 @@ public class StudentService {
                     SRFailCounter++;
                 }
             }
+
+            // Bulk save the students
+            academicStudentRepository.saveAll(studentsToSave);
+            return "Total SR updated: " + srPassCounter + " and SR not found for: "+SRFailCounter;
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    @Transactional
+    public String uploadSRFromTable(Map<String, String> studentData, Long academic){
+        AtomicInteger SRFailCounter = new AtomicInteger();
+        AtomicInteger srPassCounter = new AtomicInteger();
+        List<AcademicStudent> studentsToSave = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+        try{
+            studentData.forEach((key, value) -> {
+                if(key!=null && value!=null && value!=""){
+                    String uuid = key.split("sr_")[1];
+                    if (uuid != null && !uuid.isEmpty()) {
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_id(
+                                UUID.fromString(uuid), "Active", academic).orElse(null);
+
+                        if (academicStudent != null) {
+                            academicStudent.setClassSrNo(value);
+                            studentsToSave.add(academicStudent);  // Collect the student for bulk saving
+                            srPassCounter.getAndIncrement();
+                        } else {
+                            failedIds.add(uuid);  // Log the failure
+                            SRFailCounter.getAndIncrement();
+                        }
+                    } else {
+                        failedIds.add("Invalid UUID");
+                        SRFailCounter.getAndIncrement();
+                    }
+                } else{
+                    SRFailCounter.getAndIncrement();
+                }
+            });
 
             // Bulk save the students
             academicStudentRepository.saveAll(studentsToSave);

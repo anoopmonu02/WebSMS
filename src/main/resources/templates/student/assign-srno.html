@@ -382,15 +382,21 @@
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
-                    return response.json();  // Parse response as JSON
+                    return response.text();  // Parse response as JSON
                 })
                 .then(data => {
-                    console.log('Success:', data);  // Handle success response from controller
-                    alert('Data submitted successfully');
+                    if (data.includes('error#####')) {
+                        // Handle error by splitting and extracting the error message
+                        const errorMsg = data.split("#####")[1];
+                        showMsg("error", errorMsg, "Error");
+                    } else {
+                        // Handle success message
+                        showMsg("success", data, "Updated");
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);  // Handle error response
-                    alert('Error submitting data');
+                    showMsg("error", error, "Error");
                 });
             } else{
                 showMsg("warning","No data found","Message");

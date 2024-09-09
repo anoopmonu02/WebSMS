@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class StudentRestController {
@@ -166,12 +167,23 @@ public class StudentRestController {
 
     @PostMapping("/saveStudentSRFromTable")
     public ResponseEntity<?> saveStudentSRFromTable(@RequestBody Map<String, String> studentData){
-        studentData.forEach((key, value) -> {
-            System.out.println("ID: " + key + " Value: " + value);
-            // You can process each entry here, like updating student records in the DB
-        });
-
-        return ResponseEntity.ok(null);
+        try{
+            AtomicInteger counter = new AtomicInteger();
+            studentData.forEach((key, value) -> {
+                if(value==null || value.trim()==""){
+                    counter.getAndIncrement();
+                }
+            });
+            if(counter.intValue() == studentData.size()){
+                return ResponseEntity.ok("error#####No SR found for students.");
+            } else{
+                String responseMsg = studentService.uploadSRFromTable(studentData, 14L);
+                return ResponseEntity.ok(responseMsg);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.ok("error#####"+e.getLocalizedMessage());
+        }
     }
 
 }
