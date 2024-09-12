@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Modify Grade/Section</div>
+                <hr/>
+                <!--Search box-->
+                <div class="search-container my-3">
+                    <input type="text" onkeyup="searchStuName()" class="form-control" id="search-input" placeholder="Search student name">
+                    <div class="search-result">
+                    </div>
+                </div>
+
+                <hr/>
+                <div class="student-detail mb-3">
+                    <div class="academic-student-block">
+                        <div class="row">
+                            <div class="col-sm-5">
+                                <div class="card text-bg-light h-100">
+                                    <h5 class="card-header">Student Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
+                                        <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
+                                        <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
+                                        <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-5">
+                                <div class="card text-bg-light h-100">
+                                    <h5 class="card-header">Academic Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
+                                        <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
+                                        <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
+                                        <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-2 discountassigned" style="display: none;">
+                                <div class="card text-bg-success h-100">
+                                    <h5 class="card-header">Discount Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item text-bg-success studiscount"><strong>Discount: </strong></li>
+                                        <li class="list-group-item text-bg-success studescription"><strong>Description: </strong></li>
+
+                                    </ul>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="updation-form">
+                    <hr/>
+                    <div class="row mt-3">
+                        <input id="academicStudent" name="academicStudent" type="hidden" value=""/>
+                        <div class="col-md-2">
+                            <label for="medium" class="form-label">Medium</label>
+                            <select name="medium" id="medium" class="form-select">
+                                <option value="">Select Medium</option>
+                                <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select name="grade" id="grade" class="form-select">
+                                <option value="">Select Grade</option>
+                                <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="section" class="form-label">Section</label>
+                            <select name="section" id="section" class="form-select">
+                                <option value="">Select Section</option>
+                                <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="section" class="form-label">Reason</label>
+                            <input type="text" class="form-control" name="reason" id="reason"/>
+                        </div>
+                        <div class="col-md-3 align-self-end">
+                            <div class="col-sm-4">
+                                <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-pencil-square"></i> Update </button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr/>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="confirmationModalLabel">Confirm Action</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <figure class="modal-body">
+                    <blockquote class="blockquote">
+                        <p>Are you sure you want to proceed?</p>
+                    </blockquote>
+                    <figcaption class="blockquote-footer">
+                        Please do carefully and check once again before updating.
+                    </figcaption>
+                </figure>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="modalYesBtn">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const searchStuName=() =>{
+            let query=$("#search-input").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+                //Sending request to server
+                let url = `${window.location.origin}/searchStudentForOtherPage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        text+=`<a onclick="loadStudentData('${student.uuid}')" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result").html(text);
+                    $(".search-result").show();
+                });
+            } else{
+                $(".search-result").hide();
+            }
+        }
+
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            $(".discountassigned").hide();
+            if(id!=''){
+                console.log("id::::"+id);
+                let url = `${window.location.origin}/getStudentDetail/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log(data);
+                    console.log(data.student);
+                    if('noAcademicStudent' in data){
+                        toastr["warning"](data.noAcademicStudent,"Message");
+                        setFeeRelatedData(data, 0)
+                    } else{
+                        if('noFeeDate' in data){
+                            toastr["warning"](data.noFeeDate,"Message");
+                        } else{
+                            if('assignedDiscount' in data){
+                                if(data.assignedDiscount.status==='Active'){
+                                    const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
+                                    toastr["info"](msg,"Message");
+                                    $(".discountassigned").show();
+                                    setDiscountData(data.assignedDiscount);
+                                }
+                            }
+                            setStudentRelatedData(data, 1);
+                        }
+                    }
+                });
+            }
+        }
+
+        function setStudentRelatedData(data, flag){
+            if(flag===1){
+                $(".studname").html(`<strong>Student Name: </strong> ${data.student.studentName} `);
+                $(".fname").html(`<strong>Father Name: </strong> ${data.student.fatherName} `);
+                $(".mname").html(`<strong>Mother Name: </strong> ${data.student.motherName} `);
+                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.mobile1} `);
+
+                $(".cmedium").html(`<strong>Medium: </strong> ${data.medium.mediumName}`);
+                $(".cgrade").html(`<strong>Class: </strong> ${data.grade.gradeName}`);
+                $(".csection").html(`<strong>Section: </strong> ${data.section.sectionName}`);
+                $(".csr").html(`<strong>SR No: </strong> ${data.classSrNo==null?"":data.classSrNo}`);
+
+                $('#academicStudent').val(`${data.uuid}`);
+
+            } else{
+                $(".studname").html(`<strong>Student Name: </strong>`);
+                $(".fname").html(`<strong>Father Name: </strong> `);
+                $(".mname").html(`<strong>Mother Name: </strong> `);
+                $(".contactno").html(`<strong>Contact No: </strong> `);
+
+                $(".cmedium").html(`<strong>Medium: </strong> `);
+                $(".cgrade").html(`<strong>Class: </strong> `);
+                $(".csection").html(`<strong>Section: </strong> `);
+                $(".csr").html(`<strong>SR No: </strong> `);
+                //$('#id').val(`${data.assignedDiscount.id}`);
+            }
+        }
+
+        $("#getfee").click(function (){
+            const medium = $('#medium').val();
+            const grade = $('#grade').val();
+            const section = $('#section').val();
+
+            if(medium === '' || grade === '' || section === ''){
+                showMsg('error','Medium/Grade/Section all are mandatory',"Warning");
+                return;
+            }
+            const stuid = $("#academicStudent").val();
+            if(stuid===null || stuid===''){
+                showMsg('error','Student not found',"Warning");
+                return;
+            }
+
+            $('#confirmationModal').modal('show');
+
+        });
+
+        $("#modalYesBtn").click(function(){
+            const medium = $('#medium').val();
+            const grade = $('#grade').val();
+            const section = $('#section').val();
+            const stuid = $("#academicStudent").val();
+            const reason = $("#reason").val();
+            const requestData = {
+                mediumId: medium,
+                gradeId: grade,
+                sectionId: section,
+                stuId: stuid,
+                reason: reason
+            };
+
+            fetch('/updateStudentGradeSection', {
+                method: 'POST',              // Specify the HTTP method
+                headers: {
+                    'Content-Type': 'application/json'  // Send JSON data
+                },
+                body: JSON.stringify(requestData)  // Convert allValues object to JSON string
+            })
+            .then(response => {
+                $('#confirmationModal').modal('hide');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();  // Parse response as JSON
+            })
+            .then(data => {
+                if (data.includes('error#####')) {
+                    // Handle error by splitting and extracting the error message
+                    const errorMsg = data.split("#####")[1];
+                    showMsg("error", errorMsg, "Error");
+                } else {
+                    // Handle success message
+                    showMsg("success", data, "Updated");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);  // Handle error response
+                showMsg("error", error, "Error");
+            });
+        });
+
+    </script>
+
+        </section>
+</body>
+</html>

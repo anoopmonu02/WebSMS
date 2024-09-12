@@ -2,6 +2,7 @@ package com.smsweb.sms.controllers.student;
 
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.services.globalaccess.ExcelService;
+import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -13,20 +14,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class StudentRestController {
     private final ExcelService excelService;
     private final StudentService studentService;
+    private final AcademicStudentService academicStudentService;
 
-    public StudentRestController(ExcelService excelService, StudentService studentService) {
+    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService) {
         this.excelService = excelService;
         this.studentService = studentService;
+        this.academicStudentService = academicStudentService;
     }
 
     @PostMapping("/downloadSRSampleFile")
@@ -133,7 +133,7 @@ public class StudentRestController {
         String responseMsg = "";
         try{
             System.out.println("Received data: " + tableData);
-            responseMsg = studentService.uploadSR(tableData, 14L);
+            responseMsg = studentService.uploadSR(tableData, 14L, 4L);
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -177,7 +177,7 @@ public class StudentRestController {
             if(counter.intValue() == studentData.size()){
                 return ResponseEntity.ok("error#####No SR found for students.");
             } else{
-                String responseMsg = studentService.uploadSRFromTable(studentData, 14L);
+                String responseMsg = studentService.uploadSRFromTable(studentData, 14L, 4L);
                 return ResponseEntity.ok(responseMsg);
             }
         }catch(Exception e){
@@ -185,5 +185,23 @@ public class StudentRestController {
             return ResponseEntity.ok("error#####"+e.getLocalizedMessage());
         }
     }
+    //getStudentDetail
+    @GetMapping("/getStudentDetail/{uuid}")
+    public ResponseEntity<?> getStudentDetail(@PathVariable("uuid") String uuid){
+        AcademicStudent students = academicStudentService.getStudentDetailByUuid(UUID.fromString(uuid), 14L, 4L).orElse(null);
+        return ResponseEntity.ok(students);
+    }
 
+    @PostMapping("/updateStudentGradeSection")
+    public ResponseEntity<?> updateStudentGradeOrSection(@RequestBody Map<String, String> studentData){
+        try{
+            System.out.println("student Data>>>>>>>>>>>> "+studentData);
+            //mediumId=1, gradeId=5, sectionId=1, stuId=bfe37aab-d8fe-4481-af94-ae5d871f2ce5, reason=
+            String responseMsg = academicStudentService.updateGradeSection(studentData, 14L, 4L);
+            return ResponseEntity.ok(responseMsg);
+        }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.ok("error#####"+e.getLocalizedMessage());
+        }
+    }
 }

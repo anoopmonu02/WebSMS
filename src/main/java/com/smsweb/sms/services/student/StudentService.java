@@ -286,7 +286,7 @@ public class StudentService {
     }
 
     @Transactional
-    public String uploadSR(List<Map<String, String>> srdata, Long academic){
+    public String uploadSR(List<Map<String, String>> srdata, Long academic, Long school){
         int SRFailCounter = 0, srPassCounter = 0;
         List<AcademicStudent> studentsToSave = new ArrayList<>();
         List<String> failedIds = new ArrayList<>();
@@ -295,8 +295,8 @@ public class StudentService {
                 if (rowData.containsKey("SR") && rowData.get("SR")!=null && !rowData.get("SR").isEmpty()) {
                     String uuid = rowData.get("ID#");
                     if (uuid != null && !uuid.isEmpty()) {
-                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_id(
-                                UUID.fromString(uuid), "Active", academic).orElse(null);
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
 
                         if (academicStudent != null) {
                             academicStudent.setClassSrNo(rowData.get("SR"));
@@ -325,7 +325,7 @@ public class StudentService {
     }
 
     @Transactional
-    public String uploadSRFromTable(Map<String, String> studentData, Long academic){
+    public String uploadSRFromTable(Map<String, String> studentData, Long academic, Long school){
         AtomicInteger SRFailCounter = new AtomicInteger();
         AtomicInteger srPassCounter = new AtomicInteger();
         List<AcademicStudent> studentsToSave = new ArrayList<>();
@@ -335,8 +335,8 @@ public class StudentService {
                 if(key!=null && value!=null && value!=""){
                     String uuid = key.split("sr_")[1];
                     if (uuid != null && !uuid.isEmpty()) {
-                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_id(
-                                UUID.fromString(uuid), "Active", academic).orElse(null);
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
 
                         if (academicStudent != null) {
                             academicStudent.setClassSrNo(value);
