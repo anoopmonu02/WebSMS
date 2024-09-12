@@ -268,4 +268,12 @@ public class StudentController {
         return "redirect:/student/student";
     }
 
+    @GetMapping("/edit-grade-section")
+    public String modifyGradeAndSectionForm(Model model){
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        return "/student/edit-grade-section";
+    }
+
 }

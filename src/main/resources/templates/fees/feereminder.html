@@ -8,7 +8,7 @@
 <section>
     <div class="container">
         <div class="row mt-2 ">
-            <div class="col-md-12 offset-md-1 ">
+            <div class="col-md-12">
                 <div class="card-header fs-3">Fee Reminder</div>
                 <hr/>
                 <div>
@@ -83,7 +83,6 @@
         });
 
         function showWarningMsg(msgType, msg, headerValue){
-            toastr[msgType](msg,headerValue);
             toastr.options = {
                 "closeButton": true,
                 "debug": false,
@@ -92,7 +91,7 @@
                 "positionClass": "toast-top-right",
                 "preventDuplicates": false,
                 "onclick": null,
-                "showDuration": "500",
+                "showDuration": "600",
                 "hideDuration": "1000",
                 "timeOut": "5000",
                 "extendedTimeOut": "1000",
@@ -101,6 +100,7 @@
                 "showMethod": "fadeIn",
                 "hideMethod": "fadeOut"
             }
+            toastr[msgType](msg,headerValue);
         }
 
         $('#getfee').click(async function() {
@@ -112,7 +112,7 @@
             const lastdate = $('#lastdate').val();
 
             if(medium === '' || grade === '' || section === '' || lastdate === ''){
-                showWarningMsg('error','Medium/Grade/Section/Last Date is mandatory',"Warning");
+                showWarningMsg('error','Medium/Grade/Section/Last Date all are mandatory',"Warning");
                 return;
             }
             let counter = 0;

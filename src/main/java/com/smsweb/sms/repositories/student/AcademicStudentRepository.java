@@ -24,13 +24,13 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     AcademicStudent findByAcademicYearAndSchoolAndAcademicStudentId(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("academicStudentId") Long academic_stu_id);
 
     //Fetching All students by Name
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")
     Page<AcademicStudent> findAllByAcademicYearAndSchoolAndStudentName(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("studentName") String studentName, Pageable pageable);
 
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")
     Page<AcademicStudent> findAllByAcademicYearAndStudentName(@Param("acadecmicYear") Long acadecmicYear, @Param("studentName") String studentName, Pageable pageable);
 
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND s.fatherName LIKE %:father_name% AND s.motherName LIKE %:mother_name% ")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.fatherName LIKE %:father_name% OR s.motherName LIKE %:mother_name%)")
     List<AcademicStudent> findAllByAcademicYear(@Param("acadecmicYear") Long acadecmicYear, @Param("father_name") String father_name, @Param("mother_name") String mother_name);
 
     int countByStudent(Student student);
@@ -39,5 +39,5 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<AcademicStudent> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
 
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
-    Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_id(UUID uuid, String status, Long academic);
+    Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(UUID uuid, String status, Long academic, Long school);
 }
