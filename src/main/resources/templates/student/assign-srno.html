@@ -391,12 +391,14 @@
                         showMsg("error", errorMsg, "Error");
                     } else {
                         // Handle success message
-                        showMsg("success", data, "Updated");
+                        const successMsg = data.split("#####")[1];
+                        showMsg("success", successMsg, "Updated");
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);  // Handle error response
-                    showMsg("error", error, "Error");
+                    const errorMsg = (error.includes('error#####'))?error.split("#####")[1]:error;
+                    showMsg("error", errorMsg, "Error");
                 });
             } else{
                 showMsg("warning","No data found","Message");

@@ -1,6 +1,7 @@
 package com.smsweb.sms.models.student;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.helper.DisplayLabel;
 import com.smsweb.sms.models.Users.UserEntity; // Import the UserEntity class
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
@@ -21,6 +22,7 @@ public class Student extends UserEntity { // Extend UserEntity
 
     // Removed the `id` field as it is inherited from UserEntity
 
+    @DisplayLabel("Registration No")
     private String registrationNo; // Auto-generated
 
     @CreationTimestamp
@@ -31,18 +33,22 @@ public class Student extends UserEntity { // Extend UserEntity
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Student name must not contain special characters")
     @NotBlank(message = "Student name should not be blank")
     @Size(max = 200, message = "Student name should not exceed 200 characters")
+    @DisplayLabel("Student Name")
     private String studentName;
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Father's name must not contain special characters")
     @NotBlank(message = "Father's name should not be blank")
     @Size(max = 200, message = "Father's name should not exceed 200 characters")
+    @DisplayLabel("Father Name")
     private String fatherName;
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Mother's name must not contain special characters")
     @NotBlank(message = "Mother's name should not be blank")
     @Size(max = 200, message = "Mother's name should not exceed 200 characters")
+    @DisplayLabel("Mother Name")
     private String motherName;
 
+    @DisplayLabel("Birth Date")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date dob;
 
@@ -55,13 +61,16 @@ public class Student extends UserEntity { // Extend UserEntity
     @ManyToOne
     @JoinColumn(name = "category_id")
     @NotNull(message = "Category should be available")
+    @DisplayLabel("Category")
     private Category category;
 
     @ManyToOne
     @JoinColumn(name = "cast_id")
     @NotNull(message = "Cast should be available")
+    @DisplayLabel("Cast")
     private Cast cast;
 
+    @DisplayLabel("Gender")
     private String gender = "No_Preference";
 
     @Column(columnDefinition = "TEXT")
@@ -69,6 +78,7 @@ public class Student extends UserEntity { // Extend UserEntity
     private String description;
 
     private String pic;
+    @DisplayLabel("Religion")
     private String religion = "No Preference";
 
     // Physical Info
@@ -81,30 +91,37 @@ public class Student extends UserEntity { // Extend UserEntity
     @NotBlank(message = "Address should not be blank")
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Address should not exceed 500 characters")
+    @DisplayLabel("Address")
     private String address;
 
+    @DisplayLabel("Landmark")
     private String landmark;
 
     @ManyToOne
     @JoinColumn(name = "province_id")
     @NotNull(message = "Province should be available")
+    @DisplayLabel("Province")
     private Province province;
 
     @ManyToOne
     @JoinColumn(name = "city_id")
     @NotNull(message = "City should be available")
+    @DisplayLabel("City")
     private City city;
 
     @Pattern(regexp = "^$|^[0-9]{6}$", message = "Pincode must be a 6-digit number")
     @Column(length = 6)
+    @DisplayLabel("Pincode")
     private String pincode;
 
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
     @Column(length = 10)
+    @DisplayLabel("Mobile-1")
     private String mobile1;
 
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
     @Column(length = 10)
+    @DisplayLabel("Mobile-2")
     private String mobile2;
 
 

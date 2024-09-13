@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12 ">
+                <div class="card-header fs-3">Select Columns to View on Student Report</div>
+                <hr/>
+            </div>
+            <form action="/submit-columns" method="post">
+                <!-- Render dropdown with options -->
+                <div class="row mt-3 pb-3">
+                    <div class="col-md-2">
+                        <label for="selectedColumns" class="form-label">Select Columns:</label>
+                        <select id="selectedColumns" name="selectedColumns" class="form-select">
+                            <option th:each="entry : ${fieldLabels}"
+                                    th:value="${entry.key}"
+                                    th:text="${entry.value}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+              "closeButton": true,
+              "debug": false,
+              "newestOnTop": false,
+              "progressBar": false,
+              "positionClass": "toast-top-right",
+              "preventDuplicates": false,
+              "onclick": null,
+              "showDuration": "600",
+              "hideDuration": "1000",
+              "timeOut": "5000",
+              "extendedTimeOut": "1000",
+              "showEasing": "swing",
+              "hideEasing": "linear",
+              "showMethod": "fadeIn",
+              "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+    </script>
+</section>
+
+</body>
+</html>
