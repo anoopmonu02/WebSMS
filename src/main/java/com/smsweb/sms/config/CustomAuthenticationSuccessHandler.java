@@ -54,7 +54,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
 
             session.setAttribute("school", school);
-            session.setAttribute("employee",employee);
+
 
             // Fetch the active academic year if needed
             // Note: You would need to have another service or method to get the academic year
