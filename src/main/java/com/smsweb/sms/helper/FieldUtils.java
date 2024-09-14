@@ -18,10 +18,10 @@ public class FieldUtils {
             DisplayLabel label = field.getAnnotation(DisplayLabel.class);
             if (label != null) {
                 fieldLabels.put(field.getName(), label.value());
-            } else {
+            } /*else {
                 // If no label is provided, use the field name as default
                 fieldLabels.put(field.getName(), field.getName());
-            }
+            }*/
         }
         return fieldLabels;
     }
