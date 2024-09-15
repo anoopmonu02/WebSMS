@@ -1,9 +1,14 @@
 package com.smsweb.sms.services.admin;
 
 import com.smsweb.sms.exceptions.ObjectNotDeleteException;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.DiscountClassMap;
 import com.smsweb.sms.repositories.admin.DiscountclassmapRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +19,12 @@ import java.util.Optional;
 public class DiscountclassmapService {
 
     private final DiscountclassmapRepository repository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public DiscountclassmapService(DiscountclassmapRepository repository){
+    public DiscountclassmapService(DiscountclassmapRepository repository, UserRepository userRepository){
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     public List<DiscountClassMap> getAllDiscountClassMapping(Long school_id, Long academic_id){
@@ -55,6 +62,15 @@ public class DiscountclassmapService {
             throw new ObjectNotDeleteException("Error in deletion "+e.getLocalizedMessage());
         }
         return "success";
+    }
+
+    public UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
     }
 
 }

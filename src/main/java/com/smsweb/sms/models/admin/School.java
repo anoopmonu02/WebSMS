@@ -1,11 +1,13 @@
 package com.smsweb.sms.models.admin;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.admin.Customer;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Province;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,6 +15,7 @@ import java.util.Date;
 
 @Data
 @Entity
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class School {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +32,7 @@ public class School {
     private String board;
 
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Address should not exceed 500 chars")
+    @Size(max = 500, message = "Address should not exceed 500 characters")
     private String address;
 
     @ManyToOne
@@ -42,12 +45,13 @@ public class School {
     @NotNull(message = "City should be available")
     private City city;
 
-    @Pattern(regexp = "^$|^[0-9]{6}$", message = "Pincode must be a 6-digit number")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit number")
     @Column(length = 6)
     private String pincode;
 
-    @Email(message = "Please enter valid email")
+    @Email(message = "Please enter a valid email")
     private String email;
+
     private String website;
 
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
@@ -59,7 +63,7 @@ public class School {
     private String mobile2;
 
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Contact person name must not contain special characters")
-    @Size(max = 100, message = "Contact person name should not exceed 100 chars")
+    @Size(max = 100, message = "Contact person name should not exceed 100 characters")
     private String contactPersonName;
 
     @Pattern(regexp = "^$|^[0-9]{10}$", message = "Mobile number must be a 10-digit number")
@@ -67,7 +71,7 @@ public class School {
     private String contactPersonMobile;
 
     @Column(columnDefinition = "TEXT")
-    @Size(max = 500, message = "Description should not exceed 500 chars")
+    @Size(max = 500, message = "Description should not exceed 500 characters")
     private String description;
     private String logo1;
     private String logo2;
@@ -86,4 +90,21 @@ public class School {
     @JoinColumn(name = "customer_id")
     @NotNull(message = "Customer should be available")
     private Customer customer;
+
+    // Added createdBy and updatedBy fields
+    // Metadata fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.lastUpdated = new Date();
+    }
 }

@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
@@ -41,15 +42,15 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             username = principal.toString();
         }
         System.out.println("username--"+username);
-        Employee employee = employeeRepository.findByUsername(username);
+        Optional<Employee> employee = employeeRepository.findByUsername(username);
         // If Employee is a UserDetails implementation, cast it
         HttpSession session = request.getSession();
-        if (employee!=null) {
+        if (employee.isPresent()) {
 
 
             // You can directly access properties of Employee
             // For example, get school or any other details
-            School school = employee.getSchool(); // Assume you have a getSchool() method in Employee
+            School school = employee.get().getSchool(); // Assume you have a getSchool() method in Employee
 
 
 

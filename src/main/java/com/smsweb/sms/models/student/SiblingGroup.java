@@ -1,6 +1,8 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
@@ -18,7 +20,7 @@ import java.util.List;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_student_sibling_grp",columnNames = {"groupName", "academic_year_id", "school_id"})})
-@ToString(exclude = "siblingGroupStudents")
+@ToString(exclude = {"siblingGroupStudents","createdBy", "updatedBy"})
 public class SiblingGroup {
 
     @Id
@@ -66,4 +68,14 @@ public class SiblingGroup {
         siblingGroupStudents.remove(student);
         student.setSiblingGroup(null);
     }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 }

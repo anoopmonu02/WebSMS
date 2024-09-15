@@ -1,10 +1,13 @@
 package com.smsweb.sms.models.admin;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -14,6 +17,7 @@ import java.util.Date;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_feedate",columnNames = {"month_master_id", "academic_year_id", "school_id"})})
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class FeeDate {
 
     @Id
@@ -49,5 +53,15 @@ public class FeeDate {
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Description should not exceed 500 chars")
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
 }
