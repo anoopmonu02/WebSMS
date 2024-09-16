@@ -9,7 +9,7 @@
 
   <div class="container">
     <div class="row mt-2 ">
-      <div class="col-md-12  offset-md-1 ">
+      <div class="col-md-12">
 
         <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
         <div th:if="${studentError!=null}">
@@ -30,7 +30,7 @@
         <div class="row mt-4">
             <!--<div class="col-sm-2"></div>-->
             <div class="col-sm-8">
-                <div class="card text-bg-light">
+                <div class="card text-bg-secondary">
                     <h5 class="card-header">Fee Receipt</h5>
                     <div class="card-body" id="contentToExport">
                         <input type="hidden" id="feeid" th:value="${feeSubmission.id}">
@@ -244,24 +244,25 @@
 
 
     function showWarningMsg(msgType, msg, headerValue){
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "500",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
       toastr[msgType](msg,headerValue);
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+
     }
 
     /*document.getElementById("printreceipt").addEventListener("click", function() {

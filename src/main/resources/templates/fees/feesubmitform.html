@@ -26,25 +26,25 @@
                         <div class="academic-student-block">
                             <div class="row">
                                 <div class="col-sm-4">
-                                    <div class="card text-bg-light">
+                                    <div class="card text-bg-secondary">
                                         <h5 class="card-header">Student Detail</h5>
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item text-bg-light studname"><strong>Student Name:</strong></li>
-                                            <li class="list-group-item text-bg-light fname"><strong>Father Name:</strong></li>
-                                            <li class="list-group-item text-bg-light mname"><strong>Mother Name:</strong></li>
-                                            <li class="list-group-item text-bg-light contactno contact-update-btn"><strong>Contact No:</strong> </li>
+                                            <li class="list-group-item text-bg-secondary studname"><strong>Student Name:</strong></li>
+                                            <li class="list-group-item text-bg-secondary fname"><strong>Father Name:</strong></li>
+                                            <li class="list-group-item text-bg-secondary mname"><strong>Mother Name:</strong></li>
+                                            <li class="list-group-item text-bg-secondary contactno contact-update-btn"><strong>Contact No:</strong> </li>
                                         </ul>
                                     </div>
                                 </div>
 
                                 <div class="col-sm-4">
-                                    <div class="card text-bg-light">
+                                    <div class="card text-bg-secondary">
                                         <h5 class="card-header">Academic Detail</h5>
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item text-bg-light cmedium"><strong>Medium: </strong></li>
-                                            <li class="list-group-item text-bg-light cgrade"><strong>Class: </strong></li>
-                                            <li class="list-group-item text-bg-light csection"><strong>Section: </strong></li>
-                                            <li class="list-group-item text-bg-light csr"><strong>SR No: </strong></li>
+                                            <li class="list-group-item text-bg-secondary cmedium"><strong>Medium: </strong></li>
+                                            <li class="list-group-item text-bg-secondary cgrade"><strong>Class: </strong></li>
+                                            <li class="list-group-item text-bg-secondary csection"><strong>Section: </strong></li>
+                                            <li class="list-group-item text-bg-secondary csr"><strong>SR No: </strong></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -103,7 +103,7 @@
 
                             <!--Fee Detail-->
                             <div class="col-sm-6">
-                                <table id="feeTable" class="table table-bordered table-hover table-sm">
+                                <table id="feeTable" class="table table-bordered table-hover table-sm table-success">
                                     <thead>
                                         <tr class="table-secondary">
                                             <th>#</th>
@@ -458,7 +458,8 @@
             console.log("Value clicked "+$(this));
             const academicStudentId = $('#academicStudentId').val();
             if(academicStudentId === null || academicStudentId === ''){
-                toastr["error"]("No Student found.\nPlease select a student for fee submission.","Message");
+                showWarningMsg("error","No Student found.\nPlease select a student for fee submission.","Message")
+                //toastr["error"]("No Student found.\nPlease select a student for fee submission.","Message");
                 resetMonthCheckBoxes();
                 return;
             }
@@ -480,7 +481,8 @@
             //check all checkboxes selected in a sequence or not?
             const sequenceResult = checkMonthSequence(checkBoxes.split("-"));
             if(sequenceResult === false){
-                toastr["warning"]("Selection Not Allowed.\nPlease select month in sequence","Message");
+                //toastr["warning"]("Selection Not Allowed.\nPlease select month in sequence","Message");
+                showWarningMsg("warning","Selection Not Allowed.\nPlease select month in sequence","Message")
                 resetMonthCheckBoxes();
                 resetFeeFields(0);
                 return;
@@ -554,7 +556,8 @@
                 }
             }catch (error) {
                 console.error('There was a problem with the fetch operation:', error);
-                toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                //toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fetch operation: " + error,"Error")
             }
         }
 
@@ -602,7 +605,8 @@
 
             } catch (error) {
                 console.error('There was a problem with the fetch operation:', error);
-                toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                //toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fetch operation: " + error,"Error")
             }
         }
 
@@ -657,7 +661,8 @@
                 }
             } catch (error) {
                 console.error('There was a problem with the fine operation:', error);
-                toastr["error"]("There was a problem with the fine operation: " + error, "Error");
+                //toastr["error"]("There was a problem with the fine operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fine operation: " + error,"Error")
             }
         }
 
@@ -718,14 +723,16 @@
             const studentId = $('#StudentId').val();
 
             if (contactNumber === '') {
-                toastr["error"]("Contact number cannot be empty","Missing");
+                //toastr["error"]("Contact number cannot be empty","Missing");
+                showWarningMsg("error","Contact number cannot be empty","Missing");
                 return;
             }
 
             // Validate contact number
             const isNumeric = /^\d{10}$/.test(contactNumber);
             if (!isNumeric) {
-                toastr["error"]("Contact number must be exactly 10 digits and contain only numbers.","Message");
+                //toastr["error"]("Contact number must be exactly 10 digits and contain only numbers.","Message");
+                showWarningMsg("error","Contact number must be exactly 10 digits and contain only numbers.","Message");
                 return;
             }
 
@@ -748,19 +755,23 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    toastr["success"](data.success,"Success");
+                    //toastr["success"](data.success,"Success");
+                    showWarningMsg("success",data.success,"Success");
                     $('#myModal').modal('hide');
                 } else if(data.error){
-                    toastr["error"](data.error,"Error");
+                    //toastr["error"](data.error,"Error");
+                    showWarningMsg("error",data.error,"Error");
                 } else if(data.empty_response){
 
                 } else {
-                    toastr["error"]("Failed to update contact number","Error");
+                    //toastr["error"]("Failed to update contact number","Error");
+                    showWarningMsg("error","Failed to update contact number","Error");
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                toastr["error"]("An error occurred while updating the contact number","Error");
+                //toastr["error"]("An error occurred while updating the contact number","Error");
+                showWarningMsg("error","An error occurred while updating the contact number","Error");
             });
         });
 
@@ -799,7 +810,6 @@
         }
 
         function showWarningMsg(msgType, msg, headerValue){
-            toastr[msgType](msg,headerValue);
             toastr.options = {
                 "closeButton": true,
                 "debug": false,
@@ -808,7 +818,7 @@
                 "positionClass": "toast-top-right",
                 "preventDuplicates": false,
                 "onclick": null,
-                "showDuration": "500",
+                "showDuration": "600",
                 "hideDuration": "1000",
                 "timeOut": "5000",
                 "extendedTimeOut": "1000",
@@ -817,6 +827,7 @@
                 "showMethod": "fadeIn",
                 "hideMethod": "fadeOut"
             }
+            toastr[msgType](msg,headerValue);
         }
 
 

@@ -226,7 +226,6 @@ html[data-bs-theme="light"] .theme-toggle .fa-sun {
 
 .search-result{
     position: absolute;
-    background: white;
     width: 100%;
     padding: 10px;
     border: 1px solid #babbbc;
@@ -236,7 +235,6 @@ html[data-bs-theme="light"] .theme-toggle .fa-sun {
 
 #search-result1{
     position: absolute;
-    background: white;
     width: 100%;
     padding: 10px;
     border: 1px solid #babbbc;
