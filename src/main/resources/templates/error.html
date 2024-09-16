@@ -13,6 +13,7 @@
             align-items: center;
             height: 100vh;
             text-align: center;
+
         }
         .error-title {
             font-size: 5rem;
@@ -26,12 +27,21 @@
 <body>
 <div class="error-container">
     <div class="error-title">
-        <i class="fas fa-exclamation-triangle text-danger"></i>
+        <!--<i class="fas fa-exclamation-triangle text-danger"></i>-->
+        <img src="/images/errorimg.png">
     </div>
     <div class="error-message">
         <p th:text="${errorMessage}">An unexpected error occurred</p>
     </div>
-    <a href="/dashboard" class="btn btn-primary mt-4">Go to Homepage</a>
+    <div>
+        <div>
+            <a href="/dashboard" class="btn btn-primary mt-4">Go to Homepage</a>
+        </div>
+        <div>
+
+        </div>
+    </div>
+
 </div>
 <!-- Optional: Add FontAwesome for icons -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
