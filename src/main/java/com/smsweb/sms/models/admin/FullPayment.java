@@ -15,6 +15,7 @@ import java.util.Date;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_full_payment_discount",columnNames = {"grade_id", "academic_year_id", "school_id"})})
+
 public class FullPayment {
 
     @Id

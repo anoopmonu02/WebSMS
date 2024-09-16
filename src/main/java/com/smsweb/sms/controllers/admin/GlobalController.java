@@ -94,6 +94,7 @@ public class GlobalController {
         try{
             School school = schoolService.getSchoolById(Long.parseLong("4")).get();
             academicYear.setSchool(school);
+            academicYear.setCreatedBy(academicyearService.getLoggedInUser());
             academicyearService.save(academicYear);
             ra.addFlashAttribute("success","Academic year - "+academicYear.getSessionFormat()+ " saved successfully.");
         }catch(DataIntegrityViolationException de){
@@ -130,6 +131,7 @@ public class GlobalController {
         try{
             School school = schoolService.getSchoolById(Long.parseLong("4")).get();
             academicyear.setSchool(school);
+            academicyear.setUpdatedBy(academicyearService.getLoggedInUser());
             academicyearService.save(academicyear);
             ra.addFlashAttribute("success","Academic year - "+academicyear.getSessionFormat()+ " Updated successfully.");
         }catch(DataIntegrityViolationException de){
@@ -237,6 +239,7 @@ public class GlobalController {
             AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
             feedate.setAcademicYear(academicYear);
             feedate.setSchool(school);
+            feedate.setCreatedBy(discountclassmapService.getLoggedInUser());
             feedateService.save(feedate);
             redirectAttributes.addFlashAttribute("success","Fee Date saved successfully for: "+feedate.getMonthMaster().getMonthName());
         }catch(DataIntegrityViolationException de){
@@ -310,7 +313,11 @@ public class GlobalController {
             fine.setSchool(school);
             String returnMsg = "Fine saved successfully for: "+fine.getFinehead().getFineHeadName();
             if(fine.getId()!=null){
+                fine.setUpdatedBy(discountclassmapService.getLoggedInUser());
                 returnMsg = "Fine updated successfully for: "+fine.getFinehead().getFineHeadName();
+            }
+            else{
+                fine.setCreatedBy(discountclassmapService.getLoggedInUser());
             }
             fineService.saveFine(fine);
             redirectAttributes.addFlashAttribute("success",returnMsg);
@@ -437,6 +444,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
+                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
                 feeClassMapList.add(feeclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -468,6 +476,7 @@ public class GlobalController {
             return "/admin/edit-feeclassmap";
         }
         try{
+            feeClassMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
             feeclassmapService.save(feeClassMap);
             ra.addFlashAttribute("info", "Fee-Class mapping updated for Grade: "+feeClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -587,6 +596,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setFeehead(feehead);
                 System.out.println("Grade "+fee.getFeehead());
+                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
                 feeMonthMapList.add(feemonthmapService.saveFeeMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -618,6 +628,7 @@ public class GlobalController {
             return "/admin/edit-feemonthmap";
         }
         try{
+            feeMonthMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
             feemonthmapService.saveFeeMonth(feeMonthMap);
             ra.addFlashAttribute("info", "Fee-Month mapping updated for Fee: "+feeMonthMap.getFeehead().getFeeHeadName());
         }catch(Exception e){
@@ -730,6 +741,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
+                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
                 discountClassMapList.add(discountclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -761,6 +773,7 @@ public class GlobalController {
             return "/admin/edit-discountclassmap";
         }
         try{
+            discountClassMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
             discountclassmapService.save(discountClassMap);
             ra.addFlashAttribute("info", "Discount-Class mapping updated for Grade: "+discountClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -880,6 +893,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setDiscounthead(feehead);
                 System.out.println("Grade "+fee.getDiscounthead());
+                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
                 discountMonthMapList.add(discountmonthmapService.saveDiscountMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -911,6 +925,7 @@ public class GlobalController {
             return "/admin/edit-discountmonthmap";
         }
         try{
+            discountMonthMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
             discountmonthmapService.saveDiscountMonth(discountMonthMap);
             ra.addFlashAttribute("info", "Discount-Month mapping updated for Fee: "+discountMonthMap.getDiscounthead().getDiscountName());
         }catch(Exception e){

@@ -1,6 +1,7 @@
 package com.smsweb.sms.services.student;
 
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -11,7 +12,11 @@ import com.smsweb.sms.repositories.admin.SchoolRepository;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.SiblingGroupRepository;
 import com.smsweb.sms.repositories.student.SiblingGroupStudentRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class SiblingGroupService {
+    private final UserRepository userRepository;
     private SiblingGroupRepository siblingGroupRepository;
     private final AcademicyearRepository academicyearRepository;
     private final SchoolRepository schoolRepository;
@@ -27,12 +33,13 @@ public class SiblingGroupService {
     private final SiblingGroupStudentRepository siblingGroupStudentRepository;
 
     @Autowired
-    public SiblingGroupService(SiblingGroupRepository siblingGroupRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, AcademicStudentRepository academicStudentRepository, SiblingGroupStudentRepository siblingGroupStudentRepository){
+    public SiblingGroupService(SiblingGroupRepository siblingGroupRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, AcademicStudentRepository academicStudentRepository, SiblingGroupStudentRepository siblingGroupStudentRepository, UserRepository userRepository){
         this.siblingGroupRepository = siblingGroupRepository;
         this.academicyearRepository = academicyearRepository;
         this.schoolRepository = schoolRepository;
         this.academicStudentRepository = academicStudentRepository;
         this.siblingGroupStudentRepository = siblingGroupStudentRepository;
+        this.userRepository = userRepository;
     }
 
     public List<SiblingGroup> getAllSiblingGroups(Long school_id, Long academic_year_id){
@@ -80,6 +87,7 @@ public class SiblingGroupService {
                     siblingGroup.setAcademicYear(academicYear);
                     siblingGroup.setSchool(school);
                     siblingGroup.setDescription("Saving group with student(s)");
+                    siblingGroup.setCreatedBy(getLoggedInUser());
                     SiblingGroup group = siblingGroupRepository.save(siblingGroup);
                     siblingGroupList.add(group);
                     for(AcademicStudent student: academicStudentList){
@@ -174,6 +182,15 @@ public class SiblingGroupService {
             e.printStackTrace();
         }
 
+        return null;
+    }
+
+    private UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
         return null;
     }
 }

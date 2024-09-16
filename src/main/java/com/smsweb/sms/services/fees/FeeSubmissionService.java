@@ -1,5 +1,6 @@
 package com.smsweb.sms.services.fees;
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.fees.*;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -18,7 +19,11 @@ import com.smsweb.sms.repositories.universal.DiscountRepository;
 import com.smsweb.sms.repositories.universal.FeeheadRepository;
 import com.smsweb.sms.repositories.universal.GradeRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,12 +55,13 @@ public class FeeSubmissionService {
     private final FeedateRepository feedateRepository;
     private final FineRepository fineRepository;
     private final StudentDiscountRepository studentDiscountRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
                                 FullpaymentRepository fullpaymentRepository, FeemonthmapRepository feemonthmapRepository, FeeclassmapRepository feeclassmapRepository, DiscountclassmapRepository discountclassmapRepository,
                                 DiscountmonthmapRepository discountmonthmapRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, MonthMasterRepository monthMasterRepository,
-                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository, ReceiptSequenceRepository receiptSequenceRepository, FeedateRepository feedateRepository, FineRepository fineRepository, StudentDiscountRepository studentDiscountRepository){
+                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository, ReceiptSequenceRepository receiptSequenceRepository, FeedateRepository feedateRepository, FineRepository fineRepository, StudentDiscountRepository studentDiscountRepository, UserRepository userRepository){
         this.feeSubmissionRepository = feeSubmissionRepository;
         this.monthmappingRepository = monthmappingRepository;
         this.gradeRepository = gradeRepository;
@@ -74,6 +80,7 @@ public class FeeSubmissionService {
         this.feedateRepository = feedateRepository;
         this.fineRepository = fineRepository;
         this.studentDiscountRepository = studentDiscountRepository;
+        this.userRepository = userRepository;
     }
 
     public List<FeeSubmission> getAllFeeSubmissionByAcademicYear(Long school_id, Long academic_id){
@@ -376,6 +383,7 @@ public class FeeSubmissionService {
                         submissionBalance.setFeeSubmission(feeSubmission);
                         feeSubmission.setFeeSubmissionSub(submissionSubList);
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
+                        feeSubmission.setCreatedBy(getLoggedInUser());
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());
@@ -721,6 +729,15 @@ public class FeeSubmissionService {
             responseMap.put("error", e.getLocalizedMessage());
         }
         return responseMap;
+    }
+
+    private UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
     }
 
 }

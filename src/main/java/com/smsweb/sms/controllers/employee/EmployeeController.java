@@ -63,14 +63,18 @@ public class EmployeeController {
     }
 
     @PostMapping("/employee-save")
-    public String saveEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
-                               @RequestParam("customerPic") MultipartFile customerPic){
+    public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
+                               @RequestParam("customerPic") MultipartFile customerPic) {
         String returnStr = "/employee/add-employee";
         Employee existingEmployee = null;
-        try{
-            existingEmployee = employeeService.getEmployeeByUUID(employee.getUuid()).orElse(null);
-            returnStr = "/employee/edit-employee";
-        }catch(Exception e){
+
+        try {
+            if(employee.getUuid()!=null){
+                existingEmployee = employeeService.getEmployeeByUUID(employee.getUuid()).orElse(null);
+                returnStr = "/employee/edit-employee";
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
             existingEmployee = null;
         }
@@ -85,7 +89,7 @@ public class EmployeeController {
             employee.setSchool(school);
             Employee emp = employeeService.saveEmployee(employee, customerPic, fileNameOrSchoolCode, existingEmployee);
             String msg = "Employee: " + employee.getEmployeeName() + " saved successfully";
-            if(existingEmployee!=null){
+            if (existingEmployee != null) {
                 msg = "Employee: " + employee.getEmployeeName() + " updated successfully";
             }
             redirectAttributes.addFlashAttribute("success", msg);

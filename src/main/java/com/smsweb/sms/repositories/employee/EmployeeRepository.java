@@ -15,5 +15,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findAllBySchool_IdAndStatusOrderByEmployeeNameAsc(Long school, String status);
 
-    Employee findByUsername(String username);
+    Optional<Employee> findByUsername(String username);
+
+    Optional<Employee> findByEmail(String email);
 }

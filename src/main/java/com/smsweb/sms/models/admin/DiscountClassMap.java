@@ -1,5 +1,7 @@
 package com.smsweb.sms.models.admin;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Grade;
 import jakarta.persistence.*;
@@ -7,6 +9,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,6 +19,7 @@ import java.util.Date;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_discountclassmap",columnNames = {"grade_id", "discounthead_id", "academic_year_id", "school_id"})})
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class DiscountClassMap {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,4 +60,13 @@ public class DiscountClassMap {
 
 
     //TODO-will add 2 more attributes - createdBy, updatedBy
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 }

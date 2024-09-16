@@ -9,6 +9,7 @@ import com.smsweb.sms.models.universal.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +19,7 @@ import java.util.Date;
 @Data
 @Entity
 @Table(name = "students")  // Specifies the table name for Student entities
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class Student extends UserEntity { // Extend UserEntity
 
     // Removed the `id` field as it is inherited from UserEntity
@@ -133,7 +135,7 @@ public class Student extends UserEntity { // Extend UserEntity
     private String removalCause;
     private Integer passingYear;
 
-    // Emergency
+    // Emergency Info
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Emergency contact person name must not contain special characters")
     private String personName;
 
@@ -143,7 +145,7 @@ public class Student extends UserEntity { // Extend UserEntity
 
     private String relationship;
 
-    // Extra
+    // Grade, Section, Medium
     @ManyToOne
     @JoinColumn(name = "grade_id")
     @NotNull(message = "Grade should be available")
@@ -186,7 +188,7 @@ public class Student extends UserEntity { // Extend UserEntity
 
     @ManyToOne
     @JoinColumn(name = "academic_year_id")
-    @NotNull(message = "Academic-year should be available")
+    @NotNull(message = "Academic Year should be available")
     private AcademicYear academicYear;
 
     // Bank & Aadhar details
@@ -203,5 +205,19 @@ public class Student extends UserEntity { // Extend UserEntity
     @Column(length = 12)
     private String aadharNo;
 
-    // TODO: Add createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
+    // Metadata fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.lastUpdated = new Date();
+    }
 }

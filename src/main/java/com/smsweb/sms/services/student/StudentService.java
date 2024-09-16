@@ -4,11 +4,16 @@ import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.helper.FileHandleHelper;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +30,15 @@ public class StudentService {
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileHandleHelper fileHandleHelper;
+    private final UserRepository userRepository;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserRepository userRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileHandleHelper = fileHandleHelper;
+        this.userRepository = userRepository;
     }
 
     public List<Student> getAllActiveStudents(Long school_id) {
@@ -78,7 +85,12 @@ public class StudentService {
                     // Generate password
                     String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
                     student.setPassword(passwordEncoder.encode(password));
+                    student.setCreatedBy(getLoggedInUser());
                 }
+                else{
+                    student.setUpdatedBy(getLoggedInUser());
+                }
+
                 Student savedStudent = repository.save(student);
                 if(existingStudent==null){
                     AcademicStudent academicStudent = new AcademicStudent();
@@ -89,6 +101,7 @@ public class StudentService {
                     academicStudent.setSection(savedStudent.getSection());
                     academicStudent.setDescription("Saving at time of student creation.");
                     academicStudent.setStudent(savedStudent);
+                    academicStudent.setCreatedBy(getLoggedInUser());
                     academicStudentRepository.save(academicStudent);
                 }
                 return savedStudent;
@@ -96,62 +109,7 @@ public class StudentService {
         }catch(Exception e){
             e.printStackTrace();
         }
-        /*if (imageResponse != null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))) {
-            try {
-                //Handle Student Image
-                if (!imageResponse.equalsIgnoreCase("Success_no_image")) {
-                    student.setPic(fileNameOrSchoolCode + "_" + logo.getOriginalFilename());
-                } else {
-                    //  if student is going to update without new pic selection happen
-                    try{
-                        existingStudent = repository.findById(student.getId()).orElse(null);
-                    }catch(ObjectNotFoundException e){
-                        existingStudent = null;
-                    }
-                    if (imageResponse.equalsIgnoreCase("Success_no_image") && existingStudent != null) {
-                        student.setPic(existingStudent.getPic());
-                    } else {
-                        student.setPic(null);
-                    }
-                }
-                student.setRegistrationNo("SRN-" + fileNameOrSchoolCode);
-                if (existingStudent != null && existingStudent.getRegistrationNo().length() > 0) {
-                    student.setRegistrationNo(existingStudent.getRegistrationNo());
-                }
-                if(existingStudent==null){
-                    // Set username as registration number
-                    student.setUsername(student.getRegistrationNo());
 
-                    // Generate password
-                    String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
-                    student.setPassword(passwordEncoder.encode(password));
-                }
-
-                Student savedStudent = repository.save(student);
-                if(existingStudent==null){
-                    AcademicStudent academicStudent = new AcademicStudent();
-                    academicStudent.setAcademicYear(savedStudent.getAcademicYear());
-                    academicStudent.setSchool(savedStudent.getSchool());
-                    academicStudent.setGrade(savedStudent.getGrade());
-                    academicStudent.setMedium(savedStudent.getMedium());
-                    academicStudent.setSection(savedStudent.getSection());
-                    academicStudent.setDescription("Saving at time of student creation.");
-                    academicStudent.setStudent(savedStudent);
-                    academicStudentRepository.save(academicStudent);
-                }
-                return savedStudent;
-
-            } catch (DataIntegrityViolationException ed) {
-                throw new UniqueConstraintsException("Student Name: " + student.getStudentName() + " already exists.", ed);
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new ObjectNotSaveException("Failed to save student", e);
-            }
-        } else if (imageResponse.equalsIgnoreCase("fail")) {
-            throw new FileFormatException("Fail to save pic");
-        } else if (imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")) {
-            throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
-        }*/
         return null;
     }
 
@@ -165,6 +123,7 @@ public class StudentService {
             Student student = repository.findById(studentId).orElse(null);
             if (student != null) {
                 student.setMobile1(contactNo);
+                student.setUpdatedBy(getLoggedInUser());
                 repository.save(student);
                 return studentId;
             }
@@ -362,6 +321,15 @@ public class StudentService {
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();
         }
+    }
+
+    private UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
     }
 
 }

@@ -1,5 +1,7 @@
 package com.smsweb.sms.models.fees;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
 import com.smsweb.sms.models.admin.School;
@@ -10,6 +12,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +24,7 @@ import java.util.List;
 
 @Data
 @Entity
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class FeeSubmission {
 
     @Id
@@ -92,7 +96,16 @@ public class FeeSubmission {
     @OneToOne(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
     private FeeSubmissionBalance feeSubmissionBalance;
 
-    //TODO-will add 2 more attributes - createdBy, updatedBy
+    // attributes - createdBy, updatedBy
     //@JsonIgnore - will use for user or to avoid circular reference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
 }

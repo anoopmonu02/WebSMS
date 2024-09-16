@@ -1,12 +1,13 @@
 package com.smsweb.sms.models.Users;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = "employees")  // Specifies the table name for Employee entities
+@ToString(exclude = {"createdBy", "updatedBy"})
 public class Employee extends UserEntity {  // Extend UserEntity
 
     // Removed the @Id field as it is inherited from UserEntity
@@ -76,10 +78,6 @@ public class Employee extends UserEntity {  // Extend UserEntity
     @Column(length = 10)
     private String mobile2;
 
-    /*@Email(message = "Please enter a valid email")
-    @Column(nullable = false)
-    private String email;*/
-
     @Column(nullable = false)
     private String status = "Active";
 
@@ -96,9 +94,16 @@ public class Employee extends UserEntity {  // Extend UserEntity
     @NotNull(message = "School should be available")
     private School school;
 
-    // TODO: Add createdBy, updatedBy, and other fields if needed
+    // Metadata fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
-    // Use @JsonIgnore if needed to avoid circular references
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
@@ -108,5 +113,10 @@ public class Employee extends UserEntity {  // Extend UserEntity
         if (uuid == null) {
             uuid = UUID.randomUUID();
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.lastUpdated = new Date();  // Update lastUpdated timestamp during update
     }
 }

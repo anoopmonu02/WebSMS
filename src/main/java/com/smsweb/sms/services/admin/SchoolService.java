@@ -5,6 +5,7 @@ import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.helper.FileHandleHelper;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
@@ -13,10 +14,14 @@ import com.smsweb.sms.repositories.admin.CustomerRepository;
 import com.smsweb.sms.repositories.admin.SchoolRepository;
 import com.smsweb.sms.repositories.universal.CityRepository;
 import com.smsweb.sms.repositories.universal.ProvinceRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,14 +36,18 @@ public class SchoolService {
     private final ProvinceRepository provinceRepository;
     private final CityRepository cityRepository;
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
+    private final FileHandleHelper fileHandleHelper;
 
     @Autowired
     public SchoolService(SchoolRepository schoolRepository, ProvinceRepository provinceRepository, CityRepository cityRepository,
-                         CustomerRepository customerRepository){
+                         CustomerRepository customerRepository, UserRepository userRepository, FileHandleHelper fileHandleHelper){
         this.schoolRepository = schoolRepository;
         this.provinceRepository = provinceRepository;
         this.cityRepository = cityRepository;
         this.customerRepository = customerRepository;
+        this.userRepository = userRepository;
+        this.fileHandleHelper = fileHandleHelper;
     }
 
 
@@ -54,7 +63,7 @@ public class SchoolService {
     @Transactional
     public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
         School existingSchool=null;
-        String imageResponse = new FileHandleHelper().copyImageToGivenDirectory(logo, "school");
+        String imageResponse = fileHandleHelper.saveImage("school", logo);
         if(imageResponse!=null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))){
             try{
                 if(!imageResponse.equalsIgnoreCase("Success_no_image")){
@@ -72,11 +81,19 @@ public class SchoolService {
                 school.setSchoolCode("SC-"+fileNameOrSchoolCode);
                 if(existingSchool!=null && existingSchool.getSchoolCode().length()>0){
                     school.setSchoolCode(existingSchool.getSchoolCode());
+
+                }
+                if(existingSchool.getId()!=null){
+                    school.setUpdatedBy(getLoggedInUser());
+                }
+                else{
+                    school.setCreatedBy(getLoggedInUser());
                 }
                 return schoolRepository.save(school);
             }catch (DataIntegrityViolationException ed) {
                 throw new UniqueConstraintsException("School Name: "+school.getSchoolName()+" already exists.", ed);
             }catch(Exception e){
+                e.printStackTrace();
                 throw new ObjectNotSaveException("Failed to save school", e);
             }
         } else if(imageResponse.equalsIgnoreCase("fail")){
@@ -109,6 +126,15 @@ public class SchoolService {
 
     public List<Customer> getAllCustomers(){
         return customerRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    }
+
+    private UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
     }
 
 

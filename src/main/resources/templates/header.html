@@ -33,7 +33,7 @@
             <i class="bi bi-gear"></i> Global Settings
           </a>
           <ul class="dropdown-menu dropdown-menu-dark">
-            <li ><a class="dropdown-item" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill"></i> Customer </a></li>
+            <li sec:authorize="hasRole('ROLE_SUPERADMIN')"><a class="dropdown-item" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill"></i> Customer </a></li>
             <li sec:authorize="hasRole('ROLE_SUPERADMIN')">
               <a class="dropdown-item" th:href="@{'/admin/school'}">
                 <i class="bi bi-building-add"></i> School

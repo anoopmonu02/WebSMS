@@ -1,12 +1,17 @@
 package com.smsweb.sms.services.admin;
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.admin.MonthmappingRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -17,11 +22,13 @@ import java.util.Optional;
 public class MonthmappingService {
     private final MonthmappingRepository monthmappingRepository;
     private final MonthMasterRepository monthMasterRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public MonthmappingService(MonthmappingRepository monthmappingRepository, MonthMasterRepository monthMasterRepository){
+    public MonthmappingService(MonthmappingRepository monthmappingRepository, MonthMasterRepository monthMasterRepository, UserRepository userRepository){
         this.monthmappingRepository = monthmappingRepository;
         this.monthMasterRepository = monthMasterRepository;
+        this.userRepository = userRepository;
     }
 
     public List<MonthMapping> getAllMonthMapping(Long academicYear_id, Long school_id){
@@ -101,6 +108,7 @@ public class MonthmappingService {
         monthMapping.setPriority(priority);
         monthMapping.setAcademicYear(academicYear);
         monthMapping.setSchool(school);
+        monthMapping.setCreatedBy(getLoggedInUser());
         monthmappingRepository.save(monthMapping);
     }
 
@@ -119,5 +127,12 @@ public class MonthmappingService {
         return flag;
     }
 
-
+    private UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
+    }
 }
