@@ -1,17 +1,13 @@
 package com.smsweb.sms.services.admin;
 
-import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.admin.MonthmappingRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
-import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -22,13 +18,13 @@ import java.util.Optional;
 public class MonthmappingService {
     private final MonthmappingRepository monthmappingRepository;
     private final MonthMasterRepository monthMasterRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Autowired
-    public MonthmappingService(MonthmappingRepository monthmappingRepository, MonthMasterRepository monthMasterRepository, UserRepository userRepository){
+    public MonthmappingService(MonthmappingRepository monthmappingRepository, MonthMasterRepository monthMasterRepository, UserService userService){
         this.monthmappingRepository = monthmappingRepository;
         this.monthMasterRepository = monthMasterRepository;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     public List<MonthMapping> getAllMonthMapping(Long academicYear_id, Long school_id){
@@ -108,7 +104,7 @@ public class MonthmappingService {
         monthMapping.setPriority(priority);
         monthMapping.setAcademicYear(academicYear);
         monthMapping.setSchool(school);
-        monthMapping.setCreatedBy(getLoggedInUser());
+        monthMapping.setCreatedBy(userService.getLoggedInUser());
         monthmappingRepository.save(monthMapping);
     }
 
@@ -127,12 +123,5 @@ public class MonthmappingService {
         return flag;
     }
 
-    private UserEntity getLoggedInUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return userRepository.findByUsername(userDetails.getUsername());
-        }
-        return null;
-    }
+
 }

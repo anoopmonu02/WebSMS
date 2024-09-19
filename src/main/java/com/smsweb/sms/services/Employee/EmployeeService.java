@@ -8,11 +8,8 @@ import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
-import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.users.UserService;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,13 +27,13 @@ public class EmployeeService {
     private final FileHandleHelper fileHandleHelper;
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserRepository userRepository) {
+    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService) {
         this.fileHandleHelper = fileHandleHelper;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @Transactional
@@ -44,74 +41,60 @@ public class EmployeeService {
         String imageResponse = fileHandleHelper.saveImage("employee", logo);
         boolean proceedFlag = false;
 
-        // Handle the image upload response
+        // UserEntity setup (new or existing)
+        UserEntity userEntity;
+
+        if (existingEmployee != null) {
+            // Use the existing UserEntity from the existing employee
+            userEntity = existingEmployee.getUserEntity();
+
+            // Set existing employee details
+            employee.setEmployeeCode(existingEmployee.getEmployeeCode());
+            if (existingEmployee.getPic() != null && !existingEmployee.getPic().isEmpty()) {
+                employee.setPic(existingEmployee.getPic());
+            }
+
+            // Copy over username and password from existing UserEntity
+
+            userEntity.setEmail(employee.getUserEntity().getEmail());
+            userEntity.setUsername(existingEmployee.getUserEntity().getUsername());
+            userEntity.setPassword(existingEmployee.getUserEntity().getPassword());
+            employee.setUserEntity(userEntity);
+            // Ensure other necessary fields from UserEntity are retained
+        } else {
+            // Generate employee code for new employee
+            employee.setEmployeeCode("ERN-" + fileNameOrSchoolCode);
+
+            // Create new UserEntity for new employee
+            userEntity = new UserEntity();
+
+            // Generate username and password
+            userEntity = generateUsernameAndPassword(employee, userEntity);
+            userEntity.setEmail(employee.getUserEntity().getEmail());
+            // Assign UserEntity to the new employee
+            employee.setUserEntity(userEntity);
+        }
+
+        // Handle image upload logic
         if (imageResponse == null || imageResponse.isEmpty()) {
-            // Use existing pic and other fields if employee already exists
-            if (existingEmployee != null) {
-                employee.setPic(existingEmployee.getPic());
-                employee.setEmployeeCode(existingEmployee.getEmployeeCode());
-                employee.setUsername(existingEmployee.getUsername());
-                employee.setPassword(existingEmployee.getPassword());
-            }
-            proceedFlag = true;
+            proceedFlag = true; // No image or error during upload
         } else if ("Success_no_image".equalsIgnoreCase(imageResponse)) {
-            proceedFlag = true;
-            if (existingEmployee != null) {
-                employee.setPic(existingEmployee.getPic());
-                employee.setEmployeeCode(existingEmployee.getEmployeeCode());
-                employee.setUsername(existingEmployee.getUsername());
-                employee.setPassword(existingEmployee.getPassword());
-            }
+            proceedFlag = true; // Success without an image
         } else if (imageResponse.startsWith("Failed to save the image: ")) {
             throw new FileFormatException(imageResponse);
         } else if ("Specified category not valid".equalsIgnoreCase(imageResponse)) {
             throw new RuntimeException(imageResponse);
         } else {
-            // New image is set
             employee.setPic(imageResponse);
-            employee.setEmployeeCode("ERN-" + fileNameOrSchoolCode);
             proceedFlag = true;
         }
 
-        // Ensure unique fields are not duplicated
         if (proceedFlag) {
-            // For new employee: Generate username and password if not updating
-            if (existingEmployee == null) {
-                employee.setPic(imageResponse);
-                employee.setEmployeeCode("ERN-" + fileNameOrSchoolCode);
-                employee = generateUsernameAndPassword(employee);
-            } else {
-                // Ensure that username and email are unique and not null/empty
-                if (employee.getUsername() == null || employee.getUsername().isEmpty()) {
-                    employee.setUsername(existingEmployee.getUsername());
-                }
-                if (employee.getEmail() == null || employee.getEmail().isEmpty()) {
-                    employee.setEmail(existingEmployee.getEmail());
-                }
-            }
+            // Save the Employee; cascades save UserEntity if cascade type is set correctly
+            return employeeRepository.save(employee);
         }
 
-        // Set createdBy or updatedBy fields
-        if (existingEmployee != null) {
-            employee.setUpdatedBy(getLoggedInUser());
-        } else {
-            employee.setCreatedBy(getLoggedInUser());
-        }
-
-        // Check for duplicate email or username before saving
-        Optional<Employee> employeeWithSameUsername = employeeRepository.findByUsername(employee.getUsername());
-        Optional<Employee> employeeWithSameEmail = employeeRepository.findByEmail(employee.getEmail());
-
-        if (employeeWithSameUsername.isPresent() && !employeeWithSameUsername.get().getUuid().equals(employee.getUuid())) {
-            throw new UniqueConstraintsException("Username already exists");
-        }
-
-        if (employeeWithSameEmail.isPresent() && !employeeWithSameEmail.get().getUuid().equals(employee.getUuid())) {
-            throw new UniqueConstraintsException("Email already exists");
-        }
-
-        // Save the employee entity
-        return employeeRepository.save(employee);
+        return null;
     }
 
     public List<Employee> getAllEmployees() {
@@ -123,15 +106,15 @@ public class EmployeeService {
     }
 
 
-    public Employee generateUsernameAndPassword(Employee employee) {
+    public UserEntity generateUsernameAndPassword(Employee employee, UserEntity userEntity) {
         // Generate Username
 
-        employee.setUsername(employee.getEmployeeCode());
+        userEntity.setUsername(employee.getEmployeeCode());
 
         String password = generatePassword(employee.getEmployeeCode(), employee.getMobile1());
-        employee.setPassword(passwordEncoder.encode(password));
+        userEntity.setPassword(passwordEncoder.encode(password));
 
-        return employee;
+        return userEntity;
     }
 
     public static String generatePassword(String employeeCode, String mobileNumber) {
@@ -148,14 +131,5 @@ public class EmployeeService {
 
     public Optional<Employee> getEmployeeByUUID(UUID uuid){
         return employeeRepository.findByUuidAndStatus(uuid, "Active");
-    }
-
-    private UserEntity getLoggedInUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return userRepository.findByUsername(userDetails.getUsername());
-        }
-        return null;
     }
 }

@@ -4,8 +4,13 @@ import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.repositories.employee.EmployeeRepository;
+import com.smsweb.sms.repositories.student.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,32 +21,26 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     public void saveUser(UserEntity userEntity) throws DuplicateUserException {
         try {
-            // Handle different types of UserEntity here if needed
-            if (userEntity instanceof Employee) {
-                saveEmployee((Employee) userEntity);
-            } else if (userEntity instanceof Student) {
-                saveStudent((Student) userEntity);
-            } else {
+            // Save logic based on the userType
+
                 userRepository.save(userEntity);
-            }
+
         } catch (DataIntegrityViolationException e) {
             throw new DuplicateUserException("Username or email already exists");
         }
     }
 
-    private void saveEmployee(Employee employee) {
-        // Save logic specific to Employee if needed
-        userRepository.save(employee);
-    }
 
-    private void saveStudent(Student student) {
-        // Save logic specific to Student if needed
-        userRepository.save(student);
-    }
 
 
 
@@ -52,5 +51,14 @@ public class UserService {
     public void updatePassword(UserEntity user, String newPassword) {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public UserEntity getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            return userRepository.findByUsername(userDetails.getUsername());
+        }
+        return null;
     }
 }

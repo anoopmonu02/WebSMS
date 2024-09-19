@@ -1,6 +1,7 @@
 package com.smsweb.sms.repositories.employee;
 
 import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +16,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     List<Employee> findAllBySchool_IdAndStatusOrderByEmployeeNameAsc(Long school, String status);
 
-    Optional<Employee> findByUsername(String username);
+    Employee findByUserEntity(UserEntity userEntity);
 
-    Optional<Employee> findByEmail(String email);
 }

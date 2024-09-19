@@ -227,8 +227,8 @@
         <div class="col-md-3"></div>
         <div class="col-md-4">
           <label for="email" class="form-label">Email</label>
-          <input type="text" id="email" class="form-control" th:field="*{email}">
-          <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">City Error</p>
+          <input type="text" id="email" class="form-control" th:field="*{userEntity.email}">
+          <p class="text-danger" th:if="${#fields.hasErrors('userEntity.email')}" th:errors="*{userEntity.email}">City Error</p>
         </div>
         <div class="col-md-8"></div>
 

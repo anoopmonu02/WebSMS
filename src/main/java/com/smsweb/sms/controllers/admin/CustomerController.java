@@ -5,6 +5,7 @@ import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Province;
 import com.smsweb.sms.services.admin.CustomerService;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -31,10 +32,12 @@ public class CustomerController {
     private final CustomerService customerService;
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private static final String PIC_FILENAME_FORMAT_PREFIX = "ddMMyyyyhhmmss";
+    private final UserService userService;
 
     @Autowired
-    public CustomerController(CustomerService customerService){
+    public CustomerController(CustomerService customerService, UserService userService){
         this.customerService = customerService;
+        this.userService = userService;
     }
 
     @GetMapping("/customer")
@@ -101,7 +104,7 @@ public class CustomerController {
         }
         customer.setRegistrationNo(registrationNo);
         System.out.println("customer: "+customer);
-        customer.setCreatedBy(customerService.getLoggedInUser());
+        customer.setCreatedBy(userService.getLoggedInUser());
         customerService.saveCustomer(customer);
 
         ra.addFlashAttribute("savecustomer", customer);
@@ -160,7 +163,7 @@ public class CustomerController {
         } else{
             //customer.setPic(null);
         }
-        customer.setUpdatedBy(customerService.getLoggedInUser());
+        customer.setUpdatedBy(userService.getLoggedInUser());
         customerService.saveCustomer(customer);
 
         ra.addFlashAttribute("update-customer", customer);

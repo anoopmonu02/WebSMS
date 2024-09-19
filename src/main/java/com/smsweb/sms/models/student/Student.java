@@ -2,7 +2,7 @@ package com.smsweb.sms.models.student;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.helper.DisplayLabel;
-import com.smsweb.sms.models.Users.UserEntity; // Import the UserEntity class
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.*;
@@ -22,7 +22,13 @@ import java.util.Date;
 @ToString(exclude = {"createdBy", "updatedBy"})
 public class Student extends UserEntity { // Extend UserEntity
 
-    // Removed the `id` field as it is inherited from UserEntity
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_entity_id", referencedColumnName = "id")
+    private UserEntity userEntity; // Create a one-to-one relationship with UserEntity
 
     @DisplayLabel("Registration No")
     private String registrationNo; // Auto-generated
@@ -135,7 +141,7 @@ public class Student extends UserEntity { // Extend UserEntity
     private String removalCause;
     private Integer passingYear;
 
-    // Emergency Info
+    // Emergency
     @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Emergency contact person name must not contain special characters")
     private String personName;
 
@@ -145,7 +151,7 @@ public class Student extends UserEntity { // Extend UserEntity
 
     private String relationship;
 
-    // Grade, Section, Medium
+    // Extra
     @ManyToOne
     @JoinColumn(name = "grade_id")
     @NotNull(message = "Grade should be available")
@@ -188,7 +194,7 @@ public class Student extends UserEntity { // Extend UserEntity
 
     @ManyToOne
     @JoinColumn(name = "academic_year_id")
-    @NotNull(message = "Academic Year should be available")
+    @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
 
     // Bank & Aadhar details
@@ -205,7 +211,8 @@ public class Student extends UserEntity { // Extend UserEntity
     @Column(length = 12)
     private String aadharNo;
 
-    // Metadata fields
+    // TODO: Add createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
     @JsonIgnore
@@ -215,9 +222,4 @@ public class Student extends UserEntity { // Extend UserEntity
     @JoinColumn(name = "updated_by")
     @JsonIgnore
     private UserEntity updatedBy;
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.lastUpdated = new Date();
-    }
 }
