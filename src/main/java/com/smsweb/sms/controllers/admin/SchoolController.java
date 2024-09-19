@@ -8,6 +8,7 @@ import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.services.admin.SchoolService;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -36,9 +37,12 @@ public class SchoolController {
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
     private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
+    private final UserService userService;
+
     @Autowired
-    public SchoolController(SchoolService schoolService) throws IOException {
+    public SchoolController(SchoolService schoolService, UserService userService) throws IOException {
         this.schoolService = schoolService;
+        this.userService = userService;
     }
 
     @GetMapping("/school")
@@ -75,6 +79,7 @@ public class SchoolController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
+            school.setCreatedBy(userService.getLoggedInUser());
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School " + school.getSchoolName() + " saved successfully";
             redirectAttribute.addFlashAttribute("success", msg);
@@ -130,6 +135,7 @@ public class SchoolController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
+            school.setUpdatedBy(userService.getLoggedInUser());
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School " + school.getSchoolName() + " updated successfully";
             redirectAttribute.addFlashAttribute("success", msg);

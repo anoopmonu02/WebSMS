@@ -9,6 +9,7 @@ import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.admin.FeedateRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
+import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,13 @@ import java.util.Optional;
 public class FeedateService {
     private final FeedateRepository feedateRepository;
     private final MonthMasterRepository monthMasterRepository;
+    private final UserService userService;
 
     @Autowired
-    public FeedateService(FeedateRepository feedateRepository, MonthMasterRepository monthMasterRepository){
+    public FeedateService(FeedateRepository feedateRepository, MonthMasterRepository monthMasterRepository, UserService userService){
         this.feedateRepository = feedateRepository;
         this.monthMasterRepository = monthMasterRepository;
+        this.userService = userService;
     }
 
     public List<FeeDate> getAllFeeDates(Long academicYear_id, Long school_id){
@@ -37,6 +40,7 @@ public class FeedateService {
 
     public FeeDate save(FeeDate feeDate){
         try{
+            feeDate.setCreatedBy(userService.getLoggedInUser());
             return feedateRepository.save(feeDate);
         }catch(DataIntegrityViolationException de){
             throw new UniqueConstraintsException("Fee date already saved ",de);

@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.Users;
 
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
@@ -16,16 +17,21 @@ import java.util.Date;
 import java.util.UUID;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "employees")  // Specifies the table name for Employee entities
+@Table(name = "employees")
 @ToString(exclude = {"createdBy", "updatedBy"})
-public class Employee extends UserEntity {  // Extend UserEntity
+public class Employee {
 
-    // Removed the @Id field as it is inherited from UserEntity
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private UserEntity userEntity; // One-to-One association with UserEntity
 
     @Column(nullable = false, unique = true)
-    private String employeeCode; // Auto-generated unique code for each employee
+    private String employeeCode;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -81,7 +87,6 @@ public class Employee extends UserEntity {  // Extend UserEntity
     @Column(nullable = false)
     private String status = "Active";
 
-    // Additional Fields
     @CreationTimestamp
     @Column(updatable = false)
     private Date creationDate;
@@ -94,7 +99,6 @@ public class Employee extends UserEntity {  // Extend UserEntity
     @NotNull(message = "School should be available")
     private School school;
 
-    // Metadata fields
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
     @JsonIgnore
@@ -117,6 +121,6 @@ public class Employee extends UserEntity {  // Extend UserEntity
 
     @PreUpdate
     protected void onUpdate() {
-        this.lastUpdated = new Date();  // Update lastUpdated timestamp during update
+        this.lastUpdated = new Date();
     }
 }

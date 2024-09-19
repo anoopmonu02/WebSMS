@@ -9,11 +9,9 @@ import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
-import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +28,15 @@ public class StudentService {
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileHandleHelper fileHandleHelper;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserRepository userRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileHandleHelper = fileHandleHelper;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     public List<Student> getAllActiveStudents(Long school_id) {
@@ -81,16 +79,15 @@ public class StudentService {
             if(proceedFlag){
                 if(existingStudent==null){
                     // Set username as registration number
-                    student.setUsername(student.getRegistrationNo());
+                    UserEntity userEntity = new UserEntity();
+                    userEntity.setUsername(student.getRegistrationNo());
+
                     // Generate password
                     String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
-                    student.setPassword(passwordEncoder.encode(password));
-                    student.setCreatedBy(getLoggedInUser());
-                }
-                else{
-                    student.setUpdatedBy(getLoggedInUser());
-                }
+                    userEntity.setPassword(password);
+                    student.setUserEntity(userEntity);
 
+                }
                 Student savedStudent = repository.save(student);
                 if(existingStudent==null){
                     AcademicStudent academicStudent = new AcademicStudent();
@@ -101,7 +98,6 @@ public class StudentService {
                     academicStudent.setSection(savedStudent.getSection());
                     academicStudent.setDescription("Saving at time of student creation.");
                     academicStudent.setStudent(savedStudent);
-                    academicStudent.setCreatedBy(getLoggedInUser());
                     academicStudentRepository.save(academicStudent);
                 }
                 return savedStudent;
@@ -123,7 +119,7 @@ public class StudentService {
             Student student = repository.findById(studentId).orElse(null);
             if (student != null) {
                 student.setMobile1(contactNo);
-                student.setUpdatedBy(getLoggedInUser());
+                student.setUpdatedBy(userService.getLoggedInUser());
                 repository.save(student);
                 return studentId;
             }
@@ -198,11 +194,11 @@ public class StudentService {
                 existingStudent.setPincode(student.getPincode());
                 existingStudent.setMobile1(student.getMobile1());
                 existingStudent.setMobile2(student.getMobile2());
-                existingStudent.setEmail(student.getEmail());
+                existingStudent.getUserEntity().setEmail(student.getUserEntity().getEmail());
                 existingStudent.setPersonName(student.getPersonName());
                 existingStudent.setPersonContact(student.getPersonContact());
                 existingStudent.setRelationship(student.getRelationship());
-
+                existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 return existingStudent;
             }
@@ -321,15 +317,6 @@ public class StudentService {
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();
         }
-    }
-
-    private UserEntity getLoggedInUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return userRepository.findByUsername(userDetails.getUsername());
-        }
-        return null;
     }
 
 }

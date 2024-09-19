@@ -5,6 +5,7 @@ import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -19,6 +20,7 @@ import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +45,7 @@ import java.util.Optional;
 public class StudentController {
 
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+
     @Value("${student.image.storage.path}")
     private String studentImageDirectory;
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
@@ -51,14 +54,16 @@ public class StudentController {
     private final DropdownService dropdownService;
     private final AcademicyearService academicyearService;
     private final SchoolService schoolService;
+    private final UserService userService;
 
     @Autowired
-    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService){
+    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1){
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.dropdownService = dropdownService;
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
+        this.userService = userService1;
     }
 
     @GetMapping("/student")
@@ -72,7 +77,9 @@ public class StudentController {
 
     @GetMapping("/student/add")
     public String addStudentData(Model model){
-        model.addAttribute("student", new Student());
+        Student student = new Student();
+        student.setUserEntity(new UserEntity());
+        model.addAttribute("student", student);
         model = getAllGlobalModels(model);
         return "/student/add-student";
     }
@@ -119,8 +126,11 @@ public class StudentController {
         }*/
         Student existingStudent = null;
         try{
-            existingStudent = studentService.getStudentDetail(student.getId(), 4L).orElse(null);
-            returnStr = "/student/edit-student";
+            if(student.getId()!=null){
+                existingStudent = studentService.getStudentDetail(student.getId(), 4L).orElse(null);
+                returnStr = "/student/edit-student";
+            }
+
         }catch(Exception e){
             existingStudent = null;
         }
@@ -136,6 +146,12 @@ public class StudentController {
             School school = schoolService.getSchoolById(4L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
+            if(existingStudent!=null){
+                student.setUpdatedBy(userService.getLoggedInUser());
+            }
+            else{
+                student.setCreatedBy(userService.getLoggedInUser());
+            }
             Student savedStudent = studentService.saveStudent(student, customerPic, fileNameOrSchoolCode, existingStudent);
             String msg = "Student " + student.getStudentName() + " saved successfully";
             try{
@@ -147,14 +163,16 @@ public class StudentController {
             redirectAttribute.addFlashAttribute("success", msg);
             return "redirect:/student/student";
         }catch(FileFormatException ffe){
+            ffe.printStackTrace();
             model = getAllGlobalModels(model);
             model.addAttribute("error", ffe.getMessage());
-            ffe.printStackTrace();
+
             return returnStr;
         } catch(FileSizeLimitExceededException ffle){
+            ffle.printStackTrace();
             model.addAttribute("error", ffle.getMessage());
             model = getAllGlobalModels(model);
-            ffle.printStackTrace();
+
             return returnStr;
         } catch(UniqueConstraintsException ue){
             model.addAttribute("error", ue.getMessage());

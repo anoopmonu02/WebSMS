@@ -31,7 +31,7 @@
                             <td th:text="${employee.employeeCode}"></td>
                             <td th:text="${employee.designation}"></td>
                             <td th:text="${employee.mobile1}"></td>
-                            <td th:text="${employee.email}"></td>
+                            <td th:text="${employee.getUserEntity().getEmail()}"></td>
                             <td th:text="${employee.address}"></td>
                             <td style="white-space: nowrap" class="text-center">
                                 <a class="btn btn-primary" th:href="@{/employee/employee-edit/{uuid}(uuid=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">

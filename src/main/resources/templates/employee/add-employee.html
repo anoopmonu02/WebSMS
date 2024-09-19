@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
 <head>
-  <meta charset="UTF-8">
-  <title>UAIC - Student</title>
+    <meta charset="UTF-8">
+    <title>UAIC - Employee Registration</title>
 </head>
 <body>
 <section>
@@ -49,7 +49,6 @@
                     <label for="customerPic" class="form-label">Employee Image</label>
                     <input type="file" class="form-control" id="customerPic" name="customerPic">
                     <p class="text-danger" th:if="${#fields.hasErrors('pic')}" th:errors="*{pic}">pic Error</p>
-                    <!--<p class="text-danger" th:if="${picUploadError}" th:text="${picUploadError}"/>-->
                 </div>
                 <div class="col-md-3">
                     <label for="nationality" class="form-label">Nationality</label>
@@ -90,19 +89,19 @@
                 <div class="col-md-3">
                     <label for="mobile1" class="form-label">Mobile 1</label>
                     <input type="text" id="mobile1" class="form-control intfields" th:field="*{mobile1}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">City Error</p>
+                    <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">Mobile 1 Error</p>
                 </div>
                 <div class="col-md-3">
                     <label for="mobile2" class="form-label">Mobile 2</label>
                     <input type="text" id="mobile2" class="form-control intfields" th:field="*{mobile2}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">City Error</p>
+                    <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">Mobile 2 Error</p>
                 </div>
                 <div class="col-md-6"></div>
 
                 <div class="col-md-4">
                     <label for="email" class="form-label">Email</label>
-                    <input type="text" id="email" class="form-control" th:field="*{email}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">City Error</p>
+                    <input type="text" id="email" class="form-control" th:field="*{userEntity.email}">
+                    <p class="text-danger" th:if="${#fields.hasErrors('userEntity.email')}" th:errors="*{userEntity.email}">Email Error</p>
                 </div>
                 <div class="col-md-8"></div>
 
@@ -112,12 +111,12 @@
                 <div class="col-md-4">
                     <label for="designation" class="form-label">Designation</label>
                     <input type="text" id="designation" class="form-control" th:field="*{designation}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('designation')}" th:errors="*{designation}">City Error</p>
+                    <p class="text-danger" th:if="${#fields.hasErrors('designation')}" th:errors="*{designation}">Designation Error</p>
                 </div>
                 <div class="col-md-4">
                     <label for="department" class="form-label">Department</label>
                     <input type="text" id="department" class="form-control" th:field="*{department}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">City Error</p>
+                    <p class="text-danger" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">Department Error</p>
                 </div>
                 <div class="col-md-4"></div>
                 <hr/>
@@ -145,39 +144,29 @@
         });
 
         toastr.options = {
-          "closeButton": true,
-          "debug": false,
-          "newestOnTop": false,
-          "progressBar": false,
-          "positionClass": "toast-top-right",
-          "preventDuplicates": false,
-          "onclick": null,
-          "showDuration": "600",
-          "hideDuration": "1000",
-          "timeOut": "5000",
-          "extendedTimeOut": "1000",
-          "showEasing": "swing",
-          "hideEasing": "linear",
-          "showMethod": "fadeIn",
-          "hideMethod": "fadeOut"
-        }
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
 
-        const successMessage = [[${success}]];
-        if (successMessage) {
-          toastr["success"](successMessage,"Success");
+        let msg = /*[[${message}]]*/ 'undefined';
+        if (msg !== 'undefined' && msg.length > 0) {
+            toastr.success(msg);
         }
-
-        const infoMessage = [[${info}]];
-        if (infoMessage) {
-          toastr["info"](infoMessage, "Info");
-        }
-
-        const errorMessage = [[${error}]];
-        if (errorMessage) {
-          toastr["error"](errorMessage, "Error");
-        }
-
     </script>
+
 </section>
 </body>
 </html>

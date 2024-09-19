@@ -4,10 +4,12 @@ import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.admin.SchoolService;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -36,15 +38,17 @@ import java.util.UUID;
 public class EmployeeController {
 
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
+    private final UserService userService;
     @Value("${employee.image.storage.path}")
     private String employeeImageDirectory;
     private final EmployeeService employeeService;
     private final SchoolService schoolService;
 
 
-    public EmployeeController(EmployeeService employeeService, SchoolService schoolService) {
+    public EmployeeController(EmployeeService employeeService, SchoolService schoolService, UserService userService) {
         this.employeeService = employeeService;
         this.schoolService = schoolService;
+        this.userService = userService;
     }
 
     @GetMapping("/employee-list")
@@ -57,14 +61,20 @@ public class EmployeeController {
     }
 
     @GetMapping("/employee-add")
-    public String getAddEmployeeForm(Model model){
-        model.addAttribute("employee", new Employee());
+    public String getAddEmployeeForm(Model model) {
+        // Create a new Employee object and initialize its UserEntity
+        Employee employee = new Employee();
+        employee.setUserEntity(new UserEntity()); // Assuming UserEntity is now part of Employee
+
+        // Add the Employee object to the model
+        model.addAttribute("employee", employee);
+
         return "/employee/add-employee";
     }
 
     @PostMapping("/employee-save")
-    public String saveEmployee(@Valid @ModelAttribute("employee") Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
-                               @RequestParam("customerPic") MultipartFile customerPic) {
+    public String saveEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
+                               @RequestParam("customerPic") MultipartFile customerPic){
         String returnStr = "/employee/add-employee";
         Employee existingEmployee = null;
 
@@ -87,6 +97,12 @@ public class EmployeeController {
         try{
             School school = schoolService.getSchoolById(4L).get();
             employee.setSchool(school);
+            if(existingEmployee!=null){
+                employee.setUpdatedBy(userService.getLoggedInUser());
+            }
+            else{
+                employee.setCreatedBy(userService.getLoggedInUser());
+            }
             Employee emp = employeeService.saveEmployee(employee, customerPic, fileNameOrSchoolCode, existingEmployee);
             String msg = "Employee: " + employee.getEmployeeName() + " saved successfully";
             if (existingEmployee != null) {

@@ -10,6 +10,7 @@ import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.*;
 import com.smsweb.sms.services.universal.*;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -40,12 +41,13 @@ public class GlobalController {
     private final DiscountclassmapService discountclassmapService;
     private final DiscountmonthmapService discountmonthmapService;
     private final FullpaymentService fullpaymentService;
+    private final UserService userService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -61,6 +63,7 @@ public class GlobalController {
         this.discountService = discountService;
         this.discountmonthmapService = discountmonthmapService;
         this.fullpaymentService = fullpaymentService;
+        this.userService = userService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -94,7 +97,7 @@ public class GlobalController {
         try{
             School school = schoolService.getSchoolById(Long.parseLong("4")).get();
             academicYear.setSchool(school);
-            academicYear.setCreatedBy(academicyearService.getLoggedInUser());
+            academicYear.setCreatedBy(userService.getLoggedInUser());
             academicyearService.save(academicYear);
             ra.addFlashAttribute("success","Academic year - "+academicYear.getSessionFormat()+ " saved successfully.");
         }catch(DataIntegrityViolationException de){
@@ -131,7 +134,7 @@ public class GlobalController {
         try{
             School school = schoolService.getSchoolById(Long.parseLong("4")).get();
             academicyear.setSchool(school);
-            academicyear.setUpdatedBy(academicyearService.getLoggedInUser());
+            academicyear.setUpdatedBy(userService.getLoggedInUser());
             academicyearService.save(academicyear);
             ra.addFlashAttribute("success","Academic year - "+academicyear.getSessionFormat()+ " Updated successfully.");
         }catch(DataIntegrityViolationException de){
@@ -239,7 +242,7 @@ public class GlobalController {
             AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
             feedate.setAcademicYear(academicYear);
             feedate.setSchool(school);
-            feedate.setCreatedBy(discountclassmapService.getLoggedInUser());
+            feedate.setCreatedBy(userService.getLoggedInUser());
             feedateService.save(feedate);
             redirectAttributes.addFlashAttribute("success","Fee Date saved successfully for: "+feedate.getMonthMaster().getMonthName());
         }catch(DataIntegrityViolationException de){
@@ -313,11 +316,11 @@ public class GlobalController {
             fine.setSchool(school);
             String returnMsg = "Fine saved successfully for: "+fine.getFinehead().getFineHeadName();
             if(fine.getId()!=null){
-                fine.setUpdatedBy(discountclassmapService.getLoggedInUser());
+                fine.setUpdatedBy(userService.getLoggedInUser());
                 returnMsg = "Fine updated successfully for: "+fine.getFinehead().getFineHeadName();
             }
             else{
-                fine.setCreatedBy(discountclassmapService.getLoggedInUser());
+                fine.setCreatedBy(userService.getLoggedInUser());
             }
             fineService.saveFine(fine);
             redirectAttributes.addFlashAttribute("success",returnMsg);
@@ -444,7 +447,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
-                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser());
                 feeClassMapList.add(feeclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -476,7 +479,7 @@ public class GlobalController {
             return "/admin/edit-feeclassmap";
         }
         try{
-            feeClassMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
+            feeClassMap.setUpdatedBy(userService.getLoggedInUser());
             feeclassmapService.save(feeClassMap);
             ra.addFlashAttribute("info", "Fee-Class mapping updated for Grade: "+feeClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -596,7 +599,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setFeehead(feehead);
                 System.out.println("Grade "+fee.getFeehead());
-                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser());
                 feeMonthMapList.add(feemonthmapService.saveFeeMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -628,7 +631,7 @@ public class GlobalController {
             return "/admin/edit-feemonthmap";
         }
         try{
-            feeMonthMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
+            feeMonthMap.setUpdatedBy(userService.getLoggedInUser());
             feemonthmapService.saveFeeMonth(feeMonthMap);
             ra.addFlashAttribute("info", "Fee-Month mapping updated for Fee: "+feeMonthMap.getFeehead().getFeeHeadName());
         }catch(Exception e){
@@ -741,7 +744,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
-                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser());
                 discountClassMapList.add(discountclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -773,7 +776,7 @@ public class GlobalController {
             return "/admin/edit-discountclassmap";
         }
         try{
-            discountClassMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
+            discountClassMap.setUpdatedBy(userService.getLoggedInUser());
             discountclassmapService.save(discountClassMap);
             ra.addFlashAttribute("info", "Discount-Class mapping updated for Grade: "+discountClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -893,7 +896,7 @@ public class GlobalController {
                 fee.setSchool(school);
                 fee.setDiscounthead(feehead);
                 System.out.println("Grade "+fee.getDiscounthead());
-                fee.setCreatedBy(discountclassmapService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser());
                 discountMonthMapList.add(discountmonthmapService.saveDiscountMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -925,7 +928,7 @@ public class GlobalController {
             return "/admin/edit-discountmonthmap";
         }
         try{
-            discountMonthMap.setUpdatedBy(discountclassmapService.getLoggedInUser());
+            discountMonthMap.setUpdatedBy(userService.getLoggedInUser());
             discountmonthmapService.saveDiscountMonth(discountMonthMap);
             ra.addFlashAttribute("info", "Discount-Month mapping updated for Fee: "+discountMonthMap.getDiscounthead().getDiscountName());
         }catch(Exception e){
