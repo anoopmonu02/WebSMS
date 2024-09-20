@@ -11,6 +11,8 @@ import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -36,7 +38,7 @@ import java.util.UUID;
 @Controller
 @RequestMapping("/employee")
 public class EmployeeController {
-
+    Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
     private final UserService userService;
     @Value("${employee.image.storage.path}")
@@ -57,6 +59,7 @@ public class EmployeeController {
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
         model.addAttribute("page", "datatable");
+        log.debug("Total employees - "+employees.size());
         return "/employee/employee";
     }
 
