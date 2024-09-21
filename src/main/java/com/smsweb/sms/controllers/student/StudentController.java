@@ -21,6 +21,7 @@ import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.users.UserService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,7 +69,7 @@ public class StudentController {
 
     @GetMapping("/student")
     public String studentData(Model model){
-        List<Student> studentList = studentService.getAllActiveStudents(4L);
+        List<Student> studentList = studentService.getAllActiveStudents(3L);
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
@@ -117,7 +118,7 @@ public class StudentController {
 
     @PostMapping("/student")
     public String saveStudent(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
-                             Model model, RedirectAttributes redirectAttribute) {
+                             Model model, RedirectAttributes redirectAttribute,  HttpSession session) {
         //@RequestParam("customerPic1")MultipartFile customerPic1,
         String returnStr = "/student/add-student";
         /*boolean isStudentFound = isStudentExists(student);
@@ -142,8 +143,9 @@ public class StudentController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
-            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = (AcademicYear) session.getAttribute("activeAcademicYear");
+            student.setAcademicYear(academicYear);
+            School school = schoolService.getSchoolById(3L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
             if(existingStudent!=null){
@@ -210,7 +212,7 @@ public class StudentController {
 
     @GetMapping("/student/edit/{id}")
     public String editStudentForm(@PathVariable("id")Long id, Model model, RedirectAttributes redirectAttributes){
-        Student student = studentService.getStudentDetail(id, 4L).orElse(null);;
+        Student student = studentService.getStudentDetail(id, 3L).orElse(null);;
         if(student==null){
             redirectAttributes.addFlashAttribute("error", "Student not found");
             List<Student> studentList = studentService.getAllActiveStudents(4L);
@@ -231,8 +233,8 @@ public class StudentController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
-            School school = schoolService.getSchoolById(4L).get();
+            AcademicYear academicYear = academicyearService.getAcademicyearById(3L).get();
+            School school = schoolService.getSchoolById(3L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
             Student existingStudent = studentService.editStudentDetails(student, customerPic, fileNameOrSchoolCode);

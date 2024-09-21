@@ -20,7 +20,7 @@ import java.util.Date;
 @Entity
 @Table(name = "students")  // Specifies the table name for Student entities
 @ToString(exclude = {"createdBy", "updatedBy"})
-public class Student extends UserEntity { // Extend UserEntity
+public class Student { // Extend UserEntity
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -211,7 +211,7 @@ public class Student extends UserEntity { // Extend UserEntity
     @Column(length = 12)
     private String aadharNo;
 
-    // TODO: Add createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
+    // createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)

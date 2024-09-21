@@ -1,5 +1,6 @@
 package com.smsweb.sms.services.student;
 
+import com.smsweb.sms.controllers.employee.EmployeeController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
@@ -10,8 +11,9 @@ import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import com.smsweb.sms.services.users.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class StudentService {
-
+    public static final Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final StudentRepository repository;
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder passwordEncoder;
@@ -65,6 +67,9 @@ public class StudentService {
                         student.setRegistrationNo(existingStudent.getRegistrationNo());
                     }
                 }
+                else{
+                    student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
+                }
             } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
                 throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
             } else if (foundImageResponse && imageResponse.startsWith("Failed to save the image: ")) {
@@ -85,6 +90,7 @@ public class StudentService {
                     // Generate password
                     String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
                     userEntity.setPassword(password);
+                    userEntity.setEmail(student.getUserEntity().getEmail());
                     student.setUserEntity(userEntity);
 
                 }
@@ -103,6 +109,7 @@ public class StudentService {
                 return savedStudent;
             }
         }catch(Exception e){
+            log.debug("error while saving Student--"+e.getMessage());
             e.printStackTrace();
         }
 
