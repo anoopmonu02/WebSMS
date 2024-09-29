@@ -66,8 +66,7 @@ public class StudentService {
                         student.setPic(existingStudent.getPic());
                         student.setRegistrationNo(existingStudent.getRegistrationNo());
                     }
-                }
-                else{
+                } else{
                     student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
                 }
             } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
@@ -86,13 +85,11 @@ public class StudentService {
                     // Set username as registration number
                     UserEntity userEntity = new UserEntity();
                     userEntity.setUsername(student.getRegistrationNo());
-
                     // Generate password
                     String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
                     userEntity.setPassword(password);
                     userEntity.setEmail(student.getUserEntity().getEmail());
                     student.setUserEntity(userEntity);
-
                 }
                 Student savedStudent = repository.save(student);
                 if(existingStudent==null){

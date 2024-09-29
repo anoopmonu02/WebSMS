@@ -15,6 +15,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -206,6 +207,9 @@ public class Student { // Extend UserEntity
     private String branchName;
     private String ifscCode;
     private String accountNo;
+
+    @Column(updatable = false, nullable = false, unique = true)
+    private UUID uuid;
 
     @Pattern(regexp = "^$|^[0-9]{12}$", message = "Aadhar number must be a 12-digit number")
     @Column(length = 12)

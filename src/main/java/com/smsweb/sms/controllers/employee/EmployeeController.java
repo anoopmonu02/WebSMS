@@ -20,6 +20,8 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -55,7 +57,12 @@ public class EmployeeController {
 
     @GetMapping("/employee-list")
     public String getEmployeeList(Model model){
-        List<Employee> employees = employeeService.getAllActiveEmployees(4L);
+        List<Employee> employees = null;
+        if(isSuperAdminLoggedIn()){
+            employees = employeeService.getAllEmployees();
+        } else{
+            employees = employeeService.getAllActiveEmployees(4L);
+        }
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
         model.addAttribute("page", "datatable");
@@ -71,8 +78,29 @@ public class EmployeeController {
 
         // Add the Employee object to the model
         model.addAttribute("employee", employee);
+        try{
+            if(isSuperAdminLoggedIn()){
+                model.addAttribute("superUserLogin", true);
+                model.addAttribute("schools", schoolService.getAllSchools());
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
 
         return "/employee/add-employee";
+    }
+
+    private boolean isSuperAdminLoggedIn(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName(); // Get logged-in username
+            if(username.equalsIgnoreCase("super_admin")){
+                return true;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 
     @PostMapping("/employee-save")
@@ -98,7 +126,7 @@ public class EmployeeController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            School school = schoolService.getSchoolById(4L).get();
+            School school = schoolService.getSchoolById(employee.getSchool().getId()).get();
             employee.setSchool(school);
             if(existingEmployee!=null){
                 employee.setUpdatedBy(userService.getLoggedInUser());

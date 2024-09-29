@@ -3,6 +3,7 @@ package com.smsweb.sms.models.admin;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.Users.UserEntity;
 import jakarta.persistence.*;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.ToString;
@@ -14,6 +15,7 @@ import java.util.Date;
 @Data
 @Entity
 @ToString(exclude = {"createdBy", "updatedBy"})
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_sessionformat",columnNames = {"sessionFormat", "school_id"})})
 public class AcademicYear {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +34,6 @@ public class AcademicYear {
 
     @NotBlank(message = "Academic year format should not blank")
     @Size(max = 50, message = "Academic year format should not exceed 50 chars")
-    @Column(unique = true)
     private String sessionFormat;
 
     @Column(columnDefinition = "TEXT")
