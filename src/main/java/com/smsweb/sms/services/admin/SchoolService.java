@@ -83,7 +83,7 @@ public class SchoolService {
                     school.setSchoolCode(existingSchool.getSchoolCode());
 
                 }
-                if(existingSchool.getId()!=null){
+                if(existingSchool!=null && existingSchool.getId()!=null){
                     school.setUpdatedBy(getLoggedInUser());
                 }
                 else{

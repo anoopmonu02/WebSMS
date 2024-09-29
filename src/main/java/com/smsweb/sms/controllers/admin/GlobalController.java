@@ -1,5 +1,8 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.config.AcademicYearHolder;
+import com.smsweb.sms.config.SchoolHolder;
+import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.ObjectNotDeleteException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
@@ -11,6 +14,7 @@ import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.services.admin.*;
 import com.smsweb.sms.services.universal.*;
 import com.smsweb.sms.services.users.UserService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,7 +28,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/admin")
-public class GlobalController {
+public class GlobalController extends BaseController {
 
     private final AcademicyearService academicyearService;
     private final MonthmappingService monthmappingService;
@@ -43,11 +47,14 @@ public class GlobalController {
     private final FullpaymentService fullpaymentService;
     private final UserService userService;
 
+    private final AcademicYearHolder academicYearHolder;
+    private final SchoolHolder schoolHolder;
+
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -64,6 +71,8 @@ public class GlobalController {
         this.discountmonthmapService = discountmonthmapService;
         this.fullpaymentService = fullpaymentService;
         this.userService = userService;
+        this.academicYearHolder = academicYearHolder;
+        this.schoolHolder = schoolHolder;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -71,7 +80,11 @@ public class GlobalController {
     @GetMapping("/academicyear")
     public String academciyear(Model model){
         //Get data of school when loggedin
-        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(4L);
+        School school = (School)model.getAttribute("school");
+        System.out.println("school holder "+school.getSchoolName());
+        //System.out.println("activeAcademicYear holder "+model.getAttribute("activeAcademicYear"));
+
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
         model.addAttribute("academicYears", academicYears);
         model.addAttribute("hasAcademicyears", !academicYears.isEmpty());
         model.addAttribute("page", "datatable");
@@ -95,7 +108,7 @@ public class GlobalController {
         System.out.println(academicYear.getEndDate());
         System.out.println(academicYear.getSchool());
         try{
-            School school = schoolService.getSchoolById(Long.parseLong("4")).get();
+            School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
             academicYear.setSchool(school);
             academicYear.setCreatedBy(userService.getLoggedInUser());
             academicyearService.save(academicYear);
@@ -132,7 +145,7 @@ public class GlobalController {
             return "/admin/edit-academicyear";
         }
         try{
-            School school = schoolService.getSchoolById(Long.parseLong("4")).get();
+            School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
             academicyear.setSchool(school);
             academicyear.setUpdatedBy(userService.getLoggedInUser());
             academicyearService.save(academicyear);
@@ -157,7 +170,9 @@ public class GlobalController {
     @GetMapping("/month-mapping")
     public String getMonthmappings(Model model){
         //Get data of school and academicyear when loggedin
-        List<MonthMapping> monthmappings = monthmappingService.getAllMonthMapping(14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<MonthMapping> monthmappings = monthmappingService.getAllMonthMapping(academicYear.getId(), school.getId());
         model.addAttribute("monthmappings", monthmappings);
         model.addAttribute("hasMonthMappings", !monthmappings.isEmpty());
         return "/admin/monthmapping";
@@ -183,8 +198,9 @@ public class GlobalController {
         List<MonthMaster> months = monthMasterService.getAllMonths();
         try{
             if(selectedMonth!=null){
-                AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
-                School school = schoolService.getSchoolById(4L).get();
+
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
                 String msg = monthmappingService.save(selectedMonth, academicYear, school);
                 if(msg.equalsIgnoreCase("success")){
                     redirectAttributes.addFlashAttribute("success","Month mapping generated for this academic year-"+academicYear.getSessionFormat());
@@ -217,7 +233,9 @@ public class GlobalController {
     @GetMapping("/feedate")
     public String getFeeDate(Model model){
         //Get data of school and academicyear when loggedin
-        List<FeeDate> feeDateList = feedateService.getAllFeeDates(14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<FeeDate> feeDateList = feedateService.getAllFeeDates(academicYear.getId(), school.getId());
         model.addAttribute("feedates", feeDateList);
         model.addAttribute("isFeeDates", !feeDateList.isEmpty());
         return "/admin/feedate";
@@ -238,8 +256,8 @@ public class GlobalController {
             return "/admin/add-feedate";
         }
         try{
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             feedate.setAcademicYear(academicYear);
             feedate.setSchool(school);
             feedate.setCreatedBy(userService.getLoggedInUser());
@@ -289,7 +307,9 @@ public class GlobalController {
 
     @GetMapping("/fine")
     public String getFineForm(Model model){
-        List<Fine> fineList = fineService.getAllFines(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<Fine> fineList = fineService.getAllFines(school.getId(), academicYear.getId());
         model.addAttribute("fines", fineList);
         model.addAttribute("isFine", !fineList.isEmpty());
         return "/admin/fine";
@@ -310,8 +330,8 @@ public class GlobalController {
             return "/admin/add-fine";
         }
         try{
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             fine.setAcademicYear(academicYear);
             fine.setSchool(school);
             String returnMsg = "Fine saved successfully for: "+fine.getFinehead().getFineHeadName();
@@ -371,7 +391,9 @@ public class GlobalController {
 
     @GetMapping("/fee-class")
     public String getFeeClassDetails(Model model){
-        List<FeeClassMap> feeClassMaps = feeclassmapService.getAllFeeClassMapping(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<FeeClassMap> feeClassMaps = feeclassmapService.getAllFeeClassMapping(school.getId(), academicYear.getId());
         model.addAttribute("feeclass", feeClassMaps);
         model.addAttribute("hasFeeClassMap", !feeClassMaps.isEmpty());
         model.addAttribute("page", "datatable");
@@ -389,13 +411,19 @@ public class GlobalController {
 
     @PostMapping("/fee-class/getAllFeeData/{classId}")
     @ResponseBody
-    public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId){
+    public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId, HttpSession session, Model model){
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
             Map<String, String> finalMap = new HashMap<>();
             Set<String> processedFeeheads = new HashSet<>();
-            List<FeeClassMap> feeClassMapList = feeclassmapService.getAllFeeClassMappingByGrade(classId, 4L, 14L);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            if (academicYear == null) {
+                model.addAttribute("errorMessage", "Academic Year not found in session");
+                responseMap.put("error", new HashMap<>()); // Redirect to an error page or display an error message
+            }
+            List<FeeClassMap> feeClassMapList = feeclassmapService.getAllFeeClassMappingByGrade(classId, school.getId(), academicYear.getId());
             List<Feehead> feeheadList = feeheadService.getAllFeeheads();
             if(feeClassMapList!=null && !feeClassMapList.isEmpty()){
                 feeClassMapList.forEach(fcm -> {
@@ -437,8 +465,8 @@ public class GlobalController {
 
         try{
             List<FeeClassMap> feeClassMapList = new ArrayList<>();
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = feeClassMaps.get(0).getGrade();
             for (FeeClassMap fee : feeClassMaps) {
                 System.out.println("Fee Head Name: " + fee.getFeehead());
@@ -517,7 +545,9 @@ public class GlobalController {
 
     @GetMapping("/fee-month")
     public String getFeeMonthDetails(Model model){
-        List<FeeMonthMap> feeMonthMaps = feemonthmapService.getAllFeeMonthMap(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<FeeMonthMap> feeMonthMaps = feemonthmapService.getAllFeeMonthMap(school.getId(), academicYear.getId());
         model.addAttribute("feemonths", feeMonthMaps);
         model.addAttribute("hasFeeMonthMap", !feeMonthMaps.isEmpty());
         model.addAttribute("page", "datatable");
@@ -534,13 +564,15 @@ public class GlobalController {
 
     @PostMapping("/fee-month/getAllFeeMonthData/{feeId}")
     @ResponseBody
-    public Map<String, Map<String, Boolean>> getAllFeeMonthData(@PathVariable("feeId")Long feeId){
+    public Map<String, Map<String, Boolean>> getAllFeeMonthData(@PathVariable("feeId")Long feeId, Model model){
         Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
             Map<String, Boolean> finalMap = new HashMap<>();
             Set<String> processedMonths = new HashSet<>();
-            List<FeeMonthMap> feeMonthMapList = feemonthmapService.getAllFeeMonthMapByFee(4L, 14L, feeId);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            List<FeeMonthMap> feeMonthMapList = feemonthmapService.getAllFeeMonthMapByFee(school.getId(), academicYear.getId(), feeId);
             List<MonthMaster> monthMasters = monthMasterService.getAllMonths();
             if(feeMonthMapList!=null && !feeMonthMapList.isEmpty()){
                 feeMonthMapList.forEach(fcm -> {
@@ -589,8 +621,8 @@ public class GlobalController {
 
         try{
             List<FeeMonthMap> feeMonthMapList = new ArrayList<>();
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Feehead feehead = feeMonthMaps.get(0).getFeehead();
             for (FeeMonthMap fee : feeMonthMaps) {
                 System.out.println("Fee Head Name: " + fee.getMonthMaster());
@@ -670,7 +702,9 @@ public class GlobalController {
 
     @GetMapping("/discount-class")
     public String getDiscountClassDetails(Model model){
-        List<DiscountClassMap> discountClassMaps = discountclassmapService.getAllDiscountClassMapping(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<DiscountClassMap> discountClassMaps = discountclassmapService.getAllDiscountClassMapping(school.getId(), academicYear.getId());
         model.addAttribute("discountclasses", discountClassMaps);
         model.addAttribute("hasDiscountClassMap", !discountClassMaps.isEmpty());
         model.addAttribute("page", "datatable");
@@ -687,13 +721,15 @@ public class GlobalController {
 
     @PostMapping("/discount-class/getAllDiscountData/{classId}")
     @ResponseBody
-    public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId){
+    public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId, Model model){
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
             Map<String, String> finalMap = new HashMap<>();
             Set<String> processedDiscountHeads = new HashSet<>();
-            List<DiscountClassMap> discountClassMapList = discountclassmapService.getAllDiscountClassMappingByGrade(4L, 14L, classId);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            List<DiscountClassMap> discountClassMapList = discountclassmapService.getAllDiscountClassMappingByGrade(school.getId(), academicYear.getId(), classId);
             List<Discounthead> discountheadList = discountService.getAllDiscountheads();
             if(discountClassMapList!=null && !discountClassMapList.isEmpty()){
                 discountClassMapList.forEach(fcm -> {
@@ -734,8 +770,8 @@ public class GlobalController {
 
         try{
             List<DiscountClassMap> discountClassMapList = new ArrayList<>();
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = discountClassMaps.get(0).getGrade();
             for (DiscountClassMap fee : discountClassMaps) {
                 System.out.println("Fee Head Name: " + fee.getDiscounthead());
@@ -814,7 +850,9 @@ public class GlobalController {
 
     @GetMapping("/discount-month")
     public String getDiscountMonthDetails(Model model){
-        List<DiscountMonthMap> discountMonthMaps = discountmonthmapService.getAllDiscountMonthMap(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<DiscountMonthMap> discountMonthMaps = discountmonthmapService.getAllDiscountMonthMap(school.getId(), academicYear.getId());
         model.addAttribute("discountmonths", discountMonthMaps);
         model.addAttribute("hasDiscountMonthMap", !discountMonthMaps.isEmpty());
         model.addAttribute("page", "datatable");
@@ -831,13 +869,15 @@ public class GlobalController {
 
     @PostMapping("/discount-month/getAllDiscountMonthData/{feeId}")
     @ResponseBody
-    public Map<String, Map<String, Boolean>> getAllDiscountMonthData(@PathVariable("feeId")Long feeId){
+    public Map<String, Map<String, Boolean>> getAllDiscountMonthData(@PathVariable("feeId")Long feeId, Model model){
         Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
             Map<String, Boolean> finalMap = new HashMap<>();
             Set<String> processedMonths = new HashSet<>();
-            List<DiscountMonthMap> discountMonthMapList = discountmonthmapService.getAllDiscountMonthMapByDiscount(4L, 14L, feeId);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            List<DiscountMonthMap> discountMonthMapList = discountmonthmapService.getAllDiscountMonthMapByDiscount(school.getId(), academicYear.getId(), feeId);
             List<MonthMaster> monthMasters = monthMasterService.getAllMonths();
             if(discountMonthMapList!=null && !discountMonthMapList.isEmpty()){
                 discountMonthMapList.forEach(fcm -> {
@@ -886,8 +926,8 @@ public class GlobalController {
 
         try{
             List<DiscountMonthMap> discountMonthMapList = new ArrayList<>();
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Discounthead feehead = discountMonthMaps.get(0).getDiscounthead();
             for (DiscountMonthMap fee : discountMonthMaps) {
                 System.out.println("Fee Head Name: " + fee.getMonthMaster());
@@ -967,7 +1007,9 @@ public class GlobalController {
 
     @GetMapping("/full-payment-discount")
     public String getFullPaymentDetails(Model model){
-        List<FullPayment> fullPaymentList = fullpaymentService.getAllFullPayments(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<FullPayment> fullPaymentList = fullpaymentService.getAllFullPayments(school.getId(), academicYear.getId());
         model.addAttribute("fullpayments", fullPaymentList);
         model.addAttribute("hasFullPayment", !fullPaymentList.isEmpty());
         return "/admin/fullpayment";
@@ -987,8 +1029,8 @@ public class GlobalController {
             return "/admin/add-fullpayment";
         }
         try{
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             fullPayment.setAcademicYear(academicYear);
             fullPayment.setSchool(school);
             String returnMsg = "Full-payment saved successfully for: "+fullPayment.getGrade().getGradeName();

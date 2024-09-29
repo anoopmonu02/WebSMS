@@ -45,6 +45,10 @@ public class AcademicyearService {
         return academicyearRepository.findTopByStatusOrderByIdDesc("active");
     }
 
+    public AcademicYear getCurrentAcademicYear(Long schoolid){
+        return academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active",schoolid);
+    }
+
     public UserEntity getLoggedInUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {

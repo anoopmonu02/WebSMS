@@ -8,10 +8,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-shiksha Portal</title>
-
+    <link th:href="@{/css/select2.min.css}" rel="stylesheet" crossorigin="anonymous"/>
     <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" crossorigin="anonymous"/>
     <script src="https://kit.fontawesome.com/ae360af17e.js" crossorigin="anonymous"></script>
-
     <th:block th:if="${page == 'datatable'}">
         <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
         <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
@@ -20,6 +19,8 @@
     <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <link rel="stylesheet" th:href="@{/css/style.css}">
+
+
 </head>
 
 <body>
@@ -54,16 +55,16 @@
                             <a href="#" class="sidebar-link">Page 2</a>
                         </li>-->
 
-                        <li class="sidebar-item submenu" ><a href="/universal/medium" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Medium</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/grade" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Grade</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/section" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Section</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/category" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Category</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/cast" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Cast</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/bank" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Bank</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/medium" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Medium</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/grade" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Grade</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/section" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Section</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/category" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Category</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/cast" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Cast</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/bank" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Bank</a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/feehead" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Fee head</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/discounthead" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Discount head</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{'/universal/finehead'}" class="sidebar-link"><i class="bi bi-patch-plus pe-3"></i> Fine head</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/feehead" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fee head</a></li>
+                        <li class="sidebar-item submenu" ><a href="/universal/discounthead" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Discount head</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{'/universal/finehead'}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fine head</a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
 
 
@@ -79,29 +80,30 @@
                             <a href="#" class="sidebar-link">Post 1</a>
                         </li>-->
 
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill pe-3"></i> Customer </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/customer'}"><i class="bi bi-person-lines-fill pe-2"></i> Customer </a></li>
                         <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item submenu">
                             <a class="sidebar-link" th:href="@{'/admin/school'}">
-                                <i class="bi bi-building-add pe-3"></i> School
+                                <i class="bi bi-building-add pe-2"></i> School
                             </a>
                         </li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" href="/universal/section"><i class="bi bi-person-circle pe-3"></i> User </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" href="/universal/category"><i class="bi bi-ui-checks pe-3"></i> Role </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" href="/universal/section"><i class="bi bi-person-circle pe-2"></i> User </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" href="/universal/category"><i class="bi bi-ui-checks pe-2"></i> Role </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" href="/universal/category"><i class="bi bi-ui-radios-grid pe-2"></i> Role-User Mapping </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/employee/employee-list'}"><i class="bi bi-people-fill pe-3"></i> Employee </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/employee/employee-list'}"><i class="bi bi-people-fill pe-2"></i> Employee </a></li>
                         <li class="sidebar-item submenu"><hr class="dropdown-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range pe-3"></i> Academic Year </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/month-mapping'}"><i class="bi bi-border-style pe-3"></i> Month Mapping </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3 pe-3"></i> Fee Date </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill pe-3"></i> Fine </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range pe-2"></i> Academic Year </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/month-mapping'}"><i class="bi bi-border-style pe-2"></i> Month Mapping </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3 pe-2"></i> Fee Date </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill pe-2"></i> Fine </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-class'}"><i class="bi bi-diagram-3-fill pe-3"></i> Fee-Grade Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-month'}"><i class="bi bi-diagram-3-fill pe-3"></i> Fee-Month Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-class'}"><i class="bi bi-diagram-3-fill pe-3"></i> Discount-Grade Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-month'}"><i class="bi bi-diagram-3-fill pe-3"></i> Discount-Month Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-file-ruled-fill pe-3"></i> Full Payment Discount </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-class'}"><i class="bi bi-diagram-3-fill pe-2"></i> Fee-Grade Map </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-month'}"><i class="bi bi-diagram-3-fill pe-2"></i> Fee-Month Map </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-class'}"><i class="bi bi-diagram-3-fill pe-2"></i> Discount-Grade Map </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-month'}"><i class="bi bi-diagram-3-fill pe-2"></i> Discount-Month Map </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-file-ruled-fill pe-2"></i> Full Payment Discount </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/select-columns'}"><i class="bi bi-file-ruled-fill pe-3"></i> Report Settings(Student) </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/select-columns'}"><i class="bi bi-file-ruled-fill pe-2"></i>Report Settings(Student)</a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
 
                     </ul>
@@ -134,17 +136,17 @@
                     </a>
                     <ul id="student" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
 
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student'}"><i class="bi bi-person-lines-fill pe-3"></i> Student Registration </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/school'}"><i class="bi bi-building-add pe-3"></i> Update Aadhar Detail </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student'}"><i class="bi bi-person-lines-fill pe-2"></i> Student Registration </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/school'}"><i class="bi bi-building-add pe-2"></i> Update Aadhar Detail </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/sibling-group'}"><i class="bi bi-person-circle pe-3"></i> Sibling Group </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-ui-checks pe-3"></i> Assign Sibling Discount </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks pe-3"></i> Assign Discount </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/sibling-group'}"><i class="bi bi-person-circle pe-2"></i> Sibling Group </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-ui-checks pe-2"></i> Assign Sibling Discount </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks pe-2"></i> Assign Discount </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill pe-3"></i> Assign SR </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill pe-3"></i> Migrate Student </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-mortarboard-fill pe-3"></i> Edit Grade/Section </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-person-x pe-3"></i> Remove Student </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill pe-2"></i> Assign SR </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill pe-2"></i> Migrate Student </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-mortarboard-fill pe-2"></i> Edit Grade/Section </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-person-x pe-2"></i> Remove Student </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
 
                     </ul>
@@ -160,11 +162,11 @@
                     </a>
                     <ul id="fee" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
 
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-person-lines-fill pe-3"></i> Fee Submission </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/receipt/{id}(id=${5})}"><i class="bi bi-person-lines-fill pe-3"></i> Fee Receipt Print </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-3"></i> Fee Reminder </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-person-lines-fill pe-2"></i> Fee Submission </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/receipt/{id}(id=${5})}"><i class="bi bi-person-lines-fill pe-2"></i> Fee Receipt Print </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-2"></i> Fee Reminder </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-3"></i> Fee Cancellation </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-2"></i> Fee Cancellation </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
 
                     </ul>
@@ -219,8 +221,8 @@
             <div class="navbar-collapse navbar">
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-1">
-                            <img src="/image/profile.jpg" class="avatar img-fluid rounded" alt="">
+                        <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-1 text-muted">
+                            <strong><span th:text="${#strings.defaultString(session.school?.schoolName, 'E- Siksha Portal')}">CodzSwod</span></strong>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="#" class="dropdown-item">Profile</a>
@@ -232,7 +234,7 @@
                 <ul class="navbar-nav">
                     <li class="nav-item">
                         <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <strong>Session: <span th:text="${#strings.defaultString(session.activeAcademicYear.sessionFormat, 'Not Set')}"></span></strong>
+                            <strong>Session: <span th:text="${#strings.defaultString(session.activeAcademicYear?.sessionFormat, 'Not Set')}"></span></strong>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -248,8 +250,8 @@
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="#" class="dropdown-item">Profile</a>
-                            <a href="#" class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill pe-3"></i> Change Password </a>
-                            <a href="#" class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left pe-3"></i> Logout </a>
+                            <a href="#" class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill pe-2"></i> Change Password </a>
+                            <a href="#" class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left pe-2"></i> Logout </a>
                         </div>
                     </li>
                 </ul>
@@ -309,6 +311,7 @@
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/dataTables.js"></script>
     <script src="/js/dataTables.bootstrap5.js"></script>
+    <script src="/js/select2.min.js"></script>
 </th:block>
 <th:block th:unless="${page == 'datatable'}">
     <script src="/js/jquery-3.6.0.min.js"></script>
@@ -318,6 +321,7 @@
     <script src="/js/toastr.min.js"></script>
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/script.js"></script>
+    <script src="/js/select2.min.js"></script>
 </th:block>
 
 </body>

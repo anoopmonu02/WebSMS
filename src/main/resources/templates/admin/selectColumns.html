@@ -15,9 +15,10 @@
             <form action="/submit-columns" method="post">
                 <!-- Render dropdown with options -->
                 <div class="row mt-3 pb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label for="selectedColumns" class="form-label">Select Columns:</label>
-                        <select id="selectedColumns" name="selectedColumns" class="form-select select2">
+                        <select id="selectedColumns" name="selectedColumns" class="form-select select2" multiple="multiple">
+                            <option value="">Select Attributes</option>
                             <option th:each="entry : ${fieldLabels}"
                                     th:value="${entry.key}"
                                     th:text="${entry.value}">
@@ -39,6 +40,14 @@
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script type="text/javascript" th:inline="javascript">
+        $(document).ready(function() {
+            $('#selectedColumns').select2({
+                placeholder: "Search or add student attributes",
+                tags: true, // Enables dynamic tagging for adding new options
+                tokenSeparators: [',', ' '], // Allows multiple tags to be separated by comma or space
+                allowClear: true,
+            });
+        });
 
         const successMessage = [[${success}]];
         if (successMessage) {

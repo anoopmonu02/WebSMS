@@ -47,7 +47,7 @@ public class FeeSubmission {
     private AcademicYear academicYear;
 
     @ManyToOne
-    @JoinColumn(name = "academic_student")
+    @JoinColumn(name = "academic_student_id")
     @NotNull(message = "Student should be available")
     private AcademicStudent academicStudent;
 
