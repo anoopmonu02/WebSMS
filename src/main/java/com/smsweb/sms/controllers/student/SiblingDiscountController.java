@@ -1,6 +1,9 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.SiblingGroup;
 import com.smsweb.sms.models.student.SiblingGroupStudent;
@@ -24,7 +27,7 @@ import java.util.Optional;
 
 @Controller
 @RequestMapping("/sibling")
-public class SiblingDiscountController {
+public class SiblingDiscountController extends BaseController {
 
     private SiblingDiscountService siblingDiscountService;
     private DiscountclassmapService discountclassmapService;
@@ -44,7 +47,9 @@ public class SiblingDiscountController {
 
     @GetMapping("/assign-sibling-discount")
     public String getSiblingDiscount(Model model){
-        List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
         model.addAttribute("siblingGroups", siblingGroupList);
         model.addAttribute("hasSiblingGroup", !siblingGroupList.isEmpty());
         return "/student/siblingdiscountassign";
@@ -93,7 +98,7 @@ public class SiblingDiscountController {
     }*/
     @GetMapping("/validate-student/{academicStudentId}")
     @ResponseBody
-    public Map<String, String> getStudentDetail(@PathVariable Long academicStudentId) {
+    public Map<String, String> getStudentDetail(@PathVariable Long academicStudentId, Model model) {
         Map<String, String> responseMap = new HashMap<>();
 
         // Validate student existence and belonging to the correct school
@@ -102,16 +107,17 @@ public class SiblingDiscountController {
             responseMap.put("error", "Student not found.");
             return responseMap;
         }
-
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         AcademicStudent student = optionalStudent.get();
-        Long loggedInSchoolId = 4L; // This should be dynamically fetched based on the logged-in user
+        Long loggedInSchoolId = school.getId(); // This should be dynamically fetched based on the logged-in user
         if (!student.getSchool().getId().equals(loggedInSchoolId)) {
             responseMap.put("error", "Student: " + student.getStudent().getStudentName() + " does not belong to this school.");
             return responseMap;
         }
 
         // Validate if any other discount is already associated with the student
-        Long discountYearId = 14L; // This should also be dynamically fetched
+        Long discountYearId = academicYear.getId(); // This should also be dynamically fetched
         Optional<StudentDiscount> optionalStudentDiscount = studentDiscountService.getStudentDiscountForStudent(loggedInSchoolId, discountYearId, academicStudentId);
         if (optionalStudentDiscount.isPresent()) {
             StudentDiscount studentDiscount = optionalStudentDiscount.get();
@@ -136,11 +142,13 @@ public class SiblingDiscountController {
     }
 
     @PostMapping("/savesiblinggroupdiscount")
-    public String saveStudentSiblingDiscount(HttpServletRequest request, RedirectAttributes redirectAttributes){
+    public String saveStudentSiblingDiscount(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{
             Map paramMap = request.getParameterMap();
             System.out.println("==== "+paramMap.keySet());
-            Map responseMap = siblingDiscountService.save(paramMap);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            Map responseMap = siblingDiscountService.save(paramMap, school, academicYear);
             if(responseMap.containsKey("error")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("error"));
                 return "redirect:/sibling/assign-sibling-discount";

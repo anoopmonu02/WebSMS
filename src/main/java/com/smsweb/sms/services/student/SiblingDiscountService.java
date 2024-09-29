@@ -42,12 +42,10 @@ public class SiblingDiscountService {
     }
 
     @Transactional
-    public Map save(Map<String, String[]> paramsMap){
+    public Map save(Map<String, String[]> paramsMap, School school, AcademicYear academicYear){
         Map<String, String> resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
-                School school = schoolRepository.findById(4L).orElse(null);
                 Long groupId = null;
                 Long stuId = null;
                 for (Map.Entry<String, String[]> entry : paramsMap.entrySet()) {
@@ -67,7 +65,7 @@ public class SiblingDiscountService {
                 if(stuId!=null && groupId!=null){
                     Optional<AcademicStudent> student = academicStudentRepository.findById(stuId);
                     if(student.isPresent()){
-                        Optional<DiscountClassMap> discountClassMap = discountclassmapRepository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id("Sibling Discount", 14L, 4L, student.get().getGrade().getId());
+                        Optional<DiscountClassMap> discountClassMap = discountclassmapRepository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id("Sibling Discount", academicYear.getId(), school.getId(), student.get().getGrade().getId());
                         if(discountClassMap.isPresent()){
                             StudentDiscount studentDiscount = new StudentDiscount();
                             studentDiscount.setAcademicStudent(student.get());

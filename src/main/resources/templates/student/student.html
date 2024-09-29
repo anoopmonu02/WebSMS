@@ -33,7 +33,7 @@
 
             <tr th:each="student,iterStat : ${students}">
               <td>
-                <a th:href="@{/student/student/show/{id}(id=${student.id})}" th:text="${student.studentName}"></a>
+                <a th:href="@{/student/student/show/{id}(id=${student.uuid})}" th:text="${student.studentName}"></a>
               </td>
               <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
               <!--<td th:text="${customer.registrationNo}"></td>-->
@@ -44,7 +44,7 @@
               <td th:text="${student.address}"></td>
               <!--<td th:text="${student.status}"></td>-->
               <td style="white-space: nowrap" class="text-center">
-                <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                   <i class="bi bi-pencil-square"></i> </a>
                 <!--<a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-custom-class="custom-tooltip" data-bs-title="Delete the customer record"> <i class="bi bi-trash3-fill"></i> </a>-->

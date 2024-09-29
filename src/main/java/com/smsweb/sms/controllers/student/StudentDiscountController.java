@@ -1,5 +1,6 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.admin.AcademicYear;
@@ -25,7 +26,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/student")
-public class StudentDiscountController {
+public class StudentDiscountController extends BaseController {
 
     private final StudentDiscountService studentDiscountService;
     private final DiscountService discountService;
@@ -45,7 +46,9 @@ public class StudentDiscountController {
 
     @GetMapping("/stu-discount-list")
     public String discountpage(Model model){
-        List<StudentDiscount> studentDiscountList = studentDiscountService.getAllStudentDiscounts(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<StudentDiscount> studentDiscountList = studentDiscountService.getAllStudentDiscounts(school.getId(), academicYear.getId());
         model.addAttribute("studentDiscounts", studentDiscountList);
         model.addAttribute("hasDiscounts", !studentDiscountList.isEmpty());
         model.addAttribute("page", "datatable");
@@ -69,9 +72,9 @@ public class StudentDiscountController {
         }
         try{
             System.out.println("studentDiscount: "+studentDiscount);
-            School school = schoolService.getSchoolById(4L).get();
-            AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
-            AcademicStudent student = academicStudentService.searchStudentById(studentDiscount.getAcademicStudent().getId(), 14L, 4L);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            AcademicStudent student = academicStudentService.searchStudentById(studentDiscount.getAcademicStudent().getId(), academicYear.getId(), school.getId());
             studentDiscount.setAcademicYear(academicYear);
             studentDiscount.setSchool(school);
             studentDiscount.setAcademicStudent(student);

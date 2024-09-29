@@ -1,5 +1,8 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.admin.AcademicYear;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.services.globalaccess.ExcelService;
 import com.smsweb.sms.services.student.AcademicStudentService;
@@ -9,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,7 +22,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
-public class StudentRestController {
+public class StudentRestController extends BaseController {
     private final ExcelService excelService;
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -30,7 +34,7 @@ public class StudentRestController {
     }
 
     @PostMapping("/downloadSRSampleFile")
-    public ResponseEntity<?> downloadSRSampleFile(@RequestBody Map<String, String> requestBody) throws IOException {
+    public ResponseEntity<?> downloadSRSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
         String fileName = "Academic_Students_SR_Sample_File.xlsx";
         try{
             System.out.println("requestBody--------> "+requestBody);
@@ -42,8 +46,9 @@ public class StudentRestController {
                 Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0;
                 Long sectionId = (section!=null && section!="")?Long.parseLong(section):0;
                 String fileType = requestBody.getOrDefault("fileType", "");
-
-                Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, 14L, 4L, fileType);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), fileType);
                 if(responseMap!=null && responseMap.containsKey("error")){
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
                 }
@@ -69,13 +74,15 @@ public class StudentRestController {
     }
 
     @GetMapping("/fetchStudentForSR")
-    public ResponseEntity<?> fetchStudentForSR(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> fetchStudentForSR(@RequestBody Map<String, String> requestBody, Model model){
         try{
             if(requestBody!=null){
                 Long mediumId = Long.parseLong(requestBody.getOrDefault("mediumId", "0"));
                 Long gradeId = Long.parseLong(requestBody.getOrDefault("gradeId", "0"));
                 Long sectionId = Long.parseLong(requestBody.getOrDefault("sectionId", "0"));
-                List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, 14L, 4L);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -129,11 +136,13 @@ public class StudentRestController {
     }
 
     @PostMapping("/upload-sr-data")
-    public ResponseEntity<?> uploadSRData(@RequestBody List<Map<String, String>> tableData){
+    public ResponseEntity<?> uploadSRData(@RequestBody List<Map<String, String>> tableData, Model model){
         String responseMsg = "";
         try{
             System.out.println("Received data: " + tableData);
-            responseMsg = studentService.uploadSR(tableData, 14L, 4L);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            responseMsg = studentService.uploadSR(tableData, academicYear.getId(), school.getId());
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -141,7 +150,7 @@ public class StudentRestController {
     }
 
     @PostMapping("/getStudentsForSR")
-    public ResponseEntity<?> getStudentsForSR(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> getStudentsForSR(@RequestBody Map<String, String> requestBody, Model model){
         try{
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
@@ -150,7 +159,9 @@ public class StudentRestController {
                 Long mediumId = (medium!=null && medium!="")?Long.parseLong(medium):0L;
                 Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0L;
                 Long sectionId = (section!=null && section!="")?Long.parseLong(section):0L;
-                List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, 14L, 4L);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
                 if(academicStudents == null || academicStudents.isEmpty()){
                     return ResponseEntity.ok("No students found for the given criteria.");
                 }
@@ -166,7 +177,7 @@ public class StudentRestController {
     }
 
     @PostMapping("/saveStudentSRFromTable")
-    public ResponseEntity<?> saveStudentSRFromTable(@RequestBody Map<String, String> studentData){
+    public ResponseEntity<?> saveStudentSRFromTable(@RequestBody Map<String, String> studentData, Model model){
         try{
             AtomicInteger counter = new AtomicInteger();
             studentData.forEach((key, value) -> {
@@ -177,7 +188,9 @@ public class StudentRestController {
             if(counter.intValue() == studentData.size()){
                 return ResponseEntity.ok("error#####No SR found for students.");
             } else{
-                String responseMsg = studentService.uploadSRFromTable(studentData, 14L, 4L);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                String responseMsg = studentService.uploadSRFromTable(studentData, academicYear.getId(), school.getId());
                 return ResponseEntity.ok(responseMsg);
             }
         }catch(Exception e){
@@ -187,17 +200,21 @@ public class StudentRestController {
     }
     //getStudentDetail
     @GetMapping("/getStudentDetail/{uuid}")
-    public ResponseEntity<?> getStudentDetail(@PathVariable("uuid") String uuid){
-        AcademicStudent students = academicStudentService.getStudentDetailByUuid(UUID.fromString(uuid), 14L, 4L).orElse(null);
+    public ResponseEntity<?> getStudentDetail(@PathVariable("uuid") String uuid, Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        AcademicStudent students = academicStudentService.getStudentDetailByUuid(UUID.fromString(uuid), academicYear.getId(), school.getId()).orElse(null);
         return ResponseEntity.ok(students);
     }
 
     @PostMapping("/updateStudentGradeSection")
-    public ResponseEntity<?> updateStudentGradeOrSection(@RequestBody Map<String, String> studentData){
+    public ResponseEntity<?> updateStudentGradeOrSection(@RequestBody Map<String, String> studentData, Model model){
         try{
             System.out.println("student Data>>>>>>>>>>>> "+studentData);
             //mediumId=1, gradeId=5, sectionId=1, stuId=bfe37aab-d8fe-4481-af94-ae5d871f2ce5, reason=
-            String responseMsg = academicStudentService.updateGradeSection(studentData, 14L, 4L);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            String responseMsg = academicStudentService.updateGradeSection(studentData, academicYear.getId(), school.getId());
             return ResponseEntity.ok(responseMsg);
         }catch(Exception e){
             e.printStackTrace();
