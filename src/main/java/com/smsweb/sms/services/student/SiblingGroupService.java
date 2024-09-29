@@ -43,12 +43,12 @@ public class SiblingGroupService {
     }
 
     @Transactional
-    public Map save(Map<String, String[]> paramsMap){
+    public Map save(Map<String, String[]> paramsMap, School school, AcademicYear academicYear){
         Map resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
-                School school = schoolRepository.findById(4L).orElse(null);
+                /*AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
+                School school = schoolRepository.findById(4L).orElse(null);*/
                 System.out.println(paramsMap);
                 List<SiblingGroup> siblingGroupList = new ArrayList<>();
                 List<AcademicStudent> academicStudentList = new ArrayList<>();
@@ -70,7 +70,7 @@ public class SiblingGroupService {
                 }
                 int counter = 0;
                 //Get student detail if already saved in any group
-                String proceedMsg = validateExistingGroupStudent(academicStudentList);
+                String proceedMsg = validateExistingGroupStudent(academicStudentList, school, academicYear);
                 if(proceedMsg != null && proceedMsg.trim() != ""){
                     if(proceedMsg.startsWith("Found")){
                         resultMap.put("STUDENT_EXIST","Operation not allowed, Student already assigned to a group");
@@ -110,14 +110,14 @@ public class SiblingGroupService {
         return resultMap;
     }
 
-    public String validateExistingGroupStudent(List<AcademicStudent> academicStudents) {
+    public String validateExistingGroupStudent(List<AcademicStudent> academicStudents, School school, AcademicYear academicYear) {
         String msg = "";
         if (academicStudents == null || academicStudents.isEmpty()) {
             return "Error:No academic student found in list.";
         }
 
         try {
-            List<SiblingGroup> siblingGroups = siblingGroupRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(4L, 14L, "Active");
+            List<SiblingGroup> siblingGroups = siblingGroupRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school.getId(), academicYear.getId(), "Active");
 
             if (siblingGroups == null || siblingGroups.isEmpty()) {
                 return "Error:No Sibling-group found.";

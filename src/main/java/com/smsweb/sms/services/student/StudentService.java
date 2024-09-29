@@ -53,6 +53,10 @@ public class StudentService {
         return repository.findByIdAndSchool_Id(student_id, school_id);
     }
 
+    public Optional<Student> getStudentDetail(UUID uuid, Long school_id) {
+        return repository.findByUuidAndStatusAndSchool_Id(uuid, "Active", school_id);
+    }
+
     @Transactional
     public Student saveStudent(Student student, MultipartFile logo, String fileNameOrSchoolCode, Student existingStudent) throws IOException {
         String imageResponse = fileHandleHelper.saveImage("student", logo);
@@ -114,6 +118,7 @@ public class StudentService {
     }
 
     public List<Student> searchStudent(String stuname) {
+        //TODO - Check the usage of method and fix
         return repository.findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(stuname, 4L, "Active");
     }
 

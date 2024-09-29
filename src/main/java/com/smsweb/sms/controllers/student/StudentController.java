@@ -1,5 +1,6 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
@@ -36,14 +37,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Controller
 @RequestMapping("/student")
-public class StudentController {
+public class StudentController extends BaseController {
 
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
@@ -69,7 +67,8 @@ public class StudentController {
 
     @GetMapping("/student")
     public String studentData(Model model){
-        List<Student> studentList = studentService.getAllActiveStudents(3L);
+        School school = (School)model.getAttribute("school");
+        List<Student> studentList = studentService.getAllActiveStudents(school.getId());
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
@@ -126,9 +125,10 @@ public class StudentController {
             returnStr = "/student/edit-student";
         }*/
         Student existingStudent = null;
+        School school = (School)model.getAttribute("school");
         try{
             if(student.getId()!=null){
-                existingStudent = studentService.getStudentDetail(student.getId(), 4L).orElse(null);
+                existingStudent = studentService.getStudentDetail(student.getId(), school.getId()).orElse(null);
                 returnStr = "/student/edit-student";
             }
 
@@ -143,9 +143,7 @@ public class StudentController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            AcademicYear academicYear = (AcademicYear) session.getAttribute("activeAcademicYear");
-            student.setAcademicYear(academicYear);
-            School school = schoolService.getSchoolById(3L).get();
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
             student.setAcademicYear(academicYear);
             student.setSchool(school);
             if(existingStudent!=null){
@@ -202,20 +200,22 @@ public class StudentController {
         }
     }
 
-    @GetMapping("/student/show/{id}")
-    public String showSchoolForm(@PathVariable("id")Long id, Model model){
-        Optional<Student> student = studentService.getStudentDetail(id, 4L);
+    @GetMapping("/student/show/{uuid}")
+    public String showSchoolForm(@PathVariable("uuid")UUID uuid, Model model){
+        School school = (School)model.getAttribute("school");
+        Optional<Student> student = studentService.getStudentDetail(uuid, school.getId());
         model = getAllGlobalModels(model);
         model.addAttribute("student", student.get());
         return "student/show-student";
     }
 
-    @GetMapping("/student/edit/{id}")
-    public String editStudentForm(@PathVariable("id")Long id, Model model, RedirectAttributes redirectAttributes){
-        Student student = studentService.getStudentDetail(id, 3L).orElse(null);;
+    @GetMapping("/student/edit/{uuid}")
+    public String editStudentForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes){
+        School school = (School)model.getAttribute("school");
+        Student student = studentService.getStudentDetail(uuid, school.getId()).orElse(null);;
         if(student==null){
             redirectAttributes.addFlashAttribute("error", "Student not found");
-            List<Student> studentList = studentService.getAllActiveStudents(4L);
+            List<Student> studentList = studentService.getAllActiveStudents(school.getId());
             model.addAttribute("students", studentList);
             model.addAttribute("hasStudent", !studentList.isEmpty());
             model.addAttribute("page", "datatable");
@@ -233,8 +233,9 @@ public class StudentController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            AcademicYear academicYear = academicyearService.getAcademicyearById(3L).get();
-            School school = schoolService.getSchoolById(3L).get();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            //School school = schoolService.getSchoolById(3L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
             Student existingStudent = studentService.editStudentDetails(student, customerPic, fileNameOrSchoolCode);
@@ -279,7 +280,8 @@ public class StudentController {
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
         } else if(msg.contains("Error")){
-            List<Student> studentList = studentService.getAllActiveStudents(4L);
+            School school = (School)model.getAttribute("school");
+            List<Student> studentList = studentService.getAllActiveStudents(school.getId());
             model.addAttribute("students", studentList);
             model.addAttribute("hasStudent", !studentList.isEmpty());
             model.addAttribute("page", "datatable");

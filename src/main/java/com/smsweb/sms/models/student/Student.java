@@ -226,4 +226,11 @@ public class Student { // Extend UserEntity
     @JoinColumn(name = "updated_by")
     @JsonIgnore
     private UserEntity updatedBy;
+
+    @PrePersist
+    protected void onCreate() {
+        if (uuid == null) {
+            uuid = UUID.randomUUID();
+        }
+    }
 }

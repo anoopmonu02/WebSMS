@@ -1,5 +1,8 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.admin.AcademicYear;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.SiblingGroup;
 import com.smsweb.sms.services.student.SiblingGroupService;
@@ -20,7 +23,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/sibling")
-public class SiblingGroupController {
+public class SiblingGroupController extends BaseController {
     private SiblingGroupService siblingGroupService;
 
     @Autowired
@@ -30,7 +33,9 @@ public class SiblingGroupController {
 
     @GetMapping("/sibling-group")
     public String getSiblingGroupListForm(Model model){
-        List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(4L, 14L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
         model.addAttribute("siblingGroups", siblingGroupList);
         model.addAttribute("hasSiblingGroup", !siblingGroupList.isEmpty());
         return "/student/siblinggrouplist";
@@ -42,12 +47,13 @@ public class SiblingGroupController {
     }
 
     @PostMapping("/savesiblinggroup")
-    public String saveSiblingGroup(HttpServletRequest request, RedirectAttributes redirectAttributes){
+    public String saveSiblingGroup(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{
             Map paramMap = request.getParameterMap();
             System.out.println("==== "+paramMap.keySet());
-
-            Map responseMap = siblingGroupService.save(paramMap);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            Map responseMap = siblingGroupService.save(paramMap, school, academicYear);
             if(responseMap.containsKey("STUDENT_EXIST")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("STUDENT_EXIST"));
                 return "/student/add-siblinggroup";
@@ -92,7 +98,9 @@ public class SiblingGroupController {
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success","Sibling-group deleted successfully.");
         } else if(msg.contains("Error")){
-            List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(4L, 14L);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
             model.addAttribute("siblingGroups", siblingGroupList);
             model.addAttribute("hasSiblingGroup", !siblingGroupList.isEmpty());
             redirectAttributes.addFlashAttribute("error",msg);

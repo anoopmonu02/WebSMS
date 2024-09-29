@@ -1,9 +1,7 @@
 package com.smsweb.sms.controllers.fees;
 
-import com.smsweb.sms.models.admin.AcademicYear;
-import com.smsweb.sms.models.admin.FeeDate;
-import com.smsweb.sms.models.admin.Fine;
-import com.smsweb.sms.models.admin.MonthMapping;
+import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.fees.FeeSubmissionMonths;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -23,6 +21,7 @@ import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import org.thymeleaf.TemplateEngine;
@@ -33,7 +32,7 @@ import java.time.ZoneId;
 import java.util.*;
 
 @RestController
-public class FeeSubmissionRestController {
+public class FeeSubmissionRestController extends BaseController {
 
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -67,32 +66,37 @@ public class FeeSubmissionRestController {
     }
 
     @GetMapping("/searchStudentForFeePage/{query}")
-    public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query){
-        List<AcademicStudent> students = academicStudentService.searchStudents(query, 14L, 4L);
+    public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query, Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<AcademicStudent> students = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
         return ResponseEntity.ok(students);
     }
 
     @GetMapping("/searchStudentForOtherPage/{query}")
-    public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query){
-        List<AcademicStudent> students = academicStudentService.searchStudents(query, 14L, 4L);
+    public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query, Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<AcademicStudent> students = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
         return ResponseEntity.ok(students);
     }
 
     @GetMapping("/getStudentDetailForFee/{id}")
-    public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id){
+    public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
         //first fetch student details like fathername/mothername/class/section/contact-no/student type[old/new]/ etc.
-        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
                 Student student = academicStudent.getStudent();
-                AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
                 //TODO - fetch previous pending if any
 
                 //Calculating current month -
                 //TODO - Can get date from server, so no dependent on client machine date, for now using local date
                 int currentMonth = Calendar.getInstance().get(Calendar.MONTH)+1;
-                List<FeeDate> fdList = feedateService.getByGivenMonth(14L, 4L, currentMonth);
+                List<FeeDate> fdList = feedateService.getByGivenMonth(academicYear.getId(), school.getId(), currentMonth);
                 FeeDate fd = null;
                 if(fdList!=null && !fdList.isEmpty()){
                     fd = fdList.get(0);
@@ -110,7 +114,7 @@ public class FeeSubmissionRestController {
                         result.put("todayDate",new Date());
                         result.put("countStu", academicStudentService.countNoOfYearsOfStudent(academicStudent)>1?"OLD":"NEW");
                         result.put("academicYear", academicYear);
-                        FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(4L, 14L, academicStudent.getId());
+                        FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(school.getId(), academicYear.getId(), academicStudent.getId());
                         if(feeSubmission!=null){
                             FeeSubmission feeSub = feeSubmission;
                             result.put("previousBalance",feeSub.getFeeSubmissionBalance().getBalanceAmount());
@@ -123,7 +127,7 @@ public class FeeSubmissionRestController {
                     result.put("noFeeDate", "No Fee-Date found, Please add fee-date first.");
                 }
                 //Calculate Paid months
-                Map paidMonths = feeSubmissionService.getPaidMonths(4L, 14L, academicStudent.getId());
+                Map paidMonths = feeSubmissionService.getPaidMonths(school.getId(), academicYear.getId(), academicStudent.getId());
                 if(paidMonths!=null && !paidMonths.isEmpty()){
                     if(paidMonths.containsKey("MonthError")){
                         result.put("Paid_Month_Error", paidMonths.get("MonthError"));
@@ -144,12 +148,14 @@ public class FeeSubmissionRestController {
     }
 
     @GetMapping("/getStudentDetailsForSibling/{id}")
-    public ResponseEntity<?> getStudentDetailsForSibling(@PathVariable("id") Long id){
+    public ResponseEntity<?> getStudentDetailsForSibling(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
-        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
-                List<AcademicStudent> allSiblingsList = academicStudentService.searchSiblings(14L, academicStudent);
+                List<AcademicStudent> allSiblingsList = academicStudentService.searchSiblings(academicYear.getId(), academicStudent);
                 if(allSiblingsList!=null && !allSiblingsList.isEmpty()){
                     result.put("siblingList", allSiblingsList);
                     result.put("hasSiblings", !allSiblingsList.isEmpty());
@@ -167,9 +173,11 @@ public class FeeSubmissionRestController {
     }
 
     @GetMapping("/searchStudentIndividual/{id}")
-    public ResponseEntity<?> getStudentDetail(@PathVariable("id")Long id){
+    public ResponseEntity<?> getStudentDetail(@PathVariable("id")Long id, Model model){
         Map result = new HashMap<>();
-        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
                 result.put("academicStudent", academicStudent);
@@ -184,9 +192,11 @@ public class FeeSubmissionRestController {
     }
 
     @GetMapping("/getStudentDetailForDiscount/{id}")
-    public ResponseEntity<?> getStudentDetailForDiscount(@PathVariable("id") Long id){
+    public ResponseEntity<?> getStudentDetailForDiscount(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
-        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, 14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
                 Student student = academicStudent.getStudent();
@@ -194,7 +204,7 @@ public class FeeSubmissionRestController {
                 result.put("student",academicStudent);
                 //result.put("academicYear", academicYear);
                 //collect discount details if any?
-                StudentDiscount studentDiscount = studentDiscountService.getStudentDiscountForStudent(4L, 14L, id).orElse(null);
+                StudentDiscount studentDiscount = studentDiscountService.getStudentDiscountForStudent(school.getId(), academicYear.getId(), id).orElse(null);
                 if(studentDiscount!=null){
                     result.put("assignedDiscount", studentDiscount);
                 }
@@ -232,7 +242,7 @@ public class FeeSubmissionRestController {
 
 
     @PostMapping("/getFeeDetailsBasedOnMonth")
-    public ResponseEntity<?> getFeeDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> getFeeDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
         Map result = new HashMap<>();
         try{
@@ -240,7 +250,9 @@ public class FeeSubmissionRestController {
             if(requestBody!=null){
                 Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
                 Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
-                Map serviceResultMap = feeSubmissionService.getFeeDetailsBasedOnMonth(4L, 14L, academicStuId, requestBody.get("checkBoxes"), gradeId);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map serviceResultMap = feeSubmissionService.getFeeDetailsBasedOnMonth(school.getId(), academicYear.getId(), academicStuId, requestBody.get("checkBoxes"), gradeId);
                 System.out.println("========================================================================= "+serviceResultMap);
                 if(serviceResultMap!=null && !serviceResultMap.isEmpty()){
                     result.put("feelist", serviceResultMap.get("feelist"));
@@ -260,14 +272,16 @@ public class FeeSubmissionRestController {
 
     //getDiscountDetailsBasedOnMonth
     @PostMapping("/getDiscountDetailsBasedOnMonth")
-    public ResponseEntity<?> getDiscountDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> getDiscountDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
         Map result = new HashMap<>();
         try{
             if(requestBody!=null){
                 Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
                 Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
-                Map serviceResultMap = feeSubmissionService.getDiscountDetailsBasedOnMonth(4L, 14L, academicStuId, requestBody.get("checkBoxes"), gradeId);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map serviceResultMap = feeSubmissionService.getDiscountDetailsBasedOnMonth(school.getId(), academicYear.getId(), academicStuId, requestBody.get("checkBoxes"), gradeId);
                 System.out.println("========================================================================= "+serviceResultMap);
                 if(serviceResultMap!=null && !serviceResultMap.isEmpty()){
                     result.put("discountlist", serviceResultMap.get("discountdata"));
@@ -287,20 +301,21 @@ public class FeeSubmissionRestController {
 
 
     @PostMapping("/getFineDetailsBasedOnMonth")
-    public ResponseEntity<?> getFineDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> getFineDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
         Map fineMap = new HashMap();
         double fineAmount = 0.0;
         Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
         Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
-        AcademicStudent student = academicStudentService.searchStudentById(academicStuId, 14L, 4L);
-        AcademicYear academicYear = academicyearService.getCurrentAcademicYear(); // Replace with actual implementation
-        Fine fine = fineService.getAllFines(4L, 14L).get(0);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent student = academicStudentService.searchStudentById(academicStuId, academicYear.getId(), school.getId());
+        //AcademicYear academicYear = academicyearService.getCurrentAcademicYear(); // Replace with actual implementation
+        Fine fine = fineService.getAllFines(school.getId(), academicYear.getId()).get(0);
         String subDate = requestBody.get("submissionDate")!=null?requestBody.get("submissionDate"):"";
         String feeDate = requestBody.get("feeDate")!=null?requestBody.get("feeDate"):"";
 
-
-        FeeSubmission lastSubmittedFees = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(4L, 14L, academicStuId);
+        FeeSubmission lastSubmittedFees = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(school.getId(), academicYear.getId(), academicStuId);
         if (lastSubmittedFees != null) {
             Date lastFeeSubmissionDate = lastSubmittedFees.getFeeSubmissionDate();
             LocalDate lastFeeSubmissionLocalDate = Instant.ofEpochMilli(lastFeeSubmissionDate.getTime())
@@ -314,7 +329,7 @@ public class FeeSubmissionRestController {
                 }
             }
 
-            int monthDiff = monthmappingService.monthDifference(14L, 4L, lastMonthName, subDate);
+            int monthDiff = monthmappingService.monthDifference(academicYear.getId(), school.getId(), lastMonthName, subDate);
             int cdiff = monthmappingService.currentDateDifference(feeDate, subDate);
             try {
                 if (monthDiff >= 3) {
@@ -372,7 +387,7 @@ public class FeeSubmissionRestController {
             lastMonthName = monthNm.toString();
         }
         //String currentMonthName = LocalDate.now().getMonth().getDisplayName(java.time.format.TextStyle.FULL, Locale.ENGLISH);
-        int removeFineResult = monthmappingService.findMonthDifferenceToNullify(14L,4L, lastMonthName);
+        int removeFineResult = monthmappingService.findMonthDifferenceToNullify(academicYear.getId(), school.getId(), lastMonthName);
         if (removeFineResult > 0) {
             fineAmount = 0.0;
         }
