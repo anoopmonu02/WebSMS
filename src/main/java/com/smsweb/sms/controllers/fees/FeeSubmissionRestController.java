@@ -398,12 +398,14 @@ public class FeeSubmissionRestController extends BaseController {
 
 
     @PostMapping("/getFeeReminderDetails")
-    public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody, Model model){
         Map result = new HashMap<>();
         try{
             System.out.println("requestBody--------> "+requestBody);
             if(requestBody!=null){
-                result = feeSubmissionService.calculateFeeReminder(requestBody);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                result = feeSubmissionService.calculateFeeReminder(requestBody, school, academicYear);
                 System.out.println("responseMap "+result);
                 //System.out.println("result "+result.keySet());
             }

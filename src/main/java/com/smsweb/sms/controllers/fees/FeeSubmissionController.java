@@ -1,6 +1,9 @@
 package com.smsweb.sms.controllers.fees;
 
+import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.MonthMapping;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.fees.FeeSubmissionMonths;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -25,7 +28,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/fees")
-public class FeeSubmissionController {
+public class FeeSubmissionController extends BaseController {
 
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -51,7 +54,9 @@ public class FeeSubmissionController {
 
     @GetMapping("/fee-submit-form")
     public String getFeeSubmissionForm(Model model){
-        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
         System.out.println(monthMappingList);
         model.addAttribute("monthmapping", monthMappingList);
         model.addAttribute("feesubmissionobj", new FeeSubmission());
@@ -60,7 +65,7 @@ public class FeeSubmissionController {
     }
 
     @PostMapping("/feesubmit")
-    public String saveFeeSubmission(HttpServletRequest request, RedirectAttributes redirectAttributes){
+    public String saveFeeSubmission(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{
             Map paramMap = request.getParameterMap();
             System.out.println("==== "+paramMap.keySet());
@@ -75,7 +80,9 @@ public class FeeSubmissionController {
                 }
                 System.out.println(); // Newline for better readability
             }*/
-            Map responseMap = feeSubmissionService.save(paramMap);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            Map responseMap = feeSubmissionService.save(paramMap, school, academicYear);
             if(responseMap!=null){
                 if(responseMap.containsKey("fee_submission_not_allowed")){
                     redirectAttributes.addFlashAttribute("error", responseMap.get("fee_submission_not_allowed"));

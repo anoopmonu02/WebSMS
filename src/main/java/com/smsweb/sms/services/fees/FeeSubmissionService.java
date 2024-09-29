@@ -22,6 +22,7 @@ import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -290,7 +291,7 @@ public class FeeSubmissionService {
     }
 
     @Transactional
-    public Map save(Map<String, String[]> paramsMap){
+    public Map save(Map<String, String[]> paramsMap, School school, AcademicYear academicYear){
         Map resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()) {
@@ -298,8 +299,6 @@ public class FeeSubmissionService {
                 List<String> feeSubmissionModelColumns = Arrays.asList("feesubmissiondate", "academicStudent.id", "fullPaymentAmount", "fineAmount", "fineRemark", "discountAmount", "discountHead", "totalAmount",
                         "paidAmount", "balanceAmount", "feeRemark", "headName", "months");
                 AcademicStudent student;// = academicStudentRepository.findById(Long.parseLong("0")).orElse(null);
-                AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
-                School school = schoolRepository.findById(4L).orElse(null);
                 String schoolCodeVal = getCodeValue(school.getSchoolName());
                 //Saving fee submission object
                 Map<String, Map> feeDataMap = getColumnsValue(paramsMap, feeSubmissionModelColumns);
@@ -473,7 +472,7 @@ public class FeeSubmissionService {
         return finalMap;
     }
 
-    public Map calculateFeeReminder(Map<String, String> paramsMap){
+    public Map calculateFeeReminder(Map<String, String> paramsMap, School school, AcademicYear academicYear){
         Map responseMap  = new HashMap();
         try{
             Map<Long, Map> finalDataMap = new HashMap<>();
@@ -494,15 +493,15 @@ public class FeeSubmissionService {
                     selectedMonthsList.add(monthMasterRepository.findById(Long.valueOf(months.split("-")[i])).orElse(null));
                     monIdList.add(Long.valueOf(months.split("-")[i]));
                 }
-                Fine fine = fineRepository.findAllByAcademicYear_IdAndSchool_Id(14L, 4L).get(0);
-                List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(4L, mediumId, gradeId, secId, 14L, "Active");
-                AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
+                Fine fine = fineRepository.findAllByAcademicYear_IdAndSchool_Id(academicYear.getId(), school.getId()).get(0);
+                List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(), mediumId, gradeId, secId, academicYear.getId(), "Active");
+                //AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
                 if(academicStudentList!=null && !academicStudentList.isEmpty()){
                     System.out.println("Academic Students: "+academicStudentList.size());
                     for(AcademicStudent academicStudent: academicStudentList){
                         Map stuMap = new HashMap<>();
                         BigDecimal balanceAmount = BigDecimal.ZERO;
-                        int noOfFeeSubmitted = feeSubmissionRepository.countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(14L, 4L, academicStudent.getId(), "Active");
+                        int noOfFeeSubmitted = feeSubmissionRepository.countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(academicYear.getId(), school.getId(), academicStudent.getId(), "Active");
                         if(noOfFeeSubmitted>0){
                             //Atleast 1 feesubmission happen for this student
                             //Get all submitted months
@@ -539,7 +538,7 @@ public class FeeSubmissionService {
                                     BigDecimal discountAmount = BigDecimal.ZERO;
                                     String headNames  = "";
                                     //Calculate Fee for rest months
-                                    List<Object[]> amtHeadList = feeclassmapRepository.findAmountAndFeeHeadNames(14L, 4L, restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
+                                    List<Object[]> amtHeadList = feeclassmapRepository.findAmountAndFeeHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
                                     System.out.println("-----");
                                     String feeTypeToexclude = academicStudent.getStudent().getStudentType().equalsIgnoreCase("Old")?"Admission Fee":"Annual Fee";
                                     if(amtHeadList!=null && !amtHeadList.isEmpty()){
@@ -557,8 +556,8 @@ public class FeeSubmissionService {
                                     System.out.println("headNames "+headNames+" amt:"+amt);
                                     //Calculate Fine
                                     //int monthDiff = monthmappingService.monthDifference(14L, 4L, lastMonthName, subDate);
-                                    int monthDiff = monthmappingRepository.findMonthDifference(14L, 4L, restMonthsList.get(0).getMonthName(), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
-                                    List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(14L, 4L, LocalDate.now().getMonthValue());
+                                    int monthDiff = monthmappingRepository.findMonthDifference(academicYear.getId(), school.getId(), restMonthsList.get(0).getMonthName(), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
+                                    List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(academicYear.getId(), school.getId(), LocalDate.now().getMonthValue());
                                     FeeDate feeDate = null;
                                     if(feeDates!=null && !feeDates.isEmpty()){
                                         feeDate = feeDates.get(0);
@@ -588,9 +587,9 @@ public class FeeSubmissionService {
                                     }
                                     //Calculate Discount
                                     //BigDecimal discountAmt = BigDecimal.ZERO;
-                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(4L, 14L, academicStudent.getId()).orElse(null);
+                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(14L, 4L, restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
@@ -626,14 +625,14 @@ public class FeeSubmissionService {
                             BigDecimal fineAmount = BigDecimal.ZERO;
                             BigDecimal discountAmount = BigDecimal.ZERO;
                             String headNames  = "";
-                            List<MonthMapping> mmList = monthmappingRepository.findMonthsByPriority(14L, 4L, monIdList);
+                            List<MonthMapping> mmList = monthmappingRepository.findMonthsByPriority(academicYear.getId(), school.getId(), monIdList);
                             if(mmList!=null && !mmList.isEmpty()){
                                 List<MonthMaster> allMonthsList = mmList.stream()
                                         .map(MonthMapping::getMonthMaster)
                                         .collect(Collectors.toList());
                                 if(allMonthsList!=null && !allMonthsList.isEmpty()){
                                     String feeTypeToexclude = academicStudent.getStudent().getStudentType().equalsIgnoreCase("Old")?"Admission Fee":"Annual Fee";
-                                    List<Object[]> feedetails = feeclassmapRepository.findAmountAndFeeHeadNames(14L, 4L, allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()), gradeId);
+                                    List<Object[]> feedetails = feeclassmapRepository.findAmountAndFeeHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()), gradeId);
                                     if(feedetails!=null && !feedetails.isEmpty()){
                                         for(Object[] rowData : feedetails){
                                             if(!feeTypeToexclude.equalsIgnoreCase(rowData[1].toString())){
@@ -646,7 +645,7 @@ public class FeeSubmissionService {
                                         responseMap.put("FEE_CLASS_MAP_NOT_FOUND","Fee-class-map not found");
                                     }
                                     //int monthDiff = monthmappingRepository.findMonthDifference(14L, 4L, allMonthsList.get(0).getMonthName(), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
-                                    List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(14L, 4L, LocalDate.now().getMonthValue());
+                                    List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(academicYear.getId(), school.getId(), LocalDate.now().getMonthValue());
                                     FeeDate feeDate = null;
                                     if(feeDates!=null && !feeDates.isEmpty()){
                                         feeDate = feeDates.get(0);
@@ -677,9 +676,9 @@ public class FeeSubmissionService {
                                     }
                                     //Calculate Discount
                                     BigDecimal discountAmt = BigDecimal.ZERO;
-                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(4L, 14L, academicStudent.getId()).orElse(null);
+                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(14L, 4L, allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){

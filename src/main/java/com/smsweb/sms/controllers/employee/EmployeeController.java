@@ -1,10 +1,12 @@
 package com.smsweb.sms.controllers.employee;
 
+import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.services.Employee.EmployeeService;
@@ -39,7 +41,7 @@ import java.util.UUID;
 
 @Controller
 @RequestMapping("/employee")
-public class EmployeeController {
+public class EmployeeController extends BaseController {
     Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
     private final UserService userService;
@@ -58,10 +60,11 @@ public class EmployeeController {
     @GetMapping("/employee-list")
     public String getEmployeeList(Model model){
         List<Employee> employees = null;
+        School school = (School)model.getAttribute("school");
         if(isSuperAdminLoggedIn()){
             employees = employeeService.getAllEmployees();
         } else{
-            employees = employeeService.getAllActiveEmployees(4L);
+            employees = employeeService.getAllActiveEmployees(school.getId());
         }
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
@@ -165,8 +168,9 @@ public class EmployeeController {
         try {
             Optional<Employee> employeeOptional = employeeService.getEmployeeByUUID(uuid);
             if (employeeOptional.isEmpty()) {
+                School school = (School)model.getAttribute("school");
                 redirectAttributes.addFlashAttribute("error", "Employee not found");
-                List<Employee> employees = employeeService.getAllActiveEmployees(4L);
+                List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
                 model.addAttribute("employees", employees);
                 model.addAttribute("hasEmployee", !employees.isEmpty());
                 model.addAttribute("page", "datatable");
