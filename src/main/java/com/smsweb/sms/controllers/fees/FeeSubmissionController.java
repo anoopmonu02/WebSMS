@@ -135,6 +135,8 @@ public class FeeSubmissionController extends BaseController {
             SimpleDateFormat sf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             FeeSubmission feeSubmission = feeSubmissionService.getFeeSubmissionById(id).orElse(null);
             AcademicStudent academicStudent = feeSubmission.getAcademicStudent();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
             List<String> slipDateList = new ArrayList<>();
             if(academicStudent!=null && feeSubmission!=null){
                 model.addAttribute("student", academicStudent);
@@ -146,7 +148,7 @@ public class FeeSubmissionController extends BaseController {
                 if(feeSubmission!=null){
                     model.addAttribute("feeSubmission", feeSubmission);
                     HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
-                    List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(14L, 4L);
+                    List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
                     List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
                     if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
                         for(FeeSubmission submission: feeSubmissionList){
@@ -188,7 +190,9 @@ public class FeeSubmissionController extends BaseController {
 
     @GetMapping("fee-reminder")
     public String reminderpage(Model model){
-        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(14L, 4L);
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
         model.addAttribute("monthmapping", monthMappingList);
         model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
         model.addAttribute("grades",gradeService.getAllGrades());
