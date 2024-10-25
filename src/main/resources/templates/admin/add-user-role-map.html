@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section>
+      <div class="container">
+            <div class="mt-2 gy-5 mb-5">
+                  <div class="card-header fs-3">Assign User-Role</div>
+                  <hr/>
+                  <div th:if="${hasEmployee} == true and ${hasRoles} == true">
+                      <table class="table table-bordered table-striped table-hover table-sm">
+                          <thead>
+                              <tr>
+                                  <th>#</th>
+                                  <th>Username</th>
+                                  <th>Name</th>
+                                  <th>Role</th>
+                                  <th>Action</th>
+                              </tr>
+                          </thead>
+                          <tbody class="table-group-divider">
+                              <tr th:each="emp, iter : ${employees}">
+                                  <td th:text="${(iter.index+1)}"></td>
+                                  <td th:text="${emp.userEntity.getUsername()}"></td>
+                                  <td th:text="${emp.employeeName}"></td>
+                                  <td>
+                                      <input type="hidden" th:id="emp_+${emp.id}" th:value="${emp.id}">
+                                      <select th:id="role_+${emp.id}" class="form-select" name="role">
+                                          <option value="">Select Role</option>
+                                          <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}">Role</option>
+                                      </select>
+                                  </td>
+                                  <td class="text-center">
+                                      <button class="btn btn-primary" th:onclick="'saveUserRole(' + ${emp.id} + ')'"><i class="bi bi-floppy"></i></button>
+                                  </td>
+                              </tr>
+                          </tbody>
+                      </table>
+                  </div>
+
+                  <div th:if="${hasEmployee} == false or ${hasRoles} == false">
+                      <p class="text-center">No user/role found to assign.</p>
+                  </div>
+                  <div class="pt-5">
+                    <a class="btn btn-info" href="/admin/user-role-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to User-Role List</a>
+                  </div>
+                </div>
+      </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      showMsg("success", successMessage, "Success");
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      showMsg("info", infoMessage, "Info");
+    }
+
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      showMsg("error", errorMessage, "Error");
+    }
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
+    }
+
+    function saveUserRole(employeeId) {
+        // Get the selected role from the dropdown
+        const roleId = $('#role_' + employeeId).val();
+
+        if (!roleId) {
+            showMsg("error","Please select a Role","Missing")
+            return;
+        }
+
+        // Create the data object to send
+        const data = {
+            employeeId: employeeId,
+            roleId: roleId
+        };
+
+        // AJAX call to save the employee-role mapping
+        $.ajax({
+            url: '/admin/api/user-role/save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                console.log("response----------"+response);
+                if(response.startsWith("Either")){
+                    showMsg("info", response, "Message");
+                } else{
+                    showMsg("success", response, "Success");
+                }
+
+            },
+            error: function(xhr, status, error) {
+                showMsg("error", "Error saving role: " + error,"Error")
+            }
+        });
+    }
+
+  </script>
+</section>
+</body>
+</html>

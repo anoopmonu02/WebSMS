@@ -24,7 +24,7 @@
                 <div class="col-md-3">
                     <label for="dob" class="form-label">Date of Birth</label>
                     <input type="text" id="dob" class="form-control" th:field="*{dob}">
-                    <p class="text-danger" th:if="${#fields.hasErrors('dob')}" th:errors="*{dob}">f name Error</p>
+                    <p class="text-danger" th:if="${#fields.hasErrors('dob')}" th:errors="*{dob}">fname Error</p>
                 </div>
                 <div class="col-md-3">
                 </div>
@@ -128,6 +128,10 @@
                                     th:selected="${school} == ${employee.school}">School</option>
                         </select>
                     </div>
+                    <div th:if="${adminLogin}">
+                        <label for="designation" class="form-label" th:text="${empschool.id}">School(Branch)</label>
+                        <input type="hidden" id="school" name="school" class="form-control" th:field="*{school.id}" th:value="${school.id}">
+                    </div>
                 </div>
                 <div class="col-md-6"></div>
                 <hr/>
@@ -162,7 +166,7 @@
             "positionClass": "toast-top-right",
             "preventDuplicates": false,
             "onclick": null,
-            "showDuration": "300",
+            "showDuration": "600",
             "hideDuration": "1000",
             "timeOut": "5000",
             "extendedTimeOut": "1000",
@@ -175,6 +179,24 @@
         let msg = /*[[${message}]]*/ 'undefined';
         if (msg !== 'undefined' && msg.length > 0) {
             toastr.success(msg);
+        }
+
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            toastr["success"](successMessage,"Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            toastr["info"](infoMessage, "Info");
+        }
+
+        const errorMessage = [[${info}]];
+        if (errorMessage) {
+            toastr["error"](errorMessage, "Error");
+        }
+        function showMsg(msgType, msg, headerValue){
+            toastr[msgType](msg,headerValue);
         }
     </script>
 

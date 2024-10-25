@@ -199,7 +199,6 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
 
-
         return "/fees/feereminder";
     }
 

@@ -1,16 +1,13 @@
 package com.smsweb.sms.services.Employee;
 
 import com.smsweb.sms.exceptions.FileFormatException;
-import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
-import com.smsweb.sms.exceptions.ObjectNotSaveException;
-import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.Roles;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
+import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.services.users.UserService;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +25,14 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
+    private final RoleRepository roleRepository;
 
-    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService) {
+    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService, RoleRepository roleRepository) {
         this.fileHandleHelper = fileHandleHelper;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
+        this.roleRepository = roleRepository;
     }
 
     @Transactional
@@ -105,6 +104,10 @@ public class EmployeeService {
         return employeeRepository.findAllBySchool_IdAndStatusOrderByEmployeeNameAsc(school, "Active");
     }
 
+    public List<Employee> getAllActiveEmployees(){
+        return employeeRepository.findAllByStatusOrderByEmployeeNameAsc("Active");
+    }
+
 
     public UserEntity generateUsernameAndPassword(Employee employee, UserEntity userEntity) {
         // Generate Username
@@ -131,5 +134,25 @@ public class EmployeeService {
 
     public Optional<Employee> getEmployeeByUUID(UUID uuid){
         return employeeRepository.findByUuidAndStatus(uuid, "Active");
+    }
+
+    public boolean saveRoleUserMapping(Long userId, Long roleId){
+        try{
+            Employee employee = employeeRepository.findById(userId).orElse(null);
+            Roles roles = roleRepository.findById(roleId).orElse(null);
+            if(employee!=null && roles!=null){
+                UserEntity user = employee.getUserEntity();
+                if(!user.getRoles().contains(roles)){
+                    user.getRoles().add(roles);
+                    userService.saveUser(user);
+                    return true;
+                } else{
+                    return false;
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 }

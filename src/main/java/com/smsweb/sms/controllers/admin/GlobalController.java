@@ -6,11 +6,15 @@ import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.ObjectNotDeleteException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
+import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.Roles;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.MonthMaster;
+import com.smsweb.sms.repositories.users.RoleRepository;
+import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.admin.*;
 import com.smsweb.sms.services.universal.*;
 import com.smsweb.sms.services.users.UserService;
@@ -18,6 +22,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -46,6 +51,8 @@ public class GlobalController extends BaseController {
     private final DiscountmonthmapService discountmonthmapService;
     private final FullpaymentService fullpaymentService;
     private final UserService userService;
+    private final EmployeeService employeeService;
+    private final RoleRepository roleRepository;
 
     private final AcademicYearHolder academicYearHolder;
     private final SchoolHolder schoolHolder;
@@ -54,7 +61,7 @@ public class GlobalController extends BaseController {
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -71,6 +78,8 @@ public class GlobalController extends BaseController {
         this.discountmonthmapService = discountmonthmapService;
         this.fullpaymentService = fullpaymentService;
         this.userService = userService;
+        this.employeeService = employeeService;
+        this.roleRepository = roleRepository;
         this.academicYearHolder = academicYearHolder;
         this.schoolHolder = schoolHolder;
     }
@@ -1085,5 +1094,43 @@ public class GlobalController extends BaseController {
         return response;
     }
 
+    /*************************** User-Role *************************/
+    @GetMapping("/user-role-list")
+    public String getUserRoleList(Model model){
+        List<Employee> employees = employeeService.getAllActiveEmployees();
+        model.addAttribute("hasUserRoleMapping",false);
+        return "/admin/user-role";
+    }
+
+    @GetMapping("/add-user-to-role")
+    public String addUserRole(Model model){
+        List<Employee> employees = employeeService.getAllActiveEmployees();
+        List<Roles> roles = roleRepository.findAll();
+        model.addAttribute("employees", employees);
+        model.addAttribute("hasEmployee", !employees.isEmpty());
+        model.addAttribute("roles",roles);
+        model.addAttribute("hasRoles",!roles.isEmpty());
+        return "/admin/add-user-role-map";
+    }
+
+    @PostMapping("/api/user-role/save")
+    public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload){
+        try {
+            System.out.println("payload "+payload);
+            if(payload!=null){
+                Long employeeId = payload.get("employeeId");
+                Long roleId = payload.get("roleId");
+                boolean b = employeeService.saveRoleUserMapping(employeeId, roleId);
+                if(!b){
+                    return ResponseEntity.ok("Either unable to assign the Role to User or Role already assigned");
+                } else{
+                    return ResponseEntity.ok("Role assigned successfully");
+                }
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error assigning role: " + e.getMessage());
+        }
+        return ResponseEntity.status(400).body("Unexpected error occurred");
+    }
 
 }

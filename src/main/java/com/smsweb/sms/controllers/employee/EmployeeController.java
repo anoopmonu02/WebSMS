@@ -86,6 +86,13 @@ public class EmployeeController extends BaseController {
                 model.addAttribute("superUserLogin", true);
                 model.addAttribute("schools", schoolService.getAllSchools());
             }
+            if(isAdminLogin()){
+                School school = (School)model.getAttribute("school");
+                model.addAttribute("empschool", school);
+                employee.setSchool(school);
+                model.addAttribute("adminLogin", true);
+            }
+            //TODO - if admin logged in then get the value of school
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -100,6 +107,20 @@ public class EmployeeController extends BaseController {
             if(username.equalsIgnoreCase("super_admin")){
                 return true;
             }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+    private boolean isAdminLogin(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                // Check if the user has the "ROLE_ADMIN"
+                return authentication.getAuthorities().stream()
+                        .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+            }
+            return false;
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -158,6 +179,7 @@ public class EmployeeController extends BaseController {
             return returnStr;
         } catch(Exception ex){
             model.addAttribute("error", "Error in saving employee!"+ex.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error in saving employee!"+ex.getMessage());
             ex.printStackTrace();
             return returnStr;
         }
