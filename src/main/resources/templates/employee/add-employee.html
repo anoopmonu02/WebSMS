@@ -129,7 +129,6 @@
                         </select>
                     </div>
                     <div th:if="${adminLogin}">
-                        <label for="designation" class="form-label" th:text="${empschool.id}">School(Branch)</label>
                         <input type="hidden" id="school" name="school" class="form-control" th:field="*{school.id}" th:value="${school.id}">
                     </div>
                 </div>
