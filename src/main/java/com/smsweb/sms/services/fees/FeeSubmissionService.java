@@ -726,4 +726,38 @@ public class FeeSubmissionService {
         return responseMap;
     }
 
+    @Transactional
+    public int calculateFine(List<String> selectedMonths, School school, AcademicYear academicYear, int maxFineAmount, Fine fine){
+        int finalFineAmount = 0;
+        try{
+            for(String mnName : selectedMonths){
+                int monDiff = feeSubmissionRepository.getMonthDiffForFine(mnName, academicYear.getId(), school.getId());
+                if(monDiff>0){
+                    finalFineAmount = 0;
+                } else if(monDiff==0){
+                    FeeDate feedate = feedateRepository.findByAcademicYear_IdAndSchool_IdAndMonthMaster_MonthName(academicYear.getId(), school.getId(), mnName).orElse(null);
+                    if(feedate!=null){
+                        String formattedDate = new SimpleDateFormat("dd/MMM/yyyy").format(feedate.getFeeSubmissiondate());
+                        int dateDifference = feeSubmissionRepository.getDateDifference(formattedDate);
+                        if(dateDifference<0){
+                            finalFineAmount+=fine.getFineAmount();
+                        }
+                    } else{
+                        throw new RuntimeException("No Fee date found for month: "+mnName);
+                    }
+                } else{
+                    finalFineAmount+=fine.getFineAmount();
+                }
+            }
+            if(finalFineAmount>maxFineAmount){
+                finalFineAmount = maxFineAmount;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            finalFineAmount = -1;
+            throw new RuntimeException("Error in calculating fine",e);
+        }
+        return finalFineAmount;
+    }
+
 }

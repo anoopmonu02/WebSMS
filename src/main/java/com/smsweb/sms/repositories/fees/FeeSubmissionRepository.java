@@ -20,16 +20,27 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     List<FeeSubmission> findAllByAcademicStudent_Id(Long academic_student_id);
     List<FeeSubmission> findAllByAcademicStudent_IdAndStatus(Long academic_student_id, String status);
 
-    @Query("SELECT f FROM FeeSubmission f JOIN f.feeSubmissionBalance b WHERE f.school.id = :schoolId AND f.academicStudent.Id = :academicStudentId AND f.status='Active' AND b.status='Active' ORDER BY f.id DESC")
+    @Query("SELECT f FROM FeeSubmission f JOIN f.feeSubmissionBalance b WHERE f.school.id = :schoolId AND f.academicStudent.id = :academicStudentId AND f.status='Active' AND b.status='Active' ORDER BY f.id DESC")
     List<FeeSubmission> findTopBySchoolIdAndAcademicYearIdAndAcademicStudentIdOrderByIdDesc(@Param("schoolId") Long schoolId, @Param("academicStudentId") Long academicStudentId);
 
-    @Query("SELECT fs FROM FeeSubmission fs JOIN fs.academicStudent astu WHERE fs.school.id = :schoolId and fs.academicYear.id = :academicId AND fs.academicStudent.Id = :academicStudentId AND fs.status='Active'")
+    @Query("SELECT fs FROM FeeSubmission fs JOIN fs.academicStudent astu WHERE fs.school.id = :schoolId and fs.academicYear.id = :academicId AND fs.academicStudent.id = :academicStudentId AND fs.status='Active'")
     List<FeeSubmission> findAllBySchoolIdAndAcademicIdAndAcademicStudentId(@Param("schoolId") Long schoolId, @Param("academicId") Long academicId, @Param("academicStudentId") Long academicStudentId);
 
     int countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(Long academic_id, Long school_id, Long astudent_id, String status);
 
     @Query("SELECT MAX(f.feeSubmissionDate) FROM FeeSubmission f")
     Date findMaxSubmissionDate();
+
+    @Query(value = "select ((select m.priority from month_master mm join month_mapping m on m.month_master_id=mm.id where mm.month_name=:monthName and m.academic_year_id=:academicId and m.school_id=:schoolId)-" +
+            "(select m.priority from month_master mm join month_mapping m on m.month_master_id=mm.id where mm.month_name=monthname(curdate()) and m.academic_year_id=:academicId and m.school_id=:schoolId)) " +
+            "as Result",
+            nativeQuery = true)
+    int getMonthDiffForFine(@Param("monthName") String monthName, @Param("academicId") Long academicId, @Param("schoolId") Long schoolId);
+
+    @Query(value = "SELECT DATEDIFF(STR_TO_DATE(:feeSubmissionDate, '%d/%b/%Y'), CURDATE()) AS DTDIFF", nativeQuery = true)
+    int getDateDifference(@Param("feeSubmissionDate") String feeSubmissionDate);
+
+
 
     default boolean canSubmitFee(Date submissionDate) {
         Date maxSubmissionDate = findMaxSubmissionDate();

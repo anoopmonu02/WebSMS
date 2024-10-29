@@ -16,4 +16,6 @@ public interface FeedateRepository extends JpaRepository<FeeDate, Long> {
 
     @Query("SELECT fd FROM FeeDate fd WHERE fd.academicYear.id = :academicYear AND fd.school.id = :school AND month(fd.feeSubmissiondate) = :givenMonth")
     List<FeeDate> findByAcademicYearAndSchoolAndGivenMonth(@Param("academicYear") Long academicYear, @Param("school")Long school, @Param("givenMonth")  int givenMonth);
+
+    Optional<FeeDate> findByAcademicYear_IdAndSchool_IdAndMonthMaster_MonthName(Long academic, Long school, String monthName);
 }

@@ -299,9 +299,37 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
-
     @PostMapping("/getFineDetailsBasedOnMonth")
     public ResponseEntity<?> getFineDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
+        System.out.println("-=-=-=-=--=-== "+requestBody);
+        Map fineMap = new HashMap();
+        Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
+        Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent student = academicStudentService.searchStudentById(academicStuId, academicYear.getId(), school.getId());
+        Fine fine = fineService.getAllFines(school.getId(), academicYear.getId()).get(0);
+        /*String subDate = requestBody.get("submissionDate")!=null?requestBody.get("submissionDate"):"";
+        String feeDate = requestBody.get("feeDate")!=null?requestBody.get("feeDate"):"";*/
+
+        //Calculating New Fine - As per customer need
+        int maxFineAmount = fine.getFineAmount() * fine.getMaxCalculated();
+        List<String> selectedMonthList = Arrays.stream(requestBody.getOrDefault("checkBoxes","").split("-")).toList();
+        if(selectedMonthList!=null && !selectedMonthList.isEmpty()){
+            try{
+                int finalFineAmount = feeSubmissionService.calculateFine(selectedMonthList, school, academicYear, maxFineAmount, fine);
+                fineMap.put("fineamount", finalFineAmount);
+            }catch(Exception e){
+                fineMap.put("fineamount", 0);
+                e.printStackTrace();
+                throw new RuntimeException("Error calculating fine", e);
+            }
+        }
+        return ResponseEntity.ok(fineMap);
+    }
+
+    @PostMapping("/getFineDetailsBasedOnMonth_Old_Request")
+    public ResponseEntity<?> getFineDetailsBasedOnMonth_Old(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
         Map fineMap = new HashMap();
         double fineAmount = 0.0;
@@ -314,6 +342,21 @@ public class FeeSubmissionRestController extends BaseController {
         Fine fine = fineService.getAllFines(school.getId(), academicYear.getId()).get(0);
         String subDate = requestBody.get("submissionDate")!=null?requestBody.get("submissionDate"):"";
         String feeDate = requestBody.get("feeDate")!=null?requestBody.get("feeDate"):"";
+
+        //Calculating New Fine - As per customer need
+        int maxFineAmount = fine.getFineAmount() * fine.getMaxCalculated();
+        List<String> selectedMonthList = Arrays.stream(requestBody.getOrDefault("checkBoxes","").split("-")).toList();
+        if(selectedMonthList!=null && !selectedMonthList.isEmpty()){
+            try{
+                int finalFineAmount = feeSubmissionService.calculateFine(selectedMonthList, school, academicYear, maxFineAmount, fine);
+                fineMap.put("fineamount", finalFineAmount);
+            }catch(Exception e){
+                fineMap.put("fineamount", 0);
+                e.printStackTrace();
+                throw new RuntimeException("Error calculating fine", e);
+            }
+        }
+
 
         FeeSubmission lastSubmittedFees = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(school.getId(), academicYear.getId(), academicStuId);
         if (lastSubmittedFees != null) {

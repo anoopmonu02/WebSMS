@@ -1097,14 +1097,16 @@ public class GlobalController extends BaseController {
     /*************************** User-Role *************************/
     @GetMapping("/user-role-list")
     public String getUserRoleList(Model model){
-        List<Employee> employees = employeeService.getAllActiveEmployees();
+        School school = (School)model.getAttribute("school");
+        List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
         model.addAttribute("hasUserRoleMapping",false);
         return "/admin/user-role";
     }
 
     @GetMapping("/add-user-to-role")
     public String addUserRole(Model model){
-        List<Employee> employees = employeeService.getAllActiveEmployees();
+        School school = (School)model.getAttribute("school");
+        List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
         List<Roles> roles = roleRepository.findAll();
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
