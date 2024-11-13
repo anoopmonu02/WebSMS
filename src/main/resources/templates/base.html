@@ -14,6 +14,7 @@
     <th:block th:if="${page == 'datatable'}">
         <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
         <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
+        <link rel="stylesheet" th:href="@{/css/buttons.bootstrap5.css}" />
     </th:block>
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
     <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
@@ -323,6 +324,14 @@
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/dataTables.js"></script>
     <script src="/js/dataTables.bootstrap5.js"></script>
+
+    <script src="/js/dataTables.buttons.js"></script>
+    <script src="/js/buttons.bootstrap5.js"></script>
+    <script src="/js/jszip.min.js"></script>
+    <script src="/js/pdfmake.min.js"></script>
+    <script src="/js/vfs_fonts.js"></script>
+    <script src="/js/buttons.html5.min.js"></script>
+
     <script src="/js/select2.min.js"></script>
 </th:block>
 <th:block th:unless="${page == 'datatable'}">
