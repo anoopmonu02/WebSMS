@@ -23,8 +23,12 @@
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
-                    <tr>
-
+                    <tr th:each="emp : ${employees}">
+                        <td th:text="${emp.userEntity.username}"></td>
+                        <td th:text="${emp.employeeName}"></td>
+                        <td th:text="${emp.mobile1}"></td>
+                        <td th:text="${emp.userEntity.roles}"></td>
+                        <td></td>
                     </tr>
                 </tbody>
             </table>

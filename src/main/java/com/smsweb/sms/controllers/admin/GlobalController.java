@@ -1100,6 +1100,8 @@ public class GlobalController extends BaseController {
         School school = (School)model.getAttribute("school");
         List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
         model.addAttribute("hasUserRoleMapping",false);
+        model.addAttribute("employees",employees);
+        System.out.println("employees:::: "+employees);
         return "/admin/user-role";
     }
 
