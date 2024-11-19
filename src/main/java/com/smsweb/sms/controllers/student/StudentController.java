@@ -206,6 +206,17 @@ public class StudentController extends BaseController {
         Optional<Student> student = studentService.getStudentDetail(uuid, school.getId());
         model = getAllGlobalModels(model);
         model.addAttribute("student", student.get());
+        model.addAttribute("fromDelete",false);
+        return "student/show-student";
+    }
+
+    @GetMapping("/student/showdeleted/{uuid}")
+    public String showSchoolDeletedStudents(@PathVariable("uuid")UUID uuid, Model model){
+        School school = (School)model.getAttribute("school");
+        Optional<Student> student = studentService.getDeletedStudentDetail(uuid, school.getId());
+        model = getAllGlobalModels(model);
+        model.addAttribute("student", student.get());
+        model.addAttribute("fromDelete",true);
         return "student/show-student";
     }
 
@@ -274,6 +285,16 @@ public class StudentController extends BaseController {
         return "/student/assign-srno";
     }
 
+    @GetMapping("/stu-deleted-list")
+    public String deletedStudentList(Model model){
+        School school = (School)model.getAttribute("school");
+        List<Student> studentList = studentService.getAllInActiveStudents(school.getId());
+        model.addAttribute("students", studentList);
+        model.addAttribute("hasStudent", !studentList.isEmpty());
+        model.addAttribute("page", "datatable");
+
+        return "/student/inactive-students";
+    }
     @GetMapping("/delete-student/{deleteId}")
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         String msg = studentService.deleteStudent(Long.valueOf(id));
