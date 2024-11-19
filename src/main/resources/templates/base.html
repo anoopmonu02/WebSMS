@@ -14,7 +14,7 @@
     <th:block th:if="${page == 'datatable'}">
         <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
         <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
-        <link rel="stylesheet" th:href="@{/css/buttons.bootstrap5.css}" />
+        <link rel="stylesheet" th:href="@{/dtbl/buttons.bootstrap5.css}" />
     </th:block>
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
     <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
@@ -147,7 +147,7 @@
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill pe-2"></i> Assign SR </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill pe-2"></i> Migrate Student </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-mortarboard-fill pe-2"></i> Edit Grade/Section </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-person-x pe-2"></i> Remove Student </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-deleted-list'}"><i class="bi bi-person-x pe-2"></i> Remove Student </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
 
                     </ul>

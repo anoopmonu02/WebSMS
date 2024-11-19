@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+
+
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Removed Student List</div>
+        <hr/>
+        <table id="students-deleted" class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}">
+          <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Regis. Date</th>
+            <!--<th>Regis. #</th>-->
+            <th>Mother Name</th>
+            <th>Father Name</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Remove Date</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+
+          <tr th:each="student,iterStat : ${students}">
+            <td>
+              <a th:href="@{/student/student/showdeleted/{id}(id=${student.uuid})}" th:text="${student.studentName}"></a>
+            </td>
+            <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
+            <!--<td th:text="${customer.registrationNo}"></td>-->
+            <td th:text="${student.motherName}"></td>
+            <td th:text="${student.fatherName}"></td>
+            <td th:text="${student.mobile1}"></td>
+            <td th:text="${student.getUserEntity().getEmail()}"></td>
+            <td th:text="${student.address}"></td>
+            <td th:text="${student.status}"></td>
+            <td th:text="${#dates.format(student.lastUpdated, 'dd/MMM/yyyy')}"></td>
+
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!hasStudent}">
+          <p class="text-center">No Student found.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <script src="/js/jquery-3.7.1.js"></script>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    $(document).ready(function () {
+      $('#students-deleted').DataTable({
+        layout: {
+          bottomEnd: {
+            paging: {
+              firstLast: false
+            }
+          },
+          top1Start: {
+            buttons: [
+              {
+                extend: 'excelHtml5',
+                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                titleAttr: 'Excel',
+                title: 'Deleted Students Data export',
+                exportOptions: {
+                  columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                }
+              },
+              {
+                extend: 'csvHtml5',
+                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                titleAttr: 'CSV',
+                title: 'Deleted Students Data export'
+              },
+              {
+                extend: 'pdfHtml5',
+                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                titleAttr: 'PDF',
+                title: 'Deleted Students Data export',
+                exportOptions: {
+                  columns: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                }
+              },
+              'colvis'
+            ]
+          }
+        },
+        lengthMenu: [
+          [5, 10, 25, 50, 100, -1],
+          [5, 10, 25, 50, 100, 'All']
+        ],
+        pageLength: 25,
+        columnDefs: [
+          { "orderable": false, "targets": [0,7] } // Disable sorting on the first and fourth columns
+        ]
+      });
+    });
+
+
+
+
+  </script>
+
+</section>
+</body>
+</html>

@@ -45,6 +45,10 @@ public class StudentService {
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Active");
     }
 
+    public List<Student> getAllInActiveStudents(Long school_id) {
+        return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Inactive");
+    }
+
     public List<Student> getAllStudents(Long school_id) {
         return repository.findAllBySchool_IdOrderByStudentNameAsc(school_id);
     }
@@ -55,6 +59,9 @@ public class StudentService {
 
     public Optional<Student> getStudentDetail(UUID uuid, Long school_id) {
         return repository.findByUuidAndStatusAndSchool_Id(uuid, "Active", school_id);
+    }
+    public Optional<Student> getDeletedStudentDetail(UUID uuid, Long school_id) {
+        return repository.findByUuidAndStatusAndSchool_Id(uuid, "Inactive", school_id);
     }
 
     @Transactional

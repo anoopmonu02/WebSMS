@@ -186,7 +186,7 @@
                 <div class="col-md-3"></div>
                 <div class="col-md-4">
                     <label for="email" class="form-label">Email</label>
-                    <input type="text" readonly disabled  id="email" class="form-control" th:field="*{student.email}">
+                    <input type="text" readonly disabled  id="email" class="form-control" th:field="*{student.userEntity.email}">
                 </div>
                 <div class="col-md-8"></div>
 
@@ -300,9 +300,17 @@
 
                 <!-- Submit Button -->
                 <hr/>
-                <div class="col-md-4">
-                    <a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                <div th:if="${!fromDelete}">
+                    <div class="col-md-4">
+                        <a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                    </div>
                 </div>
+                <div th:if="${fromDelete}">
+                    <div class="col-md-4">
+                        <a class="btn btn-info" href="/student/stu-deleted-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
