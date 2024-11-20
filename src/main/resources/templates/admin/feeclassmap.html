@@ -115,7 +115,36 @@
                       paging: {
                           firstLast: false
                       }
-                  }
+                  },
+                top1Start: {
+                  buttons: [
+                    {
+                      extend: 'excelHtml5',
+                      text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                      titleAttr: 'Excel',
+                      title: 'Fee-Grade Mapping Data export',
+                      exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                      }
+                    },
+                    {
+                      extend: 'csvHtml5',
+                      text: '<i class="bi bi-filetype-csv text-info"></i>',
+                      titleAttr: 'CSV',
+                      title: 'Fee-Grade Mapping Data export'
+                    },
+                    {
+                      extend: 'pdfHtml5',
+                      text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                      titleAttr: 'PDF',
+                      title: 'Fee-Grade Mapping Data export',
+                      exportOptions: {
+                        columns: [0, 1, 2, 3, 4]
+                      }
+                    },
+                    'colvis'
+                  ]
+                }
               },
               lengthMenu: [
                   [5, 10, 25, 50, 100, -1],
