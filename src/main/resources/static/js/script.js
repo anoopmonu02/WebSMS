@@ -1,4 +1,4 @@
-const sidebarToggle = document.querySelector("#sidebar-toggle");
+/*const sidebarToggle = document.querySelector("#sidebar-toggle");
 sidebarToggle.addEventListener("click",function(){
     document.querySelector("#sidebar").classList.toggle("collapsed");
 });
@@ -28,4 +28,10 @@ function isLight(){
 
 if(isLight()){
     toggleRootClass();
-}
+}*/
+
+const hamBurger = document.querySelector(".toggle-btn");
+
+hamBurger.addEventListener("click", function () {
+    document.querySelector("#sidebar").classList.toggle("expand");
+});

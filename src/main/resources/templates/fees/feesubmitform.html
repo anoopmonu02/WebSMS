@@ -26,25 +26,25 @@
                         <div class="academic-student-block">
                             <div class="row">
                                 <div class="col-sm-4">
-                                    <div class="card text-bg-secondary">
+                                    <div class="card  ">
                                         <h5 class="card-header">Student Detail</h5>
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item text-bg-secondary studname"><strong>Student Name:</strong></li>
-                                            <li class="list-group-item text-bg-secondary fname"><strong>Father Name:</strong></li>
-                                            <li class="list-group-item text-bg-secondary mname"><strong>Mother Name:</strong></li>
-                                            <li class="list-group-item text-bg-secondary contactno contact-update-btn"><strong>Contact No:</strong> </li>
+                                            <li class="list-group-item   studname"><strong>Student Name:</strong></li>
+                                            <li class="list-group-item   fname"><strong>Father Name:</strong></li>
+                                            <li class="list-group-item   mname"><strong>Mother Name:</strong></li>
+                                            <li class="list-group-item   contactno contact-update-btn"><strong>Contact No:</strong> </li>
                                         </ul>
                                     </div>
                                 </div>
 
                                 <div class="col-sm-4">
-                                    <div class="card text-bg-secondary">
+                                    <div class="card  ">
                                         <h5 class="card-header">Academic Detail</h5>
                                         <ul class="list-group list-group-flush">
-                                            <li class="list-group-item text-bg-secondary cmedium"><strong>Medium: </strong></li>
-                                            <li class="list-group-item text-bg-secondary cgrade"><strong>Class: </strong></li>
-                                            <li class="list-group-item text-bg-secondary csection"><strong>Section: </strong></li>
-                                            <li class="list-group-item text-bg-secondary csr"><strong>SR No: </strong></li>
+                                            <li class="list-group-item   cmedium"><strong>Medium: </strong></li>
+                                            <li class="list-group-item   cgrade"><strong>Class: </strong></li>
+                                            <li class="list-group-item   csection"><strong>Section: </strong></li>
+                                            <li class="list-group-item   csr"><strong>SR No: </strong></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -103,7 +103,7 @@
 
                             <!--Fee Detail-->
                             <div class="col-sm-6">
-                                <table id="feeTable" class="table table-bordered table-hover table-sm table-success">
+                                <table id="feeTable" class="table table-bordered table-hover table-sm">
                                     <thead>
                                         <tr class="table-secondary">
                                             <th>#</th>
@@ -213,58 +213,23 @@
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script type="text/javascript" th:inline="javascript">
-        // Display success message
+
         const successMessage = [[${success}]];
         if (successMessage) {
-            //toastr.success(successMessage);
-            toastr["success"](successMessage,"Success");
-            toastr.options = {
-                "closeButton": true,
-                "debug": false,
-                "newestOnTop": false,
-                "progressBar": false,
-                "positionClass": "toast-top-right",
-                "preventDuplicates": false,
-                "onclick": null,
-                "showDuration": "500",
-                "hideDuration": "1000",
-                "timeOut": "5000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut"
-            }
+            showMsg("success", successMessage, "Success");
         }
 
         const infoMessage = [[${info}]];
         if (infoMessage) {
-            //toastr.success(successMessage);
-            toastr["info"](infoMessage,"Info");
-            toastr.options = {
-                "closeButton": true,
-                "debug": false,
-                "newestOnTop": false,
-                "progressBar": false,
-                "positionClass": "toast-top-right",
-                "preventDuplicates": false,
-                "onclick": null,
-                "showDuration": "500",
-                "hideDuration": "1000",
-                "timeOut": "5000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut"
-            }
+            showMsg("info", infoMessage, "Info");
         }
 
-        // Display error message
         const errorMessage = [[${error}]];
         if (errorMessage) {
-            //toastr.error(errorMessage);
-            toastr["error"](errorMessage, "Error");
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
             toastr.options = {
                 "closeButton": true,
                 "debug": false,
@@ -273,7 +238,7 @@
                 "positionClass": "toast-top-right",
                 "preventDuplicates": false,
                 "onclick": null,
-                "showDuration": "500",
+                "showDuration": "600",
                 "hideDuration": "1000",
                 "timeOut": "5000",
                 "extendedTimeOut": "1000",
@@ -282,7 +247,10 @@
                 "showMethod": "fadeIn",
                 "hideMethod": "fadeOut"
             }
+            toastr[msgType](msg,headerValue);
         }
+
+
         // Event listener for dynamically added button
         $(document).on('click', '.dynamic-btn', function() {
             $('#myModal').modal('show');
