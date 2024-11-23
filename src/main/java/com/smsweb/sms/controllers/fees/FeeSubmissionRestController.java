@@ -458,4 +458,36 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/getStudentFeeDetails/{id}")
+    public ResponseEntity<?> getStudentFeeDetails(@PathVariable("id") Long id, Model model){
+        Map result = new HashMap<>();
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
+        try{
+            if(academicStudent!=null){
+                Student student = academicStudent.getStudent();
+                result.put("student",academicStudent);
+                //collect student fee details if any?
+
+                List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllFeeSubmissionByAcademicStudent(id);
+                if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
+                    result.put("feeSubmissions", feeSubmissionList);
+                }
+                else{
+                    result.put("feeSubmissionError", "Fees not found for: "+academicStudent.getStudent().getStudentName()+"!");
+                }
+            } else{
+                result.put("studentError", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Error: "+e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+
+
 }

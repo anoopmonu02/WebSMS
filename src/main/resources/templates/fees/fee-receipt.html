@@ -11,6 +11,52 @@
       <div class="row mt-2 ">
           <div class="col-md-12">
 
+              <div class="card-header fs-3">Fee Receipt(s) List - Student</div>
+              <hr/>
+              <!--Search box-->
+              <div class="search-container my-3">
+                  <input class="form-control" id="search-input" onkeyup="searchStuName()" placeholder="Search student name"
+                         type="text">
+                  <div class="search-result">
+
+                  </div>
+              </div>
+
+              <hr/>
+              <div class="student-detail mb-3">
+                  <div class="academic-student-block">
+                      <div class="row">
+                          <div class="col-sm-4">
+                              <div class="card text-bg-secondary h-100">
+                                  <h5 class="card-header">Student Detail</h5>
+                                  <ul class="list-group list-group-flush">
+                                      <li class="list-group-item text-bg-secondary studname"><strong>Student Name:</strong></li>
+                                      <li class="list-group-item text-bg-secondary fname"><strong>Father Name:</strong></li>
+                                      <li class="list-group-item text-bg-secondary mname"><strong>Mother Name:</strong></li>
+                                      <li class="list-group-item text-bg-secondary contactno contact-update-btn"><strong>Contact No:</strong>
+                                      </li>
+                                  </ul>
+                              </div>
+                          </div>
+
+                          <div class="col-sm-4">
+                              <div class="card text-bg-secondary h-100">
+                                  <h5 class="card-header">Academic Detail</h5>
+                                  <ul class="list-group list-group-flush">
+                                      <li class="list-group-item text-bg-secondary cmedium"><strong>Medium: </strong></li>
+                                      <li class="list-group-item text-bg-secondary cgrade"><strong>Class: </strong></li>
+                                      <li class="list-group-item text-bg-secondary csection"><strong>Section: </strong></li>
+                                      <li class="list-group-item text-bg-secondary csr"><strong>SR No: </strong></li>
+                                  </ul>
+                              </div>
+                          </div>
+
+                      </div>
+                  </div>
+
+              </div>
+
+
               <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
               <div th:if="${studentError!=null}">
                 <p class="text-center">No Student found.</p>
@@ -164,6 +210,66 @@
       }
     }
 
+    const searchStuName=() =>{
+        let query=$("#search-input").val();
+        console.log('searched.....'+query);
+        if(query.trim().length>2){
+
+            //Sending request to server
+            let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+            fetch(url).then(response=>{
+                return response.json();
+            }).then((data)=>{
+                console.log(data);
+                let text = `<div class='list-group'>`;
+
+                data.forEach((student) =>{
+                    text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                });
+
+                text+=`</div>`;
+                $(".search-result").html(text);
+                $(".search-result").show();
+            });
+
+
+        } else{
+            $(".search-result").hide();
+        }
+    }
+
+    const loadStudentData=(id)=>{
+        $(".search-result").hide();
+        $("#search-input").val('');
+        if(id>0){
+            console.log("id::::"+id);
+            let url = `${window.location.origin}/getStudentFeeDetails/${id}`;
+            fetch(url).then(response => {
+                return response.json();
+            }).then((data) => {
+                console.log(data);
+                console.log(data.student);
+                if('noAcademicStudent' in data){
+                    toastr["warning"](data.noAcademicStudent,"Message");
+                    setFeeRelatedData(data, 0)
+                } else{
+                    if('noFeeDate' in data){
+                        toastr["warning"](data.noFeeDate,"Message");
+                    } else{
+                        if('assignedDiscount' in data){
+                            if(data.assignedDiscount.status==='Active'){
+                                const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
+                                toastr["info"](msg,"Message");
+                                $(".discountassigned").show();
+                                setDiscountData(data.assignedDiscount);
+                            }
+                        }
+                        setFeeRelatedData(data, 1);
+                    }
+                }
+            });
+        }
+    }
 
   </script>
 
