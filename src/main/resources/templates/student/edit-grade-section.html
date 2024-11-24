@@ -203,16 +203,16 @@
                     console.log(data);
                     console.log(data.student);
                     if('noAcademicStudent' in data){
-                        toastr["warning"](data.noAcademicStudent,"Message");
+                        showMsg("warning",data.noAcademicStudent,"Message");
                         setFeeRelatedData(data, 0)
                     } else{
                         if('noFeeDate' in data){
-                            toastr["warning"](data.noFeeDate,"Message");
+                            showMsg("warning",data.noFeeDate,"Message");
                         } else{
                             if('assignedDiscount' in data){
                                 if(data.assignedDiscount.status==='Active'){
                                     const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
-                                    toastr["info"](msg,"Message");
+                                    showMsg("info",msg,"Message");
                                     $(".discountassigned").show();
                                     setDiscountData(data.assignedDiscount);
                                 }

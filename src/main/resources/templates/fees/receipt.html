@@ -172,74 +172,17 @@
 
   <script type="text/javascript" th:inline="javascript">
     // Display success message
-    const successMessage = [[${success}]];
     if (successMessage) {
-      //toastr.success(successMessage);
-      toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+        showWarningMsg("success", successMessage, "Success");
     }
-
     const infoMessage = [[${info}]];
     if (infoMessage) {
-      //toastr.success(successMessage);
-      toastr["info"](infoMessage,"Info");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+        showWarningMsg("info", infoMessage, "Info");
     }
-
     // Display error message
     const errorMessage = [[${error}]];
     if (errorMessage) {
-      //toastr.error(errorMessage);
-      toastr["error"](errorMessage, "Error");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+        showWarningMsg("error", errorMessage, "Error");
     }
 
 

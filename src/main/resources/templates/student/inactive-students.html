@@ -111,6 +111,10 @@
           { "orderable": false, "targets": [0,7] } // Disable sorting on the first and fourth columns
         ]
       });
+      $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+        // Remove the btn-secondary class from each button
+        $(this).removeClass("btn-secondary");
+      });
     });
 
 

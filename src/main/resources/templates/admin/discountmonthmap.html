@@ -72,27 +72,11 @@
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Discount-Month mapping deleted successfully.","Delete");
-                toastr.options = {
-                  "closeButton": true,
-                  "debug": false,
-                  "newestOnTop": false,
-                  "progressBar": false,
-                  "positionClass": "toast-top-right",
-                  "preventDuplicates": false,
-                  "onclick": null,
-                  "showDuration": "500",
-                  "hideDuration": "1000",
-                  "timeOut": "5000",
-                  "extendedTimeOut": "1000",
-                  "showEasing": "swing",
-                  "hideEasing": "linear",
-                  "showMethod": "fadeIn",
-                  "hideMethod": "fadeOut"
-                }
+                showMsg("info", "Discount-Month mapping deleted successfully.","Delete");
               } else{
                 var errorMsg = "Failed to delete the record." + response.message;
-                toastr["error"](errorMsg, "Error");
+                //toastr["error"](errorMsg, "Error");
+                showMsg("error", errorMsg, "Error");
               }
               //location.reload(); // Reload the page after successful deletion
               $('#feeDateTable').load(location.href + " #feeDateTable > *");
@@ -101,7 +85,8 @@
               // Handle error
               console.error('Error deleting item:', error);
               //alert('Failed to delete the record.');
-              toastr["error"]("Failed to delete the record.", "Error");
+              //toastr["error"]("Failed to delete the record.", "Error");
+              showMsg("error", "Failed to delete the record.", "Error");
             }
           });
         }
@@ -157,76 +142,30 @@
           { "orderable": false, "targets": [0,5] } // Disable sorting on the first and fourth columns
         ]
       });
+      $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+        // Remove the btn-secondary class from each button
+        $(this).removeClass("btn-secondary");
+      });
     });
-    toastr.options = {
-      "closeButton": true,
-      "debug": false,
-      "newestOnTop": false,
-      "progressBar": false,
-      "positionClass": "toast-top-right",
-      "preventDuplicates": false,
-      "onclick": null,
-      "showDuration": "600",
-      "hideDuration": "1000",
-      "timeOut": "5000",
-      "extendedTimeOut": "1000",
-      "showEasing": "swing",
-      "hideEasing": "linear",
-      "showMethod": "fadeIn",
-      "hideMethod": "fadeOut"
-    }
+
     const successMessage = [[${success}]];
     if (successMessage) {
-      //toastr.success(successMessage);
-      toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+      showMsg("success", successMessage, "Success");
     }
 
 
     const infoMessage = [[${info}]];
     if (infoMessage) {
-      //toastr.success(successMessage);
-      toastr["info"](infoMessage,"Info");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
+      showMsg("info", infoMessage, "Info");
     }
 
     // Display error message
     const errorMessage = [[${error}]];
     if (errorMessage) {
-      //toastr.error(errorMessage);
-      toastr["error"](errorMessage, "Error");
+      showMsg("error", errorMessage, "Error");
+    }
+
+    function showMsg(msgType, msg, headerValue){
       toastr.options = {
         "closeButton": true,
         "debug": false,
@@ -235,7 +174,7 @@
         "positionClass": "toast-top-right",
         "preventDuplicates": false,
         "onclick": null,
-        "showDuration": "500",
+        "showDuration": "600",
         "hideDuration": "1000",
         "timeOut": "5000",
         "extendedTimeOut": "1000",
@@ -244,6 +183,7 @@
         "showMethod": "fadeIn",
         "hideMethod": "fadeOut"
       }
+      toastr[msgType](msg,headerValue);
     }
 
 
