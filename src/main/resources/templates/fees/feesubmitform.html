@@ -216,38 +216,17 @@
 
         const successMessage = [[${success}]];
         if (successMessage) {
-            showMsg("success", successMessage, "Success");
+            showWarningMsg("success", successMessage, "Success");
         }
 
         const infoMessage = [[${info}]];
         if (infoMessage) {
-            showMsg("info", infoMessage, "Info");
+            showWarningMsg("info", infoMessage, "Info");
         }
 
         const errorMessage = [[${error}]];
         if (errorMessage) {
-            showMsg("error", errorMessage, "Error");
-        }
-
-        function showMsg(msgType, msg, headerValue){
-            toastr.options = {
-                "closeButton": true,
-                "debug": false,
-                "newestOnTop": false,
-                "progressBar": false,
-                "positionClass": "toast-top-right",
-                "preventDuplicates": false,
-                "onclick": null,
-                "showDuration": "600",
-                "hideDuration": "1000",
-                "timeOut": "5000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut"
-            }
-            toastr[msgType](msg,headerValue);
+            showWarningMsg("error", errorMessage, "Error");
         }
 
 
@@ -316,11 +295,13 @@
                     console.log(data);
                     console.log(data.student);
                     if('noAcademicStudent' in data){
-                        toastr["warning"](data.noAcademicStudent,"Message");
+                        //toastr["warning"](data.noAcademicStudent,"Message");
+                        showWarningMsg("warning",data.noAcademicStudent,"Message");
                         setFeeRelatedData(data, 0)
                     } else{
                         if('noFeeDate' in data){
-                            toastr["warning"](data.noFeeDate,"Message");
+                            //toastr["warning"](data.noFeeDate,"Message");
+                            showWarningMsg("warning",data.noFeeDate,"Message");
                         } else{
                             setFeeRelatedData(data, 1);
                         }

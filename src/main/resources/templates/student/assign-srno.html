@@ -473,7 +473,7 @@
                     } else if(data.hasOwnProperty("error")) {
                         //alert(data.message);
                         console.log("eRROR: "+data.error[0]);
-                        showMsg("error", data.error[0]);
+                        showMsg("error", data.error[0],"Error");
                     }
                 })
                 .catch(error => {

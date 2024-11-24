@@ -117,98 +117,39 @@
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
   <script type="text/javascript" th:inline="javascript">
-    // Display success message
-    const successMessage = [[${success}]];
-    if (successMessage) {
-      //toastr.success(successMessage);
-      toastr["success"](successMessage,"Success");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
+      if (successMessage) {
+          showWarningMsg("success", successMessage, "Success");
       }
-    }
-
-    const infoMessage = [[${info}]];
-    if (infoMessage) {
-      //toastr.success(successMessage);
-      toastr["info"](infoMessage,"Info");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
+      const infoMessage = [[${info}]];
+      if (infoMessage) {
+          showWarningMsg("info", infoMessage, "Info");
       }
-    }
-
-    // Display error message
-    const errorMessage = [[${error}]];
-    if (errorMessage) {
-      //toastr.error(errorMessage);
-      toastr["error"](errorMessage, "Error");
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
+      // Display error message
+      const errorMessage = [[${error}]];
+      if (errorMessage) {
+          showWarningMsg("error", errorMessage, "Error");
       }
-    }
 
-
-    function showWarningMsg(msgType, msg, headerValue){
-      toastr[msgType](msg,headerValue);
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "500",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
-    }
+        function showWarningMsg(msgType, msg, headerValue){
+              toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+              }
+            toastr[msgType](msg,headerValue);
+        }
 
     const searchStuName=() =>{
         let query=$("#search-input").val();
@@ -250,16 +191,16 @@
                 console.log(data);
                 console.log(data.student);
                 if('noAcademicStudent' in data){
-                    toastr["warning"](data.noAcademicStudent,"Message");
+                    showWarningMsg("warning", data.noAcademicStudent,"Message");
                     setFeeRelatedData(data, 0)
                 } else{
                     if('noFeeDate' in data){
-                        toastr["warning"](data.noFeeDate,"Message");
+                        showWarningMsg("warning", data.noFeeDate,"Message");
                     } else{
                         if('assignedDiscount' in data){
                             if(data.assignedDiscount.status==='Active'){
                                 const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
-                                toastr["info"](msg,"Message");
+                                showWarningMsg("info", msg, "Message");
                                 $(".discountassigned").show();
                                 setDiscountData(data.assignedDiscount);
                             }
