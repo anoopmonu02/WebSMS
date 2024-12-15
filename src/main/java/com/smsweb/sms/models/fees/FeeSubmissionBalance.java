@@ -1,5 +1,7 @@
 package com.smsweb.sms.models.fees;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
@@ -19,6 +21,7 @@ public class FeeSubmissionBalance {
     private Long id;
 
     @OneToOne
+    @JsonIgnore
     private FeeSubmission feeSubmission;
 
     @Digits(integer = 10, fraction = 2)

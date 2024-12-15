@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.fees;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.smsweb.sms.models.universal.Feehead;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
@@ -18,6 +19,7 @@ public class FeeSubmissionSub {
     private Long id;
 
     @ManyToOne
+    @JsonBackReference
     private FeeSubmission feeSubmission;
 
     @ManyToOne

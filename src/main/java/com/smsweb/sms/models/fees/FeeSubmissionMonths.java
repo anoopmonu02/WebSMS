@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.fees;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ public class FeeSubmissionMonths {
     private Long id;
 
     @ManyToOne
+    @JsonBackReference
     private FeeSubmission feeSubmission;
 
     @ManyToOne

@@ -10,13 +10,11 @@
   <div class="container">
       <div class="row mt-2 ">
           <div class="col-md-12">
-
               <div class="card-header fs-3">Fee Receipt(s) List - Student</div>
               <hr/>
               <!--Search box-->
               <div class="search-container my-3">
-                  <input class="form-control" id="search-input" onkeyup="searchStuName()" placeholder="Search student name"
-                         type="text">
+                  <input class="form-control" id="search-input" onkeyup="searchStuName()" placeholder="Search student name" type="text">
                   <div class="search-result">
 
                   </div>
@@ -27,50 +25,52 @@
                   <div class="academic-student-block">
                       <div class="row">
                           <div class="col-sm-4">
-                              <div class="card text-bg-secondary h-100">
+                              <div class="card">
                                   <h5 class="card-header">Student Detail</h5>
                                   <ul class="list-group list-group-flush">
-                                      <li class="list-group-item text-bg-secondary studname"><strong>Student Name:</strong></li>
-                                      <li class="list-group-item text-bg-secondary fname"><strong>Father Name:</strong></li>
-                                      <li class="list-group-item text-bg-secondary mname"><strong>Mother Name:</strong></li>
-                                      <li class="list-group-item text-bg-secondary contactno contact-update-btn"><strong>Contact No:</strong>
+                                      <li class="list-group-item studname"><strong>Student Name:</strong></li>
+                                      <li class="list-group-item fname"><strong>Father Name:</strong></li>
+                                      <li class="list-group-item mname"><strong>Mother Name:</strong></li>
+                                      <li class="list-group-item contactno contact-update-btn"><strong>Contact No:</strong>
                                       </li>
                                   </ul>
                               </div>
                           </div>
 
                           <div class="col-sm-4">
-                              <div class="card text-bg-secondary h-100">
+                              <div class="card">
                                   <h5 class="card-header">Academic Detail</h5>
                                   <ul class="list-group list-group-flush">
-                                      <li class="list-group-item text-bg-secondary cmedium"><strong>Medium: </strong></li>
-                                      <li class="list-group-item text-bg-secondary cgrade"><strong>Class: </strong></li>
-                                      <li class="list-group-item text-bg-secondary csection"><strong>Section: </strong></li>
-                                      <li class="list-group-item text-bg-secondary csr"><strong>SR No: </strong></li>
+                                      <li class="list-group-item cmedium"><strong>Medium: </strong></li>
+                                      <li class="list-group-item cgrade"><strong>Class: </strong></li>
+                                      <li class="list-group-item csection"><strong>Section: </strong></li>
+                                      <li class="list-group-item csr"><strong>SR No: </strong></li>
                                   </ul>
                               </div>
                           </div>
 
+                          <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+                          <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
+                          <input type="hidden" id="StudentId" value="" name="StudentId">
+                          <input type="hidden" id="gradeId" value="" name="gradeId">
                       </div>
                   </div>
 
               </div>
 
 
-              <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
-              <div th:if="${studentError!=null}">
-                <p class="text-center">No Student found.</p>
-              </div>
+              <div class="card-header fs-3">Fee Receipt <span class="studname1"></span></div>
+
               <hr/>
 
               <div class="fee-detail-box row">
                   <!--Fees List-->
-                  <div class="col-md-6 card text-bg-light feedetailslistbox">
+                  <div class="col-md-6 text-bg-light feedetailslistbox">
                       <div class="card-body">
                           <h5 class="card-subtitle mb-2 text-muted">Fee Detail(s)</h5>
                       </div>
 
-                      <table class="table table-bordered table-hover" th:if="${hasFeeSubmission}">
+                      <table class="table table-bordered table-hover" id="feetable">
                           <thead>
                               <tr>
                                   <th>#</th>
@@ -83,27 +83,152 @@
                               </tr>
                           </thead>
                           <tbody class="table-group-divider">
-                              <tr th:each="fee,iterStat : ${feeSubmissions}">
-                                  <td th:text="${iterStat.index + 1}"></td>
-                                  <td th:text="${#dates.format(fee.feeSubmissionDate, 'dd-MMM-yy')}"></td>
-                                  <td th:text="${fee.receiptNo.substring(0,12)}"></td>
-                                  <td th:text="${fee.totalAmount}"></td>
-                                  <td th:text="${fee.paidAmount}"></td>
-                                  <td th:text="${fee.balanceAmount}"></td>
-                                  <td class="text-center">
-                                      <a href="#" onclick="loadFeesReceipt()" class="btn btn-success"> <i class="bi bi-printer-fill"></i> </a>
-                                  </td>
-                              </tr>
+
                           </tbody>
                       </table>
-                      <div th:if="${!hasFeeSubmission}">
-                          <p class="text-center">No fee detail(s) found.</p>
-                      </div>
+
                   </div>
                   <!--Fee Receipt-->
-                  <div class="col-md-6 card text-bg-light feereceiptbox">
+                  <div class="col-md-6 text-bg-light feereceiptbox">
                       <div class="card-body">
-                          <h5 class="card-subtitle mb-2 text-muted">Fee Receipt</h5>
+                          <h5 class="card-subtitle mb-2 text-muted">RECEIPT PRINT</h5>
+                      </div>
+                      <div>
+                          <div class="row">
+                              <div class="col-md-3">
+                                  <button class="btn btn-success" id="printreceipt" onclick="printDiv('contentToExport','receipt')" data-div-id="contentToExport"><i class="bi bi-printer-fill"></i> Print</button>
+                              </div>
+                          </div>
+                          <div class="row">
+
+                              <!--Page Content Here-->
+                              <div class="card text-bg-secondary">
+                                  <h5 class="card-header">Fee Receipt</h5>
+                                  <!--<div class="card-body" id="contentToExport">
+                                      <input type="hidden" id="feeid" th:value="${feeSubmission.id}">
+                                      <div class="text-center"><strong>[[${school.getSchoolName().toUpperCase()}]]</strong></div>
+                                      <div class="text-center"><strong>[[${school.getAddress().toUpperCase()}]]</strong></div>
+                                      <div class="text-center"><strong>CONTACT NO: (+91) [[${school.getMobile1()}]]<span th:if="${school.getMobile2() != null}">, [[${school.getMobile2()}]]</span></strong></div>
+                                      <div class="text-center" th:if="${school.getEmail() != null}"><strong>Email: [[${school.getEmail()}]]</strong></div>
+                                      <hr/>
+                                      <div class="row">
+                                          <div class="col-md-6">
+                                              <label class="col-md-4 col-form-label"><strong>Academic Year: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="${academicYear}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-2"></label>
+                                              <label class="col-md-4"><strong>Submission Date: </strong></label>
+                                              <label class="col-md-5" th:text="${#dates.format(feeSubmission.feeSubmissionDate,'dd-MMM-yyyy HH:mm:ss')}"><strong>Submission Date: </strong></label>
+                                          </div>
+                                          <div class="col-md-8">
+                                              <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="${feeSubmission.receiptNo}"></label>
+                                          </div>
+                                      </div>
+                                      <hr/>
+                                      <div class="row">
+                                          <div class="col-md-6">
+                                              <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="${student.getStudent().studentName}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-3"></label>
+                                              <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
+                                              <label class="col-md-4 col-form-label" th:text="${student.getGrade().gradeName}+'-'+${student.getSection().sectionName}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="${student.getStudent().fatherName}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-3"></label>
+                                              <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
+                                              <label class="col-md-4 col-form-label" th:text="${student.getClassSrNo()}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="${student.getStudent().motherName}"></label>
+                                          </div>
+                                          <div class="col-md-6"></div>
+                                          <div class="col-md-6">
+                                              <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
+                                              <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
+                                          </div>
+                                          <div class="col-md-6">
+                                          </div>
+                                      </div>
+                                      <hr/>
+                                      <div class="row fee-month-detail">
+                                          <div class="col-md-6" th:each="feelist,iterStat : ${feeSubmittedMonths}">
+                                              <strong><label class="col-md-3" th:text="${feelist.split('####')[0]}"></label></strong>
+                                              <label class="col-md-3" th:text="${feelist.split('####')[1]}"></label>
+                                              <span th:if="${feelist.contains('PAID')}">
+                                    <i><u><label class="col-md-5" th:text="${feelist.split('####')[2]}"></label></u></i>
+                                </span>
+                                          </div>
+                                      </div>
+                                      <hr/>
+                                      &lt;!&ndash;Fee Details&ndash;&gt;
+                                      <div class="row feedetails">
+                                          <div class="col-md-12">
+                                              <table class="table table-bordered table-striped">
+                                                  <thead>
+                                                  <tr>
+                                                      <th width="10%">SNo.</th>
+                                                      <th>Head Name</th>
+                                                      <th width="25%">Amount</th>
+                                                  </tr>
+                                                  </thead>
+                                                  <tbody class="table-group-divider">
+                                                  <tr th:each="fsub, iter: ${feesublist}">
+                                                      <td th:text="${iter.index + 1}+'.'"></td>
+                                                      <td th:text="${fsub.feehead.feeHeadName}"></td>
+                                                      <td class="text-end" th:text="'&#8377; '+${fsub.amount}"></td>
+                                                  </tr>
+                                                  </tbody>
+                                              </table>
+                                          </div>
+                                      </div>
+                                      <hr/>
+                                      &lt;!&ndash;Amount Details&ndash;&gt;
+                                      <div class="row amountdetails">
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-8"><strong>Fine Remark: </strong><span th:text="${feeSubmission.fineRemark}"></span></div>
+
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-4"><strong>Fine Amount: </strong></div>
+                                          <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.fineAmount}"></div>
+                                      </div>
+                                      <hr/>
+                                      <div class="row" th:if="${feeSubmission.discounthead}">
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission.discounthead.discountName}"></span></div>
+
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-4"><strong>Discount Amount: </strong></div>
+                                          <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.discountAmount}"></div>
+                                      </div>
+                                      <hr/>
+                                      <div class="row">
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-4"><strong>Total Amount: </strong></div>
+                                          <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.totalAmount}"></div>
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-4"><strong>Paid Amount: </strong></div>
+                                          <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.paidAmount}"></div>
+                                          <div class="col-md-4"></div>
+                                          <div class="col-md-4"><strong>Balance Amount: </strong></div>
+                                          <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.balanceAmount}"></div>
+                                      </div>
+                                      <br/><br/>
+                                      <div class="row mb-3"><div class="col-md-12 text-end">(Authorized Signatory)</div></div>
+
+
+                                  </div>-->
+                              </div>
+
+                          </div>
                       </div>
                   </div>
               </div>
@@ -117,6 +242,7 @@
   <script src="/js/jquery-3.6.0.min.js"></script>
   <script src="/js/toastr.min.js"></script>
   <script type="text/javascript" th:inline="javascript">
+      const successMessage = [[${success}]];
       if (successMessage) {
           showWarningMsg("success", successMessage, "Success");
       }
@@ -155,7 +281,6 @@
         let query=$("#search-input").val();
         console.log('searched.....'+query);
         if(query.trim().length>2){
-
             //Sending request to server
             let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
             fetch(url).then(response=>{
@@ -190,27 +315,102 @@
             }).then((data) => {
                 console.log(data);
                 console.log(data.student);
-                if('noAcademicStudent' in data){
+                if('studentError' in data){
                     showWarningMsg("warning", data.noAcademicStudent,"Message");
                     setFeeRelatedData(data, 0)
                 } else{
-                    if('noFeeDate' in data){
+                    if('feeSubmissionError' in data){
                         showWarningMsg("warning", data.noFeeDate,"Message");
                     } else{
-                        if('assignedDiscount' in data){
-                            if(data.assignedDiscount.status==='Active'){
-                                const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
+                        if('feeSubmissions' in data){
+                            console.log("data.feeSubmissions---- "+data.feeSubmissions);
+                            console.log("data.student status---- "+data.student.status);
+                            if(data.student.status==='Active'){
+                                /*const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
                                 showWarningMsg("info", msg, "Message");
                                 $(".discountassigned").show();
-                                setDiscountData(data.assignedDiscount);
+                                setDiscountData(data.assignedDiscount);*/
+                                setFeeRelatedData(data, 1);
+                                setFeeDetails(data.feeSubmissions);
                             }
                         }
-                        setFeeRelatedData(data, 1);
+                        //setFeeRelatedData(data, 1);
                     }
                 }
             });
         }
     }
+
+      function setFeeDetails(data){
+          for(let i=0;i<data.length;i++){
+              let value = data[i];
+              console.log("value-----"+value);
+              let formatDateVal = formatDate(value.feeSubmissionDate);
+              //+value.academicStudent.id+'_'
+              $('#feetable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ formatDateVal+'</td><td>'+ value.receiptNo +'</td><td>'+value.totalAmount+'</td><td>'+ value.paidAmount +'</td><td>'+ value.balanceAmount +'</td><td><a onclick="loadStudentReceiptData('+value.id+')" href="#" class="btn btn-success"><i class="bi bi-printer-fill"></i></a></td></tr>');
+          }
+      }
+
+      function formatDate(inputDate) {
+          const date = new Date(inputDate);
+          const day = String(date.getDate()).padStart(2, '0');
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const month = monthNames[date.getMonth()];
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`;
+      }
+      const loadStudentReceiptData=(id)=>{
+          if(id>0){
+              let url = `${window.location.origin}/student-receipt-print/${id}`;
+              fetch(url).then(response => {
+                  return response.json();
+              }).then((data) => {
+                  console.log(data);
+                  console.log(data.student);
+                  if('studentError' in data){
+                      showWarningMsg("warning", data.noAcademicStudent,"Message");
+                      setFeeRelatedData(data, 0)
+                  } else{
+                      if('feeSubmissionError' in data){
+                          showWarningMsg("warning", data.noFeeDate,"Message");
+                      } else{
+                          console.log("Data ",data);
+                      }
+                  }
+              });
+          }
+      }
+
+      function setFeeRelatedData(data, flag){
+          if(flag===1){
+              $(".studname").html(`<strong>Student Name: </strong> <span class="text-end">${data.student.student.studentName}</span>`);
+              $(".studname1").html(` - <strong> ${data.student.student.studentName}</strong>`);
+              $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
+              $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
+              $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
+
+              $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+              $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+              $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+              $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+
+              $('#StudentId').val(`${data.student.student.id}`);
+              $('#gradeId').val(`${data.student.grade.id}`);
+          } else{
+              $(".studname").html(`<strong>Student Name:</strong>`);
+              $(".studname1").html(``);
+              $(".fname").html(`<strong>Father Name:</strong> `);
+              $(".mname").html(`<strong>Mother Name:</strong> `);
+              $(".contactno").html(`<strong>Contact No:</strong> `);
+
+              $(".cmedium").html(`<strong>Medium: </strong> `);
+              $(".cgrade").html(`<strong>Class: </strong> `);
+              $(".csection").html(`<strong>Section:</strong> `);
+              $(".csr").html(`<strong>SR No:</strong> `);
+              $('#gradeId').val('');
+
+          }
+      }
 
   </script>
 

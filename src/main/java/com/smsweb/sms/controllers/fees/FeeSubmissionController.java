@@ -25,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/fees")
@@ -105,9 +106,9 @@ public class FeeSubmissionController extends BaseController {
         return "redirect:/fees/fee-submit-form";
     }
 
-    @GetMapping("/receipt/{id}")
-    public String getFeeReceiptPage(@PathVariable("id")Long id, Model model){
-        try{
+    @GetMapping("/receipt")
+    public String getFeeReceiptPage(Model model){
+        /*try{
             AcademicStudent academicStudent = academicStudentService.getAcademicStudent(id).orElse(null);
             if(academicStudent!=null){
                 model.addAttribute("student", academicStudent);
@@ -124,13 +125,13 @@ public class FeeSubmissionController extends BaseController {
             }
         }catch(Exception e){
             model.addAttribute("error", e.getLocalizedMessage());
-        }
+        }*/
         return "/fees/fee-receipt";
     }
 
     @GetMapping("/receipt-print/{id}")
     public String getFeeReceipt(@PathVariable("id")Long id, Model model){
-        try{
+        /*try{
             SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
             SimpleDateFormat sf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             FeeSubmission feeSubmission = feeSubmissionService.getFeeSubmissionById(id).orElse(null);
@@ -184,7 +185,14 @@ public class FeeSubmissionController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error", e.getLocalizedMessage());
-        }
+        }*/
+
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+
+        Map<String, Object> receiptData = feeSubmissionService.getFeeReceiptData(id, school, academicYear);
+        model.addAllAttributes(receiptData);
+
         return "/fees/receipt";
     }
 

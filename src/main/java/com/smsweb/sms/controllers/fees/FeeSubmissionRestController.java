@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import org.thymeleaf.TemplateEngine;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -488,6 +489,72 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/student-receipt-print/{id}")
+    public ResponseEntity<?> getFeeReceipt(@PathVariable("id")Long id, Model model){
+        //Map result = new HashMap<>();
+        /*try{
+            SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
+            SimpleDateFormat sf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            FeeSubmission feeSubmission = feeSubmissionService.getFeeSubmissionById(id).orElse(null);
+            AcademicStudent academicStudent = feeSubmission.getAcademicStudent();
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List<String> slipDateList = new ArrayList<>();
+            if(academicStudent!=null && feeSubmission!=null){
+                model.addAttribute("student", academicStudent);
+                model.addAttribute("school", academicStudent.getSchool());
+                model.addAttribute("academicYear", academicStudent.getAcademicYear().getSessionFormat());
+                model.addAttribute("hasStudent", academicStudent!=null);
+                //FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(4L, 0L, id);
+                model.addAttribute("hasFeeSubmission", feeSubmission!=null);
+                if(feeSubmission!=null){
+                    model.addAttribute("feeSubmission", feeSubmission);
+                    HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
+                    List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+                    List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
+                    if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
+                        for(FeeSubmission submission: feeSubmissionList){
+                            List<FeeSubmissionMonths> feeSubmissionMonthsList = submission.getFeeSubmissionMonths();
+                            if(feeSubmissionMonthsList!=null && !feeSubmissionMonthsList.isEmpty()){
+                                for(FeeSubmissionMonths feeMonths: feeSubmissionMonthsList){
+                                    submittedMonthMap.put(feeMonths.getMonthMaster(), submission.getFeeSubmissionDate());
+                                }
+                            }
+                        }
+                    }
+                    System.out.println("submittedMonthMap "+submittedMonthMap);
+                    int i = 1;
+                    for(MonthMapping mm: monthMappingList){
+                        String dateString = "Month-"+ i +" ####("+mm.getMonthMaster().getMonthName().toUpperCase()+"): ####";
+                        if(submittedMonthMap.containsKey(mm.getMonthMaster())){
+                            dateString+="PAID " + sf.format(submittedMonthMap.get(mm.getMonthMaster()));
+                        }
+                        slipDateList.add(dateString);
+                        i++;
+                    }
+                    model.addAttribute("feeSubmittedMonths", slipDateList);
+                    System.out.println("feeSubmittedMonths: "+slipDateList);
+                    //Calculate the fee
+                    model.addAttribute("feesublist", feeSubmission.getFeeSubmissionSub());
+                } else{
+                    model.addAttribute("feeSubmissionError", "Fee not found for: "+academicStudent.getStudent().getStudentName()+"!");
+                }
+
+            } else{
+                model.addAttribute("studentError", "Fees Object/Student not found!");
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            model.addAttribute("error", e.getLocalizedMessage());
+        }*/
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+
+        Map<String, Object> receiptData = feeSubmissionService.getFeeReceiptData(id, school, academicYear);
+        //System.out.println("receiptData "+ receiptData);
+        System.out.println("--->>>>><<<<<<<<<==========");
+        return ResponseEntity.ok(receiptData);
+    }
 
 
 }
