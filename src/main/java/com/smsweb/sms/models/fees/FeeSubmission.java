@@ -1,6 +1,7 @@
 package com.smsweb.sms.models.fees;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
@@ -24,7 +25,7 @@ import java.util.List;
 
 @Data
 @Entity
-@ToString(exclude = {"createdBy", "updatedBy"})
+@ToString(exclude = {"feeSubmissionBalance", "createdBy", "updatedBy"})
 public class FeeSubmission {
 
     @Id
@@ -88,12 +89,15 @@ public class FeeSubmission {
     private Date lastUpdated;
 
     @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<FeeSubmissionSub> feeSubmissionSub = new ArrayList<>();
 
     @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<FeeSubmissionMonths> feeSubmissionMonths = new ArrayList<>();
 
     @OneToOne(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
+    @JsonIgnore
     private FeeSubmissionBalance feeSubmissionBalance;
 
     // attributes - createdBy, updatedBy

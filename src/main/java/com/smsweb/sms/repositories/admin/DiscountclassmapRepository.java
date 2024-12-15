@@ -25,12 +25,13 @@ public interface DiscountclassmapRepository extends JpaRepository<DiscountClassM
             "AND fcm.school_id = :schoolId " +
             "AND fmm.month_master_id IN (:monthMasterIds) " +
             "AND fmm.is_applicable = true " +
-            "AND fcm.grade_id = :gradeId " +
+            "AND fcm.grade_id = :gradeId AND fh.id = :discountId " +
             "GROUP BY fh.discount_name, fcm.discounthead_id", nativeQuery = true)
     List<Object[]> findAmountAndDiscountHeadNames(@Param("academicYearId") Long academicYearId,
                                                   @Param("schoolId") Long schoolId,
                                                   @Param("monthMasterIds") List<Long> monthMasterIds,
-                                                  @Param("gradeId") Long gradeId);
+                                                  @Param("gradeId") Long gradeId,
+                                                  @Param("discountId") Long discountId);
 
     Optional<DiscountClassMap> findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(String discountName, Long academic_year, Long school, Long grade);
 }

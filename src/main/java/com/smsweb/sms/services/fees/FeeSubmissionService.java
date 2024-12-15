@@ -225,7 +225,13 @@ public class FeeSubmissionService {
             /*Grade grade = gradeRepository.findById(grade_id).orElse(null);
             AcademicStudent academicStudent = academicStudentRepository.findById(academic_stu_id).orElse(null);*/
             //Discount Calculated
-            List<Object[]> discountData = discountclassmapRepository.findAmountAndDiscountHeadNames(academic_id, school_id, monIdList, grade_id);
+            Long discountId = null;
+            StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school_id, academic_id, academic_stu_id).get();
+            if(studentDiscount!=null){
+                discountId = studentDiscount.getDiscounthead().getId();
+            }
+
+            List<Object[]> discountData = discountclassmapRepository.findAmountAndDiscountHeadNames(academic_id, school_id, monIdList, grade_id, discountId);
             if(discountData!=null && !discountData.isEmpty()){
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 for (Object[] result : discountData) {
@@ -589,7 +595,7 @@ public class FeeSubmissionService {
                                     //BigDecimal discountAmt = BigDecimal.ZERO;
                                     StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
@@ -678,7 +684,7 @@ public class FeeSubmissionService {
                                     BigDecimal discountAmt = BigDecimal.ZERO;
                                     StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
@@ -758,6 +764,67 @@ public class FeeSubmissionService {
             throw new RuntimeException("Error in calculating fine",e);
         }
         return finalFineAmount;
+    }
+
+    public Map<String, Object> getFeeReceiptData(Long id, School school, AcademicYear academicYear) {
+        Map<String, Object> modelData = new HashMap<>();
+        try {
+            SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
+            FeeSubmission feeSubmission = getFeeSubmissionById(id).orElse(null);
+
+            if (feeSubmission == null) {
+                modelData.put("error", "Fee submission not found for ID: " + id);
+                return modelData;
+            }
+
+            AcademicStudent academicStudent = feeSubmission.getAcademicStudent();
+            if (academicStudent == null) {
+                modelData.put("studentError", "Academic Student not found!");
+                return modelData;
+            }
+
+            modelData.put("student", academicStudent);
+            modelData.put("school", academicStudent.getSchool());
+            modelData.put("academicYear", academicStudent.getAcademicYear().getSessionFormat());
+            modelData.put("hasStudent", true);
+
+            List<String> slipDateList = new ArrayList<>();
+            if (feeSubmission != null) {
+                modelData.put("feeSubmission", feeSubmission);
+                modelData.put("hasFeeSubmission", true);
+
+                HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
+                List<MonthMapping> monthMappingList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+                List<FeeSubmission> feeSubmissionList = getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
+
+                if (feeSubmissionList != null) {
+                    for (FeeSubmission submission : feeSubmissionList) {
+                        for (FeeSubmissionMonths feeMonths : submission.getFeeSubmissionMonths()) {
+                            submittedMonthMap.put(feeMonths.getMonthMaster(), submission.getFeeSubmissionDate());
+                        }
+                    }
+                }
+
+                int i = 1;
+                for (MonthMapping mm : monthMappingList) {
+                    String dateString = "Month-" + i + " ####(" + mm.getMonthMaster().getMonthName().toUpperCase() + "): ####";
+                    if (submittedMonthMap.containsKey(mm.getMonthMaster())) {
+                        dateString += "PAID " + sf.format(submittedMonthMap.get(mm.getMonthMaster()));
+                    }
+                    slipDateList.add(dateString);
+                    i++;
+                }
+                modelData.put("feeSubmittedMonths", slipDateList);
+                modelData.put("feesublist", feeSubmission.getFeeSubmissionSub());
+            } else {
+                modelData.put("feeSubmissionError", "Fee not found for: " + academicStudent.getStudent().getStudentName() + "!");
+            }
+        } catch (Exception e) {
+            modelData.put("error", e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+        System.out.println("modelData>>>>>>>> ");
+        return modelData;
     }
 
 }
