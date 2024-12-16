@@ -20,7 +20,6 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "students")  // Specifies the table name for Student entities
-@ToString(exclude = {"createdBy", "updatedBy"})
 public class Student { // Extend UserEntity
 
     @Id
@@ -215,17 +214,11 @@ public class Student { // Extend UserEntity
     @Column(length = 12)
     private String aadharNo;
 
-    // createdBy, updatedBy fields, use @JsonIgnore if necessary to avoid circular reference
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 
     @PrePersist
     protected void onCreate() {

@@ -104,7 +104,7 @@ public class CustomerController {
         }
         customer.setRegistrationNo(registrationNo);
         System.out.println("customer: "+customer);
-        customer.setCreatedBy(userService.getLoggedInUser());
+        customer.setCreatedBy(userService.getLoggedInUser().getUsername());
         customerService.saveCustomer(customer);
 
         ra.addFlashAttribute("savecustomer", customer);
@@ -163,7 +163,7 @@ public class CustomerController {
         } else{
             //customer.setPic(null);
         }
-        customer.setUpdatedBy(userService.getLoggedInUser());
+        customer.setUpdatedBy(userService.getLoggedInUser().getUsername());
         customerService.saveCustomer(customer);
 
         ra.addFlashAttribute("update-customer", customer);

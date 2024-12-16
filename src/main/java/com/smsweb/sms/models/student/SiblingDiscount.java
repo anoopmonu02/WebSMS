@@ -20,7 +20,6 @@ import java.util.Date;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_student_sibling_grp",columnNames = {"academic_student_id", "sibling_group_id", "academic_year_id", "school_id", "discount_head_id"})})
-@ToString(exclude = {"createdBy", "updatedBy"})
 public class SiblingDiscount {
 
     @Id
@@ -63,15 +62,10 @@ public class SiblingDiscount {
 
     @UpdateTimestamp
     private Date lastUpdated;
-    //attributes - createdBy, updatedBy
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 }

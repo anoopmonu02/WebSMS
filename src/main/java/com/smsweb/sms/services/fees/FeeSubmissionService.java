@@ -384,7 +384,7 @@ public class FeeSubmissionService {
                         submissionBalance.setFeeSubmission(feeSubmission);
                         feeSubmission.setFeeSubmissionSub(submissionSubList);
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
-                        feeSubmission.setCreatedBy(userService.getLoggedInUser());
+                        feeSubmission.setCreatedBy(userService.getLoggedInUser().getUsername());
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());

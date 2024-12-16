@@ -1,14 +1,13 @@
 package com.smsweb.sms.models.admin;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.smsweb.sms.models.Users.UserEntity;
+
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.ToString;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -17,7 +16,6 @@ import java.util.Date;
 @Data
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_feemonthmap",columnNames = {"month_master_id", "feehead_id", "academic_year_id", "school_id"})})
-@ToString(exclude = {"createdBy", "updatedBy"})
 public class FeeMonthMap {
 
     @Id
@@ -57,14 +55,9 @@ public class FeeMonthMap {
 
     private Boolean isApplicable = false;
 
-    // attributes - createdBy, updatedBy
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 }

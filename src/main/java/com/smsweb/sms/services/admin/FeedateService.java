@@ -40,7 +40,7 @@ public class FeedateService {
 
     public FeeDate save(FeeDate feeDate){
         try{
-            feeDate.setCreatedBy(userService.getLoggedInUser());
+            feeDate.setCreatedBy(userService.getLoggedInUser().getUsername());
             return feedateRepository.save(feeDate);
         }catch(DataIntegrityViolationException de){
             throw new UniqueConstraintsException("Fee date already saved ",de);

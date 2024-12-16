@@ -104,7 +104,7 @@ public class MonthmappingService {
         monthMapping.setPriority(priority);
         monthMapping.setAcademicYear(academicYear);
         monthMapping.setSchool(school);
-        monthMapping.setCreatedBy(userService.getLoggedInUser());
+        monthMapping.setCreatedBy(userService.getLoggedInUser().getUsername());
         monthmappingRepository.save(monthMapping);
     }
 

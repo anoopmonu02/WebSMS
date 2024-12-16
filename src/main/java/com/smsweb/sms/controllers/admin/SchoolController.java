@@ -79,7 +79,7 @@ public class SchoolController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            school.setCreatedBy(userService.getLoggedInUser());
+            school.setCreatedBy(userService.getLoggedInUser().getUsername());
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School " + school.getSchoolName() + " saved successfully";
             redirectAttribute.addFlashAttribute("success", msg);
@@ -135,7 +135,7 @@ public class SchoolController {
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
-            school.setUpdatedBy(userService.getLoggedInUser());
+            school.setUpdatedBy(userService.getLoggedInUser().getUsername());
             schoolService.saveSchool(school, customerPic, fileNameOrSchoolCode);
             String msg = "School " + school.getSchoolName() + " updated successfully";
             redirectAttribute.addFlashAttribute("success", msg);
