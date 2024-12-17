@@ -55,5 +55,9 @@ public class FullPayment {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    //TODO - will add 2 more attributes - createdBy, updatedBy
+    @JoinColumn(name = "created_by", updatable = false)
+    private String createdBy;
+
+    @JoinColumn(name = "updated_by")
+    private String updatedBy;
 }

@@ -1,6 +1,7 @@
 package com.smsweb.sms.controllers.student;
 
 import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.controllers.employee.EmployeeController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
@@ -24,6 +25,8 @@ import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -42,7 +45,7 @@ import java.util.*;
 @Controller
 @RequestMapping("/student")
 public class StudentController extends BaseController {
-
+    Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
     @Value("${student.image.storage.path}")
@@ -67,6 +70,7 @@ public class StudentController extends BaseController {
 
     @GetMapping("/student")
     public String studentData(Model model){
+        log.debug("inside student list");
         School school = (School)model.getAttribute("school");
         List<Student> studentList = studentService.getAllActiveStudents(school.getId());
         model.addAttribute("students", studentList);
@@ -147,10 +151,10 @@ public class StudentController extends BaseController {
             student.setAcademicYear(academicYear);
             student.setSchool(school);
             if(existingStudent!=null){
-                student.setUpdatedBy(userService.getLoggedInUser());
+                student.setUpdatedBy(userService.getLoggedInUser().getUsername());
             }
             else{
-                student.setCreatedBy(userService.getLoggedInUser());
+                student.setCreatedBy(userService.getLoggedInUser().getUsername());
             }
             Student savedStudent = studentService.saveStudent(student, customerPic, fileNameOrSchoolCode, existingStudent);
             String msg = "Student " + student.getStudentName() + " saved successfully";

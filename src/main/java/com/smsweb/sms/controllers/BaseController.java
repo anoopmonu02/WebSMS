@@ -35,7 +35,7 @@ public abstract class BaseController {
     public School setSchoolInModel(HttpSession session) {
         School school = (School) session.getAttribute("school");
         if (school == null) {
-            school = schoolService.getAllSchoolByName("United Avash Inter College").get(0);
+            school = schoolService.getAllSchoolByName("United Avadh Inter College").get(0);
             session.setAttribute("school", school);
         }
         return school;

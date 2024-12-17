@@ -98,7 +98,7 @@ public class StudentService {
                     userEntity.setUsername(student.getRegistrationNo());
                     // Generate password
                     String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
-                    userEntity.setPassword(password);
+                    userEntity.setPassword(passwordEncoder.encode(password));
                     userEntity.setEmail(student.getUserEntity().getEmail());
                     student.setUserEntity(userEntity);
                 }
@@ -135,7 +135,7 @@ public class StudentService {
             Student student = repository.findById(studentId).orElse(null);
             if (student != null) {
                 student.setMobile1(contactNo);
-                student.setUpdatedBy(userService.getLoggedInUser());
+                student.setUpdatedBy(userService.getLoggedInUser().getUsername());
                 repository.save(student);
                 return studentId;
             }
@@ -214,7 +214,7 @@ public class StudentService {
                 existingStudent.setPersonName(student.getPersonName());
                 existingStudent.setPersonContact(student.getPersonContact());
                 existingStudent.setRelationship(student.getRelationship());
-                existingStudent.setUpdatedBy(userService.getLoggedInUser());
+                existingStudent.setUpdatedBy(userService.getLoggedInUser().getUsername());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 return existingStudent;
             }

@@ -83,7 +83,7 @@ public class SiblingGroupService {
                     siblingGroup.setAcademicYear(academicYear);
                     siblingGroup.setSchool(school);
                     siblingGroup.setDescription("Saving group with student(s)");
-                    siblingGroup.setCreatedBy(userService.getLoggedInUser());
+                    siblingGroup.setCreatedBy(userService.getLoggedInUser().getUsername());
                     SiblingGroup group = siblingGroupRepository.save(siblingGroup);
                     siblingGroupList.add(group);
                     for(AcademicStudent student: academicStudentList){

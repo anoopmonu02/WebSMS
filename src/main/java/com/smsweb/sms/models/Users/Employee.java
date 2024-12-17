@@ -1,8 +1,5 @@
 package com.smsweb.sms.models.Users;
 
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -19,7 +16,6 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "employees")
-@ToString(exclude = {"createdBy", "updatedBy"})
 public class Employee {
 
     @Id
@@ -99,15 +95,11 @@ public class Employee {
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;

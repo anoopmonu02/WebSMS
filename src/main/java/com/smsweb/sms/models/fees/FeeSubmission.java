@@ -25,7 +25,7 @@ import java.util.List;
 
 @Data
 @Entity
-@ToString(exclude = {"feeSubmissionBalance", "createdBy", "updatedBy"})
+
 public class FeeSubmission {
 
     @Id
@@ -100,16 +100,10 @@ public class FeeSubmission {
     @JsonIgnore
     private FeeSubmissionBalance feeSubmissionBalance;
 
-    // attributes - createdBy, updatedBy
-    //@JsonIgnore - will use for user or to avoid circular reference
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 
 }

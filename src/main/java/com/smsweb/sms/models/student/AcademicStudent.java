@@ -1,17 +1,17 @@
 package com.smsweb.sms.models.student;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Medium;
 import com.smsweb.sms.models.universal.Section;
-import com.smsweb.sms.models.Users.UserEntity; // Added UserEntity for createdBy and updatedBy
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.ToString;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,7 +21,7 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "academic_students")  // Specify the table name explicitly
-@ToString(exclude = {"createdBy", "updatedBy"})
+
 public class AcademicStudent {
 
     @Id
@@ -83,17 +83,11 @@ public class AcademicStudent {
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
 
-    // Added createdBy and updatedBy fields
-    // Metadata fields
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false)
-    @JsonIgnore
-    private UserEntity createdBy;
+    private String createdBy;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    @JsonIgnore
-    private UserEntity updatedBy;
+    private String updatedBy;
 
     // Set uuid on create
     @PrePersist

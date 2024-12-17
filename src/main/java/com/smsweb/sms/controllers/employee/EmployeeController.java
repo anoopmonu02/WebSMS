@@ -153,10 +153,10 @@ public class EmployeeController extends BaseController {
             School school = schoolService.getSchoolById(employee.getSchool().getId()).get();
             employee.setSchool(school);
             if(existingEmployee!=null){
-                employee.setUpdatedBy(userService.getLoggedInUser());
+                employee.setUpdatedBy(userService.getLoggedInUser().getUsername());
             }
             else{
-                employee.setCreatedBy(userService.getLoggedInUser());
+                employee.setCreatedBy(userService.getLoggedInUser().getUsername());
             }
             Employee emp = employeeService.saveEmployee(employee, customerPic, fileNameOrSchoolCode, existingEmployee);
             String msg = "Employee: " + employee.getEmployeeName() + " saved successfully";
