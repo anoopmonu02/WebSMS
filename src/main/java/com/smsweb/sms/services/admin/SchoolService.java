@@ -8,6 +8,7 @@ import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.Customer;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Province;
 import com.smsweb.sms.repositories.admin.CustomerRepository;
@@ -63,45 +64,82 @@ public class SchoolService {
     @Transactional
     public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
         School existingSchool=null;
+        try{
+            if(school.getId()!=null){
+                existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
+            }
+            school = saveSchoolData(school, fileNameOrSchoolCode, existingSchool);
+        }catch(Exception e){
+            e.printStackTrace();
+            throw new ObjectNotSaveException("Failed to save school", e);
+        }
+        //Save Image of school
         String imageResponse = fileHandleHelper.saveImage("school", logo);
-        if(imageResponse!=null && (imageResponse.equalsIgnoreCase("success") || imageResponse.equalsIgnoreCase("Success_no_image"))){
-            try{
-                if(!imageResponse.equalsIgnoreCase("Success_no_image")){
-                    school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
-                } else{
-                    // if school is going to update without new logo selection happen
-                    if(imageResponse.equalsIgnoreCase("Success_no_image")){
-                        school.setLogo1(null);
-                        if(school.getId()!=null){
-                            existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
-                            school.setLogo1(existingSchool.getLogo1());
-                        }
+        boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
+        /*if(imageResponse!=null || imageResponse.equalsIgnoreCase("Success_no_image")){
+            if(!imageResponse.equalsIgnoreCase("Success_no_image")){
+                school.setLogo1(fileNameOrSchoolCode+"_"+logo.getOriginalFilename());
+            } else{
+                // if school is going to update without new logo selection happen
+                if(imageResponse.equalsIgnoreCase("Success_no_image")){
+                    school.setLogo1(null);
+                    if(school.getId()!=null){
+                        existingSchool = schoolRepository.findById(school.getId()).orElseThrow(() -> new RuntimeException("School not found"));
+                        school.setLogo1(existingSchool.getLogo1());
                     }
                 }
-                school.setSchoolCode("SC-"+fileNameOrSchoolCode);
-                if(existingSchool!=null && existingSchool.getSchoolCode().length()>0){
-                    school.setSchoolCode(existingSchool.getSchoolCode());
-
-                }
-                if(existingSchool!=null && existingSchool.getId()!=null){
-                    school.setUpdatedBy(getLoggedInUser().getUsername());
-                }
-                else{
-                    school.setCreatedBy(getLoggedInUser().getUsername());
-                }
-                return schoolRepository.save(school);
-            }catch (DataIntegrityViolationException ed) {
-                throw new UniqueConstraintsException("School Name: "+school.getSchoolName()+" already exists.", ed);
-            }catch(Exception e){
-                e.printStackTrace();
-                throw new ObjectNotSaveException("Failed to save school", e);
             }
+            return schoolRepository.save(school);
         } else if(imageResponse.equalsIgnoreCase("fail")){
             throw new FileFormatException("Fail to save logo");
         } else if(imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
             throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
-        }
+        }*/
+
+        try{
+            boolean proceed = false;
+            if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
+                if(existingSchool!=null){
+                    if(existingSchool.getLogo1()!=null && existingSchool.getLogo1()!=""){
+                        school.setLogo1(existingSchool.getLogo1());
+                        proceed = true;
+                    }
+                }
+            } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
+                throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
+            } else if (foundImageResponse && imageResponse.startsWith("Failed to save the image: ")) {
+                throw new FileFormatException(imageResponse);
+            } else if (foundImageResponse && imageResponse.equalsIgnoreCase("Specified category not valid")) {
+                throw new RuntimeException(imageResponse);
+            } else if(foundImageResponse && imageResponse!=null){
+                school.setLogo1(imageResponse);
+                proceed = true;
+            }
+            return proceed?schoolRepository.save(school):school;
+        }catch(Exception e){}
         return null;
+    }
+
+    @Transactional
+    public School saveSchoolData(School school, String fileNameOrSchoolCode, School existingSchool){
+        try{
+            school.setSchoolCode("SC-"+fileNameOrSchoolCode);
+            if(existingSchool!=null && existingSchool.getSchoolCode().length()>0){
+                school.setSchoolCode(existingSchool.getSchoolCode());
+            }
+            if(existingSchool!=null && existingSchool.getId()!=null){
+                school.setUpdatedBy(getLoggedInUser().getUsername());
+            }
+            else{
+                school.setCreatedBy(getLoggedInUser().getUsername());
+            }
+            return schoolRepository.save(school);
+        }catch (DataIntegrityViolationException ed) {
+            throw new UniqueConstraintsException("School Name: "+school.getSchoolName()+" already exists.", ed);
+        }catch(Exception e){
+            e.printStackTrace();
+            throw new ObjectNotSaveException("Failed to save school", e);
+        }
     }
 
     public void deleteSchool(Long id){

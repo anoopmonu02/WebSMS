@@ -119,7 +119,7 @@ public class GlobalController extends BaseController {
         try{
             School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
             academicYear.setSchool(school);
-            academicYear.setCreatedBy(userService.getLoggedInUser());
+            academicYear.setCreatedBy(userService.getLoggedInUser().getUsername());
             academicyearService.save(academicYear);
             ra.addFlashAttribute("success","Academic year - "+academicYear.getSessionFormat()+ " saved successfully.");
         }catch(DataIntegrityViolationException de){
@@ -156,7 +156,7 @@ public class GlobalController extends BaseController {
         try{
             School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
             academicyear.setSchool(school);
-            academicyear.setUpdatedBy(userService.getLoggedInUser());
+            academicyear.setUpdatedBy(userService.getLoggedInUser().getUsername());
             academicyearService.save(academicyear);
             ra.addFlashAttribute("success","Academic year - "+academicyear.getSessionFormat()+ " Updated successfully.");
         }catch(DataIntegrityViolationException de){
@@ -269,7 +269,7 @@ public class GlobalController extends BaseController {
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             feedate.setAcademicYear(academicYear);
             feedate.setSchool(school);
-            feedate.setCreatedBy(userService.getLoggedInUser());
+            feedate.setCreatedBy(userService.getLoggedInUser().getUsername());
             feedateService.save(feedate);
             redirectAttributes.addFlashAttribute("success","Fee Date saved successfully for: "+feedate.getMonthMaster().getMonthName());
         }catch(DataIntegrityViolationException de){
@@ -345,11 +345,11 @@ public class GlobalController extends BaseController {
             fine.setSchool(school);
             String returnMsg = "Fine saved successfully for: "+fine.getFinehead().getFineHeadName();
             if(fine.getId()!=null){
-                fine.setUpdatedBy(userService.getLoggedInUser());
+                fine.setUpdatedBy(userService.getLoggedInUser().getUsername());
                 returnMsg = "Fine updated successfully for: "+fine.getFinehead().getFineHeadName();
             }
             else{
-                fine.setCreatedBy(userService.getLoggedInUser());
+                fine.setCreatedBy(userService.getLoggedInUser().getUsername());
             }
             fineService.saveFine(fine);
             redirectAttributes.addFlashAttribute("success",returnMsg);
@@ -484,7 +484,7 @@ public class GlobalController extends BaseController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
-                fee.setCreatedBy(userService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser().getUsername());
                 feeClassMapList.add(feeclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -516,7 +516,7 @@ public class GlobalController extends BaseController {
             return "/admin/edit-feeclassmap";
         }
         try{
-            feeClassMap.setUpdatedBy(userService.getLoggedInUser());
+            feeClassMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
             feeclassmapService.save(feeClassMap);
             ra.addFlashAttribute("info", "Fee-Class mapping updated for Grade: "+feeClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -640,7 +640,7 @@ public class GlobalController extends BaseController {
                 fee.setSchool(school);
                 fee.setFeehead(feehead);
                 System.out.println("Grade "+fee.getFeehead());
-                fee.setCreatedBy(userService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser().getUsername());
                 feeMonthMapList.add(feemonthmapService.saveFeeMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -672,7 +672,7 @@ public class GlobalController extends BaseController {
             return "/admin/edit-feemonthmap";
         }
         try{
-            feeMonthMap.setUpdatedBy(userService.getLoggedInUser());
+            feeMonthMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
             feemonthmapService.saveFeeMonth(feeMonthMap);
             ra.addFlashAttribute("info", "Fee-Month mapping updated for Fee: "+feeMonthMap.getFeehead().getFeeHeadName());
         }catch(Exception e){
@@ -789,7 +789,7 @@ public class GlobalController extends BaseController {
                 fee.setSchool(school);
                 fee.setGrade(grade);
                 System.out.println("Grade "+fee.getGrade());
-                fee.setCreatedBy(userService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser().getUsername());
                 discountClassMapList.add(discountclassmapService.save(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -821,7 +821,7 @@ public class GlobalController extends BaseController {
             return "/admin/edit-discountclassmap";
         }
         try{
-            discountClassMap.setUpdatedBy(userService.getLoggedInUser());
+            discountClassMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
             discountclassmapService.save(discountClassMap);
             ra.addFlashAttribute("info", "Discount-Class mapping updated for Grade: "+discountClassMap.getGrade().getGradeName());
         }catch(Exception e){
@@ -945,7 +945,7 @@ public class GlobalController extends BaseController {
                 fee.setSchool(school);
                 fee.setDiscounthead(feehead);
                 System.out.println("Grade "+fee.getDiscounthead());
-                fee.setCreatedBy(userService.getLoggedInUser());
+                fee.setCreatedBy(userService.getLoggedInUser().getUsername());
                 discountMonthMapList.add(discountmonthmapService.saveDiscountMonth(fee));
             }
             //Can't use this method because school+academic-year+user details added separately
@@ -977,7 +977,7 @@ public class GlobalController extends BaseController {
             return "/admin/edit-discountmonthmap";
         }
         try{
-            discountMonthMap.setUpdatedBy(userService.getLoggedInUser());
+            discountMonthMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
             discountmonthmapService.saveDiscountMonth(discountMonthMap);
             ra.addFlashAttribute("info", "Discount-Month mapping updated for Fee: "+discountMonthMap.getDiscounthead().getDiscountName());
         }catch(Exception e){

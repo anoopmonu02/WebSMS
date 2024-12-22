@@ -69,6 +69,32 @@ public class StudentService {
         String imageResponse = fileHandleHelper.saveImage("student", logo);
         try{
             boolean proceedFlag = false;
+            //Saving Student Data
+            if(existingStudent==null){
+                // Set username as registration number
+                UserEntity userEntity = new UserEntity();
+                userEntity.setUsername(student.getRegistrationNo());
+                // Generate password
+                String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
+                userEntity.setPassword(passwordEncoder.encode(password));
+                userEntity.setEmail(student.getUserEntity().getEmail());
+                student.setUserEntity(userEntity);
+            }
+            Student savedStudent = repository.save(student);
+            if(savedStudent!=null){
+                proceedFlag = true;
+            }
+            if(existingStudent==null){
+                AcademicStudent academicStudent = new AcademicStudent();
+                academicStudent.setAcademicYear(savedStudent.getAcademicYear());
+                academicStudent.setSchool(savedStudent.getSchool());
+                academicStudent.setGrade(savedStudent.getGrade());
+                academicStudent.setMedium(savedStudent.getMedium());
+                academicStudent.setSection(savedStudent.getSection());
+                academicStudent.setDescription("Saving at time of student creation.");
+                academicStudent.setStudent(savedStudent);
+                academicStudentRepository.save(academicStudent);
+            }
             boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
             if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
                 proceedFlag = true;
@@ -92,6 +118,9 @@ public class StudentService {
                 proceedFlag = true;
             }
             if(proceedFlag){
+                savedStudent = repository.save(student);
+            }
+            /*if(proceedFlag){
                 if(existingStudent==null){
                     // Set username as registration number
                     UserEntity userEntity = new UserEntity();
@@ -115,7 +144,8 @@ public class StudentService {
                     academicStudentRepository.save(academicStudent);
                 }
                 return savedStudent;
-            }
+            }*/
+            return savedStudent;
         }catch(Exception e){
             log.debug("error while saving Student--"+e.getMessage());
             e.printStackTrace();
