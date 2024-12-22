@@ -38,7 +38,7 @@ public class HomeController {
     @GetMapping("/dashboard")
     public String index(HttpSession session, Model model){
         School school = (School) session.getAttribute("school");
-        if(session.getAttribute("activeAcademicYear")!=null && ("No active academic year found").equalsIgnoreCase(session.getAttribute("activeAcademicYear").toString())){
+        /*if(session.getAttribute("activeAcademicYear")!=null && ("No active academic year found").equalsIgnoreCase(session.getAttribute("activeAcademicYear").toString())){
             //create new academicyear
             saveAcademicYearIfNotFound();
             session.setAttribute("activeAcademicYear",academicyearService.getCurrentAcademicYear(school.getId()));
@@ -46,7 +46,7 @@ public class HomeController {
             AcademicYear academicYear = (AcademicYear) session.getAttribute("activeAcademicYear");
             System.out.println("academicYear--"+academicYear);
             model.addAttribute("academicYear", academicYear);
-        }
+        }*/
         System.out.println("school--"+school);
         model.addAttribute("school", school);
         /*schoolHolder.setCurrentSchool(school);
@@ -76,45 +76,10 @@ public class HomeController {
         return false;
     }
 
-    private void saveAcademicYearIfNotFound() {
-        try {
-            List<School> schools = schoolService.getAllSchools();
-            int year = LocalDate.now().getYear();
-            LocalDate startDate = LocalDate.of(year, 4, 1);
-            LocalDate endDate = LocalDate.of(year + 1, 3, 31);
-
-            Date startDateConverted = convertToDate(startDate);
-            Date endDateConverted = convertToDate(endDate);
-
-            for (School school : schools) {
-                List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
-
-                // Proceed only if no academic years exist
-                if (academicYears.isEmpty()) {
-                    System.out.println("No academic year found for: " + school.getSchoolName());
-                    AcademicYear academicYear = createNewAcademicYear(school, startDateConverted, endDateConverted, year);
-                    academicyearService.save(academicYear);
-                    System.out.println("New academic year created for: " + school.getSchoolName());
-                } else {
-                    System.out.println("Academic year already exists for: " + school.getSchoolName());
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();  // Ideally, use a logger instead of printing stack trace
-        }
-    }
-
     private Date convertToDate(LocalDate localDate) {
         return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
-    private AcademicYear createNewAcademicYear(School school, Date startDate, Date endDate, int year) {
-        AcademicYear academicYear = new AcademicYear();
-        academicYear.setSchool(school);
-        academicYear.setStartDate(startDate);
-        academicYear.setEndDate(endDate);
-        academicYear.setSessionFormat(year + "-" + (year + 1));
-        return academicYear;
-    }
+
 
 }

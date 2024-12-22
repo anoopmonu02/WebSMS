@@ -33,6 +33,8 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     AcademicyearRepository academicyearRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AcademicyearService academicYearService;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -63,25 +65,26 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
         // Access the session
         HttpSession session = request.getSession();
-
-        if (employee != null) {
+        School school = null;
+        if (employee != null && !employee.getUserEntity().getRoles().contains("ROLE_SUPERADMIN")) {
             // Set employee details in the session
-            School school = employee.getSchool(); // Ensure that getSchool() is a valid method
+            school = employee.getSchool(); // Ensure that getSchool() is a valid method
             session.setAttribute("school", school);
         } else {
             // If no employee found, store the username in the session
             session.setAttribute("username", username);
         }
 
-        // Fetch or create the active academic year
-        AcademicYear academicYear = academicyearRepository.findTopByStatusOrderByIdDesc("active");
+        if(school!=null){
+            // Fetch or create the active academic year
+            AcademicYear academicYear = academicyearRepository.findTopByStatusOrderByIdDesc("active");
+            if(academicYear == null){
+                academicYear = academicYearService.saveAcademicYearIfNotFound();
+            }
+            if(academicYear!=null){
+                session.setAttribute("activeAcademicYear", academicYear);
+            }
 
-
-        if (academicYear != null) {
-            session.setAttribute("activeAcademicYear", academicYear);
-        } else {
-            // Handle the case where academicYear is still null, if needed
-            session.setAttribute("activeAcademicYear", "No active academic year found");
         }
 
         // Redirect to the default success URL

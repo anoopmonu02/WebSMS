@@ -71,7 +71,6 @@
   const successMessage = [[${success}]];
   if (successMessage) {
     //toastr.success(successMessage);
-    toastr["success"](successMessage,"Success");
     toastr.options = {
       "closeButton": true,
       "debug": false,
@@ -89,13 +88,14 @@
       "showMethod": "fadeIn",
       "hideMethod": "fadeOut"
     }
+    toastr["success"](successMessage,"Success");
+
   }
 
   // Display error message
   const errorMessage = [[${error}]];
   if (errorMessage) {
     //toastr.error(errorMessage);
-    toastr["error"](errorMessage, "Error");
     toastr.options = {
       "closeButton": true,
       "debug": false,
@@ -113,6 +113,7 @@
       "showMethod": "fadeIn",
       "hideMethod": "fadeOut"
     }
+    toastr["error"](errorMessage, "Error");
   }
 </script>
 </section>
