@@ -71,6 +71,7 @@ public class StudentService {
             boolean proceedFlag = false;
             //Saving Student Data
             if(existingStudent==null){
+                student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
                 // Set username as registration number
                 UserEntity userEntity = new UserEntity();
                 userEntity.setUsername(student.getRegistrationNo());
@@ -79,6 +80,11 @@ public class StudentService {
                 userEntity.setPassword(passwordEncoder.encode(password));
                 userEntity.setEmail(student.getUserEntity().getEmail());
                 student.setUserEntity(userEntity);
+            } else if(existingStudent!=null){
+                if(existingStudent.getPic()!=null && existingStudent.getPic()!=""){
+                    student.setPic(existingStudent.getPic());
+                    student.setRegistrationNo(existingStudent.getRegistrationNo());
+                }
             }
             Student savedStudent = repository.save(student);
             if(savedStudent!=null){
@@ -101,10 +107,7 @@ public class StudentService {
                 if(existingStudent!=null){
                     if(existingStudent.getPic()!=null && existingStudent.getPic()!=""){
                         student.setPic(existingStudent.getPic());
-                        student.setRegistrationNo(existingStudent.getRegistrationNo());
                     }
-                } else{
-                    student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
                 }
             } else if(foundImageResponse && imageResponse.equalsIgnoreCase("Either image format not supported or size exceeded 2MB.")){
                 throw new FileSizeLimitExceededException("Either image format not supported or size exceeded 2MB.");
@@ -114,7 +117,6 @@ public class StudentService {
                 throw new RuntimeException(imageResponse);
             } else{
                 student.setPic(imageResponse);
-                student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
                 proceedFlag = true;
             }
             if(proceedFlag){
