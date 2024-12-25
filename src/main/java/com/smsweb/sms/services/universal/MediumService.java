@@ -1,9 +1,12 @@
 package com.smsweb.sms.services.universal;
 
 
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.universal.Medium;
 import com.smsweb.sms.repositories.universal.MediumRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,8 +26,14 @@ public class MediumService {
         return mediumRepository.findAll();
     }
 
-    public void saveMedium(Medium medium) {
-        mediumRepository.save(medium);
+    public Medium saveMedium(Medium medium) {
+        try{
+            return mediumRepository.save(medium);
+        }catch(DataIntegrityViolationException de){
+            throw new UniqueConstraintsException("Medium already saved ",de);
+        }catch(Exception e){
+            throw new ObjectNotSaveException("Unable to save medium: "+e.getLocalizedMessage());
+        }
     }
 
     public Optional<Medium> getMediumById(Long id) {
