@@ -1,8 +1,11 @@
 package com.smsweb.sms.services.universal;
 
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.repositories.universal.DiscountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +31,14 @@ public class DiscountService {
         return discountRepository.findByDiscountNameNotContains("Sibling");
     }
 
-    public void saveDiscounthead(Discounthead discounthead) {
-        discountRepository.save(discounthead);
+    public Discounthead saveDiscounthead(Discounthead discounthead) {
+        try{
+            return discountRepository.save(discounthead);
+        }catch(DataIntegrityViolationException de){
+            throw new UniqueConstraintsException("Discount-Head already saved ",de);
+        }catch(Exception e){
+            throw new ObjectNotSaveException("Unable to save discount head: "+e.getLocalizedMessage());
+        }
     }
 
     public Optional<Discounthead> getDiscountheadById(Long id) {

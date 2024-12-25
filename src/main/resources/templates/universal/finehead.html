@@ -23,15 +23,20 @@
           </thead>
           <tbody>
 
-          <tr th:each="finehead : ${fineheads}">
-            <td th:text="${finehead.id}"></td>
+          <tr th:each="finehead, iter : ${fineheads}">
+            <td th:text="${iter.index+1}"></td>
             <td th:text="${finehead.fineHeadName}"></td>
             <td th:text="${finehead.description}"></td>
             <td>
               <a class="btn btn-primary" th:href="@{/universal/finehead/edit/{id}(id=${finehead.id})}">
                 <i class="bi bi-pencil-square"></i> </a>
-              <a class="btn btn-danger" th:href="@{/universal/finehead/delete/{id}(id=${finehead.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
-                <i class="bi bi-trash3-fill"></i> </a>
+              <!--<a class="btn btn-danger" th:href="@{/universal/finehead/delete/{id}(id=${finehead.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
+                <i class="bi bi-trash3-fill"></i> </a>-->
+              <form th:action="@{/universal/finehead/delete/{id}(id=${finehead.id})}" method="post" style="display:inline;">
+                <!--<input type="hidden" name="_method" value="DELETE"> -->
+                <input type="hidden" name="id" th:value="${finehead.id}">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? its not recoverable.')"> <i class="bi bi-trash3-fill"></i> </button>
+              </form>
             </td>
           </tr>
           </tbody>
@@ -45,7 +50,46 @@
       </div>
     </div>
   </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      showMsg("success", successMessage, "Success");
+    }
 
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      showMsg("info", infoMessage, "Info");
+    }
+
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      showMsg("error", errorMessage, "Error");
+    }
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
+    }
+  </script>
 </section>
 </body>
 </html>

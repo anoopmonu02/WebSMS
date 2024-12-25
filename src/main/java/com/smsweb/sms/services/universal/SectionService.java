@@ -1,8 +1,11 @@
 package com.smsweb.sms.services.universal;
 
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.universal.Section;
 import com.smsweb.sms.repositories.universal.SectionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,8 +24,14 @@ public class SectionService {
         return sectionRepository.findAll();
     }
 
-    public void saveSection(Section section) {
-        sectionRepository.save(section);
+    public Section saveSection(Section section) {
+        try{
+            return sectionRepository.save(section);
+        }catch(DataIntegrityViolationException de){
+            throw new UniqueConstraintsException("Section already saved ",de);
+        }catch(Exception e){
+            throw new ObjectNotSaveException("Unable to save section: "+e.getLocalizedMessage());
+        }
     }
 
     public Optional<Section> getSectionById(Long id) {

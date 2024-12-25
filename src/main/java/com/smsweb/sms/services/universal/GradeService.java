@@ -1,8 +1,11 @@
 package com.smsweb.sms.services.universal;
 
+import com.smsweb.sms.exceptions.ObjectNotSaveException;
+import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.repositories.universal.GradeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,8 +24,14 @@ public class GradeService {
         return gradeRepository.findAll();
     }
 
-    public void saveGrade(Grade grade) {
-        gradeRepository.save(grade);
+    public Grade saveGrade(Grade grade) {
+        try{
+            return gradeRepository.save(grade);
+        }catch(DataIntegrityViolationException de){
+            throw new UniqueConstraintsException("Grade already saved ",de);
+        }catch(Exception e){
+            throw new ObjectNotSaveException("Unable to save grade: "+e.getLocalizedMessage());
+        }
     }
 
     public Optional<Grade> getGradeById(Long id) {
