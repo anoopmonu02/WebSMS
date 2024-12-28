@@ -5,6 +5,7 @@ import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.Roles;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.services.users.UserService;
@@ -154,5 +155,10 @@ public class EmployeeService {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public School getLoggedInEmployeeSchool(){
+        Employee employee = employeeRepository.findByUserEntity(userService.getLoggedInUser());
+        return  employee.getSchool();
     }
 }

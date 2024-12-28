@@ -15,16 +15,17 @@
         <form th:action="@{/admin/academicyear}" th:object="${academicyear}" method="post" >
             <div class="row g-2">
 
-                <div class="col-md-7">
-                    <!--<label for="school" class="form-label">School</label>-->
-                    <input type="hidden" name="school_id" id="school_id" value="4"/>
-                    <!--<input type="text" class="form-control" id="school" name="school" th:field="*{school.schoolName}"  readonly/>-->
-                    <!--<select id="school" th:field="*{school}" class="form-select" name="customer">
-                        <option value="">Select School</option>
-                        <option th:each="school : ${schools}" th:value="${school.id}" th:text="${school.schoolName}"
-                                th:selected="${school} == ${academicyear.school}">school</option>
-                    </select>-->
-                    <p class="text-danger" th:if="${#fields.hasErrors('school')}" th:errors="*{school}">school Error</p>
+                <div class="col-md-5">
+                    <div th:if="${superUserLogin}">
+                        <label class="form-label">School(Branch)</label>
+                        <select name="school.id" id="school" class="form-select" th:field="*{school.id}">
+                            <option value="">Select School</option>
+                            <option th:each="school : ${schools}" th:value="${school.id}" th:text="${school.schoolName}"></option>
+                        </select>
+                    </div>
+                    <div th:else="${adminLogin}">
+                        <input type="hidden" id="school" name="school.id" class="form-control" th:field="*{school.id}" th:value="${school.id}">
+                    </div>
                 </div>
                 <div class="col-md-4">
                     &nbsp;

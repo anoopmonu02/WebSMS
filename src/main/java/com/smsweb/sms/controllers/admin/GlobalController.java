@@ -23,6 +23,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -89,11 +91,15 @@ public class GlobalController extends BaseController {
     @GetMapping("/academicyear")
     public String academciyear(Model model){
         //Get data of school when loggedin
+        List<AcademicYear> academicYears;
         School school = (School)model.getAttribute("school");
         System.out.println("school holder "+school.getSchoolName());
-        //System.out.println("activeAcademicYear holder "+model.getAttribute("activeAcademicYear"));
-
-        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
+        if(isSuperAdminLoggedIn()){
+            academicYears  = academicyearService.getAllAcademicYear();
+        }
+        else{
+            academicYears = academicyearService.getAllAcademiyears(school.getId());
+        }
         model.addAttribute("academicYears", academicYears);
         model.addAttribute("hasAcademicyears", !academicYears.isEmpty());
         model.addAttribute("page", "datatable");
@@ -103,31 +109,43 @@ public class GlobalController extends BaseController {
     @GetMapping("/academicyear/add")
     public String addAcademicyearForm(Model model){
         model.addAttribute("academicyear", new AcademicYear());
-        model.addAttribute("schools", schoolService.getAllSchools());
+        if(isSuperAdminLoggedIn()){
+            model.addAttribute("superUserLogin", true);
+            model.addAttribute("schools", schoolService.getAllSchools());
+        }
+        else if(isAdminLogin()){
+            model.addAttribute("adminLogin", true);
+            model.addAttribute("school", employeeService.getLoggedInEmployeeSchool());
+        }
         return "/admin/add-academicyear";
     }
 
     @PostMapping("/academicyear")
-    public String saveAcademicYear(@Valid @ModelAttribute("academicyear")AcademicYear academicYear, BindingResult result, Model model, RedirectAttributes ra){
-        if(result.hasErrors()){
+    public String saveAcademicYear(@Valid @ModelAttribute("academicyear") AcademicYear academicYear,
+                                   BindingResult result, Model model, RedirectAttributes ra) {
+        if (result.hasErrors()) {
             model.addAttribute("schools", schoolService.getAllSchools());
             return "/admin/add-academicyear";
         }
-        System.out.println(academicYear.getStartDate());
-        System.out.println(academicYear.getEndDate());
-        System.out.println(academicYear.getSchool());
-        try{
-            School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
+
+        try {
+            // Ensure school is set
+            if (academicYear.getSchool() == null || academicYear.getSchool().getId() == null) {
+                throw new IllegalArgumentException("School selection is mandatory.");
+            }
+            School school = schoolService.getSchoolById(academicYear.getSchool().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid School ID."));
+
             academicYear.setSchool(school);
-            academicYear.setCreatedBy(userService.getLoggedInUser().getUsername());
+            // Save AcademicYear
             academicyearService.save(academicYear);
-            ra.addFlashAttribute("success","Academic year - "+academicYear.getSessionFormat()+ " saved successfully.");
-        }catch(DataIntegrityViolationException de){
+            ra.addFlashAttribute("success", "Academic year - " + academicYear.getSessionFormat() + " saved successfully.");
+        } catch (DataIntegrityViolationException de) {
             de.printStackTrace();
-            model.addAttribute("error", "Duplicate entry '"+ academicYear.getSessionFormat() +"' for Academcic-Year.");
+            model.addAttribute("error", "Duplicate entry '" + academicYear.getSessionFormat() + "' for Academic Year.");
             model.addAttribute("schools", schoolService.getAllSchools());
             return "/admin/add-academicyear";
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", e.getMessage());
             model.addAttribute("schools", schoolService.getAllSchools());
@@ -137,31 +155,44 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/academicyear";
     }
 
+
     @GetMapping("/academicyear/edit/{id}")
     public String editAcademicYearPage(@PathVariable("id")Long id, Model model){
         AcademicYear academicYear = academicyearService.getAcademicyearById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid academic-year Id:" + id));
         model.addAttribute("academicyear", academicYear);
-        model.addAttribute("schools", schoolService.getAllSchools());
+        if(isSuperAdminLoggedIn()){
+            model.addAttribute("superUserLogin", true);
+            model.addAttribute("schools", schoolService.getAllSchools());
+        }
+        else if(isAdminLogin()){
+            model.addAttribute("adminLogin", true);
+            model.addAttribute("school", employeeService.getLoggedInEmployeeSchool());
+        }
         return "/admin/edit-academicyear";
     }
 
     @PostMapping("/academicyear/{id}")
-    public String updateAcademicYear(@PathVariable("id") Long id, @Valid @ModelAttribute("academicyear") AcademicYear academicyear,
+    public String updateAcademicYear(@PathVariable("id") Long id, @Valid @ModelAttribute("academicyear") AcademicYear academicYear,
                                  BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
             model.addAttribute("schools", schoolService.getAllSchools());
             return "/admin/edit-academicyear";
         }
         try{
-            School school = (School)model.getAttribute("school");//schoolService.getSchoolById(Long.parseLong("4")).get();
-            academicyear.setSchool(school);
-            academicyear.setUpdatedBy(userService.getLoggedInUser().getUsername());
-            academicyearService.save(academicyear);
-            ra.addFlashAttribute("success","Academic year - "+academicyear.getSessionFormat()+ " Updated successfully.");
+            if (academicYear.getSchool() == null || academicYear.getSchool().getId() == null) {
+                throw new IllegalArgumentException("School selection is mandatory.");
+            }
+            School school = schoolService.getSchoolById(academicYear.getSchool().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid School ID."));
+
+            academicYear.setSchool(school);
+            academicYear.setUpdatedBy(userService.getLoggedInUser().getUsername());
+            academicyearService.save(academicYear);
+            ra.addFlashAttribute("success","Academic year - "+academicYear.getSessionFormat()+ " Updated successfully.");
         }catch(DataIntegrityViolationException de){
             de.printStackTrace();
-            model.addAttribute("error", "Duplicate entry '"+ academicyear.getSessionFormat() +"' for Academic-Year.");
+            model.addAttribute("error", "Duplicate entry '"+ academicYear.getSessionFormat() +"' for Academic-Year.");
             model.addAttribute("schools", schoolService.getAllSchools());
             return "/admin/edit-academicyear";
         }catch (Exception e){
@@ -1135,6 +1166,34 @@ public class GlobalController extends BaseController {
             return ResponseEntity.status(500).body("Error assigning role: " + e.getMessage());
         }
         return ResponseEntity.status(400).body("Unexpected error occurred");
+    }
+
+    private boolean isSuperAdminLoggedIn(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName(); // Get logged-in username
+            if(username.equalsIgnoreCase("super_admin")){
+                return true;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean isAdminLogin(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                // Check if the user has the "ROLE_ADMIN"
+                return authentication.getAuthorities().stream()
+                        .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+            }
+            return false;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 
 }
