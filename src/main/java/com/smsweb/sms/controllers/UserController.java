@@ -52,9 +52,17 @@ public class UserController {
     }
 
     @GetMapping("/login")
-    public String showLoginForm() {
-        return "login";
-    }
+    public String login() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication != null && authentication.isAuthenticated() &&
+                !authentication.getPrincipal().equals("anonymousUser")) {
+            // If already authenticated, redirect to dashboard
+            return "redirect:/dashboard";
+        }
+
+        // If not authenticated, proceed to login page
+        return "login";  // Make sure you have a login.html template
+    }
 
 }
