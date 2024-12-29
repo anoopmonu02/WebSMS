@@ -226,4 +226,7 @@ public class Student { // Extend UserEntity
             uuid = UUID.randomUUID();
         }
     }
+
+    public static final String STATUS_ACTIVE = "Active";
+    public static final String STATUS_INACTIVE = "Inactive";
 }

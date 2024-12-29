@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -71,12 +73,34 @@ public class StudentController extends BaseController {
     @GetMapping("/student")
     public String studentData(Model model){
         log.debug("inside student list");
-        School school = (School)model.getAttribute("school");
-        List<Student> studentList = studentService.getAllActiveStudents(school.getId());
+
+        List<Student> studentList;
+        if(isSuperAdminLoggedIn()){
+            model.addAttribute("hasSuperAdmin", true);
+            studentList = studentService.getAllActiveStudents(Student.STATUS_ACTIVE);
+        }
+        else{
+            School school = (School)model.getAttribute("school");
+            studentList = studentService.getAllActiveStudentsOfSchool(school.getId());
+        }
+
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
         return "/student/student";
+    }
+
+    private boolean isSuperAdminLoggedIn(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName(); // Get logged-in username
+            if(username.equalsIgnoreCase("super_admin")){
+                return true;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
     }
 
     @GetMapping("/student/add")
@@ -85,6 +109,9 @@ public class StudentController extends BaseController {
         student.setUserEntity(new UserEntity());
         model.addAttribute("student", student);
         model = getAllGlobalModels(model);
+        if(isSuperAdminLoggedIn()){
+            return "/student/student";
+        }
         return "/student/add-student";
     }
 
@@ -230,7 +257,7 @@ public class StudentController extends BaseController {
         Student student = studentService.getStudentDetail(uuid, school.getId()).orElse(null);;
         if(student==null){
             redirectAttributes.addFlashAttribute("error", "Student not found");
-            List<Student> studentList = studentService.getAllActiveStudents(school.getId());
+            List<Student> studentList = studentService.getAllActiveStudentsOfSchool(school.getId());
             model.addAttribute("students", studentList);
             model.addAttribute("hasStudent", !studentList.isEmpty());
             model.addAttribute("page", "datatable");
@@ -306,7 +333,7 @@ public class StudentController extends BaseController {
             redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
         } else if(msg.contains("Error")){
             School school = (School)model.getAttribute("school");
-            List<Student> studentList = studentService.getAllActiveStudents(school.getId());
+            List<Student> studentList = studentService.getAllActiveStudentsOfSchool(school.getId());
             model.addAttribute("students", studentList);
             model.addAttribute("hasStudent", !studentList.isEmpty());
             model.addAttribute("page", "datatable");
@@ -322,5 +349,6 @@ public class StudentController extends BaseController {
         model.addAttribute("sections", dropdownService.getSections());
         return "/student/edit-grade-section";
     }
+
 
 }

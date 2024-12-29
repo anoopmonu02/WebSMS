@@ -102,4 +102,7 @@ public class AcademicStudent {
     protected void onUpdate() {
         this.lastUpdated = new Date();
     }
+
+    public static final String STATUS_ACTIVE = "Active";
+    public static final String STATUS_INACTIVE = "Inactive";
 }

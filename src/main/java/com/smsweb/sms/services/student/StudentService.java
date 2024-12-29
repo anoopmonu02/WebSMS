@@ -41,7 +41,7 @@ public class StudentService {
         this.userService = userService;
     }
 
-    public List<Student> getAllActiveStudents(Long school_id) {
+    public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Active");
     }
 
@@ -62,6 +62,10 @@ public class StudentService {
     }
     public Optional<Student> getDeletedStudentDetail(UUID uuid, Long school_id) {
         return repository.findByUuidAndStatusAndSchool_Id(uuid, "Inactive", school_id);
+    }
+
+    public List<Student> getAllActiveStudents(String status){
+        return  repository.findAllByStatus(status);
     }
 
     @Transactional
@@ -272,13 +276,13 @@ public class StudentService {
                 return "success#####Student not found";
             }
             for(AcademicStudent academicStudent : academicList){
-                academicStudent.setStatus("Inactive");
+                academicStudent.setStatus(AcademicStudent.STATUS_INACTIVE);
             }
             academicStudentRepository.saveAll(academicList);
 
             Student student = academicList.get(0).getStudent();
 
-            student.setStatus("Inactive");
+            student.setStatus(Student.STATUS_INACTIVE);
             student = repository.save(student);
             msg = "success#####Student: " + student.getStudentName() + " deleted successfully";
 
