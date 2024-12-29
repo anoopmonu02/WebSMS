@@ -14,51 +14,53 @@
       <div class="col-md-12">
         <div class="card-header fs-3">Student List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}" id="student-list">
-            <thead>
-            <tr>
-              <th>Student Name</th>
-              <th>Regis. Date</th>
-              <!--<th>Regis. #</th>-->
-              <th>Mother Name</th>
-              <th>Father Name</th>
-              <th>Mobile</th>
-              <th>Email</th>
-              <th>Address</th>
-              <!--<th>Status</th>-->
-              <th>Actions</th>
-            </tr>
-            </thead>
-            <tbody class="table-group-divider">
-
-            <tr th:each="student,iterStat : ${students}">
-              <td>
-                <a th:href="@{/student/student/show/{id}(id=${student.uuid})}" th:text="${student.studentName}"></a>
-              </td>
-              <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
-              <!--<td th:text="${customer.registrationNo}"></td>-->
-              <td th:text="${student.motherName}"></td>
-              <td th:text="${student.fatherName}"></td>
-              <td th:text="${student.mobile1}"></td>
-              <td th:text="${student.getUserEntity().getEmail()}"></td>
-              <td th:text="${student.address}"></td>
-              <!--<td th:text="${student.status}"></td>-->
-              <td style="white-space: nowrap" class="text-center">
-                <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
-                  <i class="bi bi-pencil-square"></i> </a>
-                <!--<a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
-                   data-bs-custom-class="custom-tooltip" data-bs-title="Delete the customer record"> <i class="bi bi-trash3-fill"></i> </a>-->
-                <a class="btn btn-danger" th:data-id="${student.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
-                  <i class="bi bi-trash3-fill"></i>
-                </a>
-              </td>
-            </tr>
-            </tbody>
+        <input type="hidden" name="isSuperAdmin" id="isSuperAdmin" th:value="${hasSuperAdmin}">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${hasStudent}" id="student-list" >
+          <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Regis. Date</th>
+            <!--<th>Regis. #</th>-->
+            <th>Mother Name</th>
+            <th>Father Name</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Address</th>
+            <!--<th>Status</th>-->
+            <th th:if="${hasSuperAdmin==null || !hasSuperAdmin}">Actions</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+          <tr th:each="student,iterStat : ${students}">
+            <td>
+              <a th:href="@{/student/student/show/{id}(id=${student.uuid})}" th:text="${student.studentName}"></a>
+            </td>
+            <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
+            <!--<td th:text="${customer.registrationNo}"></td>-->
+            <td th:text="${student.motherName}"></td>
+            <td th:text="${student.fatherName}"></td>
+            <td th:text="${student.mobile1}"></td>
+            <td th:text="${student.getUserEntity().getEmail()}"></td>
+            <td th:text="${student.address}"></td>
+            <!--<td th:text="${student.status}"></td>-->
+            <td th:if="${hasSuperAdmin==null || !hasSuperAdmin}" style="white-space: nowrap" class="text-center">
+              <a class="btn btn-primary" th:href="@{/student/student/edit/{id}(id=${student.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <!--<a class="btn btn-danger" th:href="@{/student/student/delete/{id}(id=${student.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+                  data-bs-custom-class="custom-tooltip" data-bs-title="Delete the customer record"> <i class="bi bi-trash3-fill"></i> </a>-->
+              <a class="btn btn-danger" th:data-id="${student.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
+                <i class="bi bi-trash3-fill"></i>
+              </a>
+            </td>
+          </tr>
+          </tbody>
         </table>
+
         <div th:if="${!hasStudent}">
           <p class="text-center">No Student found.</p>
         </div>
-        <div class="pt-5 mb-5">
+        <div class="pt-5 mb-5" th:if="${hasSuperAdmin==null  || !hasSuperAdmin}">
           <a class="btn btn-success" href="/student/student/add"><i class="bi bi-node-plus-fill"></i> Add Student</a>
         </div>
       </div>
@@ -90,52 +92,59 @@
   <script src="/js/toastr.min.js"></script>
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function () {
-      $('#student-list').DataTable({
-        layout: {
-          bottomEnd: {
-            paging: {
-              firstLast: false
+      $(document).ready(function() {
+        const hasSuperAdmin = $("#isSuperAdmin").val(); // Get the value of the hasSuperAdmin attribute
+        const exportColumns = hasSuperAdmin ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5, 6, 7]; // Adjust export columns based on hasSuperAdmin
+        const columnDefs = hasSuperAdmin
+                ? [{ "orderable": false, "targets": [0] }]  // Remove Actions column from columnDefs
+                : [{ "orderable": false, "targets": [0, 7] }]; // Keep Actions column
+
+        $('#student-list').DataTable({
+          layout: {
+            bottomEnd: {
+              paging: {
+                firstLast: false
+              }
+            },
+            top1Start: {
+              buttons: [
+                {
+                  extend: 'excelHtml5',
+                  text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                  titleAttr: 'Excel',
+                  title: 'Students Data export',
+                  exportOptions: {
+                    columns: exportColumns
+                  }
+                },
+                {
+                  extend: 'csvHtml5',
+                  text: '<i class="bi bi-filetype-csv text-info"></i>',
+                  titleAttr: 'CSV',
+                  title: 'Students Data export'
+                },
+                {
+                  extend: 'pdfHtml5',
+                  text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                  titleAttr: 'PDF',
+                  title: 'Students Data export',
+                  exportOptions: {
+                    columns: exportColumns
+                  }
+                },
+                'colvis'
+              ]
             }
           },
-          top1Start: {
-            buttons: [
-              {
-                extend: 'excelHtml5',
-                text: '<i class="bi bi-file-excel-fill text-success"></i>',
-                titleAttr: 'Excel',
-                title: 'Students Data export',
-                exportOptions: {
-                  columns: [0, 1, 2, 3, 4, 5, 6]
-                }
-              },
-              {
-                extend: 'csvHtml5',
-                text: '<i class="bi bi-filetype-csv text-info"></i>',
-                titleAttr: 'CSV',
-                title: 'Students Data export'
-              },
-              {
-                extend: 'pdfHtml5',
-                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
-                titleAttr: 'PDF',
-                title: 'Students Data export',
-                exportOptions: {
-                  columns: [0, 1, 2, 3, 4, 5, 6]
-                }
-              },
-              'colvis'
-            ]
-          }
-        },
-        lengthMenu: [
-          [5, 10, 25, 50, 100, -1],
-          [5, 10, 25, 50, 100, 'All']
-        ],
-        pageLength: 25,
-        columnDefs: [
-          { "orderable": false, "targets": [0,7] } // Disable sorting on the first and fourth columns
-        ]
+          lengthMenu: [
+            [5, 10, 25, 50, 100, -1],
+            [5, 10, 25, 50, 100, 'All']
+          ],
+          pageLength: 25,
+          columnDefs: columnDefs
+        });
       });
+
       $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
         // Remove the btn-secondary class from each button
         $(this).removeClass("btn-secondary");
