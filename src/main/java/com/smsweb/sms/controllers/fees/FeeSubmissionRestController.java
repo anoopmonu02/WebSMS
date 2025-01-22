@@ -551,10 +551,26 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
 
         Map<String, Object> receiptData = feeSubmissionService.getFeeReceiptData(id, school, academicYear);
+        if(receiptData==null || receiptData.isEmpty()){
+            receiptData.put("error","Unable to print");
+        }
         //System.out.println("receiptData "+ receiptData);
         System.out.println("--->>>>><<<<<<<<<==========");
         return ResponseEntity.ok(receiptData);
     }
 
+    @GetMapping("/searchReceiptForFeePage/{query}")
+    public ResponseEntity<?> searchReceiptForFeePage(@PathVariable("query") String query, Model model){
+        Map<String, Object> receiptData = new HashMap<>();
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        FeeSubmission feeSubmission = feeSubmissionService.getFeeDetailsForReceipt(query, school, academicYear);
+        if(feeSubmission!=null){
+            receiptData.put("feeSubmission",feeSubmission);
+        } else{
+            receiptData.put("error","Fee detail not found.");
+        }
+        return ResponseEntity.ok(receiptData);
+    }
 
 }

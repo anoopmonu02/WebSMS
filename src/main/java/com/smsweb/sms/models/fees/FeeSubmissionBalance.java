@@ -6,6 +6,7 @@ import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
@@ -21,7 +22,8 @@ public class FeeSubmissionBalance {
     private Long id;
 
     @OneToOne
-    @JsonIgnore
+    @JsonBackReference
+    @ToString.Exclude
     private FeeSubmission feeSubmission;
 
     @Digits(integer = 10, fraction = 2)

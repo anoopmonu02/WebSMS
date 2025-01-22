@@ -206,9 +206,12 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("grades",gradeService.getAllGrades());
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
-
         return "/fees/feereminder";
     }
+    @GetMapping("/fee-cancel")
+    public String cancelFeePage(Model model){
+        return "/fees/feecancel";
 
+    }
 
 }

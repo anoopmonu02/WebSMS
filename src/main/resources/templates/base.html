@@ -146,7 +146,7 @@
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/receipt'}"><i class="bi bi-person-lines-fill pe-2"></i> Fee Receipt Print </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-2"></i> Fee Reminder </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-2"></i> Fee Cancellation </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-cancel'}"><i class="bi bi-bell-fill pe-2"></i> Fee Cancellation </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
                 </li>
@@ -197,6 +197,19 @@
                             </ul>
                         </li>
 
+                    </ul>
+                </li>
+
+                <!--Attendance Options-->
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
+                       data-bs-target="#attendance" aria-expanded="false" aria-controls="attendance">
+                        <i class="bi bi-person-raised-hand pe-2"></i>
+                        <span>Attendance</span>
+                    </a>
+                    <ul id="attendance" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-person-check pe-2"></i> Student Attendance </a></li>
+                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
                 </li>
 

@@ -65,7 +65,7 @@
 
               <div class="fee-detail-box row">
                   <!--Fees List-->
-                  <div class="col-md-6 text-bg-light feedetailslistbox">
+                  <div class="col-md-12 text-bg-light feedetailslistbox">
                       <div class="card-body">
                           <h5 class="card-subtitle mb-2 text-muted">Fee Detail(s)</h5>
                       </div>
@@ -89,21 +89,24 @@
 
                   </div>
                   <!--Fee Receipt-->
-                  <div class="col-md-6 text-bg-light feereceiptbox">
+                  <div class="col-md-12 text-bg-light feereceiptbox1">
                       <div class="card-body">
-                          <h5 class="card-subtitle mb-2 text-muted">RECEIPT PRINT</h5>
+                          <h5 class="card-subtitle mb-2 text-muted">Receipt Print</h5>
                       </div>
                       <div>
                           <div class="row">
                               <div class="col-md-3">
                                   <button class="btn btn-success" id="printreceipt" onclick="printDiv('contentToExport','receipt')" data-div-id="contentToExport"><i class="bi bi-printer-fill"></i> Print</button>
                               </div>
+                              <div class="col-md-6">&nbsp;</div>
                           </div>
+                          <div class="row">&nbsp;</div>
                           <div class="row">
 
                               <!--Page Content Here-->
-                              <div class="card text-bg-secondary">
+                              <div class="card">
                                   <h5 class="card-header">Fee Receipt</h5>
+                                  <div id="disp-receipt"></div>
                                   <!--<div class="card-body" id="contentToExport">
                                       <input type="hidden" id="feeid" th:value="${feeSubmission.id}">
                                       <div class="text-center"><strong>[[${school.getSchoolName().toUpperCase()}]]</strong></div>
@@ -256,7 +259,7 @@
           showWarningMsg("error", errorMessage, "Error");
       }
 
-        function showWarningMsg(msgType, msg, headerValue){
+      function showWarningMsg(msgType, msg, headerValue){
               toastr.options = {
                 "closeButton": true,
                 "debug": false,
@@ -347,7 +350,7 @@
               console.log("value-----"+value);
               let formatDateVal = formatDate(value.feeSubmissionDate);
               //+value.academicStudent.id+'_'
-              $('#feetable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ formatDateVal+'</td><td>'+ value.receiptNo +'</td><td>'+value.totalAmount+'</td><td>'+ value.paidAmount +'</td><td>'+ value.balanceAmount +'</td><td><a onclick="loadStudentReceiptData('+value.id+')" href="#" class="btn btn-success"><i class="bi bi-printer-fill"></i></a></td></tr>');
+              $('#feetable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ formatDateVal+'</td><td>'+ value.receiptNo +'</td><td>&#8377; '+value.totalAmount+'</td><td>&#8377; '+ value.paidAmount +'</td><td>&#8377; '+ value.balanceAmount +'</td><td><a onclick="loadStudentReceiptData('+value.id+')" href="#" class="btn btn-success"><i class="bi bi-printer-fill"></i></a></td></tr>');
           }
       }
 
@@ -375,6 +378,11 @@
                           showWarningMsg("warning", data.noFeeDate,"Message");
                       } else{
                           console.log("Data ",data);
+                          const container = $('#disp-receipt');
+                          container.empty();
+                          container.append(createReceiptHTML(data));
+                          console.log($('#disp-receipt').length);
+                          console.log(createReceiptHTML(data));
                       }
                   }
               });
@@ -410,6 +418,185 @@
               $('#gradeId').val('');
 
           }
+      }
+
+      const createReceiptHTML = (data) =>{
+          return `<div class="card-body" id="contentToExport">
+                  <input type="hidden" id="feeid" th:value="${data.feeSubmission.id}">
+                  <div class="text-center"><strong>${data.school.schoolName.toUpperCase()}</strong></div>
+                  <div class="text-center"><strong>${data.school.address.toUpperCase()}</strong></div>
+                  <div class="text-center"><strong>CONTACT NO: (+91) ${data.school.mobile1}<span th:if="${data.school.mobile2 != null}">, ${data.school.mobile2}</span></strong></div>
+                  <div class="text-center" th:if="${data.school.email != null}"><strong>Email: ${data.school.email}</strong></div>
+                  <hr/>
+                  <div class="text-center"><strong>(DUPLICATE COPY)</strong></div>
+                  <hr/>
+                  <div class="row">
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Academic Year: </strong></label>
+                          <label class="col-md-5 col-form-label">${data.academicYear}</label>
+                      </div>
+                      <div class="col-md-6">
+                          <label class="col-md-2"></label>
+                          <label class="col-md-4"><strong>Submission Date: </strong></label>
+                          <label class="col-md-5"><strong>${new Date(data.feeSubmission.feeSubmissionDate).toLocaleString()} </strong></label>
+                      </div>
+                      <div class="col-md-8">
+                          <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                          <label class="col-md-5 col-form-label">${data.feeSubmission.receiptNo}</label>
+                      </div>
+                  </div>
+                  <hr/>
+                  <div class="row">
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
+                          <label class="col-md-5 col-form-label">${data.student.student.studentName}</label>
+                      </div>
+                      <div class="col-md-6">
+                          <label class="col-md-3"></label>
+                          <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
+                          <label class="col-md-4 col-form-label">${data.student.grade.gradeName} - ${data.student.section.sectionName}</label>
+                      </div>
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
+                          <label class="col-md-5 col-form-label">${data.student.student.fatherName}</label>
+                      </div>
+                      <div class="col-md-6">
+                          <label class="col-md-3"></label>
+                          <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
+                          <label class="col-md-4 col-form-label">${data.student.classSrNo}</label>
+                      </div>
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
+                          <label class="col-md-5 col-form-label">${data.student.student.motherName}</label>
+                      </div>
+                      <div class="col-md-6"></div>
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
+                          <label class="col-md-5 col-form-label">(+91) ${data.student.student.mobile1}</label>
+                      </div>
+                      <div class="col-md-6">
+                      </div>
+                  </div>
+                  <hr/>
+                  <div class="row fee-month-detail">
+                      <div class="row fee-month-detail">
+                            ${createFeeMonthDetailHTML(data.feeSubmittedMonths)}
+                        </div>
+                  </div>
+                  <hr/>
+                  <div class="row feedetails">
+                        <div class="col-md-12">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                <tr>
+                                    <th width="10%">SNo.</th>
+                                    <th>Head Name</th>
+                                    <th width="25%">Amount</th>
+                                </tr>
+                                </thead>
+                                <tbody class="table-group-divider">
+                                    ${createFeeHeadDetailHTML(data.feesublist)}
+                                </tbody>
+                            </table>
+                        </div>
+                   </div>
+                   <hr/>
+                   <div class="row amountdetails">
+                        <div class="col-md-4"></div>
+                        <div class="col-md-8"><strong>Fine Remark: </strong><span>${data.feeSubmission.fineRemark}</span></div>
+
+                        <div class="col-md-4"></div>
+                        <div class="col-md-4"><strong>Fine Amount: </strong></div>
+                        <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.fineAmount}</div>
+                    </div>
+                    <hr/>
+                    ${data.feeSubmission.discounthead ? `
+                        <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-8"><strong>Discount Remark: </strong><span>${data.feeSubmission.discounthead.discountName}</span></div>
+
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Discount Amount: </strong></div>
+                            <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.discountAmount}</div>
+                        </div>` : ''}
+                    <hr/>
+                    <div class="row">
+                        <div class="col-md-4"></div>
+                        <div class="col-md-4"><strong>Total Amount: </strong></div>
+                        <div class="col-md-4 text-end" >&#8377; ${data.feeSubmission.totalAmount}</div>
+                        <div class="col-md-4"></div>
+                        <div class="col-md-4"><strong>Paid Amount: </strong></div>
+                        <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.paidAmount}</div>
+                        <div class="col-md-4"></div>
+                        <div class="col-md-4"><strong>Balance Amount: </strong></div>
+                        <div class="col-md-4 text-end" >&#8377; ${data.feeSubmission.balanceAmount}</div>
+                    </div>
+                    <br/><br/>
+                  <div class="row mb-3"><div class="col-md-12 text-end">(Authorized Signatory)</div></div>
+
+              </div>`
+      }
+
+      const createFeeMonthDetailHTML = (feeSubmittedMonths) => {
+          let feeMonthHTML = '';
+          feeSubmittedMonths.forEach(feeList => {
+              const parts = feeList.split('####');
+              const month = parts[0];
+              const amount = parts[1];
+              const status = parts[2];
+
+              feeMonthHTML += `
+                <div class="col-md-6">
+                    <strong><label class="col-md-3">${month}</label></strong>
+                    <label class="col-md-3">${amount}</label>
+                    ${status.includes('PAID') ? `<span><i><u><label class="col-md-5">${status}</label></u></i></span>` : ''}
+                </div>`;
+          });
+          return feeMonthHTML;
+      };
+
+      const createFeeHeadDetailHTML = (feeSubmittedMonths) => {
+          let feeMonthHTML = '';
+          let rowIndex = 1;
+          feeSubmittedMonths.forEach(feeList => {
+              const index = rowIndex++ + '.';
+              const headName = feeList.feehead.feeHeadName;
+              const amount = feeList.amount;
+
+              feeMonthHTML += `
+                <tr>
+                    <td>${index}</td>
+                    <td>${headName}</td>
+                    <td class="text-end">&#8377; ${amount}</td>
+                </tr>
+                `;
+          });
+          return feeMonthHTML;
+      };
+
+      function printDiv(divId, title) {
+          let mywindow = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+
+          // Check if the window opened successfully
+          if (!mywindow) {
+              alert('Popup blocked! Please allow popups for this site.');
+              return;
+          }
+          //<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+          mywindow.document.write('<html><head><title>' + title + '</title>');
+          mywindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>');
+          mywindow.document.write('</head><body >');
+          mywindow.document.write(document.getElementById(divId).innerHTML);
+          mywindow.document.write('</body></html>');
+
+          mywindow.document.close(); // necessary for IE >= 10
+          mywindow.focus(); // necessary for IE >= 10
+
+          // Add a delay before calling print to ensure content is fully loaded
+          setTimeout(function() {
+              mywindow.print();
+              mywindow.close();
+          }, 1000); // Adjust the delay as needed
       }
 
   </script>

@@ -276,8 +276,12 @@ public class FeeSubmissionService {
         receiptSequenceRepository.save(sequence);
 
         // Generate and return the receipt number
+        //int padding = (nextSequence < 10000) ? 4 : (nextSequence < 100000) ? 5 : 6;
+
+        //String paddedSequence = String.format("%0" + padding + "d", nextSequence);
         //return String.format("%s/%04d/%d", branchCode, nextSequence, currentYear);
-        return String.format("%s/%d/%04d", branchCode, currentYear, nextSequence);
+        return String.format("%s/%d/%d", branchCode, currentYear, nextSequence);
+        //return String.format("%s-%d-%s", branchCode, currentYear, paddedSequence);
     }
 
     private String getCodeValue(String schoolName) {
@@ -823,8 +827,24 @@ public class FeeSubmissionService {
             modelData.put("error", e.getLocalizedMessage());
             e.printStackTrace();
         }
-        System.out.println("modelData>>>>>>>> ");
+        System.out.println("modelData>>>>>>>> "+modelData);
         return modelData;
+    }
+
+    public FeeSubmission getFeeDetailsForReceipt(String receipt_no, School school, AcademicYear academicYear){
+        try{
+            String finalReceiptNo = receipt_no.trim().replace("-","/");
+            System.out.println("FInal Receipt: "+finalReceiptNo);
+            System.out.println("FInal Receipt: "+school.getId());
+            System.out.println("FInal Receipt: "+academicYear.getId());
+            //Optional<FeeSubmission> feesubmission = feeSubmissionRepository.findByReceiptNoAndStatusAndSchool_IdAndAcademicYear_Id(receipt_no, "Active", school.getId(), academicYear.getId());
+            FeeSubmission feesubmission = feeSubmissionRepository.findByReceiptNoIgnoreCaseAndStatusAndSchoolIdAndAcademicYearId(finalReceiptNo, "Active", school.getId(), academicYear.getId());
+            System.out.println("submission: "+feesubmission);
+            return feesubmission!=null? feesubmission : null;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }
