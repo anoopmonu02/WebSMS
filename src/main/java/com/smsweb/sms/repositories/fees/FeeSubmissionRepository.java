@@ -47,5 +47,14 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
         return maxSubmissionDate == null || submissionDate.after(maxSubmissionDate);
     }
 
+    Optional<FeeSubmission> findByReceiptNoAndStatusAndSchool_IdAndAcademicYear_Id(String receipt_no, String status, Long school_id, Long academic_id);
+
+    @Query("SELECT f FROM FeeSubmission f WHERE LOWER(f.receiptNo) = LOWER(:receiptNo) AND f.status = :status AND f.school.id = :schoolId AND f.academicYear.id = :academicYearId")
+    FeeSubmission findByReceiptNoIgnoreCaseAndStatusAndSchoolIdAndAcademicYearId(
+            @Param("receiptNo") String receiptNo,
+            @Param("status") String status,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId
+    );
 
 }

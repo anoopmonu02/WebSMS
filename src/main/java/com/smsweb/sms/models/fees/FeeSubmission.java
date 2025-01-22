@@ -97,7 +97,8 @@ public class FeeSubmission {
     private List<FeeSubmissionMonths> feeSubmissionMonths = new ArrayList<>();
 
     @OneToOne(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
-    @JsonIgnore
+    @JsonManagedReference
+    @ToString.Exclude
     private FeeSubmissionBalance feeSubmissionBalance;
 
     @JoinColumn(name = "created_by", updatable = false)
@@ -105,5 +106,17 @@ public class FeeSubmission {
 
     @JoinColumn(name = "updated_by")
     private String updatedBy;
+
+    @Override
+    public String toString() {
+        return "FeeSubmission{" +
+                "id=" + id +
+                ", feeSubmissionDate=" + feeSubmissionDate +
+                ", receiptNo='" + receiptNo + '\'' +
+                ", fineAmount=" + fineAmount +
+                ", fineRemark='" + fineRemark + '\'' +
+                // Include other relevant fields
+                '}';
+    }
 
 }
