@@ -6,9 +6,13 @@ import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.AcademicYear;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.Attendance;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
+import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import com.smsweb.sms.services.users.UserService;
 import org.slf4j.Logger;
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,14 +36,16 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final FileHandleHelper fileHandleHelper;
     private final UserService userService;
+    private final AttendanceRepository attendanceRepository;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileHandleHelper = fileHandleHelper;
         this.userService = userService;
+        this.attendanceRepository = attendanceRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -365,6 +372,128 @@ public class StudentService {
             // Bulk save the students
             academicStudentRepository.saveAll(studentsToSave);
             return "Total SR updated: " + srPassCounter + " and SR not found for: "+SRFailCounter;
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    public List getAttendanceDetailsByClass(Long school, Long academic){
+        try{
+            List<Object[]> results = attendanceRepository.findAttendanceSummaryBySchoolAndAcademicYear(school, academic);
+            List<Map<String, Object>> summaries = new ArrayList<>();
+            for (Object[] row : results) {
+                Map<String, Object> summary = new HashMap<>();
+                summary.put("gradeName", row[0]);        // Grade Name
+                summary.put("sectionName", row[1]);     // Section Name
+                summary.put("presentCount", row[2]);    // Present Count
+                summary.put("absentCount", row[3]);     // Absent Count
+                summaries.add(summary);
+            }
+
+            return summaries;
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public Map getAllStudentsAttendanceByGrade(Long medium, Long gradeId, Long sectionId, Long academicYearId, Long schoolId){
+        List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId);
+        List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
+        Map<String, List> academicAttendanceMap = new HashMap<>();
+        if(academicStudents!=null && !academicStudents.isEmpty()){
+            academicAttendanceMap.put("academicStudents", academicStudents);
+        }
+        if(attendanceList!=null && !attendanceList.isEmpty()){
+            academicAttendanceMap.put("attendances", attendanceList);
+        }
+        return academicAttendanceMap;
+    }
+    private Date truncateTime(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTime();
+    }
+
+    @Transactional
+    public String saveStudentsAttendance(List<Map<String, Object>> studentData, AcademicYear academic, School school){
+        List<Attendance> studentsToSave = new ArrayList<>();
+        int failCounter = 0;
+        int passCounter = 0;
+        try{
+            Date truncatedDate = truncateTime(new Date());
+            for (Map<String, Object> record : studentData){
+                System.out.println("Record----"+record);
+                boolean isChecked = (Boolean) record.get("isChecked");
+                String remark = (String) record.get("remark");
+                String uuid = (String) record.get("id");
+                if(uuid!=null && !uuid.isEmpty()){
+                    AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                            UUID.fromString(uuid), "Active", academic.getId(), school.getId()).orElse(null);
+                    if (academicStudent != null){
+                        Attendance attendanceExist = attendanceRepository.findByAcademicStudentAndAttendanceDate(academicStudent, truncatedDate).orElse(null);
+                        if(attendanceExist!=null){
+                            if(attendanceExist.isPresent() != isChecked){
+                                attendanceExist.setPresent(isChecked);
+                                attendanceExist.setRemark(remark);
+                                studentsToSave.add(attendanceExist);
+                                passCounter++;
+                            }
+                        } else{
+                            Attendance attendance = new Attendance();
+                            attendance.setAttendanceDate(new Date());
+                            attendance.setSchool(school);
+                            attendance.setAcademicYear(academic);
+                            attendance.setAcademicStudent(academicStudent);
+                            attendance.setPresent(isChecked);
+                            attendance.setRemark(remark);
+                            studentsToSave.add(attendance);
+                            passCounter++;
+                        }
+                    } else{
+                        failCounter++;
+                    }
+                } else{
+                    failCounter++;
+                }
+            }
+            // Bulk save the students attendance
+            attendanceRepository.saveAll(studentsToSave);
+            return "Total Attendance captured: " + passCounter + " and Attendance not captured: "+failCounter;
+
+            /*studentData.forEach((key, value) -> {
+                if(key!=null && value!=null && value!=""){
+                    String uuid = key.split("sr_")[1];
+                    if (uuid != null && !uuid.isEmpty()) {
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
+
+                        if (academicStudent != null) {
+                            academicStudent.setClassSrNo(value);
+                            studentsToSave.add(academicStudent);  // Collect the student for bulk saving
+                            srPassCounter.getAndIncrement();
+                        } else {
+                            failedIds.add(uuid);  // Log the failure
+                            SRFailCounter.getAndIncrement();
+                        }
+                    } else {
+                        failedIds.add("Invalid UUID");
+                        SRFailCounter.getAndIncrement();
+                    }
+                } else{
+                    SRFailCounter.getAndIncrement();
+                }
+            });*/
+
+
+            //attendanceRepository.saveAll(studentsToSave);
+
         }catch(Exception e){
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();

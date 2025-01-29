@@ -11,7 +11,7 @@
     <!--<link th:href="@{/css/select2.min.css}" rel="stylesheet" crossorigin="anonymous"/>-->
     <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" crossorigin="anonymous"/>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <script src="https://kit.fontawesome.com/ae360af17e.js" crossorigin="anonymous"></script>
+    <!--<script src="https://kit.fontawesome.com/ae360af17e.js" crossorigin="anonymous"></script>-->
     <th:block th:if="${page == 'datatable'}">
         <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
         <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
@@ -19,8 +19,9 @@
     </th:block>
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
     <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">-->
+    <link rel="stylesheet" th:href="@{/css/toastr.min.css}" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
 
 
 </head>
@@ -142,11 +143,11 @@
                         <span>Fees</span>
                     </a>
                     <ul id="fees" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-person-lines-fill pe-2"></i> Fee Submission </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/receipt'}"><i class="bi bi-person-lines-fill pe-2"></i> Fee Receipt Print </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-collection-fill pe-2"></i> Fee Submission </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/receipt'}"><i class="bi bi-receipt pe-2"></i> Fee Receipt Print </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{/fees/fee-reminder}"><i class="bi bi-bell-fill pe-2"></i> Fee Reminder </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-cancel'}"><i class="bi bi-bell-fill pe-2"></i> Fee Cancellation </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-cancel'}"><i class="bi bi-journal-x pe-2"></i> Fee Cancellation </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
                 </li>
@@ -208,7 +209,7 @@
                         <span>Attendance</span>
                     </a>
                     <ul id="attendance" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-person-check pe-2"></i> Student Attendance </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-person-check pe-2"></i> Student Attendance </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
                 </li>

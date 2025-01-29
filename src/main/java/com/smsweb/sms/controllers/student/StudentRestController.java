@@ -221,4 +221,54 @@ public class StudentRestController extends BaseController {
             return ResponseEntity.ok("error#####"+e.getLocalizedMessage());
         }
     }
+
+    @PostMapping("/getStudentsForAttendance")
+    public ResponseEntity<?> getStudentsForAttendance(@RequestBody Map<String, String> requestBody, Model model){
+        try{
+            if(requestBody!=null){
+                String medium = requestBody.getOrDefault("mediumId","0");
+                String grade = requestBody.getOrDefault("gradeId","0");
+                String section = requestBody.getOrDefault("sectionId","0");
+                Long mediumId = (medium!=null && medium!="")?Long.parseLong(medium):0L;
+                Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0L;
+                Long sectionId = (section!=null && section!="")?Long.parseLong(section):0L;
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                //List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+                Map academicAttendaceMap = studentService.getAllStudentsAttendanceByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+                if(academicAttendaceMap!=null && !academicAttendaceMap.isEmpty()){
+                    if(!academicAttendaceMap.containsKey("academicStudents")){
+                        academicAttendaceMap.put("academicStudentError", "No students found for the given criteria.");
+                    }
+                } else {
+                    academicAttendaceMap = new HashMap();
+                    academicAttendaceMap.put("academicStudentError", "No students found for the given criteria.");
+                }
+                return ResponseEntity.ok(academicAttendaceMap);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Request body is missing or invalid.");
+            }
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/saveStudentAttendance")
+    public ResponseEntity<?> saveStudentsAttendance(@RequestBody List<Map<String, Object>> studentData, Model model){
+        try{
+            if(studentData.size()==0){
+                return ResponseEntity.ok("error#####No attendance found for students.");
+            } else{
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                String responseMsg = studentService.saveStudentsAttendance(studentData, academicYear, school);
+                return ResponseEntity.ok(responseMsg);
+            }
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
 }
