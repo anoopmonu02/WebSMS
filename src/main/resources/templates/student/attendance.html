@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+
+
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Attendance: <span th:text="${todayDate}"></span></div>
+                <hr/>
+                <div class="row mt-3">
+                    <div class="col-md-2">
+                        <label for="medium" class="form-label">Medium</label>
+                        <select name="medium" id="medium" class="form-select">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="grade" class="form-label">Grade</label>
+                        <select name="grade" id="grade" class="form-select">
+                            <option value="">Select Grade</option>
+                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="section" class="form-label">Section</label>
+                        <select name="section" id="section" class="form-select">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 align-self-end">
+                        <div class="col-sm-6">
+                            <button name="getstu" id="getstu" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+                <div id="badgePDiv" class="col-md-12 text-end" style="display: none;">
+                    <span id="badgedDiv" align="right" class="align-self-end">
+                        <button type="button" class="btn btn-primary disabled">Total Student <span class="badge badge-info">0</span></button>
+                        <button type="button" class="btn btn-success disabled">Present <span class="badge badge-success">0</span></button>
+                        <button type="button" class="btn btn-danger disabled">Absent <span class="badge badge-important">0</span></button>
+                    </span>
+                </div>
+                <div class="col-12" id="student-grade-data">
+
+                </div>
+                <div id="btn-classes" style="display: none;" class="row">
+                    <div class="col-md-5">
+
+                    </div>
+                    <div class="col-md-6 mb-5 pt-5">
+                        <button type="button" class="btn btn-primary" id="save-sr-from-table" onclick="saveAttendance()"><i class="bi bi-save2-fill"></i> Save </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+  <script src="/js/jquery-3.7.1.js"></script>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+
+      // Display success message
+      const successMessage = [[${success}]];
+      if (successMessage) {
+          showMsg("success", successMessage, "Success");
+      }
+
+      const infoMessage = [[${info}]];
+      if (infoMessage) {
+          showMsg("info", infoMessage, "Info");
+      }
+
+      // Display error message
+      const errorMessage = [[${error}]];
+      if (errorMessage) {
+          showMsg("error", errorMessage, "Error");
+      }
+
+      function showMsg(msgType, msg, headerValue){
+          toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "600",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+          }
+          toastr[msgType](msg,headerValue);
+      }
+
+      let medium, grade, section;
+
+      const validateMandatoryValues=()=>{
+          medium = $('#medium').val();
+          grade = $('#grade').val();
+          section = $('#section').val();
+          if(medium === '' || grade === '' || section === ''){
+              showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+              return false;
+          }
+          return true;
+      }
+
+      document.getElementById("getstu").onclick = function(){
+          let proceed = validateMandatoryValues();
+          if(proceed){
+              let url = `${window.location.origin}/getStudentsForAttendance`;
+              let requestData = {
+                  mediumId: medium.toString(),
+                  gradeId: grade.toString(),
+                  sectionId: section.toString()
+              };
+              fetch(url, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(requestData)
+              })
+                  .then(response => {
+                      if (!response.ok) {
+                          // Handle HTTP errors (e.g., 400, 500)
+                          throw new Error(`Error ${response.status}: ${response.statusText}`);
+                      }
+                      return response.json();
+                  })
+                  .then(data => {
+                      console.log("data======"+data);
+                      //'academicStudentError' in data
+                      if ('academicStudentError' in data) {
+                          //alert('No students found.');
+                          showMsg("warning", data.academicStudentError, "Message");
+                      } else {
+                          // Assuming data is the student list, render it in the table
+                          //.alert('Data fetched successfully!');
+                          renderStudentData(data); // Call function to display student data
+                      }
+                  })
+                  .catch(error => {
+                      console.error('Error:', error);
+                      toastr["error"]("An error occurred while fetching the student(s)", "Error");
+                  });
+          }
+      };
+      const renderStudentData=(studentData)=> {
+          let divTabId = $("#student-grade-data");
+          let btndiv = $("#btn-classes");
+          btndiv.hide();
+          divTabId.html('');
+          let rowCount = 0;
+          let stuAtt = Array.isArray(studentData.attendances) && studentData.attendances.length > 0
+              ? studentData.attendances
+              : [];
+          let tbl = '<table class="table table-bordered table-sm" id="attendance-table-data"><thead><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>SR</th><th class=""><input type="checkbox" class="form-check form-check-input" id="selectAllCbx" name="selectAllCbx" onclick="selectAll(this)"></th><th>Remark</th></thead><tbody class="table-group-divider">'
+          stuAtt.forEach(function(att){
+              console.log("--->>>>>"+att.academicStudent.id);
+              console.log("--->>>>>"+att.isPresent);
+              console.log("--->>>>>"+att.attendanceDate);
+              console.log("--->>>>>"+att.uuid);
+          });
+          studentData.academicStudents.forEach(function(student) {
+              let srno = student.classSrNo ? student.classSrNo.trim() : '';
+              let studentAttendance = stuAtt.find(att => att.academicStudent.id === student.id);
+              console.log("student.id::::"+student.id);
+              console.log("stuAtt::::"+stuAtt);
+              //console.log("studentAttendance::::"+studentAttendance.remark);
+              let isPresent = studentAttendance && studentAttendance.isPresent? 'checked': '';
+              let remark = studentAttendance ? studentAttendance.remark: '';
+              //let isChecked = studentAttendance ? 'checked' : '';
+              tbl += `<tr>
+                      <td>${++rowCount}</td>
+                      <td>${student.student.studentName}</td>
+                      <td>${student.student.fatherName}</td>
+                      <td>${student.student.motherName}</td>
+                      <td>${srno}</td>
+                      <td>
+                            <input type="checkbox" class="form-check form-check-input studentcheckbox" ${isPresent} id="${student.uuid}" name="stu_attendance[]" onclick="updateBatches()"/>
+                      </td>
+                      <td>
+                            <input type="text" class="form-control" name="stu_remark[]" id="rem_${student.uuid}" value="${remark}"/>
+                      </td>
+                      </tr>`;
+              //<input type="text" id="sr_${student.uuid}" name="sr_${student.uuid}" value="${student.classSrNo}" class="form-control"/>
+          });
+          tbl+='</tbody></table>';
+          divTabId.html(tbl);
+          btndiv.show();
+      }
+
+      function selectAll(obj){
+          let checkedStatus = obj.checked;
+          // alert("status :");
+          $('#attendance-table-data tbody tr').find('td:eq(5) :checkbox').each(function () {
+              $(this).prop('checked', checkedStatus);
+          });
+          updateBatches();
+      }
+
+      function updateBatches(){
+          $("#badgePDiv").hide();
+          let presentStudent = 0;
+          let absentStudent = 0;
+          let totalStudent = 0;
+          $('#attendance-table-data tbody tr').find('td:eq(5) :checkbox').each(function () {
+              totalStudent++;
+              let chkbx = this;
+              if(chkbx.checked){
+                  presentStudent++;
+              }
+              else {
+                  absentStudent++;
+              }
+          });
+          let str = "<button type='button' class='btn btn-primary disabled'>Total Student <span class='badge rounded-pill text-bg-info'>"+totalStudent+"</span></button>&nbsp;<button type='button' class='btn btn-success disabled'>Present <span class='badge rounded-pill text-bg-light'>"+presentStudent+"</span></button>&nbsp;<button type='button' class='btn btn-danger disabled'>Absent <span class='badge rounded-pill text-bg-warning'>"+absentStudent+"</span></button><br/><br/>"
+          $("#badgedDiv").html(str);
+          $("#badgePDiv").show();
+      }
+
+      const saveAttendance=()=>{
+          const tableId = $("#attendance-table-data");
+          let rowCount = $('#attendance-table-data tbody tr').length;
+          if(rowCount>0){
+              let tableData = [];
+              $("#attendance-table-data tbody tr").each(function () {
+                  let row = $(this);
+                  let rowData = {
+                      /*studentName: row.find("td:nth-child(2)").text().trim(),
+                      fatherName: row.find("td:nth-child(3)").text().trim(),
+                      motherName: row.find("td:nth-child(4)").text().trim(),
+                      sr: row.find("td:nth-child(5)").text().trim(),*/
+                      isChecked: row.find("td:nth-child(6) input[type='checkbox']").is(":checked"),
+                      remark: row.find("td:nth-child(7) input[type='text']").val().trim(),
+                      id: row.find("td:nth-child(6) input[type='checkbox']").attr('id')
+                  };
+                  //console.log("=========Data::::::: "+row.find("td:nth-child(6) input[type='checkbox']").attr('id'));
+                  tableData.push(rowData);
+              });
+              fetch('/saveStudentAttendance', {
+                  method: 'POST',              // Specify the HTTP method
+                  headers: {
+                      'Content-Type': 'application/json'  // Send JSON data
+                  },
+                  body: JSON.stringify(tableData)  // Convert allValues object to JSON string
+              }).then(response => {
+                  if (!response.ok) {
+                      throw new Error('Network response was not ok');
+                  }
+                  return response.text();  // Parse response as JSON
+              })
+              .then(data => {
+                  if (data.includes('error#####')) {
+                      // Handle error by splitting and extracting the error message
+                      const errorMsg = data.split("#####")[1];
+                      showMsg("error", errorMsg, "Error");
+                  } else {
+                      // Handle success message
+                      console.log("succcess message==="+data);
+                      const successMsg = data.split("#####")[0];
+                      showMsg("success", successMsg, "Updated");
+                      //showSpinner();
+                      setTimeout(() => {
+                          window.location.reload();
+                      }, 2000);
+                  }
+              })
+              .catch(error => {
+                  console.error('Error:', error);  // Handle error response
+                  const errorMsg = (error.includes('error#####'))?error.split("#####")[1]:error;
+                  showMsg("error", errorMsg, "Error");
+              });
+          } else{
+              showMsg("warning","No attendance data found","Message");
+          }
+      }
+
+  </script>
+
+</section>
+</body>
+</html>

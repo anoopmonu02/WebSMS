@@ -4,19 +4,13 @@ import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.controllers.employee.EmployeeController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
-import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
-import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
-import com.smsweb.sms.models.student.AcademicStudent;
-import com.smsweb.sms.models.student.SiblingGroup;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
-import com.smsweb.sms.models.universal.Grade;
-import com.smsweb.sms.models.universal.Medium;
-import com.smsweb.sms.models.universal.Section;
+import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
@@ -31,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -60,14 +53,17 @@ public class StudentController extends BaseController {
     private final SchoolService schoolService;
     private final UserService userService;
 
+    private final AttendanceRepository attendanceRepository;
+
     @Autowired
-    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1){
+    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository){
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.dropdownService = dropdownService;
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.userService = userService1;
+        this.attendanceRepository = attendanceRepository;
     }
 
     @GetMapping("/student")
@@ -350,5 +346,35 @@ public class StudentController extends BaseController {
         return "/student/edit-grade-section";
     }
 
+    @GetMapping("/student-attendance")
+    public String studentAttendanceForm(Model model){
+        SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+        model.addAttribute("todayDate", sf.format(new Date()));
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List studentsList = studentService.getAttendanceDetailsByClass(school.getId(), academicYear.getId());
+            model.addAttribute("attendanceSummary", studentsList);
+            model.addAttribute("hasAttendance", !studentsList.isEmpty());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        model.addAttribute("page", "datatable");
+        return "/student/student-attendance";
+    }
+    @GetMapping("/student-submit-attendance")
+    public String studentAttendanceSave(Model model){
+        SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+        model.addAttribute("todayDate", sf.format(new Date()));
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        try{
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return "/student/attendance";
+    }
 
 }

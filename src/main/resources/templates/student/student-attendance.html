@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+
+
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Attendance List</div>
+                <hr/>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Date: </strong><span th:text="${todayDate}"></span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a class="btn btn-success" href="/student/student-submit-attendance"><i class="bi bi-person-bounding-box"></i> Submit Attendance</a>
+                    </div>
+                </div>
+                <hr/>
+
+                <table th:if="${hasAttendance}" id="attendance-list" class="table table-bordered table-striped table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>SNo.</th>
+                            <th>Grade-Section</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <!--<th>Action</th>-->
+                        </tr>
+                    </thead>
+                    <tbody class="table-group-divider">
+                        <tr th:each="summary,iterStat : ${attendanceSummary}">
+                            <td th:text="${iterStat.index+1}">1</td>
+                            <td th:text="${summary.gradeName+ ' - ' + summary.sectionName}"></td>
+                            <td class="text-center"><span class="badge rounded-pill text-bg-success" th:text="${' '+summary.presentCount+' '}">0</span> </td>
+                            <td class="text-center"><span class="badge rounded-pill text-bg-danger" th:text="${' '+summary.absentCount+' '}">0</span></td>
+                            <!--<td>
+                                <a href="#" class="btn btn-success"><i class="bi bi-arrow-bar-right"></i></a>
+                            </td>-->
+                        </tr>
+                    </tbody>
+                </table>
+                <div th:if="${!hasAttendance}">
+                    <p class="text-center">No attendance data found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        $(document).ready(function() {
+            const hasSuperAdmin = $("#isSuperAdmin").val(); // Get the value of the hasSuperAdmin attribute
+            const exportColumns = hasSuperAdmin ? [0, 1, 2, 3] : [0, 1, 2, 3]; // Adjust export columns based on hasSuperAdmin
+            const columnDefs = hasSuperAdmin
+                ? [{ "orderable": false, "targets": [0] }]  // Remove Actions column from columnDefs
+                : [{ "orderable": false, "targets": [0] }]; // Keep Actions column
+
+            $('#attendance-list').DataTable({
+                layout: {
+                    bottomEnd: {
+                        paging: {
+                            firstLast: false
+                        }
+                    },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Students Data export',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Students Data export'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Students Data export',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, 'All']
+                ],
+                pageLength: 25,
+                columnDefs: columnDefs
+            });
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                // Remove the btn-secondary class from each button
+                $(this).removeClass("btn-secondary");
+            });
+        });
+
+        // Display success message
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        // Display error message
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+
+    </script>
+
+</section>
+</body>
+</html>

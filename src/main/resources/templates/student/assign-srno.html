@@ -341,6 +341,7 @@
             let rowCount = 0;
             let tbl = '<table class="table table-bordered table-sm" id="sr-table-data"><thead><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th></thead><tbody class="table-group-divider">'
             studentData.forEach(function(student) {
+                let srno = student.classSrNo ? student.classSrNo.trim() : '';
                 tbl += `<tr>
                       <td>${++rowCount}</td>
                       <td>${student.student.studentName}</td>
@@ -348,7 +349,7 @@
                       <td>${student.student.motherName}</td>
                       <td>${student.student.mobile1}</td>
                       <td width="10%">
-                            <input type="text" id="sr_${student.uuid}" name="sr_${student.uuid}" value="${student.classSrNo}" class="form-control"/>
+                            <input type="text" id="sr_${student.uuid}" name="sr_${student.uuid}" value="${srno}" class="form-control"/>
                       </td>
                    </tr>`;
 
