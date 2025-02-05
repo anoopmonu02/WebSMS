@@ -271,4 +271,38 @@ public class StudentRestController extends BaseController {
                     .body("An unexpected error occurred: " + e.getMessage());
         }
     }
+
+    @PostMapping("/getStudentsMonthlyAttendance")
+    public ResponseEntity<?> getStudentsMonthlyAttendance(@RequestBody Map<String, String> requestBody, Model model){
+        try{
+            if(requestBody!=null){
+                String medium = requestBody.getOrDefault("mediumId","0");
+                String grade = requestBody.getOrDefault("gradeId","0");
+                String section = requestBody.getOrDefault("sectionId","0");
+                String monthVal = requestBody.getOrDefault("monthId","0");
+                Long mediumId = (medium!=null && medium!="")?Long.parseLong(medium):0L;
+                Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0L;
+                Long sectionId = (section!=null && section!="")?Long.parseLong(section):0L;
+                int month = (monthVal!=null && monthVal!="")?Integer.parseInt(monthVal):0;
+                Calendar calendar = Calendar.getInstance();
+                int year = calendar.get(Calendar.YEAR);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                List<Map<String, Object>> stuAttData = studentService.getMonthlyAttendance(mediumId, gradeId, sectionId, school.getId(), academicYear.getId(), month, year);
+
+                if(stuAttData==null || stuAttData.isEmpty()){
+                    Map studentAttendance = new HashMap();
+                    studentAttendance.put("academicStudentError", "No students found for the given criteria.");
+                    stuAttData.add(studentAttendance);
+                }
+                return ResponseEntity.ok(stuAttData);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Request body is missing or invalid.");
+            }
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
 }

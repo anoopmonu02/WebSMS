@@ -24,9 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
@@ -384,10 +389,11 @@ public class StudentService {
             List<Map<String, Object>> summaries = new ArrayList<>();
             for (Object[] row : results) {
                 Map<String, Object> summary = new HashMap<>();
-                summary.put("gradeName", row[0]);        // Grade Name
-                summary.put("sectionName", row[1]);     // Section Name
-                summary.put("presentCount", row[2]);    // Present Count
-                summary.put("absentCount", row[3]);     // Absent Count
+                summary.put("mediumName", row[0]);        // Grade Name
+                summary.put("gradeName", row[1]);        // Grade Name
+                summary.put("sectionName", row[2]);     // Section Name
+                summary.put("presentCount", row[3]);    // Present Count
+                summary.put("absentCount", row[4]);     // Absent Count
                 summaries.add(summary);
             }
 
@@ -400,7 +406,7 @@ public class StudentService {
     }
 
     public Map getAllStudentsAttendanceByGrade(Long medium, Long gradeId, Long sectionId, Long academicYearId, Long schoolId){
-        List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId);
+        List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId, medium);
         List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
         Map<String, List> academicAttendanceMap = new HashMap<>();
         if(academicStudents!=null && !academicStudents.isEmpty()){
@@ -467,36 +473,95 @@ public class StudentService {
             attendanceRepository.saveAll(studentsToSave);
             return "Total Attendance captured: " + passCounter + " and Attendance not captured: "+failCounter;
 
-            /*studentData.forEach((key, value) -> {
-                if(key!=null && value!=null && value!=""){
-                    String uuid = key.split("sr_")[1];
-                    if (uuid != null && !uuid.isEmpty()) {
-                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
-                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
-
-                        if (academicStudent != null) {
-                            academicStudent.setClassSrNo(value);
-                            studentsToSave.add(academicStudent);  // Collect the student for bulk saving
-                            srPassCounter.getAndIncrement();
-                        } else {
-                            failedIds.add(uuid);  // Log the failure
-                            SRFailCounter.getAndIncrement();
-                        }
-                    } else {
-                        failedIds.add("Invalid UUID");
-                        SRFailCounter.getAndIncrement();
-                    }
-                } else{
-                    SRFailCounter.getAndIncrement();
-                }
-            });*/
-
-
-            //attendanceRepository.saveAll(studentsToSave);
-
         }catch(Exception e){
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    public Date convertToDate(LocalDate localDate) {
+        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+    public List<Map<String, Object>> getMonthlyAttendance(Long mediumId, Long gradeId, Long sectionId, Long schoolId, Long academicId, int month, int year){
+        try{
+            YearMonth yearMonth = YearMonth.of(year, month);
+            LocalDate firstDay = yearMonth.atDay(1);
+            LocalDate lastDay = yearMonth.atEndOfMonth();
+
+            Date startDate = convertToDate(firstDay);
+            Date endDate = convertToDate(lastDay);
+
+            Set<Integer> sundays = new HashSet<>();
+            for (LocalDate date = firstDay; !date.isAfter(lastDay); date = date.plusDays(1)) {
+                if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                    sundays.add(date.getDayOfMonth());
+                }
+            }
+            List<AcademicStudent> students = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, mediumId, gradeId, sectionId, academicId, "Active");
+
+            List<Attendance> attendanceRecords = attendanceRepository.findByAcademicStudentInAndAttendanceDateBetween(
+                    students, startDate, endDate
+            );
+
+
+
+            Map<UUID, List<Attendance>> attendanceByStudent = attendanceRecords.stream()
+                    .collect(Collectors.groupingBy(att -> att.getAcademicStudent().getUuid()));
+
+            List<Map<String, Object>> attendanceList = new ArrayList<>();
+
+            for (AcademicStudent student : students) {
+                Map<String, Object> studentAttendance = new LinkedHashMap<>();
+
+                // Add student details
+                studentAttendance.put("studentId", student.getUuid().toString());
+                studentAttendance.put("studentName", student.getStudent().getStudentName());
+                studentAttendance.put("studentObj", student);
+
+                // Initialize all dates as "A" (Absent) except Sundays
+                for (int i = 1; i <= lastDay.getDayOfMonth(); i++) {
+                    if (!sundays.contains(i)) {  // Exclude Sundays
+                        studentAttendance.put(String.valueOf(i), "A"); // Default: Absent
+                    } else{
+                        studentAttendance.put(String.valueOf(i), "S");
+                    }
+                }
+
+                // Populate attendance data
+                if (attendanceByStudent.containsKey(student.getUuid())) {
+                    for (Attendance attendance : attendanceByStudent.get(student.getUuid())) {
+                        int day = attendance.getAttendanceDate().toInstant()
+                                .atZone(java.time.ZoneId.systemDefault()).toLocalDate().getDayOfMonth();
+                        if (!sundays.contains(day)) { // Exclude Sundays
+                            studentAttendance.put(String.valueOf(day), attendance.isPresent() ? "P" : "A");
+                        } else{
+                            studentAttendance.put(String.valueOf(day), "S");
+                        }
+                    }
+                }
+
+                attendanceList.add(studentAttendance);
+            }
+            return attendanceList;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void getAttendanceSummaryByDates(Date startDate, Date endDate, Long schoolId, Long academicId, Long medium, Long gradeId, Long sectionId){
+        List<Object[]> results = attendanceRepository.fetchAttendanceSummaryByDate(startDate, endDate, schoolId, gradeId, sectionId, academicId, medium);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MMM/yyyy");
+        if(results!=null && !results.isEmpty()){
+            for (Object[] row : results) {
+                Date attendanceDate = (Date) row[0];
+                Long presentCount = (Long) row[1];
+                Long absentCount = (Long) row[2];
+
+                System.out.println("Date: " + sdf.format(attendanceDate) +
+                        " | Present: " + presentCount +
+                        " | Absent: " + absentCount);
+            }
         }
     }
 

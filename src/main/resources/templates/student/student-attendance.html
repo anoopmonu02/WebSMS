@@ -20,6 +20,7 @@
                     </div>
                     <div class="col-md-6 text-end">
                         <a class="btn btn-success" href="/student/student-submit-attendance"><i class="bi bi-person-bounding-box"></i> Submit Attendance</a>
+                        <a class="btn btn-outline-success" href="/student/student-show-attendance"><i class="bi bi-person-lines-fill"></i> Show Attendance</a>
                     </div>
                 </div>
                 <hr/>
@@ -28,6 +29,7 @@
                     <thead>
                         <tr>
                             <th>SNo.</th>
+                            <th>Medium</th>
                             <th>Grade-Section</th>
                             <th>Present</th>
                             <th>Absent</th>
@@ -37,6 +39,7 @@
                     <tbody class="table-group-divider">
                         <tr th:each="summary,iterStat : ${attendanceSummary}">
                             <td th:text="${iterStat.index+1}">1</td>
+                            <td th:text="${summary.mediumName}"></td>
                             <td th:text="${summary.gradeName+ ' - ' + summary.sectionName}"></td>
                             <td class="text-center"><span class="badge rounded-pill text-bg-success" th:text="${' '+summary.presentCount+' '}">0</span> </td>
                             <td class="text-center"><span class="badge rounded-pill text-bg-danger" th:text="${' '+summary.absentCount+' '}">0</span></td>
