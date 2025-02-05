@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+
+
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Attendance List</div>
+        <hr/>
+        <div class="row mt-3">
+          <div class="col-md-2">
+            <label for="medium" class="form-label">Medium</label>
+            <select name="medium" id="medium" class="form-select">
+              <option value="">Select Medium</option>
+              <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label for="grade" class="form-label">Grade</label>
+            <select name="grade" id="grade" class="form-select">
+              <option value="">Select Grade</option>
+              <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label for="section" class="form-label">Section</label>
+            <select name="section" id="section" class="form-select">
+              <option value="">Select Section</option>
+              <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label for="month" class="form-label">Month</label>
+            <select name="month" id="month" class="form-select">
+              <option value="">Select Month</option>
+              <option th:each="month : ${months}" th:value="${month.id}" th:text="${month.monthName}">Month</option>
+            </select>
+          </div>
+          <div class="col-md-4 align-self-end">
+            <div class="col-sm-6">
+              <button name="getstu" id="getstu" class="btn btn-primary"><i class="bi bi-search"></i> Get Attendance </button>
+            </div>
+          </div>
+        </div>
+        <hr/>
+        <div id="badgePDiv" class="col-md-12 text-end" style="display: none;">
+                    <span id="badgedDiv" align="right" class="align-self-end">
+                        <button type="button" class="btn btn-primary disabled">Total Student <span class="badge badge-info">0</span></button>
+                        <button type="button" class="btn btn-success disabled">Present <span class="badge badge-success">0</span></button>
+                        <button type="button" class="btn btn-danger disabled">Absent <span class="badge badge-important">0</span></button>
+                    </span>
+        </div>
+        <div class="col-12" id="student-grade-data">
+
+        </div>
+        <div id="btn-classes" style="display: none;" class="row">
+          <div class="col-md-5">
+
+          </div>
+          <div class="col-md-6 mb-5 pt-5">
+            <button type="button" class="btn btn-success" id="printreceipt" onclick="printDiv('student-grade-data','receipt')" data-div-id="student-grade-data"><i class="bi bi-printer-fill"></i> Print </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <script src="/js/jquery-3.7.1.js"></script>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+
+
+    // Display success message
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      showMsg("success", successMessage, "Success");
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      showMsg("info", infoMessage, "Info");
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      showMsg("error", errorMessage, "Error");
+    }
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
+    }
+
+    let medium, grade, section, month;
+
+    const validateMandatoryValues=()=>{
+      medium = $('#medium').val();
+      grade = $('#grade').val();
+      section = $('#section').val();
+      month = $('#month').val();
+      if(medium === '' || grade === '' || section === '' || month === ''){
+        showMsg('error','Medium/Grade/Section/Month is mandatory',"Warning");
+        return false;
+      }
+      return true;
+    }
+
+    document.getElementById("getstu").onclick = function(){
+      let proceed = validateMandatoryValues();
+      if(proceed){
+        let url = `${window.location.origin}/getStudentsMonthlyAttendance`;
+        let requestData = {
+          mediumId: medium.toString(),
+          gradeId: grade.toString(),
+          sectionId: section.toString(),
+          monthId: month.toString()
+        };
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    // Handle HTTP errors (e.g., 400, 500)
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  console.log("data======"+data);
+                  let monthVal = parseInt(""+month);
+                  let yearVal = new Date().getFullYear();
+                  let daysInMonth = new Date(yearVal, monthVal, 0).getDate();
+
+                  renderStudentData(data, daysInMonth);
+                })
+                .catch(error => {
+                  console.error('Error:', error);
+                  toastr["error"]("An error occurred while fetching the student(s)", "Error");
+                });
+      }
+    };
+    const renderStudentData=(studentData, daysInMonth)=> {
+      let divTabId = $("#student-grade-data");
+      let btndiv = $("#btn-classes");
+      btndiv.hide();
+      divTabId.html('');
+      let rowCount = 0;
+      //<th>Father Name</th><th>Mother Name</th>
+      //<td>${student.studentObj.student.fatherName}</td><td>${student.studentObj.student.motherName}</td>
+      let tbl = '<table class="table table-bordered table-sm" id="attendance-table-data"><thead><th>#</th><th>Student Name</th><th>SR</th>';
+      for (let i = 1; i <= daysInMonth; i++) {
+        tbl += `<th>${i}</th>`;
+      }
+      tbl += `<th>Summary</th></tr></thead><tbody class="table-group-divider">`;
+      const presentDateCount = new Array(daysInMonth + 1).fill(0);
+      const absentDateCount = new Array(daysInMonth + 1).fill(0);
+      const holidayDateCount = new Array(daysInMonth + 1).fill(0);
+      let counter = 1;
+      let myMap = new Map();
+      studentData.forEach(student => {
+        let srno = student.studentObj.classSrNo ? student.classSrNo.trim() : '';
+        tbl += `<tr><td>${counter}</td><td>${student.studentName}</td><td>${srno}</td>`;
+        let presentCount = 0;
+        let absentCount = 0;
+        let holidayCount = 0;
+        for (let i = 1; i <= daysInMonth; i++) {
+          let attendanceVal = student[i];
+          let attendanceIcon = '';
+          if (attendanceVal === "P") {
+            attendanceIcon = `<span id="date-wise-att-P-${i}"><i class="bi bi-person-fill text-success"></i></span>`;
+            presentCount++;
+            presentDateCount[i]++;
+          } else if (attendanceVal === "A") {
+            attendanceIcon = `<span id="date-wise-att-A-${i}"><i class="bi bi-dot text-danger"></i></span>`;
+            absentCount++;
+            absentDateCount[i]++;
+          } else {
+            holidayCount++;
+            attendanceIcon = `<span id="date-wise-att-S-${i}">S</span>`; // Other statuses, if any
+            holidayDateCount[i]++;
+          }
+          tbl += `<td>${attendanceIcon}</td>`;
+        }
+        tbl += `<td><canvas class="attendance-pie-chart" id="chart${counter}" width="150" height="100"></canvas></td></tr>`;
+        let studentAttDataList = [presentCount, absentCount, holidayCount];
+        myMap.set(`chart${counter}`, studentAttDataList);
+        counter++;
+      });
+      tbl += `<tr><td colspan="3" class="text-center"><strong>Total</strong></td>`;
+      for (let i = 1; i <= daysInMonth; i++) {
+        // You can customize the display format as needed
+        tbl += `<td><strong>${
+                (presentDateCount[i] + absentDateCount[i] === 0)
+                        ? ''
+                        : presentDateCount[i] + '/' + (presentDateCount[i] + absentDateCount[i])
+        }</strong></td>`;
+      }
+      tbl += `<td></td></tr>`;
+      tbl+='</tbody></table>';
+      divTabId.html(tbl);
+      btndiv.show();
+      myMap.forEach((value, key) => {
+        console.log(key + " = " + value);
+        createPieChart(key, value);
+      });
+
+    }
+
+    /*function printDiv(divId, title) {
+      const content = document.getElementById(divId).cloneNode(true);
+
+      // Find all canvas elements in the cloned content
+      const canvases = content.querySelectorAll('canvas');
+      console.log(canvases);
+      canvases.forEach(canvas => {
+        // Convert each canvas to a data URL
+        const imgData = canvas.toDataURL("image/png");
+        // Create an image element with the same dimensions as the canvas
+        const img = document.createElement('img');
+        img.src = imgData;
+        img.style.width = canvas.getAttribute('width') + 'px';
+        img.style.height = canvas.getAttribute('height') + 'px';
+        // Replace the canvas with the new image element in the cloned content
+        canvas.parentNode.replaceChild(img, canvas);
+      });
+      let mywindow = window.open('', 'PRINT', 'height=850,width=900,top=100,left=150');
+
+      // Check if the window opened successfully
+      if (!mywindow) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return;
+      }
+      //<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+      mywindow.document.write('<html><head><title>' + title + '</title>');
+      mywindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>');
+      mywindow.document.write('</head><body >');
+      mywindow.document.write(content.innerHTML);
+      mywindow.document.write('</body></html>');
+
+      mywindow.document.close(); // necessary for IE >= 10
+      mywindow.focus(); // necessary for IE >= 10
+
+      // Add a delay before calling print to ensure content is fully loaded
+      setTimeout(function() {
+        mywindow.print();
+        mywindow.close();
+      }, 1000); // Adjust the delay as needed
+    }*/
+    function printDiv(divId, title) {
+      // Get the original container element
+      const originalContent = document.getElementById(divId);
+
+      // Clone the container so we don't modify the live DOM
+      const contentClone = originalContent.cloneNode(true);
+
+      // Get all canvas elements from the original container
+      const originalCanvases = originalContent.querySelectorAll('canvas');
+
+      // For each canvas in the original, get its data URL and update the cloned copy.
+      originalCanvases.forEach(originalCanvas => {
+        const canvasId = originalCanvas.id;
+        // Convert the original canvas to a data URL
+        const imgData = originalCanvas.toDataURL("image/png");
+
+        // In the clone, find the canvas with the same id.
+        const clonedCanvas = contentClone.querySelector(`#${canvasId}`);
+        if (clonedCanvas) {
+          // Create an image element and set its src to the canvas data URL
+          const img = document.createElement('img');
+          img.src = imgData;
+          // Copy width and height from the original canvas (or cloned one if attributes are preserved)
+          img.width = originalCanvas.width;
+          img.height = originalCanvas.height;
+          // Replace the cloned canvas with the image element
+          clonedCanvas.parentNode.replaceChild(img, clonedCanvas);
+        }
+      });
+
+      // Open a new window for printing
+      const printWindow = window.open('', 'PRINT', 'height=850,width=900,top=100,left=150');
+      if (!printWindow) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return;
+      }
+
+      // Build the HTML for the print window, including Bootstrap CSS and Bootstrap Icons
+      printWindow.document.write('<html><head><title>' + title + '</title>');
+      printWindow.document.write(
+              '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" ' +
+              'integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">'
+      );
+      printWindow.document.write(
+              '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">'
+      );
+      printWindow.document.write('</head><body>');
+
+      // Write the cloned content (with images replacing canvases) into the new window
+      printWindow.document.write(contentClone.innerHTML);
+      printWindow.document.write('</body></html>');
+
+      printWindow.document.close(); // necessary for IE >= 10
+      printWindow.focus();          // necessary for IE >= 10
+
+      // Wait for the content to load before printing
+      setTimeout(function() {
+        printWindow.print();
+        printWindow.close();
+      }, 1000);
+    }
+
+
+
+
+    function createPieChart(canvasId, values) {
+      console.log("canvasId--->"+canvasId);
+      let canv = document.getElementById(canvasId);
+      var ctx = canv.getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Present', 'Absent', 'Holiday'],
+          datasets: [{
+            data: values,
+            backgroundColor: ['#36A2EB', '#FF6384', '#494647FF'],
+            /*backgroundColor: Object.values(Utils.CHART_COLORS),*/
+            hoverBackgroundColor: ['#36A2EB', '#FF6384', '#494647FF'],
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: {
+              position: 'left',
+            },
+            tooltip: {
+              callbacks: {
+                label: function (tooltipItem) {
+                  return tooltipItem.label + ': ' + tooltipItem.raw + ' Days';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+  </script>
+
+</section>
+</body>
+</html>

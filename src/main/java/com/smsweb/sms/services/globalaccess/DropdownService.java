@@ -21,10 +21,11 @@ public class DropdownService {
     private final SectionService sectionService;
     private final MediumService mediumService;
     private final BankService bankService;
+    private final MonthMasterService monthMasterService;
 
     @Autowired
     public DropdownService(CategoryService categoryService, CastService castService, ProvinceService provinceService, CityService cityService,
-                           GradeService gradeService, SectionService sectionService, MediumService mediumService, BankService bankService){
+                           GradeService gradeService, SectionService sectionService, MediumService mediumService, BankService bankService, MonthMasterService monthMasterService){
         this.categoryService = categoryService;
         this.castService = castService;
         this.provinceService = provinceService;
@@ -33,6 +34,7 @@ public class DropdownService {
         this.sectionService = sectionService;
         this.mediumService = mediumService;
         this.bankService = bankService;
+        this.monthMasterService = monthMasterService;
     }
 
 
@@ -127,5 +129,10 @@ public class DropdownService {
     public List<Bank> getBanks() {
         // Return list of banks from database or mock data
         return bankService.getAllBanks();
+    }
+
+    public List<MonthMaster> getMonths() {
+        // Return list of months from database or mock data
+        return monthMasterService.getAllMonths();
     }
 }
