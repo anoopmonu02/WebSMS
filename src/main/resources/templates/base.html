@@ -200,7 +200,18 @@
 
                     </ul>
                 </li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
+                       data-bs-target="#message" aria-expanded="false" aria-controls="reps">
+                        <i class="bi bi-envelope"></i>
+                        <span>Message</span>
+                    </a>
+                    <ul id="message" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
 
+                        <li class="sidebar-item submenu"><a href="#" class="sidebar-link" th:href="@{'/messages/sendMessage'}"><i class="bi bi-send"></i>Send Message</a></li>
+                        <li class="sidebar-item submenu"><a href="#" class="sidebar-link" ><i class="bi bi-clock-history"></i>Message Hisotry</a></li>
+                    </ul>
+                </li>
                 <!--Attendance Options-->
                 <li class="sidebar-item">
                     <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"

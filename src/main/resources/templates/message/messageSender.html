@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Attendance: <span th:text="${todayDate}"></span></div>
+                <hr/>
+                <div class="row mt-3">
+                    <div class="col-md-2">
+                        <label for="medium" class="form-label">Medium</label>
+                        <select name="medium" id="medium" class="form-select">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="grade" class="form-label">Grade</label>
+                        <select name="grade" id="grade" class="form-select">
+                            <option value="">Select Grade</option>
+                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="section" class="form-label">Section</label>
+                        <select name="section" id="section" class="form-select">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 align-self-end">
+                        <button id="getstu" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
+                    </div>
+                </div>
+                <hr/>
+
+                <!-- Modal for Student List -->
+                <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="studentModalLabel">Student List</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="student-grade-data"></div>
+                                <button id="sendMessageBtn" class="btn btn-success mt-3">Send Message</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spinner -->
+    <div id="spinner" class="d-none text-center" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script>
+        document.getElementById("getstu").onclick = function() {
+            let medium = $('#medium').val();
+            let grade = $('#grade').val();
+            let section = $('#section').val();
+
+            if (!medium || !grade || !section) {
+                toastr.error("Medium, Grade, and Section are required", "Error");
+                return;
+            }
+
+            fetch("/getStudentsForAttendance", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mediumId: medium, gradeId: grade, sectionId: section })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.academicStudentError) {
+                        toastr.warning(data.academicStudentError, "Message");
+                    } else {
+                        renderStudentData(data);
+                        $('#studentModal').modal('show');
+                    }
+                })
+                .catch(error => toastr.error("An error occurred while fetching students", "Error"));
+        };
+
+        function renderStudentData(data) {
+            let content = '<table class="table table-bordered"><thead><tr><th>#</th><th>Name</th><th>Father</th><th>Mother</th><th>SR</th></tr></thead><tbody>';
+            data.academicStudents.forEach((student, index) => {
+                content += `<tr>
+                    <td>${index + 1}</td>
+                    <td>${student.student.studentName}</td>
+                    <td>${student.student.fatherName}</td>
+                    <td>${student.student.motherName}</td>
+                    <td>${student.classSrNo || ''}</td>
+                </tr>`;
+            });
+            content += '</tbody></table>';
+            document.getElementById("student-grade-data").innerHTML = content;
+        }
+
+        // Send Message Function
+        document.getElementById("sendMessageBtn").onclick = function() {
+            let medium = $('#medium').val();
+            let grade = $('#grade').val();
+            let section = $('#section').val();
+
+            if (!medium || !grade || !section) {
+                toastr.error("Medium, Grade, and Section are required to send message", "Error");
+                return;
+            }
+
+            // Close the modal
+            $('#studentModal').modal('hide');
+
+            // Show spinner
+            $('#spinner').removeClass('d-none');
+
+            $.ajax({
+                url: "/sendMessageToStudents",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ mediumId: medium, gradeId: grade, sectionId: section }),
+                success: function(response) {
+                    $('#spinner').addClass('d-none'); // Hide spinner
+                    toastr.success("Message sent successfully!", "Success");
+                },
+                error: function(xhr) {
+                    $('#spinner').addClass('d-none'); // Hide spinner
+                    toastr.error("Failed to send message", "Error");
+                }
+            });
+        };
+    </script>
+</section>
+</body>
+</html>
