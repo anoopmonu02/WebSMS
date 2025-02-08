@@ -190,7 +190,7 @@
       let counter = 1;
       let myMap = new Map();
       studentData.forEach(student => {
-        let srno = student.studentObj.classSrNo ? student.classSrNo.trim() : '';
+        let srno = student.studentObj.classSrNo ? student.studentObj.classSrNo.trim() : '';
         tbl += `<tr><td>${counter}</td><td>${student.studentName}</td><td>${srno}</td>`;
         let presentCount = 0;
         let absentCount = 0;
