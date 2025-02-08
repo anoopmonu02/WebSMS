@@ -425,7 +425,7 @@
                     if (data.hasOwnProperty("success")) {
                         // Display the validation result on the page
                         //document.getElementById("validationResult").innerHTML = JSON.stringify(data.result);
-                        console.log("DATA::>>>> "+data.success);
+                        //console.log("DATA::>>>> "+data.success);
                         const fileInfoModal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
 
                         if (data.hasOwnProperty("success")) {
@@ -454,7 +454,17 @@
                                         passed++;
                                     }
                                     row.forEach(cell => {
-                                        tableRow += (cell.includes("#####")? `<td>${cell.split("#####")[1]}</td>` : `<td>${cell}</td>`);
+                                        console.log("cell--"+cell);
+                                        if (cell == null) {
+                                            tableRow += `<td></td>`;
+                                        } else {
+                                            // Check if the cell contains "#####"
+                                            if (cell.includes("#####")) {
+                                                tableRow += `<td>${cell.split("#####")[1]}</td>`;
+                                            } else {
+                                                tableRow += `<td>${cell}</td>`;
+                                            }
+                                        }
                                     });
                                     tableRow += "</tr>";
                                     //console.log("ROW DATA:::: "+tableRow);

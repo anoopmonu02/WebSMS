@@ -2,7 +2,7 @@ package com.smsweb.sms.controllers.smsmessage;
 
 import com.smsweb.sms.models.messaging.SmsMessage;
 import com.smsweb.sms.services.globalaccess.DropdownService;
-import com.smsweb.sms.services.smsmessage.SmsMessageService;
+//import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,14 +18,15 @@ import java.util.List;
 @RequestMapping("/messages")
 public class SmsMessageController {
 
-    @Autowired
-    private SmsMessageService messageService;
+    //@Autowired
+    //private SmsMessageService messageService;
 
     private final DropdownService dropdownService;
 
-    public SmsMessageController(DropdownService dropdownService, SmsMessageService messageService) {
+    //, SmsMessageService messageService
+    public SmsMessageController(DropdownService dropdownService) {
         this.dropdownService = dropdownService;
-        this.messageService = messageService;
+        //this.messageService = messageService;
     }
 
     // Endpoint for sending a message (only for employees)
@@ -36,7 +37,7 @@ public class SmsMessageController {
             @RequestParam Long recipientId,
             @RequestParam String content
     ) {
-        messageService.sendMessage(senderId, recipientId, content);
+        //messageService.sendMessage(senderId, recipientId, content);
         return ResponseEntity.ok("Message sent successfully!");
     }
     @GetMapping("/sendMessage")

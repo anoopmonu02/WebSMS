@@ -15,11 +15,14 @@ import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import com.smsweb.sms.services.users.UserService;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -562,6 +565,119 @@ public class StudentService {
                         " | Present: " + presentCount +
                         " | Absent: " + absentCount);
             }
+        }
+    }
+
+    @Transactional
+    public String uploadAadhar(List<Map<String, String>> srdata, Long academic, Long school){
+        int SRFailCounter = 0, srPassCounter = 0;
+        List<AcademicStudent> studentsToSave = new ArrayList<>();
+        List<Student> students = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+        try{
+            for (Map<String, String> rowData : srdata) {
+                if (rowData.containsKey("Aadhar") && rowData.get("Aadhar")!=null && !rowData.get("Aadhar").isEmpty()) {
+                    String uuid = rowData.get("ID#");
+                    if (uuid != null && !uuid.isEmpty()) {
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
+                        Student studentObj = academicStudent.getStudent();
+                        if (studentObj != null) {
+                            studentObj.setAadharNo(rowData.get("SR"));
+                            students.add(studentObj);  // Collect the student for bulk saving
+                            srPassCounter++;
+                        } else {
+                            failedIds.add(uuid);  // Log the failure
+                            SRFailCounter++;
+                        }
+                    } else {
+                        failedIds.add("Invalid UUID");
+                        SRFailCounter++;
+                    }
+                } else {
+                    SRFailCounter++;
+                }
+            }
+
+            // Bulk save the students
+            repository.saveAll(students);
+            if(SRFailCounter == srdata.size()){
+                return "error#####No aadhar found for update!";
+            }
+            return "Total Aadhar updated: " + srPassCounter + " and Aadhar not found for: "+SRFailCounter;
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    @Transactional
+    public String uploadAadharFromTable(Map<String, String> studentData, Long academic, Long school){
+        AtomicInteger SRFailCounter = new AtomicInteger();
+        AtomicInteger srPassCounter = new AtomicInteger();
+        List<Student> studentsToSave = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+        try{
+            studentData.forEach((key, value) -> {
+                if(key!=null && value!=null && value!=""){
+                    String uuid = key.split("sr_")[1];
+                    if (uuid != null && !uuid.isEmpty()) {
+                        AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                UUID.fromString(uuid), "Active", academic, school).orElse(null);
+                        Student studentObj = academicStudent.getStudent();
+                        if (studentObj != null) {
+                            if(!value.equalsIgnoreCase(studentObj.getAadharNo().trim())){
+                                if(value.length()==12){
+                                    studentObj.setAadharNo(value);
+                                    studentsToSave.add(studentObj);
+                                    // Collect the student for bulk saving
+                                    srPassCounter.getAndIncrement();
+                                } else{
+                                    SRFailCounter.getAndIncrement();
+                                }
+                            } else{
+                                SRFailCounter.getAndIncrement();
+                            }
+                        } else {
+                            failedIds.add(uuid);  // Log the failure
+                            SRFailCounter.getAndIncrement();
+                        }
+                    } else {
+                        failedIds.add("Invalid UUID");
+                        SRFailCounter.getAndIncrement();
+                    }
+                } else{
+                    SRFailCounter.getAndIncrement();
+                }
+            });
+
+            // Bulk save the students
+            repository.saveAll(studentsToSave);
+            if(SRFailCounter.get() == studentData.size()){
+                return "error#####No aadhar found for update!";
+            }
+            return "success#####Total Aadhar updated: " + srPassCounter + " and Aadhar not found for: "+SRFailCounter;
+        }catch (TransactionSystemException ex) {
+            Throwable rootCause = ex.getRootCause();
+            if (rootCause instanceof ConstraintViolationException) {
+                ConstraintViolationException cve = (ConstraintViolationException) rootCause;
+                for (ConstraintViolation<?> violation : cve.getConstraintViolations()) {
+                    String propertyPath = violation.getPropertyPath().toString();
+                    String message = violation.getMessage();
+                    if ("aadharNo".equals(propertyPath) && "Aadhar number must be a 12-digit number".equals(message)) {
+                        System.out.println("Validation error: " + message);
+                        // Handle the error as needed
+                    }
+                }
+            } else {
+                // Handle other types of exceptions
+                ex.printStackTrace();
+                System.out.println("------------------------------");
+            }
+            return "---------";
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
         }
     }
 

@@ -18,6 +18,7 @@ public class ExcelFileHandler {
     public String[] GRADE_HEADER = {"Medium","Grade","Section"};
     public String[] GRADE_HEADER_FULL = {"All Student List"};
     public String[] SR_SAMPLE_HEADER = {"Student Name","ID#","Father Name", "Mother Name","Mobile","SR No"};
+    public String[] AADHAR_SAMPLE_HEADER = {"Student Name","ID#","Father Name", "Mother Name","Mobile","Aadhar No"};
 
     public ByteArrayInputStream LoadSampleSRFile(String fileName, List<AcademicStudent> list, String[] medium_grade_section, String fileType) throws IOException {
         Workbook workbook = new XSSFWorkbook();
@@ -46,7 +47,12 @@ public class ExcelFileHandler {
 
             //Create Main Header
             row = sheet.createRow(1);
-            createSingleRow(SR_SAMPLE_HEADER, 1, row);
+            if("aadhar_file".equalsIgnoreCase(fileName)){
+                createSingleRow(AADHAR_SAMPLE_HEADER, 1, row);
+            } else{
+                createSingleRow(SR_SAMPLE_HEADER, 1, row);
+            }
+
             int rowCount = 2;
             //Writing Data
             for(AcademicStudent student: list){
