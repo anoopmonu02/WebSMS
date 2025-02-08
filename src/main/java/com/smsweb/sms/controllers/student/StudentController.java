@@ -9,7 +9,9 @@ import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.Student;
+import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.models.universal.City;
+import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
@@ -386,6 +388,14 @@ public class StudentController extends BaseController {
         model.addAttribute("sections", dropdownService.getSections());
         model.addAttribute("months", dropdownService.getMonths());
         return "/student/show-attendance";
+    }
+
+    @GetMapping("/edit-aadhar-detail")
+    public String updateAadharPage(Model model){
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        return "/student/update-aadhar";
     }
 
 }
