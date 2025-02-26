@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="col-md-12 ">
+      <div class="card-header fs-3">User(s) Collection</div>
+      <hr/>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <!--<form>-->
+                <div class="row">
+                  <div class="mb-3 col-md-4">
+                    <label class="form-label">Select Date Option</label>
+                    <div class="btn-group w-100" role="group">
+                      <input type="radio" class="btn-check" name="dateOption" id="today" autocomplete="off" checked value="today">
+                      <label class="btn btn-outline-success" for="today"><i class="bi bi-calendar2-event"></i> Today</label>
+
+                      <input type="radio" class="btn-check" name="dateOption" id="range" autocomplete="off" value="range">
+                      <label class="btn btn-outline-success" for="range"><i class="bi bi-calendar2-range"></i> Date Range</label>
+                    </div>
+                  </div>
+
+                  <!-- Today Section -->
+                  <div id="todaySection" class="date-section col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Selected Date</label>
+                      <input type="text" class="form-control" id="currentDate" name="currentDate" readonly>
+                    </div>
+                  </div>
+
+                  <!-- Range Section -->
+                  <div id="rangeSection" class="date-section d-none col-md-6">
+                    <div class="row mb-3">
+                      <div class="col">
+                        <label class="form-label">Start Date</label>
+                        <input type="text" class="form-control" id="startDate" name="startDate">
+                      </div>
+                      <div class="col">
+                        <label class="form-label">End Date</label>
+                        <input type="text" class="form-control" id="endDate" name="endDate">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-2 align-self-end">
+                    <div class="col-sm-12 mb-3">
+                      <button type="button" class="btn btn-primary" onclick="validateAndSubmit();"><i class="bi bi-search"></i> Proceed</button>
+                    </div>
+                  </div>
+                </div>
+            <!--</form>-->
+            <hr/>
+        </div>
+    </div>
+      <div class="row" id="print-div" style="display: none">
+          <div class="col-md-3 mb-2">
+              <button class="btn btn-success" id="printreceipt" onclick="printDiv('printable-div','Collection Summary')" data-div-id="printable-div"><i class="bi bi-printer-fill"></i> Print</button>
+          </div>
+
+      </div>
+    <div class="col-md-12 " id="printable-div" style="display: none">
+
+        <div class="card-header fs-3">Collection Summary</div><hr/>
+            <div class="row">
+                  <div class="col-md-6">
+                      <div class="userwise-collection-info" id="userwise-collection-info">
+
+                      </div>
+                  </div>
+                  <div class="col-md-6">
+                      <div id="chart-area" style="width: 400px; height: 400px;">
+                          <canvas id="collectionChart"></canvas>
+                      </div>
+                  </div>
+           </div>
+        <div class="card-header fs-3">Collection Data</div><hr/>
+           <div class="row">
+                <div class="fee-details" id="userwise-collection-data">
+
+                </div>
+           </div>
+    </div>
+
+  </div>
+
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script src="/js/flatpickr.js"></script>
+    <script src="/js/chart.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    flatpickr("#endDate", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });//,"#startDate","#currentDate"
+    flatpickr("#startDate", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
+    flatpickr("#currentDate", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      showMsg("success", successMessage, "Success");
+    }
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      showMsg("info", infoMessage, "Info");
+    }
+
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      showMsg("error", errorMessage, "Error");
+    }
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set initial current date
+      const date = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      const formattedDate =
+              `${String(date.getDate()).padStart(2, '0')}/` +  // Day with leading zero
+              `${months[date.getMonth()]}/` +                  // Month abbreviation
+              `${date.getFullYear()}`;                         // Full year
+
+      document.getElementById('currentDate').value = formattedDate;
+
+      // Get radio buttons
+      const todayRadio = document.getElementById('today');
+      const rangeRadio = document.getElementById('range');
+
+      // Get sections
+      const todaySection = document.getElementById('todaySection');
+      const rangeSection = document.getElementById('rangeSection');
+
+      // Add event listeners
+      todayRadio.addEventListener('change', toggleSections);
+      rangeRadio.addEventListener('change', toggleSections);
+
+      function toggleSections() {
+        if (todayRadio.checked) {
+          todaySection.classList.remove('d-none');
+          rangeSection.classList.add('d-none');
+          document.getElementById('currentDate').value = formattedDate;
+        } else {
+          todaySection.classList.add('d-none');
+          rangeSection.classList.remove('d-none');
+        }
+      }
+    });
+
+
+    function getRandomColor() {
+        let r = Math.floor(Math.random() * 255);
+        let g = Math.floor(Math.random() * 255);
+        let b = Math.floor(Math.random() * 255);
+        return `rgba(${r}, ${g}, ${b}, 0.6)`; // Background with opacity
+    }
+    let collectionChart;
+    const validateAndSubmit=()=>{
+      const selectedOption = $('input[name="dateOption"]:checked').val();
+      let url = "";
+      console.log("Date option: "+selectedOption);
+      console.log("-----------------------------------")
+      let proceed = true;
+      if(selectedOption.trim() === ''){
+        showMsg("error","No option selected","Error")
+        proceed = false;
+        return;
+      }
+      let requestBody = {};
+      url = `${window.location.origin}/getFeeCollectionDetailsUserwise`;
+      if(selectedOption==='today'){
+        proceed  = true;
+        let dateValToday = $("#currentDate").val();
+        if(dateValToday===''){
+          showMsg("error","Today's date is missing","Error")
+          proceed=false;
+          return;
+        }
+        requestBody = {
+          todayDate: dateValToday,
+          selectedOption: selectedOption
+        };
+      } else if(selectedOption === 'range'){
+          proceed = true;
+          let startDate = $("#startDate").val();
+          let endDate = $("#endDate").val();
+          if(startDate==='' || endDate===''){
+            proceed = false;
+            showMsg("error","Start Date/End Date are mandatory","Error");
+            return;
+          }
+          requestBody = {
+            startDate: startDate,
+            endDate: endDate,
+            selectedOption: selectedOption
+          };
+      }
+      if(proceed){
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        })
+            .then(response => {
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+                console.log("======"+response);
+                return response.json();  // Parse response as JSON
+            })
+            .then(data => {
+                //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
+                let rowData = data.finalData.userWiseFeeCollection;
+                //console.log("rowData:"+rowData);
+                /*let rowData = [
+                    [5000, 10, "John Doe"],
+                    [3000, 5, "Jane Smith"],
+                    [7000, 15, "Alice Johnson"],
+                    [2000, 8, "Bob Williams"],
+                    [4500, 9, "Michael Brown"]
+                ];
+*/
+                // If userWiseFeeCollection is a string, show a message
+                if (typeof rowData === 'string') {
+                    showMsg("error",`${rowData}`,"No Data");
+                    //$("#userwise-collection-info").html(`<div class="alert alert-warning">${rowData}</div>`);
+                    return; // Stop further execution
+                }
+                $("#printable-div").show();
+                $("#print-div").show();
+
+                let labels = [];
+                let amounts = [];
+                let backgroundColors = [];
+                let borderColors = [];
+                let tableData = '<table class="table table-striped table-bordered table-sm"><thead><tr><th>SNo</th><th>User Name</th><th>Collection</th><th>Total Receipt(s)</th></tr></thead><tbody class="table-group-divider">';
+                for(let i=0;i<rowData.length;i++){
+                    //console.log(rowData[i]);
+                    let rowVal = rowData[i];
+                    tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[2]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[0]}.00 </span></td><td>${rowVal[1]}</td></tr>`;
+                    labels.push(rowVal[2]); // User Name
+                    amounts.push(rowVal[0]);
+                    let color = getRandomColor();
+                    backgroundColors.push(color);
+                    borderColors.push(color.replace('0.6', '1'));
+                }
+                tableData+=`</tbody></table>`;
+                $("#userwise-collection-info").html(tableData);
+                generateChart(labels,amounts, backgroundColors, borderColors);
+
+                //Setting fee data - userwise-collection-data
+                let feeData;
+                if(selectedOption === 'range'){
+                    feeData = data.finalData.dateRangeFeeCollectionDetails;
+                } else{
+                    feeData = data.finalData.todayFeeCollectionDetails;
+                }
+                //console.log("feeData:::"+feeData);
+                //console.log("class "+feeData[0]);
+                //console.log("class "+feeData[0].class);
+                if (typeof feeData === 'string') {
+                    $("#userwise-collection-data").html(`<div class="alert alert-danger"><strong>${feeData}</strong></div>`);
+                } else {
+                    //console.log("First entry class:", feeData[0]?.class);
+                    let counter = 1;
+                    //let tblData = '<table class="table table-striped table-bordered table-sm"><thead><tr><th>SNo</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>SR No</th>${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}<th>Paid Amount</th><th>Fine Amount</th>';
+                    let tblData = `<table class="table table-striped table-bordered table-sm">
+                    <thead>
+                        <tr>
+                            <th>SNo</th>
+                            <th>Student Name</th>
+                            <th>Father Name</th>
+                            <th>Mother Name</th>
+                            <th>SR No</th>
+                            ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
+                            <th>Paid Amount</th>
+                            <th>Fine Amount</th>
+                            <th>Discount Amount</th>
+                            <th>Total Amount</th>
+                            <th>Balance Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="table-group-divider">`;
+                    //tblData+='<th>Discount Amount</th><th>Total Amount</th><th>Balance Amount</th></tr></thead><tbody class="table-group-divider">';
+                    feeData.forEach(feeSubmission =>{
+                        let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
+                        //let dt = feeSubmission.feeSubmissionDate ? feeSubmission.feeSubmissionDate: '';
+                        let dt = feeSubmission.feeSubmissionDate
+                            ? new Date(feeSubmission.feeSubmissionDate).toISOString().split('T')[0] // Extracts "2025-01-22"
+                            : '';
+
+                        if (dt) {
+                            let dateObj = new Date(dt);
+                            dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            dt = dt.replaceAll(" ","/");
+                        }
+                        tblData += `<tr>
+                                <td>${counter}</td>
+                                <td>${feeSubmission.academicStudent.student.studentName}</td>
+                                <td>${feeSubmission.academicStudent.student.fatherName}</td>
+                                <td>${feeSubmission.academicStudent.student.motherName}</td>
+                                <td>${srno}</td>
+                                ${selectedOption === 'range' ? `<td>${dt}</td>` : ''}
+                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
+                            </tr>`;
+                        counter++;
+                    });
+                    tblData+=`</tbody></table>`;
+                    $("#userwise-collection-data").html(tblData);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);  // Handle error response
+                const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
+                showMsg("error", errorMsg, "Error");
+            });
+      }
+    }
+
+    const generateChart=(labels, amounts, backgroundColors, borderColors)=>{
+
+        if (collectionChart) {
+            collectionChart.destroy();
+        }
+        let ctx = document.getElementById('collectionChart').getContext('2d');
+        collectionChart = new Chart(ctx, {
+            type: 'doughnut', // Change to 'pie' for a pie chart
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Collection Amount',
+                    data: amounts,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'left'
+                    }
+                }
+            }
+        });
+    }
+    function printDiv(divId, title) {
+        // Get the original container element
+        const originalContent = document.getElementById(divId);
+
+        // Clone the container so we don't modify the live DOM
+        const contentClone = originalContent.cloneNode(true);
+
+        // Get all canvas elements from the original container
+        const originalCanvases = originalContent.querySelectorAll('canvas');
+
+        // For each canvas in the original, get its data URL and update the cloned copy.
+        originalCanvases.forEach(originalCanvas => {
+            const canvasId = originalCanvas.id;
+            // Convert the original canvas to a data URL
+            const imgData = originalCanvas.toDataURL("image/png");
+
+            // In the clone, find the canvas with the same id.
+            const clonedCanvas = contentClone.querySelector(`#${canvasId}`);
+            if (clonedCanvas) {
+                // Create an image element and set its src to the canvas data URL
+                const img = document.createElement('img');
+                img.src = imgData;
+                // Copy width and height from the original canvas (or cloned one if attributes are preserved)
+                img.width = originalCanvas.width/2;
+                img.height = originalCanvas.height/2;
+                // Replace the cloned canvas with the image element
+                clonedCanvas.parentNode.replaceChild(img, clonedCanvas);
+            }
+        });
+
+        // Open a new window for printing
+        const printWindow = window.open('', 'PRINT', 'height=850,width=900,top=100,left=150');
+        if (!printWindow) {
+            alert('Popup blocked! Please allow popups for this site.');
+            return;
+        }
+
+        // Build the HTML for the print window, including Bootstrap CSS and Bootstrap Icons
+        printWindow.document.write('<html><head><title>' + title + '</title>');
+        printWindow.document.write(
+            '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" ' +
+            'integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">'
+        );
+        printWindow.document.write(
+            '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">'
+        );
+        printWindow.document.write('</head><body>');
+
+        // Write the cloned content (with images replacing canvases) into the new window
+        printWindow.document.write(contentClone.innerHTML);
+        printWindow.document.write('</body></html>');
+
+        printWindow.document.close(); // necessary for IE >= 10
+        printWindow.focus();          // necessary for IE >= 10
+
+        // Wait for the content to load before printing
+        setTimeout(function() {
+            printWindow.print();
+            printWindow.close();
+        }, 1000);
+    }
+  </script>
+</section>
+
+</body>
+</html>

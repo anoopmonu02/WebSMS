@@ -57,4 +57,50 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("academicYearId") Long academicYearId
     );
 
+    @Query(
+            value = "SELECT SUM(paid_amount) AS totalPaid, COUNT(id) AS totalCount, created_by as createdBy " +
+                    "FROM fee_submission " +
+                    "WHERE status = 'active' " +
+                    "  AND DATE(fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') " +
+                    "  AND school_id = :schoolId " +
+                    "  AND academic_year_id = :academicYearId " +
+                    "GROUP BY created_by ",
+            nativeQuery = true)
+    List<Object[]> findFeeSubmissionAggregatesForCurrentDate(
+            @Param("date") String date,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId);
+
+    @Query(
+            value = "SELECT SUM(paid_amount) AS totalPaid, COUNT(id) AS totalCount, created_by as createdBy " +
+                    "FROM fee_submission " +
+                    "WHERE status = 'Active' " +
+                    "  AND DATE(fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') " +
+                    "  AND school_id = :schoolId " +
+                    "  AND academic_year_id = :academicYearId " +
+                    "GROUP BY created_by ",
+            nativeQuery = true)
+    List<Object[]> findFeeSubmissionAggregatesForDateRange(
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId);
+
+    @Query("SELECT f FROM FeeSubmission f " +
+            "WHERE f.status = :status " +
+            "  AND f.school.id = :schoolId " +
+            "  AND f.academicYear.id = :academicYearId " +
+            "  AND ((:startDate IS NOT NULL AND :endDate IS NOT NULL " +
+            "        AND function('DATE', f.feeSubmissionDate) BETWEEN function('STR_TO_DATE', :startDate, '%d/%b/%Y') " +
+            "                                                   AND function('STR_TO_DATE', :endDate, '%d/%b/%Y')) " +
+            "       OR (:startDate IS NULL AND :endDate IS NULL " +
+            "           AND function('DATE', f.feeSubmissionDate) = function('STR_TO_DATE', :feeDate, '%d/%b/%Y')))")
+    List<FeeSubmission> findAllFeeDetailsByUser(
+            @Param("status") String status,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("feeDate") String feeDate,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate);
+
 }
