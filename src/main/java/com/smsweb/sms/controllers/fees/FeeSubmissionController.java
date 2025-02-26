@@ -214,4 +214,9 @@ public class FeeSubmissionController extends BaseController {
 
     }
 
+    @GetMapping("/fees-user-wise-collection")
+    public String userwiseCollection(Model model){
+        return "/fees/fees_user_collection";
+    }
+
 }

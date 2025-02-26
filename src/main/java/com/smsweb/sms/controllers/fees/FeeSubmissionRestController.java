@@ -573,4 +573,25 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @PostMapping("/getFeeCollectionDetailsUserwise")
+    public ResponseEntity<?> getFeeCollectionDetailsUserwise(@RequestBody Map<String, String> requestBody, Model model){
+        Map<String, Object> receiptData = new HashMap<>();
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map result = feeSubmissionService.calculateFeeSubmissionUserWise(requestBody, school, academicYear);
+                //System.out.println("responseMap "+result);
+                //System.out.println("result "+result.keySet());
+                return ResponseEntity.ok(result);
+            }
+        }catch(Exception e){
+            receiptData.put("error","error#####"+e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(receiptData);
+    }
+
 }

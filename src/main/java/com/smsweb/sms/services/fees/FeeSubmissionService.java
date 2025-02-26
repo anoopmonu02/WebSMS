@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -834,9 +835,6 @@ public class FeeSubmissionService {
     public FeeSubmission getFeeDetailsForReceipt(String receipt_no, School school, AcademicYear academicYear){
         try{
             String finalReceiptNo = receipt_no.trim().replace("-","/");
-            System.out.println("FInal Receipt: "+finalReceiptNo);
-            System.out.println("FInal Receipt: "+school.getId());
-            System.out.println("FInal Receipt: "+academicYear.getId());
             //Optional<FeeSubmission> feesubmission = feeSubmissionRepository.findByReceiptNoAndStatusAndSchool_IdAndAcademicYear_Id(receipt_no, "Active", school.getId(), academicYear.getId());
             FeeSubmission feesubmission = feeSubmissionRepository.findByReceiptNoIgnoreCaseAndStatusAndSchoolIdAndAcademicYearId(finalReceiptNo, "Active", school.getId(), academicYear.getId());
             System.out.println("submission: "+feesubmission);
@@ -845,6 +843,39 @@ public class FeeSubmissionService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Map calculateFeeSubmissionUserWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                if(paramsMap.containsKey("selectedOption")){
+                    if(paramsMap.get("selectedOption").equalsIgnoreCase("today")){
+                        String currentDate = paramsMap.get("todayDate");
+                        System.out.println("currentDate:"+currentDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForCurrentDate(currentDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                        List<FeeSubmission> todayFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(), currentDate, null, null);
+                        finalDataMap.put("todayFeeCollectionDetails", (CollectionUtils.isEmpty(todayFeeCollectionDetails))? "No Fee details found for current date:" + currentDate: todayFeeCollectionDetails);
+                    } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
+                        String startDate = paramsMap.get("startDate");
+                        String endDate = paramsMap.get("endDate");
+                        System.out.println("start-end:"+startDate+"-"+endDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                        List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(),  null, startDate, endDate);
+                        finalDataMap.put("dateRangeFeeCollectionDetails", (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails))? "No Fee details found for dates:" + startDate + " and " + endDate: dateRangeFeeCollectionDetails);
+                    }
+                }
+            }
+            //System.out.println("finalData: "+finalDataMap);
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
     }
 
 }
