@@ -217,7 +217,7 @@
           let endDate = $("#endDate").val();
           if(startDate==='' || endDate===''){
             proceed = false;
-            showMsg("error","Start Date/End Date are mandatory","Error");
+            showMsg("error","Start Date/End Date both are mandatory","Error");
             return;
           }
           requestBody = {
