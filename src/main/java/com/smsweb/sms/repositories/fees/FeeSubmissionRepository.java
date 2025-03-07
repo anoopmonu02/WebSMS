@@ -103,4 +103,27 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("startDate") String startDate,
             @Param("endDate") String endDate);
 
+    @Query("SELECT f FROM FeeSubmission f " +
+            "WHERE f.status = :status " +
+            "  AND f.school.id = :schoolId " +
+            "  AND f.academicYear.id = :academicYearId " +
+            "  AND ((:startDate IS NOT NULL AND :endDate IS NOT NULL " +
+            "        AND function('DATE', f.feeSubmissionDate) BETWEEN function('STR_TO_DATE', :startDate, '%d/%b/%Y') " +
+            "                                                   AND function('STR_TO_DATE', :endDate, '%d/%b/%Y')) " +
+            "       OR (:startDate IS NULL AND :endDate IS NULL " +
+            "           AND function('DATE', f.feeSubmissionDate) = function('STR_TO_DATE', :feeDate, '%d/%b/%Y')))")
+    List<FeeSubmission> findAllFeeDetailsBasedOnStatusAndInDateRange(
+            @Param("status") String status,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("feeDate") String feeDate,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate);
+
+
+    @Query("SELECT f FROM FeeSubmission f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium")
+    List<FeeSubmission> findAllFeeSubmittedDetails(
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("medium") Long medium);
 }

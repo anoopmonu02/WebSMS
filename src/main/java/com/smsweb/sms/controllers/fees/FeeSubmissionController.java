@@ -219,4 +219,18 @@ public class FeeSubmissionController extends BaseController {
         return "/fees/fees_user_collection";
     }
 
+
+    @GetMapping("/fees-drop-off-collection")
+    public String feesCancellation(Model model){
+        model.addAttribute("page", "datatable");
+        return "/fees/fees_cancelled";
+    }
+
+
+    @GetMapping("/fees-submitted-total-detail")
+    public String totalFeeSubmissionDetail(Model model){
+        model.addAttribute("mediums", mediumService.getAllMediums());
+        model.addAttribute("page", "datatable");
+        return "/fees/total_fee_submitted_details";
+    }
 }

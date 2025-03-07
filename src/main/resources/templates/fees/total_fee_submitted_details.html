@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row ">
+            <div class="card-header fs-3">Total Submitted Fee List</div>
+            <hr/>
+        </div>
+        <div class="row justify-content-center">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="medium" class="form-label">Medium</label>
+                            <select name="medium" id="medium" class="form-select">
+                                <option value="">Select Medium</option>
+                                <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 align-self-end">
+                    <div class="col-sm-12 mb-3">
+                        <button type="button" class="btn btn-primary" onclick="validateAndSubmit();"><i class="bi bi-search"></i> Get List</button>
+                    </div>
+                </div>
+            </div>
+            <hr/>
+
+            <div class="row " id="printable-div" style="display: none">
+                <div class="card-header fs-3">Submitted Fees Data</div><hr/>
+                <div class="row">
+                    <div class="fee-details" id="userwise-collection-data">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const validateAndSubmit=()=>{
+            let medium = $("#medium").val();
+            if(medium===''){
+                showMsg("error","Medium is mandatory","Error");
+                return;
+            }
+            let requestBody = {};
+            requestBody = {
+                medium: medium
+            };
+            let url = `${window.location.origin}/getTotalFeeSubmittedDetails`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    console.log("======"+response);
+                    return response.json();  // Parse response as JSON
+                })
+                .then(data => {
+                    //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
+                    let feeData = data.finalData.totalFeeCollectionDetails;
+                    //console.log("rowData:"+rowData);
+
+                    // If userWiseFeeCollection is a string, show a message
+                    if (typeof feeData === 'string') {
+                        showMsg("error",`${feeData}`,"No Data");
+                        //$("#userwise-collection-info").html(`<div class="alert alert-warning">${rowData}</div>`);
+                        return; // Stop further execution
+                    }
+                    $("#printable-div").show();
+                    let counter = 1;
+                    let tblData = `<table class="table table-striped table-bordered table-sm" id="feeCollectionTable">
+                    <thead>
+                    <tr>
+                        <th>SNo</th>
+                        <th>Student Name</th>
+                        <th>Father Name</th>
+                        <th>Mother Name</th>
+                        <th>SR No</th>
+                        <th>Grade</th>
+                        <th>Submission Date</th>
+                        <th>Receipt#</th>
+                        <th>Paid Amount</th>
+                        <th>Fine Amount</th>
+                        <th>Discount Amount</th>
+                        <th>Total Amount</th>
+                        <th>Balance Amount</th>
+                    </tr>
+                    </thead>
+                    <tbody class="table-group-divider">`;
+                    feeData.forEach(feeSubmission =>{
+                        let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
+                        let grd = feeSubmission.academicStudent.grade.gradeName + ' - ' + feeSubmission.academicStudent.section.sectionName;
+                        let receiptNo = feeSubmission.status === 'Active' ? feeSubmission.receiptNo : feeSubmission.receiptNo + '[Cancelled]';
+                        //let dt = feeSubmission.feeSubmissionDate ? feeSubmission.feeSubmissionDate: '';
+                        let dt = feeSubmission.feeSubmissionDate
+                            ? new Date(feeSubmission.feeSubmissionDate).toISOString().split('T')[0] // Extracts "2025-01-22"
+                            : '';
+                        let receiptStyle = receiptNo.includes("Cancelled") ? 'style="color: red; font-weight: bold;"' : '';
+                        if (dt) {
+                            let dateObj = new Date(dt);
+                            dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            dt = dt.replaceAll(" ","/");
+                        }
+                        tblData += `<tr>
+                            <td>${counter}</td>
+                            <td>${feeSubmission.academicStudent.student.studentName}</td>
+                            <td>${feeSubmission.academicStudent.student.fatherName}</td>
+                            <td>${feeSubmission.academicStudent.student.motherName}</td>
+                            <td>${srno}</td>
+                            <td>${grd}</td>
+                            <td>${dt}</td>
+                            <td ${receiptStyle}>${receiptNo}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
+                        </tr>`;
+                        counter++;
+                    });
+                    tblData+=`</tbody></table>`;
+                    $("#userwise-collection-data").html(tblData);
+                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+                    const columnDefs = [{ "orderable": false, "targets": [0] }];
+                    $("#feeCollectionTable").DataTable({
+                        layout: {
+                            bottomEnd: {
+                                paging: {
+                                    firstLast: false
+                                }
+                            },
+                            top1Start: {
+                                buttons: [
+                                    {
+                                        extend: 'excelHtml5',
+                                        text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                        titleAttr: 'Excel',
+                                        title: 'Total Submitted Fee Data export',
+                                        exportOptions: {
+                                            columns: exportColumns
+                                        }
+                                    },
+                                    {
+                                        extend: 'csvHtml5',
+                                        text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                        titleAttr: 'CSV',
+                                        title: 'Total Submitted Fee Data export'
+                                    },
+                                    {
+                                        extend: 'pdfHtml5',
+                                        text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                        titleAttr: 'PDF',
+                                        title: 'Total Submitted Fee Data export',
+                                        exportOptions: {
+                                            columns: exportColumns
+                                        }
+                                    },
+                                    'colvis'
+                                ]
+                            }
+                        },
+                        lengthMenu: [
+                            [5, 10, 25, 50, 100, -1],
+                            [5, 10, 25, 50, 100, 'All']
+                        ],
+                        pageLength: 25,
+                        columnDefs: columnDefs
+                    });
+                    $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                        // Remove the btn-secondary class from each button
+                        $(this).removeClass("btn-secondary");
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);  // Handle error response
+                    const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
+                    showMsg("error", errorMsg, "Error");
+                });
+        };
+
+    </script>
+
+</section>
+
+</body>
+</html>

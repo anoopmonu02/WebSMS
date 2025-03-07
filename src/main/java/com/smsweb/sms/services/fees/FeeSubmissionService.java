@@ -878,4 +878,41 @@ public class FeeSubmissionService {
         return responseMap;
     }
 
+    public Map calculateCancelledFees(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                String startDate = paramsMap.get("startDate");
+                String endDate = paramsMap.get("endDate");
+                List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsBasedOnStatusAndInDateRange("Inactive", school.getId(), academicYear.getId(),  null, startDate, endDate);
+                finalDataMap.put("dateRangeFeeCollectionDetails", (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails))? "No Fee details found for dates:" + startDate + " and " + endDate: dateRangeFeeCollectionDetails);
+            }
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
+    public Map calculateTotalSubmittedFees(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                System.out.println("paramsMap:: "+paramsMap);
+                String medium = paramsMap.get("medium");
+
+                List<FeeSubmission> totalFeeCollectionDetails = feeSubmissionRepository.findAllFeeSubmittedDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
+                finalDataMap.put("totalFeeCollectionDetails", (CollectionUtils.isEmpty(totalFeeCollectionDetails))? "No Fee details found for medium": totalFeeCollectionDetails);
+            }
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
 }
