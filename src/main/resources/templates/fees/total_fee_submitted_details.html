@@ -115,11 +115,17 @@
                     //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
                     let feeData = data.finalData.totalFeeCollectionDetails;
                     //console.log("rowData:"+rowData);
-
+                    if (!feeData || feeData.length === 0) {
+                        $("#userwise-collection-data").empty();
+                        $("#printable-div").hide();
+                        showMsg("error", "No matching data found", "No Data");
+                        return;
+                    }
                     // If userWiseFeeCollection is a string, show a message
                     if (typeof feeData === 'string') {
+                        $("#userwise-collection-data").empty();
+                        $("#printable-div").hide();
                         showMsg("error",`${feeData}`,"No Data");
-                        //$("#userwise-collection-info").html(`<div class="alert alert-warning">${rowData}</div>`);
                         return; // Stop further execution
                     }
                     $("#printable-div").show();
@@ -230,6 +236,8 @@
                 .catch(error => {
                     console.error('Error:', error);  // Handle error response
                     const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
+                    $("#userwise-collection-data").empty();
+                    $("#printable-div").hide();
                     showMsg("error", errorMsg, "Error");
                 });
         };

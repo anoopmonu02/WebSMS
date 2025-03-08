@@ -128,6 +128,8 @@
 
                 // If userWiseFeeCollection is a string, show a message
                 if (typeof feeData === 'string') {
+                    $("#userwise-collection-data").empty();
+                    $("#printable-div").hide();
                     showMsg("error",`${feeData}`,"No Data");
                     //$("#userwise-collection-info").html(`<div class="alert alert-warning">${rowData}</div>`);
                     return; // Stop further execution
@@ -239,6 +241,8 @@
             .catch(error => {
                 console.error('Error:', error);  // Handle error response
                 const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
+                $("#userwise-collection-data").empty();
+                $("#printable-div").hide();
                 showMsg("error", errorMsg, "Error");
             });
         };

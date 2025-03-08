@@ -233,4 +233,13 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("page", "datatable");
         return "/fees/total_fee_submitted_details";
     }
+
+    @GetMapping("fees-submitted-total-detail-grade-wise")
+    public String totalFeeSubmittedGradeWise(Model model){
+        model.addAttribute("grades",gradeService.getAllGrades());
+        model.addAttribute("sections",sectionService.getAllSections());
+        model.addAttribute("mediums", mediumService.getAllMediums());
+        model.addAttribute("page", "datatable");
+        return "/fees/total_fee_submitted_details_grade";
+    }
 }

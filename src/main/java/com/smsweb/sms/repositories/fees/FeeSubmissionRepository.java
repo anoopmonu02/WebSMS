@@ -126,4 +126,11 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium);
+
+    @Query("SELECT f FROM FeeSubmission f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium AND f.academicStudent.grade.id = :grade AND f.academicStudent.section.id = :section")
+    List<FeeSubmission> findAllFeeSubmittedDetailsGradeWise(
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("medium") Long medium,
+            @Param("grade") Long grade, @Param("section") Long section);
 }
