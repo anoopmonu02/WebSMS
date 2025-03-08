@@ -125,7 +125,12 @@
                 //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
                 let feeData = data.finalData.dateRangeFeeCollectionDetails;
                 //console.log("rowData:"+rowData);
-
+                if (!feeData || feeData.length === 0) {
+                    $("#userwise-collection-data").empty();
+                    $("#printable-div").hide();
+                    showMsg("error", "No matching data found", "No Data");
+                    return;
+                }
                 // If userWiseFeeCollection is a string, show a message
                 if (typeof feeData === 'string') {
                     $("#userwise-collection-data").empty();
