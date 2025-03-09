@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row ">
+            <div class="card-header fs-3">Student List</div>
+            <hr/>
+        </div>
+        <div class="row justify-content-center">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="medium" class="form-label">Medium</label>
+                            <select name="medium" id="medium" class="form-select">
+                                <option value="">Select Medium</option>
+                                <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 align-self-end">
+                    <div class="col-sm-12 mb-3">
+                        <button type="button" class="btn btn-primary" onclick="validateAndSubmit();"><i class="bi bi-search"></i> Get List</button>
+                    </div>
+                </div>
+            </div>
+            <hr/>
+        </div>
+        <div class="row " id="printable-div" style="display: none">
+            <div class="card-header fs-3">All Student Data(Academic-Year)</div><hr/>
+            <div class="row" id="graph-div">
+                <div class="col-md-3" id="gender-div-parent">
+                    <canvas id="gender-div"></canvas>
+                </div>
+                <div class="col-md-3" id="no-mobile-div-parent">
+                    <canvas id="no-mobile-div"></canvas>
+                </div>
+                <div class="col-md-3" id="no-aadhar-div-parent">
+                    <canvas id="no-aadhar-div"></canvas>
+                </div>
+                <div class="col-md-3" id="no-sr-div-parent">
+                    <canvas id="no-sr-div"></canvas>
+                </div>
+            </div>
+            <div class="row">
+                <div class="student-details" id="student-collection-data">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script src="/js/chart.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+        let genderCharts = null;
+        let MobileChart = null;
+        let srChart = null;
+        let aadharChart = null;
+        const validateAndSubmit=()=>{
+            let medium = $("#medium").val();
+            if(medium===''){
+                showMsg("error","Medium is mandatory","Error");
+                return;
+            }
+            let requestBody = {};
+            requestBody = {
+                medium: medium
+            };
+            let url = `${window.location.origin}/getTotalStudentDetails`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    console.log("======"+response);
+                    return response.json();  // Parse response as JSON
+                })
+                .then(data => {
+                    //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
+                    let feeData = data.finalData.totalStudentCollectionDetails;
+                    //console.log("rowData:"+rowData);
+                    if (!feeData || feeData.length === 0) {
+                        $("#student-collection-data").empty();
+                        $("#printable-div").hide();
+                        showMsg("error", "No matching data found", "No Data");
+                        return;
+                    }
+                    // If userWiseFeeCollection is a string, show a message
+                    if (typeof feeData === 'string') {
+                        $("#student-collection-data").empty();
+                        $("#printable-div").hide();
+                        showMsg("error",`${feeData}`,"No Data");
+                        return; // Stop further execution
+                    }
+                    $("#printable-div").show();
+                    let counter = 1;
+                    let maleCounter = 0;
+                    let femaleCounter = 0;
+                    let notPreferredCounter = 0;
+                    let mobileCounter = 0;
+                    let noMobileCounter = 0;
+                    let srCounter = 0;
+                    let noSrCounter = 0;
+                    let aadharCounter = 0;
+                    let noAadharCounter = 0;
+                    let tblData = `<table class="table table-striped table-bordered table-sm" id="studentTable">
+                    <thead>
+                    <tr>
+                        <th>SNo</th>
+                        <th>Student Name</th>
+                        <th>Father Name</th>
+                        <th>Mother Name</th>
+                        <th>SR No</th>
+                        <th>Grade</th>
+                        <th>Regis. Date</th>
+                        <th>DOB</th>
+                        <th>Gender</th>
+                        <th>Address</th>
+                        <th>Contact#</th>
+                    </tr>
+                    </thead>
+                    <tbody class="table-group-divider">`;
+                    let backgroundColors = [];
+                    let borderColors = [];
+                    feeData.forEach(academicStudent =>{
+                        let srno = academicStudent.classSrNo ? academicStudent.classSrNo.trim() : '';
+                        let grd = academicStudent.grade.gradeName + ' - ' + academicStudent.section.sectionName;
+                        let landmark = academicStudent.student.landmark;
+                        let address = academicStudent.student.address ? (academicStudent.student.address.trim() + (landmark ? ' ' + landmark.trim() : '')) : '';
+                        let dt = academicStudent.migrationDate
+                            ? new Date(academicStudent.migrationDate).toISOString().split('T')[0] // Extracts "2025-01-22"
+                            : '';
+                        if (dt) {
+                            let dateObj = new Date(dt);
+                            dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            dt = dt.replaceAll(" ","/");
+                        }
+                        let dob = academicStudent.student.dob ? new Date(academicStudent.student.dob).toISOString().split('T')[0] : '';
+                        if (dob) {
+                            let dateObj = new Date(dob);
+                            dob = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            dob = dt.replaceAll(" ","/");
+                        }
+                        if(academicStudent.student.gender==='Male'){
+                            maleCounter++;
+                        } else if(academicStudent.student.gender==='Female'){
+                            femaleCounter++;
+                        } else{
+                            notPreferredCounter++;
+                        }
+                        if(academicStudent.student.mobile1!=''){
+                            mobileCounter++;
+                        } else if(academicStudent.student.mobile1===''){
+                            noMobileCounter++;
+                        }
+                        if(srno!=''){
+                            srCounter++;
+                        } else if(srno===''){
+                            noSrCounter++;
+                        }
+                        if(academicStudent.student.aadharNo!=''){
+                            aadharCounter++;
+                        } else if(academicStudent.student.aadharNo===''){
+                            noAadharCounter++;
+                        }
+                        tblData += `<tr>
+                            <td>${counter}</td>
+                            <td>${academicStudent.student.studentName}</td>
+                            <td>${academicStudent.student.fatherName}</td>
+                            <td>${academicStudent.student.motherName}</td>
+                            <td>${srno}</td>
+                            <td>${grd}</td>
+                            <td>${dt}</td>
+                            <td>${dob}</td>
+                            <td>${academicStudent.student.gender}</td>
+                            <td>${address}</td>
+                            <td>${academicStudent.student.mobile1}</td>
+                        </tr>`;
+                        counter++;
+                        let color = getRandomColor();
+                        backgroundColors.push(color);
+                        borderColors.push(color.replace('0.3', '1'));
+                    });
+                    tblData+=`</tbody></table>`;
+                    $("#student-collection-data").html(tblData);
+                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10];
+                    const columnDefs = [{ "orderable": false, "targets": [0] }];
+                    $("#studentTable").DataTable({
+                        layout: {
+                            bottomEnd: {
+                                paging: {
+                                    firstLast: false
+                                }
+                            },
+                            top1Start: {
+                                buttons: [
+                                    {
+                                        extend: 'excelHtml5',
+                                        text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                        titleAttr: 'Excel',
+                                        title: 'Total Students Data export',
+                                        exportOptions: {
+                                            columns: exportColumns
+                                        }
+                                    },
+                                    {
+                                        extend: 'csvHtml5',
+                                        text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                        titleAttr: 'CSV',
+                                        title: 'Total Students Data export'
+                                    },
+                                    {
+                                        extend: 'pdfHtml5',
+                                        text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                        titleAttr: 'PDF',
+                                        title: 'Total Students Data export',
+                                        exportOptions: {
+                                            columns: exportColumns
+                                        }
+                                    },
+                                    'colvis'
+                                ]
+                            }
+                        },
+                        lengthMenu: [
+                            [5, 10, 25, 50, 100, -1],
+                            [5, 10, 25, 50, 100, 'All']
+                        ],
+                        pageLength: 25,
+                        columnDefs: columnDefs
+                    });
+                    $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                        // Remove the btn-secondary class from each button
+                        $(this).removeClass("btn-secondary");
+                    });
+                    let amounts = [maleCounter, femaleCounter, notPreferredCounter];
+                    let mobileAmts = [mobileCounter, noMobileCounter];
+                    let srAmts = [srCounter, noSrCounter];
+                    let aadharAmts = [aadharCounter, noAadharCounter];
+
+                    generateChart(["Male","Female","No Preference"],amounts, backgroundColors, borderColors, "Gender Distribution", "gender-div", "genderCharts");
+                    generateChart(["Mobile","No Mobile"],mobileAmts, backgroundColors, borderColors, "Mobile Availability", "no-mobile-div","MobileChart");
+                    generateChart(["SR","No SR"],srAmts, backgroundColors, borderColors, "SR Updated", "no-sr-div","srChart");
+                    generateChart(["Aadhar","No Aadhar"],aadharAmts, backgroundColors, borderColors, "Aadhar Availability", "no-aadhar-div","aadharChart");
+                })
+                .catch(error => {
+                    console.error('Error:', error);  // Handle error response
+                    const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
+                    $("#student-collection-data").empty();
+                    $("#printable-div").hide();
+                    showMsg("error", errorMsg, "Error");
+                });
+        };
+        function getRandomColor() {
+            let r = Math.floor(Math.random() * 255);
+            let g = Math.floor(Math.random() * 255);
+            let b = Math.floor(Math.random() * 255);
+            return `rgba(${r}, ${g}, ${b}, 0.3)`; // Background with opacity
+        }
+        const generateChart=(labels, amounts, backgroundColors, borderColors, label, divId, chartObj)=>{
+
+            if (window[chartObj]) {
+                window[chartObj].destroy();
+            }
+            let ctx = document.getElementById(divId).getContext('2d');
+            window[chartObj] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: amounts,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+
+</section>
+
+</body>
+</html>
