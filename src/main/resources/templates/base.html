@@ -189,10 +189,13 @@
                             <a href="#" class="sidebar-link collapsed" data-bs-target="#level-2"
                                data-bs-toggle="collapse" aria-expanded="false"><i class="bi bi-file-person pe-2"></i>Student Report</a>
                             <ul id="level-2" class="sidebar-dropdown list-unstyled collapse">
-                                <!--<li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">Student List</a>
+                                <li class="sidebar-item submenu">
+                                    <a th:href="@{'/student/sessions-total-students-detail'}" class="sidebar-link">Student List(Session)</a>
                                 </li>
                                 <li class="sidebar-item submenu">
+                                    <a th:href="@{'/student/grade-total-students-detail'}" class="sidebar-link">Student List</a>
+                                </li>
+                                <!--<li class="sidebar-item submenu">
                                     <a href="#" class="sidebar-link">Absent Student List</a>
                                 </li>-->
                                 <li class="sidebar-item submenu">

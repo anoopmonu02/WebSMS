@@ -2,6 +2,7 @@ package com.smsweb.sms.repositories.student;
 
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import org.springframework.data.domain.Page;
@@ -40,4 +41,10 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
     Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(UUID uuid, String status, Long academic, Long school);
+
+    @Query("SELECT f FROM AcademicStudent f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.medium.id = :medium AND f.status='Active'")
+    List<AcademicStudent> findAllStudentsDetails(
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("medium") Long medium);
 }

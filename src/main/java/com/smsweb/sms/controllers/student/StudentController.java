@@ -398,4 +398,19 @@ public class StudentController extends BaseController {
         return "/student/update-aadhar";
     }
 
+    @GetMapping("/sessions-total-students-detail")
+    public String totalFeeSubmissionDetail(Model model){
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("page", "datatable");
+        return "/student/all_students_session";
+    }
+
+    @GetMapping("/grade-total-students-detail")
+    public String totalFeeSubmissionDetailByGrade(Model model){
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        model.addAttribute("page", "datatable");
+        return "/student/all_students_grade";
+    }
 }

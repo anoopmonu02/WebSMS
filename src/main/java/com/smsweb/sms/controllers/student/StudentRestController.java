@@ -410,4 +410,42 @@ public class StudentRestController extends BaseController {
             return ResponseEntity.ok("error#####"+e.getLocalizedMessage());
         }
     }
+
+    @PostMapping("/getTotalStudentDetails")
+    public ResponseEntity<?> getTotalStudentDetails(@RequestBody Map<String, String> requestBody, Model model){
+        Map<String, Object> receiptData = new HashMap<>();
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map result = studentService.getAllStudentsOfActiveSession(requestBody, school, academicYear);
+                return ResponseEntity.ok(result);
+            }
+        }catch(Exception e){
+            receiptData.put("error","error#####"+e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(receiptData);
+    }
+
+    @PostMapping("/getTotalStudentDetailsByGrade")
+    public ResponseEntity<?> getTotalStudentDetailsByGrade(@RequestBody Map<String, String> requestBody, Model model){
+        Map<String, Object> receiptData = new HashMap<>();
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map result = studentService.getAllStudentsOfActiveSessionGrades(requestBody, school, academicYear);
+                return ResponseEntity.ok(result);
+            }
+        }catch(Exception e){
+            receiptData.put("error","error#####"+e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(receiptData);
+    }
 }

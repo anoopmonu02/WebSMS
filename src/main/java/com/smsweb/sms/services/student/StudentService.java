@@ -8,6 +8,7 @@ import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
 import com.smsweb.sms.models.student.Student;
@@ -24,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -679,6 +681,47 @@ public class StudentService {
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();
         }
+    }
+
+    public Map getAllStudentsOfActiveSession(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                System.out.println("paramsMap:: "+paramsMap);
+                String medium = paramsMap.get("medium");
+
+                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllStudentsDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
+                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No Fee details found for Medium": totalStudentCollectionDetails);
+            }
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
+    public Map getAllStudentsOfActiveSessionGrades(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                System.out.println("paramsMap:: "+paramsMap);
+                String medium = paramsMap.get("medium");
+                String section = paramsMap.get("section");
+                String grade = paramsMap.get("grade");
+
+                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(),
+                        Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
+                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No Fee details found for selected Grade": totalStudentCollectionDetails);
+            }
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
     }
 
 }
