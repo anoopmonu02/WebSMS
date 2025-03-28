@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Pending Fee</div>
+                <hr/>
+                <div>
+                    <div class="row mt-3">
+                        <div class="col-md-2">
+                            <label for="medium" class="form-label">Medium</label>
+                            <select name="medium" id="medium" class="form-select">
+                                <option value="">Select Medium</option>
+                                <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select name="grade" id="grade" class="form-select">
+                                <option value="">Select Grade</option>
+                                <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="section" class="form-label">Section</label>
+                            <select name="section" id="section" class="form-select">
+                                <option value="">Select Section</option>
+                                <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="month" class="form-label">Month</label>
+                            <select name="month" id="month" class="form-select">
+                                <option value="">Select Month</option>
+                                <option th:each="med : ${monthmapping}" th:value="${med.monthMaster.id}" th:text="${med.monthMaster.monthName}">Month</option>
+                            </select>
+                        </div>
+                        <!--<div class="col-md-2">
+                            <label for="section" class="form-label">Last Date</label>
+                            <input type="text" class="form-control" name="lastdate" id="lastdate"/>
+                        </div>-->
+                        <div class="col-md-3 align-self-end">
+                            <div class="col-sm-5">
+                                <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get List </button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr/>
+                </div>
+
+                <div class="col-md-12" id="printable-div" style="display: none">
+                    <div class="card-header fs-3">Pending Fee(s) Detail</div><hr/>
+
+                    <div class="row">
+                        <div class="student-details" id="student-collection-data">
+
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+    <script src="/js/flatpickr.js"></script>
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>-->
+
+    <script type="text/javascript" th:inline="javascript">
+        flatpickr("#lastdate", {
+            dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+        });
+
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        $('#getfee').click(async function() {
+            $('.fetch-class-value').html('');
+            $('.show-data').hide();
+            const medium = $('#medium').val();
+            const grade = $('#grade').val();
+            const section = $('#section').val();
+            const month = $('#month').val();
+
+            if(medium === '' || grade === '' || section === '' || month === ''){
+                showWarningMsg('error','Medium/Grade/Section/Month all are mandatory',"Warning");
+                return;
+            }
+            let checkBoxes = "";
+
+            let url = `${window.location.origin}/getFeeReminderDetails`;
+            try{
+                const requestBody = {
+                    checkBoxes: checkBoxes,
+                    grade: grade,
+                    medium: medium,
+                    section: section,
+                    lastdate: "",
+                    month: month
+                };
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                console.log("response "+response);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                console.log("-----------------------------")
+                const data = await response.json();
+                console.log("res: "+data.finalData);
+                console.log("res: "+data.STUDENT_NOT_FOUND);
+                if(data.STUDENT_NOT_FOUND!=null){
+                    $('.fetch-class-value').html('<p class="text-center">No data found.</p>');
+                } else{
+                    if (!data.finalData || data.finalData.length === 0) {
+                        $("#student-collection-data").empty();
+                        $("#printable-div").hide();
+                        showMsg("error", "No matching data found", "No Data");
+                        return;
+                    }
+                    // If userWiseFeeCollection is a string, show a message
+                    if (typeof data.finalData === 'string') {
+                        $("#student-collection-data").empty();
+                        $("#printable-div").hide();
+                        showMsg("error",`${data.finalData}`,"No Data");
+                        return; // Stop further execution
+                    }
+                    if(data.finalData!=null){
+                        let stulist = data.finalData;
+                        console.log(stulist);
+                        console.log(stulist.length);
+
+                        $("#printable-div").show();
+                        let tblData = `<table class="table table-striped table-bordered table-sm" id="studentTable">
+                                <thead>
+                                <tr>
+                                    <th>SNo</th>
+                                    <th>Student Name</th>
+                                    <th>Father Name</th>
+                                    <th>Mother Name</th>
+                                    <th>SR No</th>
+                                    <th>Grade</th>
+                                    <th>Pending Amount</th>
+                                    <th>Upto Month</th>
+                                    <th>Fee Head(s)</th>
+                                </tr>
+                                </thead>
+                                <tbody class="table-group-divider">`;
+                        let counter = 1;
+                        for (let key in stulist) {
+                            if (stulist.hasOwnProperty(key)) {
+                                let studentData = stulist[key];
+
+                                let srno = studentData.academicStudent.classSrNo ? studentData.academicStudent.classSrNo.trim() : '';
+                                let grd = studentData.academicStudent.grade.gradeName + ' - ' + studentData.academicStudent.section.sectionName;
+                                tblData += `<tr>
+                                    <td>${counter}</td>
+                                    <td>${studentData.academicStudent.student.studentName}</td>
+                                    <td>${studentData.academicStudent.student.fatherName}</td>
+                                    <td>${studentData.academicStudent.student.motherName}</td>
+                                    <td>${srno}</td>
+                                    <td>${grd}</td>
+                                    <td>&#8377; ${studentData.amount}</td>
+                                    <td>${studentData.monthsList}</td>
+                                    <td>${studentData.headList}</td>
+                                </tr>`;
+                                counter++;
+                            }
+                        }
+                        tblData+=`</tbody></table>`;
+                        $("#student-collection-data").html(tblData);
+                        const exportColumns = [0,1,2,3,4,5,6,7,8];
+                        const columnDefs = [{ "orderable": false, "targets": [0] }];
+                        $("#studentTable").DataTable({
+                            layout: {
+                                bottomEnd: {
+                                    paging: {
+                                        firstLast: false
+                                    }
+                                },
+                                top1Start: {
+                                    buttons: [
+                                        {
+                                            extend: 'excelHtml5',
+                                            text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                            titleAttr: 'Excel',
+                                            title: 'Total Students Pending Fees Data export',
+                                            exportOptions: {
+                                                columns: exportColumns
+                                            }
+                                        },
+                                        {
+                                            extend: 'csvHtml5',
+                                            text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                            titleAttr: 'CSV',
+                                            title: 'Total Students Pending Fees Data export'
+                                        },
+                                        {
+                                            extend: 'pdfHtml5',
+                                            text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                            titleAttr: 'PDF',
+                                            orientation: 'landscape',
+                                            title: 'Total Students Pending Fees Data export',
+                                            exportOptions: {
+                                                columns: exportColumns
+                                            }
+                                        },
+                                        'colvis'
+                                    ]
+                                }
+                            },
+                            lengthMenu: [
+                                [5, 10, 25, 50, 100, -1],
+                                [5, 10, 25, 50, 100, 'All']
+                            ],
+                            pageLength: 25,
+                            columnDefs: columnDefs
+                        });
+                        $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                            // Remove the btn-secondary class from each button
+                            $(this).removeClass("btn-secondary");
+                        });
+
+                    }
+                    if(data.error!=null){
+                        $("#student-collection-data").empty();
+                        $("#printable-div").hide();
+                        showWarningMsg('error', data.error, "Error");
+                    }
+                }
+
+
+            } catch(error) {
+                $("#student-collection-data").empty();
+                $("#printable-div").hide();
+                showWarningMsg('error', "There was a problem with the fetch operation: " + error, "Error");
+            }
+        });
+
+
+
+    </script>
+</section>
+
+</body>
+</html>

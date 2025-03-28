@@ -493,6 +493,9 @@ public class FeeSubmissionService {
                 Long mediumId = Long.valueOf(paramsMap.get("medium"));
                 String months = paramsMap.get("checkBoxes");
                 String lastDate = paramsMap.get("lastdate");
+                if(paramsMap!=null && paramsMap.containsKey("month")){
+                    months = paramsMap.get("month");
+                }
                 System.out.println("Grade: "+gradeId);
                 System.out.println("Sec: "+secId);
                 System.out.println("Medium: "+mediumId);
@@ -500,6 +503,7 @@ public class FeeSubmissionService {
                 System.out.println("Date: "+lastDate);
                 List<MonthMaster> selectedMonthsList = new ArrayList<>();
                 List<Long> monIdList = new ArrayList<>();
+
                 for(int i=0;i<months.split("-").length;i++){
                     selectedMonthsList.add(monthMasterRepository.findById(Long.valueOf(months.split("-")[i])).orElse(null));
                     monIdList.add(Long.valueOf(months.split("-")[i]));
