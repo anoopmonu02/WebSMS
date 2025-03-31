@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - School</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<section>
+
+  <div class="container">
+    <div class="row mt-2 ">
+      <div class="col-md-12 ">
+        <div class="card-header fs-3">Holiday List</div>
+        <hr/>
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${isHoliDays}" id="feeDateTable">
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Holiday</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+
+          <tr th:each="fine,iterStat : ${holidays}">
+            <td th:text="${iterStat.index + 1}"></td>
+            <td th:text="${fine.holidayName}"></td>
+            <td th:text="${#dates.format(fine.holidayStartDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#dates.format(fine.holidayEndDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${fine.description}"></td>
+            <td style="white-space: nowrap" class="text-center">
+              <!--<a class="btn btn-primary" th:href="@{/admin/holiday/edit/{id}(id=${fine.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                <i class="bi bi-pencil-square"></i> </a>-->
+
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <!--<button class="btn btn-danger" onclick="deleteFine([[${fine.id}]])"><i class="bi bi-trash3-fill"></i> </button>-->
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <div th:if="${!isHoliDays}">
+          <p class="text-center">No Holiday found.</p>
+        </div>
+        <div class="pt-5">
+          <a class="btn btn-success" href="/admin/holiday/add"><i class="bi bi-node-plus-fill"></i> Add Holiday</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+
+  <script th:inline="javascript">
+    $(document).ready(function () {
+      $('.delete-btn').click(function (e) {
+        e.preventDefault(); // Prevent default action of the button
+        var itemId = $(this).data('item-id'); // Get the item ID from data attribute
+        console.log("itemId  "+itemId);
+        if (confirm('Are you sure you want to delete this record?')) {
+          // Send DELETE request using AJAX
+          $.ajax({
+            type: 'POST',
+            url: '/admin/holiday/delete/' + itemId,
+            success: function (response) {
+              // Optionally handle success response
+              console.log('Item deleted successfully '+response);
+              if(response.status === "success"){
+                toastr["info"]("Holiday deleted successfully.","Delete");
+                toastr.options = {
+                  "closeButton": true,
+                  "debug": false,
+                  "newestOnTop": false,
+                  "progressBar": false,
+                  "positionClass": "toast-top-right",
+                  "preventDuplicates": false,
+                  "onclick": null,
+                  "showDuration": "500",
+                  "hideDuration": "1000",
+                  "timeOut": "5000",
+                  "extendedTimeOut": "1000",
+                  "showEasing": "swing",
+                  "hideEasing": "linear",
+                  "showMethod": "fadeIn",
+                  "hideMethod": "fadeOut"
+                }
+              } else{
+                var errorMsg = "Failed to delete the record." + response.message;
+                toastr["error"](errorMsg, "Error");
+              }
+              //location.reload(); // Reload the page after successful deletion
+              $('#feeDateTable').load(location.href + " #feeDateTable > *");
+            },
+            error: function (xhr, status, error) {
+              // Handle error
+              console.error('Error deleting item:', error);
+              //alert('Failed to delete the record.');
+              toastr["error"]("Failed to delete the record.", "Error");
+            }
+          });
+        }
+      });
+    });
+  </script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+    const infoMessage = [[${info}]];
+    if (infoMessage) {
+      //toastr.success(successMessage);
+      toastr["info"](infoMessage,"Delete");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+
+  </script>
+</section>
+</body>
+</html>

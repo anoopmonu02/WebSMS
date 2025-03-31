@@ -59,11 +59,13 @@ public class GlobalController extends BaseController {
     private final AcademicYearHolder academicYearHolder;
     private final SchoolHolder schoolHolder;
 
+    private final HolidayService holidayService;
+
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -84,6 +86,7 @@ public class GlobalController extends BaseController {
         this.roleRepository = roleRepository;
         this.academicYearHolder = academicYearHolder;
         this.schoolHolder = schoolHolder;
+        this.holidayService = holidayService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -1194,6 +1197,77 @@ public class GlobalController extends BaseController {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /********************************   Holiday Code starts here   ************************************/
+
+    @GetMapping("/holidays")
+    public String getHoliday(Model model){
+        //Get data of school and academicyear when loggedin
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<Holiday> holidayList = holidayService.getAllHoliday(academicYear.getId(), school.getId());
+        model.addAttribute("holidays", holidayList);
+        model.addAttribute("isHoliDays", !holidayList.isEmpty());
+        return "/admin/holiday";
+    }
+
+    @GetMapping("/holiday/add")
+    public String getAddHolidayForm(Model model){
+        model.addAttribute("holiday", new Holiday());
+        return "/admin/add-holiday";
+    }
+
+    @PostMapping("/holiday")
+    public String save(@Valid @ModelAttribute("holiday")Holiday holiday, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        if(result.hasErrors()){
+            model.addAttribute("error", result.getFieldError());
+            return "/admin/add-holiday";
+        }
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            holiday.setAcademicYear(academicYear);
+            holiday.setSchool(school);
+            holiday = holidayService.save(holiday);
+            System.out.println("holiday: "+holiday);
+            redirectAttributes.addFlashAttribute("success","Holiday saved successfully for: "+holiday.getHolidayName());
+        }catch(DataIntegrityViolationException de){
+            System.out.println("11111111111");
+            model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName());
+            de.printStackTrace();
+            return "/admin/add-holiday";
+        }catch(UniqueConstraintsException de){
+            System.out.println("2222222222222222");
+            model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName()+". "+de.getLocalizedMessage());
+            de.printStackTrace();
+            return "/admin/add-holiday";
+        }catch(Exception e){
+            model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
+            System.out.println("ERRORRRR");
+            e.printStackTrace();
+            return "/admin/add-holiday";
+        }
+        return "redirect:/admin/holidays";
+    }
+    @PostMapping("/holiday/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteHoliday(@PathVariable("id")Long id){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = holidayService.delete(id);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Holiday deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete holiday.");
+            }
+        }catch(Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
     }
 
 }
