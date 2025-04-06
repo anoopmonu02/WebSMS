@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.messaging;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import jakarta.persistence.*;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -17,40 +19,50 @@ public class SmsMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    public static final String MESSAGE_TYPE_COMPLAINT = "complaint";
+    public static final String MESSAGE_TYPE_NOTIFICATION = "notification";
+
+    public static final String RECIPIENT_TYPE_ALL = "ALL";
+    public static final String RECIPIENT_TYPE_CLASS = "CLASS";
+    public static final String RECIPIENT_TYPE_STUDENT  = "STUDENT";
+
+    public static final String RESOLUTION_TYPE_RESOLVED = "RESLOVED";
+    public static final String RESOLUTION_TYPE_UNRESOLVED = "UNRESOLVED";
+
     @ManyToMany
     @JoinTable(
             name = "sms_message_recipients",
             joinColumns = @JoinColumn(name = "sms_message_id"),
             inverseJoinColumns = @JoinColumn(name = "academic_student_id")
     )
-    private List<AcademicStudent> recipients; // List of students receiving the message
+    private List<AcademicStudent> recipients;
 
-    private String content;
 
-    private LocalDateTime sentAt;
+    @Column(nullable = false)
+    private String recipientType;
 
-    private Boolean seen; // To mark if the message has been seen by the student
+    @OneToMany(mappedBy = "smsMessage", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<SmsConversation> conversations;
 
-    private Boolean isDeleted;
 
+    private Date sentAt;
+
+    @Column(nullable = false)
     private String messageType;
 
     @Column(nullable = true)
     private String resolution;
 
-    @JoinColumn(name = "created_by", updatable = false)
+    @Column(nullable = false, updatable = false)
     private String createdBy;
 
+    @Column(nullable = false)
+    private String smsHeading;
+
     @ManyToOne
-    @JoinColumn(name = "school_id")
+    @JoinColumn(name = "school_id", nullable = false)
     @NotNull(message = "School should be available")
     private School school;
-
-    private boolean hasAttachment;
-
-    private boolean haveDocAttachment;
-
-    @Column(nullable = true)
-    private String docFilePath;
 
 }

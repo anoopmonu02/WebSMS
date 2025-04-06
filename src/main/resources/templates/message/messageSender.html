@@ -1,148 +1,368 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
 <head>
+
     <meta charset="UTF-8">
-    <title>UAIC - Student</title>
+    <title>Send Message</title>
+    <style>
+        .search-container {
+            position: relative;
+        }
+
+        .search-result {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1050; /* Higher than Bootstrap cards */
+            background: white;
+            border: 1px solid #ddd;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        .search-result a {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 <section>
     <div class="container">
-        <div class="row mt-2">
+        <div class="row mt-3">
             <div class="col-md-12">
-                <div class="card-header fs-3">Send Message <span th:text="${todayDate}"></span></div>
-                <hr/>
-                <div class="row mt-3">
-                    <div class="col-md-2">
-                        <label for="medium" class="form-label">Medium</label>
-                        <select name="medium" id="medium" class="form-select">
-                            <option value="">Select Medium</option>
-                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}"></option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="grade" class="form-label">Grade</label>
-                        <select name="grade" id="grade" class="form-select">
-                            <option value="">Select Grade</option>
-                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}"></option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="section" class="form-label">Section</label>
-                        <select name="section" id="section" class="form-select">
-                            <option value="">Select Section</option>
-                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}"></option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 align-self-end">
-                        <button id="getstu" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
-                    </div>
-                </div>
+                <div class="card-header fs-3">Send Message</div>
                 <hr/>
 
-                <!-- Modal for Student List -->
-                <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="studentModalLabel">Student List</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div id="student-grade-data"></div>
-                                <button id="sendMessageBtn" class="btn btn-success mt-3">Send Message</button>
-                            </div>
+                <form id="messageForm">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="messageType" class="form-label">Message Type</label>
+                            <select id="messageType" name="messageType" class="form-select">
+                                <option value="">Select Message Type</option>
+                                <option value="complaint">Complaint</option>
+                                <option value="notification">Notification</option>
+                            </select>
                         </div>
                     </div>
-                </div>
+
+                    <div id="recipientTypeDiv" class="row mb-3" style="display: none;">
+                        <div class="col-md-3">
+                            <label for="recipientType" class="form-label">Recipient Type</label>
+                            <select id="recipientType" name="recipientType" class="form-select">
+                                <option value="">Select Recipient Type</option>
+                                <option value="ALL">All</option>
+                                <option value="CLASS">Class</option>
+                                <option value="STUDENT">Student</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="studentSelector" class="search-container my-3" style="display: none;">
+                        <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                        <div class="search-result">
+
+                        </div>
+                        <hr>
+                        <div class="accordion mb-3" id="studentDetailAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingStudentDetail">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStudentDetail" aria-expanded="false" aria-controls="collapseStudentDetail">
+                                        View Student & Academic Details
+                                    </button>
+                                </h2>
+                                <div id="collapseStudentDetail" class="accordion-collapse collapse" aria-labelledby="headingStudentDetail" data-bs-parent="#studentDetailAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="card border-success">
+                                                    <h5 class="card-header">Student Detail</h5>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item studname"><strong>Student Name:</strong></li>
+                                                        <li class="list-group-item fname"><strong>Father Name:</strong></li>
+                                                        <li class="list-group-item mname"><strong>Mother Name:</strong></li>
+                                                        <li class="list-group-item contactno contact-update-btn"><strong>Contact No:</strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-sm-6">
+                                                <div class="card border-success">
+                                                    <h5 class="card-header">Academic Detail</h5>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item cmedium"><strong>Medium: </strong></li>
+                                                        <li class="list-group-item cgrade"><strong>Class: </strong></li>
+                                                        <li class="list-group-item csection"><strong>Section: </strong></li>
+                                                        <li class="list-group-item csr"><strong>SR No: </strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4" id="smsSection" style="display: none;">
+                            <div class="col-md-6">
+                                <h5>Message History</h5>
+                                <table class="table table-bordered" id="smsMessagesTable">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Subject</th>
+                                        <th>Date</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <!-- Dynamically loaded -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6" id="conversationDiv"  style="display: none;">
+                                <h5>Conversation</h5>
+                                <textarea id="conversationTimeline" class="form-control" rows="15" readonly></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div id="classSectionSelector" class="row mb-3" style="display: none;">
+                        <div class="col-md-3">
+                            <label for="grade" class="form-label">Grade</label>
+                            <select id="grade" name="grade" class="form-select">
+                                <option value="">Select Grade</option>
+                                <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="section" class="form-label">Section</label>
+                            <select id="section" name="section" class="form-select">
+                                <option value="">Select Section</option>
+                                <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-3">Send Message</button>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Spinner -->
-    <div id="spinner" class="d-none text-center" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
-
-    <script src="/js/jquery-3.7.1.js"></script>
-    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
-    <script>
-        document.getElementById("getstu").onclick = function() {
-            let medium = $('#medium').val();
-            let grade = $('#grade').val();
-            let section = $('#section').val();
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#messageType').change(function () {
+                resetMessageForm();
+                const messageType = $(this).val();
+                $('#recipientTypeDiv').hide();
+                $('#studentSelector').hide();
+                $('#classSectionSelector').hide();
 
-            if (!medium || !grade || !section) {
-                toastr.error("Medium, Grade, and Section are required", "Error");
-                return;
-            }
-
-            fetch("/getStudentsForAttendance", {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mediumId: medium, gradeId: grade, sectionId: section })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.academicStudentError) {
-                        toastr.warning(data.academicStudentError, "Message");
-                    } else {
-                        renderStudentData(data);
-                        $('#studentModal').modal('show');
-                    }
-                })
-                .catch(error => toastr.error("An error occurred while fetching students", "Error"));
-        };
-
-        function renderStudentData(data) {
-            let content = '<table class="table table-bordered"><thead><tr><th>#</th><th>Name</th><th>Father</th><th>Mother</th><th>SR</th></tr></thead><tbody>';
-            data.academicStudents.forEach((student, index) => {
-                content += `<tr>
-                    <td>${index + 1}</td>
-                    <td>${student.student.studentName}</td>
-                    <td>${student.student.fatherName}</td>
-                    <td>${student.student.motherName}</td>
-                    <td>${student.classSrNo || ''}</td>
-                </tr>`;
-            });
-            content += '</tbody></table>';
-            document.getElementById("student-grade-data").innerHTML = content;
-        }
-
-        // Send Message Function
-        document.getElementById("sendMessageBtn").onclick = function() {
-            let medium = $('#medium').val();
-            let grade = $('#grade').val();
-            let section = $('#section').val();
-
-            if (!medium || !grade || !section) {
-                toastr.error("Medium, Grade, and Section are required to send message", "Error");
-                return;
-            }
-
-            // Close the modal
-            $('#studentModal').modal('hide');
-
-            // Show spinner
-            $('#spinner').removeClass('d-none');
-
-            $.ajax({
-                url: "/sendMessageToStudents",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ mediumId: medium, gradeId: grade, sectionId: section }),
-                success: function(response) {
-                    $('#spinner').addClass('d-none'); // Hide spinner
-                    toastr.success("Message sent successfully!", "Success");
-                },
-                error: function(xhr) {
-                    $('#spinner').addClass('d-none'); // Hide spinner
-                    toastr.error("Failed to send message", "Error");
+                if (messageType === 'complaint') {
+                    $('#studentSelector').show();
+                } else if (messageType === 'notification') {
+                    $('#recipientTypeDiv').show();
                 }
             });
+
+            $('#recipientType').change(function () {
+                const recipientType = $(this).val();
+                $('#studentSelector').hide();
+                $('#classSectionSelector').hide();
+
+                if (recipientType === 'ALL') {
+                    // No extra input
+                } else if (recipientType === 'CLASS') {
+                    $('#classSectionSelector').show();
+                } else if (recipientType === 'STUDENT') {
+                    $('#studentSelector').show();
+                }
+            });
+        });
+
+        const searchStuName=() =>{
+            let query=$("#search-input").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+
+                //Sending request to server
+                let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result").html(text);
+                    $(".search-result").show();
+                });
+
+
+            } else{
+                $(".search-result").hide();
+            }
+        }
+
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            if(id>0){
+
+                console.log("id::::"+id);
+                let url = `${window.location.origin}/getStudentDetailForDiscount/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log("data----"+data);
+                    console.log("data.studen--t"+data.student);
+                    if('noAcademicStudent' in data){
+                        //toastr["warning"](data.noAcademicStudent,"Message");
+                        showWarningMsg("warning",data.noAcademicStudent,"Message");
+                    }
+                    else{
+                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                        $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
+                        $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
+                        $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
+
+                        $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+                        $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+                        $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+                        $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+                        // ✅ Set the accordion title
+                        let name = data.student.student.studentName;
+                        let grade = data.student.grade.gradeName;
+                        let section = data.student.section.sectionName;
+                        $("#headingStudentDetail button").html(`${name} / ${grade}-${section}`);
+                    }
+                    loadSmsMessagesForStudent(id);
+                });
+            }
+        }
+
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const loadSmsMessagesForStudent = (studentId) => {
+            let url = `${window.location.origin}/message/getSmsMessagesByStudent/${studentId}`;
+            fetch(url)
+                .then(res => res.json())
+                .then(messages => {
+                    $('#smsSection').show();
+                    let tbody = $('#smsMessagesTable tbody');
+                    tbody.empty();
+                    console.log("messages.length--->"+messages.length);
+                    $('#conversationArea').val('');
+                    if (!Array.isArray(messages) || messages.length === 0) {
+                        console.log("inside 0 rows");
+                        let row = '<tr><td colspan="3" class="text-center text-muted">No messages found</td></tr>';
+                        tbody.append(row);
+                        return;
+                    }
+                    let counter = 1
+                    messages.forEach(msg => {
+                        let dt = msg.sentAt
+                            ? new Date(msg.sentAt).toISOString().split('T')[0] // Extracts "2025-01-22"
+                            : '';
+
+                        if (dt) {
+                            let dateObj = new Date(dt);
+                            dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                            dt = dt.replaceAll(" ","/");
+                        }
+                        let row = `<tr onclick="loadSmsConversations(${msg.id})" style="cursor:pointer">
+                            <td>${counter}</td>
+                            <td>${msg.smsHeading}</td>
+                            <td>${dt}</td>
+                        </tr>`;
+                        console.log("row-->"+row);
+                        tbody.append(row);
+                        counter++;
+                    });
+                });
         };
+
+        const loadSmsConversations = (messageId) => {
+            let url = `${window.location.origin}/message/getSmsConversationsByMessage/${messageId}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(conversations => {
+                    $('#conversationDiv').show()
+                    conversations.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+                    let timeline = '';
+                    conversations.forEach(conv => {
+                        let by = conv.initiatedBy === 'USER' ? 'You' : 'Student';
+                        timeline += `[${by} - ${new Date(conv.sentAt).toLocaleString()}]: ${conv.message}\n\n`;
+                    });
+                    $("#conversationTimeline").val(timeline);
+                });
+        };
+
+
+        function resetMessageForm() {
+            // Reset student search input
+            $('#search-input').val('');
+            $("#headingStudentDetail button").html('View Student & Academic Details');
+            // Hide accordion and search results
+            $(".studname").html(`<strong>Student Name: </strong>  `);
+            $(".fname").html(`<strong>Father Name: </strong> `);
+            $(".mname").html(`<strong>Mother Name: </strong> `);
+            $(".contactno").html(`<strong>Contact No: </strong> `);
+
+            $(".cmedium").html(`<strong>Medium: </strong> `);
+            $(".cgrade").html(`<strong>Class: </strong> `);
+            $(".csection").html(`<strong>Section: </strong> `);
+            $(".csr").html(`<strong>SR No: </strong> `);
+            $('#studentSelector').hide();
+            $('#studentAccordion').collapse('hide');
+            $('.search-result').hide();
+
+            // Clear student details
+            $('#studentName').text('');
+            $('#studentEmail').text('');
+            $('#studentPhone').text('');
+
+            // Hide and clear SMS section
+            $('#smsSection').hide();
+            $('#smsMessagesTable tbody').empty();
+            $('#conversationTimeline').val('');
+
+            // Optionally reset message input and status
+            $('#messageInput').val('');
+            $('#sendStatus').html('');
+
+            // Reset currentMessageId
+            currentMessageId = null;
+        }
+
     </script>
 </section>
 </body>
