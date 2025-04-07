@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="mt-5">Send Message to Student</h2>
+
+    <!-- Student Selector -->
+    <div class="form-group">
+        <label for="studentSelect">Select Student</label>
+        <select id="studentSelect" class="form-control" th:field="*{studentId}">
+            <option value="" disabled selected>Select a student...</option>
+            <option th:each="student : ${students}" th:value="${student.id}" th:text="${student.username}"></option>
+        </select>
+    </div>
+
+    <!-- Message Type Selector -->
+    <div class="form-group">
+        <label for="messageType">Message Type</label>
+        <select id="messageType" class="form-control" th:field="*{messageType}" onchange="handleMessageTypeChange()">
+            <option value="" disabled selected>Select message type...</option>
+            <option value="fee_reminder">Fee Reminder</option>
+            <option value="complaint">Complaint</option>
+            <option value="general">General</option>
+        </select>
+    </div>
+
+    <!-- Fee Amount Input (Visible only for Fee Reminder) -->
+    <div class="form-group" id="feeAmountField" style="display: none;">
+        <label for="feeAmount">Fee Amount</label>
+        <input type="number" id="feeAmount" class="form-control" th:field="*{feeAmount}" placeholder="Enter fee amount">
+    </div>
+
+    <!-- Resolution Input (Visible only for Complaint) -->
+    <div class="form-group" id="resolutionField" style="display: none;">
+        <label for="resolution">Resolution</label>
+        <textarea id="resolution" class="form-control" rows="3" th:field="*{resolution}" placeholder="Enter resolution details (if any)"></textarea>
+    </div>
+
+    <!-- Message Input Box -->
+    <div class="form-group">
+        <label for="messageBox">Message</label>
+        <textarea id="messageBox" class="form-control" rows="4" placeholder="Type your message here..." th:field="*{messageContent}"></textarea>
+    </div>
+
+    <!-- Send Button -->
+    <button id="sendMessageBtn" class="btn btn-primary" type="button" onclick="sendMessage()">Send Message</button>
+
+    <!-- Display Wall for Selected Student -->
+    <div class="mt-5">
+        <h4>Message Wall</h4>
+        <div id="messageWall">
+            <ul class="list-group">
+                <li th:each="message : ${messages}" class="list-group-item">
+                    <strong th:text="${message.sender.employeeName}"></strong>:
+                    <span th:text="${message.content}"></span>
+                    <span class="float-right text-muted" th:text="${#dates.format(message.sentAt, 'dd-MM-yyyy HH:mm')}"></span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap JS and jQuery -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<!-- Custom JS to handle sending message and dynamic fields -->
+<script type="text/javascript">
+    function sendMessage() {
+        let studentId = document.getElementById("studentSelect").value;
+        let messageContent = document.getElementById("messageBox").value;
+        let messageType = document.getElementById("messageType").value;
+        let feeAmount = document.getElementById("feeAmount").value;
+        let resolution = document.getElementById("resolution").value;
+
+        if (!studentId || !messageContent || !messageType) {
+            alert("Please select a student, message type, and enter a message.");
+            return;
+        }
+
+        // Ajax request to send message with additional fields
+        fetch(`/messages/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipientId: studentId,
+                content: messageContent,
+                messageType: messageType,
+                feeAmount: feeAmount,
+                resolution: resolution
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert("Message sent successfully!");
+                // Reload the messages after sending
+                loadMessagesForStudent(studentId);
+            })
+            .catch(error => {
+                alert("Error sending message: " + error);
+            });
+    }
+
+    function loadMessagesForStudent(studentId) {
+        fetch(`/messages/student/${studentId}`)
+            .then(response => response.json())
+            .then(data => {
+                let messageWall = document.getElementById("messageWall");
+                let messageList = data.map(message => `
+                <li class="list-group-item">
+                    <strong>${message.sender.employeeName}</strong>: ${message.content}
+                    <span class="float-right text-muted">${new Date(message.sentAt).toLocaleString()}</span>
+                </li>
+            `);
+                messageWall.innerHTML = `<ul class="list-group">${messageList.join('')}</ul>`;
+            })
+            .catch(error => {
+                alert("Error loading messages: " + error);
+            });
+    }
+
+    function handleMessageTypeChange() {
+        let messageType = document.getElementById("messageType").value;
+
+        // Toggle visibility of feeAmountField and resolutionField based on messageType
+        if (messageType === "fee_reminder") {
+            document.getElementById("feeAmountField").style.display = "block";
+            document.getElementById("resolutionField").style.display = "none";
+        } else if (messageType === "complaint") {
+            document.getElementById("feeAmountField").style.display = "none";
+            document.getElementById("resolutionField").style.display = "block";
+        } else {
+            document.getElementById("feeAmountField").style.display = "none";
+            document.getElementById("resolutionField").style.display = "none";
+        }
+    }
+
+    document.getElementById("studentSelect").addEventListener("change", function () {
+        let studentId = this.value;
+        loadMessagesForStudent(studentId);
+    });
+</script>
+
+</body>
+</html>
