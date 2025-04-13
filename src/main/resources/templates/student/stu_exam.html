@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12 ">
+                <div class="card-header fs-3">Examination Result</div>
+                <hr/>
+            </div>
+            <div class="row mt-3 pb-3">
+                <div class="col-md-2">
+                    <label for="medium" class="form-label">Medium</label>
+                    <select name="medium" id="medium" class="form-select">
+                        <option value="">Select Medium</option>
+                        <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="grade" class="form-label">Grade</label>
+                    <select name="grade" id="grade" class="form-select">
+                        <option value="">Select Grade</option>
+                        <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select">
+                        <option value="">Select Section</option>
+                        <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                    </select>
+                </div>
+                <div class="col-md-2 align-self-end">
+                    <div class="col-sm-12">
+                        <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
+                    </div>
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary"><i class="bi bi-upload"></i> Upload SR</button>
+                        <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="visually-hidden">Toggle Dropdown</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <!--<li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Garde</a></li>-->
+                            <li><a class="dropdown-item" href="#" onclick="uploadFileGradeWise()"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Full</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!--<li><a class="dropdown-item" onclick="downloadSample('G')" href="#"><i class="bi bi-download"></i> Download Sample File(Grade)</a></li>-->
+                            <li><a class="dropdown-item" onclick="downloadSample('F')" href="#"><i class="bi bi-download"></i> Download Sample File(Full)</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <hr/>
+
+            <div class="col-12" id="student-grade-data">
+
+            </div>
+            <div id="btn-classes" style="display: none;" class="row">
+                <div class="col-md-5">
+
+                </div>
+                <div class="col-md-6 mb-5 pt-5">
+                    <button type="button" class="btn btn-primary" id="save-sr-from-table"><i class="bi bi-save2-fill"></i> Save SR</button>
+                </div>
+            </div>
+
+            <!--File Upload Modal-->
+            <div class="modal fade" id="fileUploadModal" tabindex="-1" aria-labelledby="fileUploadModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="fileUploadModalLabel">Upload File</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="fileUploadForm" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="formFile" class="form-label">Choose a file to upload the SR List</label>
+                                    <input class="form-control" type="file" id="formFile" name="file" accept=".xlsx">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close </button>
+                            <button type="button" class="btn btn-primary" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload SR File</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Modal: Show File Info -->
+            <div class="modal fade" id="fileInfoModal" tabindex="-1" aria-labelledby="fileInfoModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="fileInfoModalLabel">SR Information</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-primary" role="alert">
+                                <p id="fileInfo">Those rows are red which has no SR found for Student. Either cancel this window and upload updated file again or want to proceed?<br>
+                                    In case of proceed, validation failed records will not be process.
+                                </p>
+                            </div>
+
+                            <table id="stu-sr-data" class="table table-bordered table-sm">
+                                <thead>
+                                <tr id="table-headers">
+                                    <th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Validation Message</th>
+                                </tr>
+                                </thead>
+                                <tbody id="table-body" class="table-group-divider">
+                                </tbody>
+                                <tfoot id="table-foot1">
+                                </tfoot>
+                            </table>
+                            <div id="table-foot">
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-success" id="uploadAndCloseModals">Upload and Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showMsg("error", errorMessage, "Error");
+        }
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        let medium, grade, section;
+
+        const validateMandatoryValues=()=>{
+            medium = $('#medium').val();
+            grade = $('#grade').val();
+            section = $('#section').val();
+            if(medium === '' || grade === '' || section === ''){
+                showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+                return false;
+            }
+            return true;
+        }
+    </script>
+</section>
+</body>
+</html>

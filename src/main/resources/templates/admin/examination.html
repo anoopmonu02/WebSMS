@@ -11,38 +11,35 @@
   <div class="container">
     <div class="row mt-2 ">
       <div class="col-md-12 ">
-        <div class="card-header fs-3">Holiday List</div>
+        <div class="card-header fs-3">Examination List</div>
         <hr/>
-        <table class="table table-bordered table-striped table-hover table-sm" th:if="${isHoliDays}" id="feeDateTable">
+        <table class="table table-bordered table-striped table-hover table-sm" th:if="${isExamination}" id="feeDateTable">
           <thead>
           <tr>
             <th>#</th>
-            <th>Holiday</th>
-            <th>Start Date</th>
-            <th>End Date</th>
+            <th>Examination Name</th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
           </thead>
           <tbody class="table-group-divider">
 
-          <tr th:each="fine,iterStat : ${holidays}">
+          <tr th:each="exam,iterStat : ${examinations}">
             <td th:text="${iterStat.index + 1}"></td>
-            <td th:text="${fine.holidayName}"></td>
-            <td th:text="${#dates.format(fine.holidayStartDate, 'dd/MMM/yyyy')}"></td>
-            <td th:text="${#dates.format(fine.holidayEndDate, 'dd/MMM/yyyy')}"></td>
-            <td th:text="${fine.description}"></td>
+            <td th:text="${exam.examinationName}"></td>
+            <td th:text="${exam.remarks}"></td>
             <td style="white-space: nowrap" class="text-center">
-                <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
+
+              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${exam.uuid}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
         </table>
-        <div th:if="${!isHoliDays}">
-          <p class="text-center">No Holiday found.</p>
+        <div th:if="${!isExamination}">
+          <p class="text-center">No Examination found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/admin/holiday/add"><i class="bi bi-node-plus-fill"></i> Add Holiday</a>
+          <a class="btn btn-success" href="/admin/examination/add"><i class="bi bi-node-plus-fill"></i> Add Examination</a>
         </div>
       </div>
     </div>
@@ -60,12 +57,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/holiday/delete/' + itemId,
+            url: '/admin/examination/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Holiday deleted successfully.","Delete");
+                toastr["info"]("Examination deleted successfully.","Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,
