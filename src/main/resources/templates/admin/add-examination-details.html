@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Add academic year</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<section class="container">
+  <div class="mt-2">
+    <div class="card-header fs-3">Examination Details Form</div>
+    <hr/>
+
+    <form th:action="@{/admin/examination-details}" th:object="${examDetails}" method="post" >
+      <div class="row g-2">
+        <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+        <input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
+        <div class="col-md-5">
+          <label for="examination" class="form-label">Examination Name</label>
+          <select name="examination" id="examination" class="form-select">
+            <option value="">Select Examination</option>
+            <option th:each="exam : ${examinations}" th:value="${exam.id}" th:text="${exam.examinationName}">Examination</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('examination')}" th:errors="*{examination}">Name Error</p>
+        </div>
+        <div class="col-md-6">
+          &nbsp;
+        </div>
+        <div class="col-md-5">
+          <label for="customer_name" class="form-label">Fee Date</label>
+          <input type="text"  class="form-control" id="customer_name" name="examDeclaredDate" th:field="*{examDeclaredDate}" />
+          <p class="text-danger" th:if="${#fields.hasErrors('examDeclaredDate')}" th:errors="*{examDeclaredDate}">date Error</p>
+        </div>
+        <div class="col-md-6">
+          &nbsp;
+        </div>
+
+
+        <div class="col-md-7">
+          <label for="description" class="form-label">Description</label>
+          <div class="form-floating">
+            <textarea id="description" placeholder="Add description here" class="form-control" name="remarks" style="height: 100px;" rows="4" cols="50" th:field="*{remarks}"></textarea>
+            <label for="description">Add Description Here</label>
+          </div>
+          <p class="text-danger" th:if="${#fields.hasErrors('remarks')}" th:errors="*{remarks}">description Error</p>
+        </div>
+        <div class="col-md-2">
+          &nbsp;
+        </div>
+
+
+        <hr/>
+        <div class="col-md-4">
+          <a class="btn btn-info" href="/admin/examinations-date"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+        </div>
+        <div class="col-md-6 mb-5">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+        </div>
+      </div>
+    </form>
+
+
+
+
+
+  </div>
+
+  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script src="/js/toastr.min.js"></script>
+  <script src="/js/jquery-ui.min.js"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script src="/js/flatpickr.js"></script>
+  <script type="text/javascript" th:inline="javascript">
+    flatpickr("#customer_name", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
+    toastr.options = {
+      "closeButton": true,
+      "debug": false,
+      "newestOnTop": false,
+      "progressBar": false,
+      "positionClass": "toast-top-right",
+      "preventDuplicates": false,
+      "onclick": null,
+      "showDuration": "600",
+      "hideDuration": "1000",
+      "timeOut": "5000",
+      "extendedTimeOut": "1000",
+      "showEasing": "swing",
+      "hideEasing": "linear",
+      "showMethod": "fadeIn",
+      "hideMethod": "fadeOut"
+    }
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      //toastr.success(successMessage);
+      toastr["success"](successMessage,"Success");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+
+    // Display error message
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      //toastr.error(errorMessage);
+      console.log("errorMessage: "+errorMessage);
+      console.log("errorMessage: "+typeof errorMessage);
+      toastr["error"](errorMessage, "Error");
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "500",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    }
+  </script>
+
+
+</section>
+
+
+</body>
+</html>
+
+

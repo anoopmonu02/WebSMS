@@ -1,34 +1,32 @@
-package com.smsweb.sms.models.student;
+package com.smsweb.sms.models.admin;
 
-import com.smsweb.sms.models.admin.AcademicYear;
-import com.smsweb.sms.models.admin.ExamDetails;
-import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "exam_result_summary")
-public class ExamResultSummary {
-
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_examdetails",columnNames = {"examination_id", "academic_year_id", "school_id"})})
+public class ExamDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "exam_id")
-    @NotNull(message = "Exam should be available")
-    private ExamDetails examDetails;
+    @JoinColumn(name = "examination_id")
+    @NotNull(message = "Examination should be available")
+    private Examination examination;
 
-    @NotNull(message = "Exam result date should be available")
-    private Date examResultDate;
+    @NotNull(message = "Exam date should be available")
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
+    private Date examDeclaredDate;
 
     @ManyToOne
     @JoinColumn(name = "school_id")
@@ -40,21 +38,6 @@ public class ExamResultSummary {
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
 
-    @ManyToOne
-    @JoinColumn(name = "academic_student_id")
-    @NotNull(message = "Academic student should be available")
-    private AcademicStudent academicStudent;
-
-    private String result;
-
-    private Long totalMarks = 0L;
-
-    private Long obtainedMarks = 0L;
-
-    private Double percentageMarks = 0.0;
-
-    private String division;
-
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Remark should not exceed 500 characters")
     private String remarks;
@@ -65,13 +48,6 @@ public class ExamResultSummary {
 
     @UpdateTimestamp
     private Date lastUpdated;
-
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
-
-    @JoinColumn(name = "updated_by")
-    private String updatedBy;
-
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
     @PrePersist

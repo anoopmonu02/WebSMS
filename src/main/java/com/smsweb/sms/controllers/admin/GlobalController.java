@@ -31,6 +31,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Controller
@@ -60,12 +61,13 @@ public class GlobalController extends BaseController {
     private final SchoolHolder schoolHolder;
 
     private final HolidayService holidayService;
+    private final ExaminationService examinationService;
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
                             FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
-                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService){
+                            DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService, ExaminationService examinationService){
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.monthmappingService = monthmappingService;
@@ -87,6 +89,7 @@ public class GlobalController extends BaseController {
         this.academicYearHolder = academicYearHolder;
         this.schoolHolder = schoolHolder;
         this.holidayService = holidayService;
+        this.examinationService = examinationService;
     }
 
     /********************************   Academic year Code starts here   ************************************/
@@ -1233,12 +1236,10 @@ public class GlobalController extends BaseController {
             System.out.println("holiday: "+holiday);
             redirectAttributes.addFlashAttribute("success","Holiday saved successfully for: "+holiday.getHolidayName());
         }catch(DataIntegrityViolationException de){
-            System.out.println("11111111111");
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName());
             de.printStackTrace();
             return "/admin/add-holiday";
         }catch(UniqueConstraintsException de){
-            System.out.println("2222222222222222");
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName()+". "+de.getLocalizedMessage());
             de.printStackTrace();
             return "/admin/add-holiday";
@@ -1268,6 +1269,119 @@ public class GlobalController extends BaseController {
             response.put("message", "Error in deletion: " + e.getLocalizedMessage());
         }
         return response;
+    }
+
+    /******************************* Examination Code Starts Here *******************************/
+    @GetMapping("/examinations")
+    public String getExaminations(Model model){
+        List<Examination> examinationList = examinationService.getAllExamination();
+        model.addAttribute("examinations", examinationList);
+        model.addAttribute("isExamination", !examinationList.isEmpty());
+        return "/admin/examination";
+    }
+
+    @GetMapping("/examination/add")
+    public String getAddExaminationForm(Model model){
+        model.addAttribute("examination", new Examination());
+        return "/admin/add-examination";
+    }
+
+    @PostMapping("/examination/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteExamination(@PathVariable("id")String uuid){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = examinationService.deleteExamination(uuid);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Examination deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete examination.");
+            }
+        }catch(Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
+
+    @PostMapping("/examination")
+    public String save(@Valid @ModelAttribute("examination")Examination examination, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        if(result.hasErrors()){
+            model.addAttribute("error", result.getFieldError());
+            return "/admin/add-examination";
+        }
+        try{
+            examination = examinationService.save(examination);
+            System.out.println("examination: "+examination);
+            redirectAttributes.addFlashAttribute("success","Examination: "+examination.getExaminationName()+" saved successfully.");
+        }catch(DataIntegrityViolationException de){
+            model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName());
+            de.printStackTrace();
+            return "/admin/add-examination";
+        }catch(UniqueConstraintsException de){
+            model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName()+". "+de.getLocalizedMessage());
+            de.printStackTrace();
+            return "/admin/add-examination";
+        }catch(Exception e){
+            model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
+            System.out.println("ERRORRRR");
+            e.printStackTrace();
+            return "/admin/add-examination";
+        }
+        return "redirect:/admin/examinations";
+    }
+
+    @GetMapping("/examinations-date")
+    public String getExaminationsDate(Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        List<ExamDetails> examinationList = examinationService.getAllExaminationDates(academicYear.getId(), school.getId());
+        model.addAttribute("examinations", examinationList);
+        model.addAttribute("isExamination", !examinationList.isEmpty());
+        return "/admin/examination_date";
+    }
+
+    @GetMapping("/examination-details/add")
+    public String getAddExaminationDateForm(Model model){
+        model.addAttribute("examDetails", new ExamDetails());
+        model.addAttribute("examinations", examinationService.getAllExamination());
+        return "/admin/add-examination-details";
+    }
+
+    @PostMapping("/examination-details")
+    public String save(@Valid @ModelAttribute("examDetails")ExamDetails examDetails, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        model.addAttribute("examinations", examinationService.getAllExamination());
+        if(result.hasErrors()){
+            model.addAttribute("error", result.getFieldError());
+            //model.addAttribute("examinations", examinationService.getAllExamination());
+            return "/admin/add-examination-details";
+        }
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            examDetails.setAcademicYear(academicYear);
+            examDetails.setSchool(school);
+            examDetails = examinationService.saveExamDetails(examDetails);
+            System.out.println("examination: "+examDetails);
+            SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+            redirectAttributes.addFlashAttribute("success","Examination: "+examDetails.getExamination().getExaminationName()+" scheduled on: "+sf.format(examDetails.getExamDeclaredDate())+" successfully.");
+        }catch(DataIntegrityViolationException de){
+            model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName());
+            de.printStackTrace();
+            return "/admin/add-examination-details";
+        }catch(UniqueConstraintsException de){
+            model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName()+". "+de.getLocalizedMessage());
+            de.printStackTrace();
+            return "/admin/add-examination-details";
+        }catch(Exception e){
+            model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
+            System.out.println("ERRORRRR");
+            e.printStackTrace();
+            return "/admin/add-examination-details";
+        }
+        return "redirect:/admin/examinations-date";
     }
 
 }
