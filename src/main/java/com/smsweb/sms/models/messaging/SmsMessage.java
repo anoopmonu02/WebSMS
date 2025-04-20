@@ -65,4 +65,12 @@ public class SmsMessage {
     @NotNull(message = "School should be available")
     private School school;
 
+    @Column(nullable = true)
+    private Date createdAt;
+
+    @Column(nullable = true)
+    private String updatedBy;
+
+    @Column(nullable = true)
+    private Date updatedAt;
 }

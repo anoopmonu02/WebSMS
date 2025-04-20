@@ -113,16 +113,21 @@
                                         <th>#</th>
                                         <th>Subject</th>
                                         <th>Date</th>
+                                        <th>Action/Status</th> <!-- New column -->
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <!-- Dynamically loaded -->
+                                    <!-- Dynamically loaded via JS -->
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="col-md-6" id="conversationDiv"  style="display: none;">
+                            <div class="col-md-6" id="conversationDiv" style="display: none;">
                                 <h5>Conversation</h5>
-                                <textarea id="conversationTimeline" class="form-control" rows="15" readonly></textarea>
+                                <div id="conversationTimeline"
+                                     class="border rounded p-3"
+                                     style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <!-- Messages will appear here -->
+                                </div>
                             </div>
                         </div>
 
@@ -151,6 +156,50 @@
             </div>
         </div>
     </div>
+
+    <!-- Add SMS Conversation Modal -->
+    <div class="modal fade" id="addConversationModal" tabindex="-1" aria-labelledby="addConversationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addConversationModalLabel">Add SMS Conversation</h5>
+                    <!-- Close Button (X) -->
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <p><strong>Student Name:</strong> <span id="modalStudentName"></span></p>
+                    <p><strong>Message Text:</strong> <span id="modalMessageText"></span></p>
+
+                    <!-- New Selector for "SCHOOL" or "STUDENT" -->
+                    <div class="mb-3">
+                        <label for="initiatedBy" class="form-label">Initiated By</label>
+                        <select class="form-select" id="initiatedBy" required>
+                            <option value="SCHOOL">SCHOOL</option>
+                            <option value="STUDENT">STUDENT</option>
+                        </select>
+                    </div>
+
+                    <!-- Textarea for Conversation -->
+                    <textarea class="form-control" rows="5" id="conversationTextArea" placeholder="Type your message here..."></textarea>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    <!-- Send Button -->
+                    <button type="button" class="btn btn-success" onclick="sendSmsConversation()">Send</button>
+                    <!-- Cancel Button -->
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
 
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
@@ -298,10 +347,17 @@
                             dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                             dt = dt.replaceAll(" ","/");
                         }
+                        let resolveBtn = msg.resolution === 'RESOLVED'
+                            ? '<span class="text-success fw-bold">RESOLVED</span>'
+                            : `<button class="btn btn-sm btn-primary me-1" onclick="resolveSmsMessage(${msg.id}, this)">Resolve</button>`;
+                        console.log("msg.status--->"+msg.resolution);
+                        let convoBtn = msg.resolution != 'RESOLVED'?`<button class="btn btn-sm btn-warning text-white" onclick="openAddConversationModal(${msg.id},'${msg.smsHeading}')">Add Conversation</button>`:``;
+
                         let row = `<tr onclick="loadSmsConversations(${msg.id})" style="cursor:pointer">
                             <td>${counter}</td>
                             <td>${msg.smsHeading}</td>
                             <td>${dt}</td>
+                            <td>${resolveBtn}${convoBtn}</td>
                         </tr>`;
                         console.log("row-->"+row);
                         tbody.append(row);
@@ -310,19 +366,118 @@
                 });
         };
 
+        const resolveSmsMessage = (messageId, button) => {
+            const confirmed = confirm("Are you sure you want to mark this message as RESOLVED?");
+            if (!confirmed) return;
+
+            const url = `${window.location.origin}/message/resolveSmsMessage/${messageId}`;
+
+            fetch(url, { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        $(button).replaceWith('<span class="text-success fw-bold">RESOLVED</span>');
+                    } else {
+                        alert("Failed to resolve message.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error resolving message:", err);
+                    alert("Error resolving message.");
+                });
+        };
+
+
+        const openAddConversationModal = (messageId, messageText) => {
+            selectedMessageIdForConversation = messageId;
+            $('#modalMessageText').text(messageText);
+            $('#conversationTextArea').val('');
+            $('#addConversationModal').modal('show');
+        };
+
+
+
         const loadSmsConversations = (messageId) => {
-            let url = `${window.location.origin}/message/getSmsConversationsByMessage/${messageId}`;
+            const url = `${window.location.origin}/message/getSmsConversationsByMessage/${messageId}`;
             fetch(url)
                 .then(response => response.json())
                 .then(conversations => {
-                    $('#conversationDiv').show()
+                    $('#conversationDiv').show();
                     conversations.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
-                    let timeline = '';
+
+                    let timelineHTML = '';
                     conversations.forEach(conv => {
-                        let by = conv.initiatedBy === 'USER' ? 'You' : 'Student';
-                        timeline += `[${by} - ${new Date(conv.sentAt).toLocaleString()}]: ${conv.message}\n\n`;
+                        const by = conv.initiatedBy;
+                        const time = new Date(conv.sentAt).toLocaleString();
+
+                        // Show ✅✅ blue tick if seen is true
+                        const tick = conv.seen ? '<span style="color: #0ea5e9;">&#10004;&#10004;</span>' : '';
+
+                        const alignClass = (conv.initiatedBy === 'SCHOOL') ? 'text-start' : 'text-end';
+                        const bubbleClass = (conv.initiatedBy === 'SCHOOL') ? 'bg-light' : 'bg-primary text-white';
+
+                        timelineHTML += `
+                    <div class="${alignClass} mb-2">
+                        <span class="d-inline-block px-3 py-2 border rounded ${bubbleClass}" style="max-width: 70%;">
+                            <div class="small mb-1">
+                                <strong>${by}</strong> - ${time} ${tick}
+                            </div>
+                            <div>${conv.message}</div>
+                        </span>
+                    </div>
+                `;
                     });
-                    $("#conversationTimeline").val(timeline);
+
+                    $("#conversationTimeline").html(timelineHTML);
+
+                    // Auto-scroll to bottom
+                    const convoDiv = document.getElementById("conversationTimeline");
+                    convoDiv.scrollTop = convoDiv.scrollHeight;
+                });
+        };
+
+        $('form').on('submit', function(e) {
+            e.preventDefault(); // Prevent form submission
+        });
+
+        const sendSmsConversation = () => {
+            const message = $('#conversationTextArea').val().trim();
+            const initiatedBy = document.getElementById('initiatedBy').value; // Get the selected value
+            if (!message) {
+                alert("Please enter a message.");
+                return;
+            }
+
+            const url = `${window.location.origin}/message/sendSmsConversation`;
+            console.log("selectedMessageIdForConversation--->"+selectedMessageIdForConversation);
+            console.log("message-->"+message);
+            console.log("initiatedBy--->"+initiatedBy);
+            const payload = {
+                messageId: selectedMessageIdForConversation,
+                message: message,
+                initiatedBy:initiatedBy
+            };
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        $('#addConversationModal').modal('hide');
+                        alert("Conversation sent successfully!");
+
+                        // Reload conversation timeline
+                        loadSmsConversations(selectedMessageIdForConversation);
+                    } else {
+                        alert("Failed to send conversation.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error sending conversation:", error);
+                    alert("Error sending conversation.");
                 });
         };
 
@@ -362,6 +517,27 @@
             // Reset currentMessageId
             currentMessageId = null;
         }
+
+        $(document).ready(function () {
+            // Open the modal when called from the button
+            window.openAddConversationModal = function (messageId, messageText) {
+                console.log("openAddConversationModal triggered with messageId:", messageId, "and messageText:", messageText);
+
+                // Assign values to modal content
+                selectedMessageIdForConversation = messageId;
+                $('#modalMessageText').text(messageText);
+                $('#conversationTextArea').val('');
+
+                // Debug modal visibility
+                console.log("Attempting to open modal with ID:", '#addConversationModal');
+                $('#addConversationModal').modal('show');
+            };
+
+            // Prevent default form submission if inside a form element
+            $('form').on('submit', function(e) {
+                e.preventDefault();  // Stop the page from refreshing
+            });
+        });
 
     </script>
 </section>
