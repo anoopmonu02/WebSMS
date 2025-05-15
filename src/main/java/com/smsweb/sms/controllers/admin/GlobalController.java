@@ -1384,4 +1384,24 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/examinations-date";
     }
 
+    @PostMapping("/examinations-detail/delete/{id}")
+    @ResponseBody
+    public Map<String, String> deleteExaminationDetail(@PathVariable("id")String uuid){
+        Map<String, String> response = new HashMap<>();
+        try{
+            String returnMsg = examinationService.deleteExamDetails(uuid);
+            if ("success".equals(returnMsg)) {
+                response.put("status", "success");
+                response.put("message", "Examination detail deleted.");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Failed to delete examination detail.");
+            }
+        }catch(Exception e){
+            response.put("status", "error");
+            response.put("message", "Error in deletion: " + e.getLocalizedMessage());
+        }
+        return response;
+    }
+
 }
