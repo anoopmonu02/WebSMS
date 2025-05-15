@@ -120,6 +120,7 @@
     if (errorMessage) {
       //toastr.error(errorMessage);
       console.log("errorMessage: "+errorMessage);
+      console.log("errorMessage: "+JSON.stringify(errorMessage));
       console.log("errorMessage: "+typeof errorMessage);
       toastr["error"](errorMessage, "Error");
       toastr.options = {

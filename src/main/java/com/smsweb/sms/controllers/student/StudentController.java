@@ -413,4 +413,15 @@ public class StudentController extends BaseController {
         model.addAttribute("page", "datatable");
         return "/student/all_students_grade";
     }
+
+    @GetMapping("/stu-exam-result")
+    public String examResultForm(Model model){
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        model.addAttribute("page", "datatable");
+        return "/student/stu_exam";
+    }
+
+
 }

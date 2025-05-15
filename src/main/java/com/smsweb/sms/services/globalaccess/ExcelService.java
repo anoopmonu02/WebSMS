@@ -37,7 +37,7 @@ public class ExcelService {
     }
 
 
-    public Map<String, Object> downloadSampleSRExcel(Long grade, Long section, Long medium, Long academic, Long school, String fileType) {
+    public Map<String, Object> downloadSampleSRExcel(Long grade, Long section, Long medium, Long academic, Long school, String fileType, String calledFrom) {
         Map<String, Object> responseMap = new HashMap<>();
         try {
             Grade gradeObj = gradeService.getGradeById(grade).orElse(null);
@@ -79,7 +79,12 @@ public class ExcelService {
             }
 
             // Generate and download the Excel file
-            ByteArrayInputStream excelFile = excelFileHandler.LoadSampleSRFile("sr_file", academicStudentList, mediumGradeSection, fileType);
+            ByteArrayInputStream excelFile;
+            if("exam".equalsIgnoreCase(calledFrom)){
+                excelFile = excelFileHandler.LoadSampleSRFile("G_marks_entry", academicStudentList, mediumGradeSection, fileType);
+            } else{
+                excelFile = excelFileHandler.LoadSampleSRFile("sr_file", academicStudentList, mediumGradeSection, fileType);
+            }
             responseMap.put("filecreated", excelFile);
             return responseMap;
         } catch (Exception e) {

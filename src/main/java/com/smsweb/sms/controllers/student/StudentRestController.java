@@ -48,7 +48,7 @@ public class StudentRestController extends BaseController {
                 String fileType = requestBody.getOrDefault("fileType", "");
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
-                Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), fileType);
+                Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), fileType, "sr");
                 if(responseMap!=null && responseMap.containsKey("error")){
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
                 }
@@ -447,5 +447,45 @@ public class StudentRestController extends BaseController {
         }
 
         return ResponseEntity.ok(receiptData);
+    }
+
+    @PostMapping("/downloadSampleFileToEnterExamResult")
+    public ResponseEntity<?> downloadSampleFileToEnterExamResult(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
+        String fileName = "Academic_Students_Exam_Result_Sample_File.xlsx";
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                String medium = requestBody.getOrDefault("mediumId","0");
+                String grade = requestBody.getOrDefault("gradeId","0");
+                String section = requestBody.getOrDefault("sectionId","0");
+                Long mediumId = (medium!=null && medium!="")?Long.parseLong(medium):0;
+                Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0;
+                Long sectionId = (section!=null && section!="")?Long.parseLong(section):0;
+                String fileType = requestBody.getOrDefault("fileType", "");
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), fileType, "exam");
+                if(responseMap!=null && responseMap.containsKey("error")){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+                }
+                if(responseMap!=null && responseMap.containsKey("filecreated")){
+                    ByteArrayInputStream file = (ByteArrayInputStream)responseMap.get("filecreated");
+                    InputStreamResource in = new InputStreamResource(file);
+
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+fileName)
+                            .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                            .body(in);
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getLocalizedMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Invalid request data");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

@@ -59,12 +59,12 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/examination/delete/' + itemId,
+            url: '/admin/examinations-detail/delete/' + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);
               if(response.status === "success"){
-                toastr["info"]("Examination deleted successfully.","Delete");
+                toastr["info"]("Examination detail deleted successfully.","Delete");
                 toastr.options = {
                   "closeButton": true,
                   "debug": false,
