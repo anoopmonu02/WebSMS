@@ -151,11 +151,54 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary mt-3">Send Message</button>
+                    <button type="submit" id="sendNewMessage"  class="btn btn-primary mt-3">Send New Message</button>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="newMessageModal" tabindex="-1" role="dialog" aria-labelledby="newMessageModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newMessageModalLabel">New Message</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Student Details -->
+                    <div class="mb-3">
+                        <strong>Name:</strong> <span id="studentName"></span><br>
+                        <strong>Class:</strong> <span id="studentClass"></span><br>
+                        <strong>Parent Name:</strong> <span id="studentParent"></span>
+                    </div>
+
+                    <!-- Message Heading -->
+                    <div class="form-group">
+                        <label for="messageHeading">Heading</label>
+                        <input type="text" class="form-control" id="messageHeading" placeholder="Enter message heading">
+                    </div>
+
+                    <!-- Message Text -->
+                    <div class="form-group">
+                        <label for="messageText">Message</label>
+                        <textarea class="form-control" id="messageText" rows="4" placeholder="Type your message here..."></textarea>
+                    </div>
+
+                    <div class="text-danger d-none" id="modalError"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" onclick="submitNewMessage()">Send</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 
     <!-- Add SMS Conversation Modal -->
     <div class="modal fade" id="addConversationModal" tabindex="-1" aria-labelledby="addConversationModalLabel" aria-hidden="true">
@@ -204,6 +247,7 @@
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script src="/js/toastr.min.js"></script>
     <script type="text/javascript">
+        let selectedStudent = null;
         $(document).ready(function () {
             $('#messageType').change(function () {
                 resetMessageForm();
@@ -234,6 +278,8 @@
             });
         });
 
+
+
         const searchStuName=() =>{
             let query=$("#search-input").val();
             console.log('searched.....'+query);
@@ -261,7 +307,7 @@
                 $(".search-result").hide();
             }
         }
-
+        selectedStudent;
         const loadStudentData=(id)=>{
             $(".search-result").hide();
             $("#search-input").val('');
@@ -279,6 +325,7 @@
                         showWarningMsg("warning",data.noAcademicStudent,"Message");
                     }
                     else{
+                        selectedStudent = data.student
                         $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
                         $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
                         $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
@@ -538,6 +585,44 @@
                 e.preventDefault();  // Stop the page from refreshing
             });
         });
+
+
+
+        document.getElementById("sendNewMessage").addEventListener("click", function () {
+            if (!selectedStudent) {
+                alert("Please select a student first.");
+                return;
+            }
+            document.getElementById("studentName").innerText = selectedStudent.student.studentName;
+            document.getElementById("studentClass").innerText = `${selectedStudent.grade.gradeName}/${selectedStudent.section.sectionName}`
+            document.getElementById("studentParent").innerText = `${selectedStudent.student.fatherName}/${selectedStudent.student.motherName}`
+
+            document.getElementById("messageHeading").value = "";
+            document.getElementById("messageText").value = "";
+            document.getElementById("modalError").classList.add("d-none");
+
+            $('#newMessageModal').modal('show');
+        });
+
+
+        function submitNewMessage() {
+            const heading = document.getElementById("messageHeading").value.trim();
+            const message = document.getElementById("messageText").value.trim();
+
+            if (!heading || !message) {
+                const errorDiv = document.getElementById("modalError");
+                errorDiv.innerText = "Both heading and message are required.";
+                errorDiv.classList.remove("d-none");
+                return;
+            }
+
+            // Proceed to send via AJAX (optional)
+            console.log("Sending:", { heading, message, student: selectedStudent });
+
+            // Close modal and show success
+            $('#newMessageModal').modal('hide');
+            alert("Message sent!");
+        }
 
     </script>
 </section>
