@@ -12,4 +12,7 @@ public interface ExamDetailsRepository extends JpaRepository<ExamDetails, Long> 
     List<ExamDetails> findAllByAcademicYear_IdAndSchool_Id(Long academic, Long school);
 
     Optional<ExamDetails> findByUuid(UUID uuid);
+
+    ExamDetails findByExaminationExaminationNameAndAcademicYear_IdAndSchool_Id(String examName, Long academic, Long school);
+    ExamDetails findByExamination_IdAndAcademicYear_IdAndSchool_Id(Long exam, Long academic, Long school);
 }

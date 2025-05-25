@@ -131,72 +131,6 @@ public class ExcelFileHandler {
         }
     }
 
-    public ByteArrayInputStream LoadSampleExamResultFile(String fileName, List<AcademicStudent> list, String[] medium_grade_section, String fileType) throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try{
-            //Create sheet
-            Sheet sheet = workbook.createSheet("Student List");
-
-            Row row = sheet.createRow(0);
-            int colCount = 0;
-            if("F".equalsIgnoreCase(fileType)){
-                for (int i=0;i<EXAM_RESULT_SAMPLE_HEADER.length;i++){
-                    Cell keyCell = row.createCell(colCount);
-                    keyCell.setCellValue(GRADE_HEADER_FULL[i]);
-                }
-            } else{
-                for (int i=0;i<GRADE_HEADER.length;i++){
-                    Cell keyCell = row.createCell(colCount);
-                    keyCell.setCellValue(GRADE_HEADER[i]);
-                    colCount++;
-                    Cell valueCell = row.createCell(colCount);
-                    valueCell.setCellValue(medium_grade_section[i]);
-                    colCount++;
-                }
-            }
-
-            //Create Main Header
-            row = sheet.createRow(1);
-            if("aadhar_file".equalsIgnoreCase(fileName)){
-                createSingleRow(AADHAR_SAMPLE_HEADER, 1, row);
-            } else{
-                createSingleRow(SR_SAMPLE_HEADER, 1, row);
-            }
-
-            int rowCount = 2;
-            //Writing Data
-            for(AcademicStudent student: list){
-                row = sheet.createRow(rowCount);
-                colCount = 0;
-                rowCount++;
-                Cell dataCell = row.createCell(colCount); colCount++;
-                dataCell.setCellValue(student.getStudent().getStudentName());
-                dataCell = row.createCell(colCount); colCount++;
-                dataCell.setCellValue(student.getUuid().toString());
-                dataCell = row.createCell(colCount); colCount++;
-                dataCell.setCellValue(student.getStudent().getFatherName());
-                dataCell = row.createCell(colCount);  colCount++;
-                dataCell.setCellValue(student.getStudent().getMotherName());
-                dataCell = row.createCell(colCount);  colCount++;
-                dataCell.setCellValue(student.getStudent().getMobile1());
-                dataCell = row.createCell(colCount);  colCount++;
-                dataCell.setCellValue("");
-            }
-            workbook.write(out);
-            return new ByteArrayInputStream(out.toByteArray());
-
-        }catch(Exception e){
-            e.printStackTrace();
-            return null;
-        }
-        finally {
-            workbook.close();
-            out.flush();
-            out.close();
-        }
-    }
-
     public Row createSingleRow(String[] rowData, int rowIndex, Row row){
         try{
             for(int i=0;i<rowData.length;i++){
@@ -254,6 +188,41 @@ public class ExcelFileHandler {
                     colNumber++;
                 }
                 excelData.add(rowData);
+            }
+            return excelData;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public List<String[]> excelExamResultDataToList(InputStream inputStream, int dataStartRowNumber) throws IOException{
+        List<String[]> excelData = new ArrayList<>();
+        try{
+            int rowNumber = 0;
+            XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
+            Sheet sheet = workbook.getSheetAt(0);
+            Iterator<Row> iterator = sheet.iterator();
+            DataFormatter dataFormatter = new DataFormatter();
+            while(iterator.hasNext()){
+                Row row = iterator.next();
+                if(rowNumber<dataStartRowNumber){
+                    rowNumber++;
+                    //check for header
+                    continue;
+                }
+
+                Iterator<Cell> cellIterator = row.iterator();
+                String[] rowData = new String[15];
+                int colNumber = 0;
+                if(row.getPhysicalNumberOfCells()>10){
+                    while(cellIterator.hasNext()){
+                        Cell cell = cellIterator.next();
+                        rowData[colNumber] = dataFormatter.formatCellValue(cell);//cell.getStringCellValue();
+                        colNumber++;
+                    }
+                    excelData.add(rowData);
+                }
             }
             return excelData;
         }catch(Exception e){

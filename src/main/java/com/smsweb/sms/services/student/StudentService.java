@@ -7,14 +7,17 @@ import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
+import com.smsweb.sms.models.admin.ExamDetails;
 import com.smsweb.sms.models.admin.School;
-import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
+import com.smsweb.sms.models.student.ExamResultSummary;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
+import com.smsweb.sms.repositories.student.ExamResultSummaryRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.services.admin.ExaminationService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -47,15 +50,19 @@ public class StudentService {
     private final FileHandleHelper fileHandleHelper;
     private final UserService userService;
     private final AttendanceRepository attendanceRepository;
+    private final ExaminationService examinationService;
+    private final ExamResultSummaryRepository examResultSummaryRepository;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileHandleHelper = fileHandleHelper;
         this.userService = userService;
         this.attendanceRepository = attendanceRepository;
+        this.examinationService = examinationService;
+        this.examResultSummaryRepository = examResultSummaryRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -722,6 +729,108 @@ public class StudentService {
             responseMap.put("error", e.getLocalizedMessage());
         }
         return responseMap;
+    }
+
+    @Transactional
+    public String uploadExamResult(List<Map<String, String>> srdata, AcademicYear academic, School school){
+        int erFailCounter = 0, erPassCounter = 0;
+        List<ExamResultSummary> studentsResultsToSave = new ArrayList<>();
+        List<String> failedIds = new ArrayList<>();
+        try{
+            List<String> requiredFields = Arrays.asList(
+                    "Exam Name",
+                    "Exam Result Date",
+                    "Total Marks",
+                    "Obtained Marks",
+                    "Percentage(%)",
+                    "Division",
+                    "Result"
+            );
+            boolean supportSingleExam = true;
+            String examName = "";
+            //validating - exam should be unique
+            for (Map<String, String> rowData : srdata) {
+                if(examName.trim().length()>0){
+                    if(!examName.equalsIgnoreCase(rowData.get("Exam Name"))){
+                        supportSingleExam = false;
+                        break;
+                    }
+                } else{
+                    examName = rowData.get("Exam Name");
+                }
+            }
+            if(supportSingleExam){
+                ExamDetails examDetails = examinationService.getExamDetailByName(examName, academic.getId(), school.getId());
+                SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+                School schoolObj = null;
+                if(examDetails!=null){
+                    for (Map<String, String> rowData : srdata) {
+                        List<String> missingFields = new ArrayList<>();
+
+                        for (String field : requiredFields) {
+                            String value = rowData.get(field);
+                            if (value == null || value.trim().isEmpty()) {
+                                missingFields.add(field);
+                            }
+                        }
+
+                        if (missingFields.isEmpty()) {
+                            String uuid = rowData.get("ID#");
+                            if (uuid != null && !uuid.isEmpty()) {
+                                AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
+                                        UUID.fromString(uuid), "Active", academic.getId(), school.getId()).orElse(null);
+
+                                if (academicStudent != null) {
+                                    ExamResultSummary examResultSummary = new ExamResultSummary();
+                                    examResultSummary.setResult(rowData.get("Result"));
+                                    examResultSummary.setExamDetails(examDetails);
+                                    examResultSummary.setExamResultDate(sf.parse(rowData.get("Exam Result Date")));
+                                    examResultSummary.setAcademicStudent(academicStudent);
+                                    examResultSummary.setSchool(school);
+                                    examResultSummary.setAcademicYear(academic);
+                                    examResultSummary.setDivision(rowData.get("Division"));
+                                    examResultSummary.setObtainedMarks(Long.parseLong(rowData.get("Obtained Marks")));
+                                    examResultSummary.setTotalMarks(Long.parseLong(rowData.get("Total Marks")));
+                                    examResultSummary.setPercentageMarks(Double.parseDouble(rowData.get("Percentage(%)")));
+                                    examResultSummary.setRemarks(rowData.get("remarks"));
+                                    examResultSummary.setCreatedBy(userService.getLoggedInUser().getUsername());
+                                    examResultSummary.setUpdatedBy(userService.getLoggedInUser().getUsername());
+
+                                    studentsResultsToSave.add(examResultSummary);  // Collect the student for bulk saving
+                                    erPassCounter++;
+                                } else {
+                                    failedIds.add(uuid);  // Log the failure
+                                    erFailCounter++;
+                                }
+                            } else {
+                                failedIds.add("Invalid UUID");
+                                erFailCounter++;
+                            }
+                        } else {
+                            erFailCounter++;
+                        }
+                    }
+                    // Bulk save the students
+                    examResultSummaryRepository.saveAll(studentsResultsToSave);
+                    return "Total Results updated: " + erPassCounter + " and Results not found for: "+erFailCounter;
+                } else{
+                    return "error#####Examination name not found. Kindly check your examination name!";
+                }
+            } else{
+                return "error#####Different exam results found, please re-check!";
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    public List<ExamResultSummary> getExamResultsForStudents(Long medium, Long grade, Long section, Long exam, Long academic, Long school){
+        ExamDetails examDetails = examinationService.getExamDetailById(exam, academic, school);
+        List<ExamResultSummary> examResultSummaries = examResultSummaryRepository.getExamResultSummariesBy(school, academic, medium, grade, section, examDetails);
+        System.out.println(examResultSummaries);
+        return examResultSummaries;
     }
 
 }

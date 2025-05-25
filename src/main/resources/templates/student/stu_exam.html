@@ -34,12 +34,19 @@
                         <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label for="exam" class="form-label">Exam</label>
+                    <select name="exam" id="exam" class="form-select">
+                        <option value="">Select Section</option>
+                        <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examinationName}">Exam Name</option>
+                    </select>
+                </div>
                 <div class="col-md-2 align-self-end">
                     <div class="col-sm-12">
                         <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
                     </div>
                 </div>
-                <div class="col-md-3 align-self-end">
+                <div class="col-md-2 align-self-end">
                     <div class="btn-group">
                         <button type="button" class="btn btn-secondary"><i class="bi bi-upload"></i> Upload Result</button>
                         <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
@@ -64,9 +71,9 @@
                 <div class="col-md-5">
 
                 </div>
-                <div class="col-md-6 mb-5 pt-5">
+                <!--<div class="col-md-6 mb-5 pt-5">
                     <button type="button" class="btn btn-primary" id="save-sr-from-table"><i class="bi bi-save2-fill"></i> Save SR</button>
-                </div>
+                </div>-->
             </div>
 
             <!--File Upload Modal-->
@@ -80,14 +87,14 @@
                         <div class="modal-body">
                             <form id="fileUploadForm" enctype="multipart/form-data">
                                 <div class="mb-3">
-                                    <label for="formFile" class="form-label">Choose a file to upload the SR List</label>
+                                    <label for="formFile" class="form-label">Choose a file to upload the Student Exam Results</label>
                                     <input class="form-control" type="file" id="formFile" name="file" accept=".xlsx">
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close </button>
-                            <button type="button" class="btn btn-primary" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload SR File</button>
+                            <button type="button" class="btn btn-primary" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload Exam Result</button>
                         </div>
                     </div>
                 </div>
@@ -98,12 +105,12 @@
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="fileInfoModalLabel">SR Information</h5>
+                            <h5 class="modal-title" id="fileInfoModalLabel">Exam Result Information</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body ">
                             <div class="alert alert-primary" role="alert">
-                                <p id="fileInfo">Those rows are red which has no SR found for Student. Either cancel this window and upload updated file again or want to proceed?<br>
+                                <p id="fileInfo">Those rows are red which has no result found for Student. Either cancel this window and upload updated file again or want to proceed?<br>
                                     In case of proceed, validation failed records will not be process.
                                 </p>
                             </div>
@@ -111,7 +118,8 @@
                             <table id="stu-sr-data" class="table table-bordered table-sm">
                                 <thead>
                                 <tr id="table-headers">
-                                    <th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Validation Message</th>
+                                    <th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th>
+                                    <th>Obtained Marks</th><th>Percentage(%)</th><th>Division</th><th>Result</th><th>Remark</th><th>Validation Message</th>
                                 </tr>
                                 </thead>
                                 <tbody id="table-body" class="table-group-divider">
@@ -246,6 +254,271 @@
                         toastr["error"]("An error occurred while downloading the file", "Error");
                     });
             }
+        }
+
+        const uploadFileGradeWise=()=>{
+            const fileUploadModal = new bootstrap.Modal(document.getElementById('fileUploadModal'));
+            fileUploadModal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileUploadModal = document.getElementById('fileUploadModal');
+            fileUploadModal.addEventListener('show.bs.modal', function () {
+                // Clear file input when modal is about to be shown
+                document.getElementById('formFile').value = '';
+            });
+        });
+
+        document.getElementById("uploadBtn").onclick = function (){
+            $("#table-body").empty();
+            $("#errorMessage").hide();
+            $("#table-foot").html('');
+            const formData = new FormData();
+            const fileInput = document.getElementById("formFile");
+            formData.append("file", fileInput.files[0]);
+            $('#fileUploadModal').modal('hide');
+            // AJAX call to send the file to the server
+            fetch('/upload-exam-result-file', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("DATA:::: "+data);
+                    if (data.hasOwnProperty("success")) {
+                        // Display the validation result on the page
+                        //document.getElementById("validationResult").innerHTML = JSON.stringify(data.result);
+                        //console.log("DATA::>>>> "+data.success);
+                        const fileInfoModal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
+
+                        if (data.hasOwnProperty("success")) {
+                            let rowData = data.success;
+
+                            if (rowData.length > 0) {
+
+                                // Create table rows for each array in the list
+                                let passed = 0;
+                                let failed = 0;
+                                for (let i = 0; i < rowData.length; i++) {
+                                    let row = rowData[i];
+                                    //console.log("ROW>>>>>>>>>>>>>>>>> "+row[row.length - 1].includes("error"));
+                                    let tableRow = "<tr>";
+                                    if(row[row.length - 1].includes("error")){
+                                        tableRow = "<tr class='table-danger'>";
+                                        failed++;
+                                    } else{
+                                        passed++;
+                                    }
+                                    row.forEach(cell => {
+                                        console.log("cell--"+cell);
+                                        if (cell == null) {
+                                            tableRow += `<td></td>`;
+                                        } else {
+                                            // Check if the cell contains "#####"
+                                            if (cell.includes("#####")) {
+                                                tableRow += `<td>${cell.split("#####")[1]}</td>`;
+                                            } else {
+                                                tableRow += `<td>${cell}</td>`;
+                                            }
+                                        }
+                                    });
+                                    tableRow += "</tr>";
+                                    //console.log("ROW DATA:::: "+tableRow);
+                                    $("#table-body").append(tableRow);
+                                }
+                                let msg = "<div class='row'><div class='col-md-2'><span><strong>Total: </strong>" + rowData.length + "</span></div><div class='col-md-2'><span class='text-success'><strong>Passed: </strong>"+ passed +"</span></div><div class='col-md-2'><span class='text-danger'><strong>Failed: </strong>" + failed;
+                                msg+="</span></div><div class='col-md-6'></div></div>";
+                                $("#table-foot").html(msg);
+                            }
+                        } else if (data.hasOwnProperty("error")) {
+                            // If the key is "error", display the error message
+                            let errorMessage = data.error.join(', '); // Assuming the error is a list of strings
+                            $("#errorMessage").text(errorMessage).show();
+                        }
+
+                        fileInfoModal.show();
+                    } else if(data.hasOwnProperty("error")) {
+                        //alert(data.message);
+                        console.log("eRROR: "+data.error[0]);
+                        showMsg("error", data.error[0],"Error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        };
+
+        document.getElementById("uploadAndCloseModals").onclick = function (){
+            //stu-sr-data
+            const tableData = [];
+
+            // Iterate through each row in the table
+            $('#stu-sr-data tbody tr').each(function() {
+                const rowData = {};
+                $(this).find('td').each(function(index) {
+                    const header = $('#stu-sr-data thead th').eq(index).text();
+                    rowData[header] = $(this).text();
+                });
+                tableData.push(rowData);
+            });
+
+            // Send data to the Spring Boot controller via AJAX
+            $.ajax({
+                url: '/upload-exam-result-data', // Replace with your controller endpoint
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(tableData),
+                success: function(response) {
+                    console.log('Data sent successfully:', response);
+                    $('.modal').modal('hide');
+                    if(response.includes('error')){
+                        showMsg("error", response.split("#####")[1],"Error");
+                    } else{
+                        showMsg("success", response, "Updated");
+                    }
+
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error sending data:', error);
+                    showMsg("error", 'Error sending data:'+ error,"Error");
+                }
+            });
+        };
+
+        document.getElementById("getfee").onclick = function(){
+            let proceed = validateMandatoryValues();
+            let exam = $('#exam').val();
+            if(proceed){
+                if(exam === ''){
+                    showMsg('error','Examination name is mandatory to view the records',"Warning");
+                    return false;
+                }
+                let url = `${window.location.origin}/getStudentsExamResults`;
+                let requestData = {
+                    mediumId: medium.toString(),
+                    gradeId: grade.toString(),
+                    sectionId: section.toString(),
+                    examId: exam.toString()
+                };
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            // Handle HTTP errors (e.g., 400, 500)
+                            throw new Error(`Error ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data === "No result found for the given criteria.") {
+                            //alert('No students found.');
+                            showMsg("warning", data, "Message");
+                        } else {
+                            // Assuming data is the student list, render it in the table
+                            //.alert('Data fetched successfully!');
+                            renderStudentData(data); // Call function to display student data
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        toastr["error"]("An error occurred while fetching the student(s) examination result", "Error");
+                    });
+            }
+        };
+
+        function renderStudentData(studentData) {
+            let divTabId = $("#student-grade-data");
+            let btndiv = $("#btn-classes");
+            btndiv.hide();
+            divTabId.html('');
+            let rowCount = 0;
+            let tbl = '<table class="table table-bordered table-sm" id="er-table-data"><thead><tr><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Perc(%)</th><th>Division</th><th>Result</th><th>Remark</th></tr></thead><tbody class="table-group-divider">'
+            studentData.forEach(function(examSummary) {
+                let srno = examSummary.academicStudent.classSrNo ? examSummary.academicStudent.classSrNo.trim() : '';
+                let remark = examSummary.remarks ? examSummary.remarks?.trim() : '';
+                tbl += `<tr>
+                      <td>${++rowCount}</td>
+                      <td>${examSummary.academicStudent.student.studentName}</td>
+                      <td>${examSummary.academicStudent.student.fatherName}</td>
+                      <td>${examSummary.academicStudent.student.motherName}</td>
+                      <td>${examSummary.academicStudent.student.mobile1}</td>
+                      <td>${srno}</td>
+                      <td>${examSummary.examDetails.examination.examinationName}</td>
+                      <td>${formatDateManual(examSummary.examResultDate)}</td>
+                      <td>${examSummary.totalMarks}</td>
+                      <td>${examSummary.obtainedMarks}</td>
+                      <td>${examSummary.percentageMarks}</td>
+                      <td>${examSummary.division}</td>
+                      <td>${examSummary.result}</td>
+                      <td>${remark}</td>
+                   </tr>`;
+
+            });
+            tbl+='</tbody></table>';
+            divTabId.html(tbl);
+            const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+            const columnDefs = [{ "orderable": false, "targets": [0] }];
+            $("#er-table-data").DataTable({
+                layout: {
+                    bottomEnd: {
+                        paging: {
+                            firstLast: false
+                        }
+                    },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Total Students Exam Result Data export',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Total Students Exam Result Data export'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Total Students Exam Result Data export',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, 'All']
+                ],
+                pageLength: 25,
+                columnDefs: columnDefs
+            });
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                // Remove the btn-secondary class from each button
+                $(this).removeClass("btn-secondary");
+            });
+            btndiv.show();
+        }
+        function formatDateManual(dateStr) {
+            const date = new Date(dateStr);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = date.toLocaleString('en-US', { month: 'short' });
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
         }
     </script>
 </section>
