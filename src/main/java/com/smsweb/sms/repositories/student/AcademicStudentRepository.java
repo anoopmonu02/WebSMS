@@ -1,8 +1,5 @@
 package com.smsweb.sms.repositories.student;
 
-import com.smsweb.sms.models.admin.AcademicYear;
-import com.smsweb.sms.models.admin.School;
-import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import org.springframework.data.domain.Page;
@@ -47,4 +44,7 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium);
+
+    Optional<AcademicStudent> findById(Long academicStudentId);
+
 }

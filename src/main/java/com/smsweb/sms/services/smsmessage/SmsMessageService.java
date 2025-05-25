@@ -32,7 +32,7 @@ public class SmsMessageService {
     private EmployeeRepository employeeRepository;
 
     public List<SmsMessage> getMessagesByStudentId(Long studentId) {
-        return smsMessageRepository.findByAcademicStudentId(studentId);
+        return smsMessageRepository.findByRecipients_Id(studentId);
     }
 
     public Optional<SmsMessage> findById(Long id) {
@@ -54,6 +54,13 @@ public class SmsMessageService {
         } else {
             return Optional.empty();
         }
+    }
+
+    public SmsMessage saveSmsMessage(SmsMessage smsMessage) {
+        if (smsMessage.getConversations() != null) {
+            smsMessage.getConversations().forEach(convo -> convo.setSmsMessage(smsMessage));
+        }
+        return smsMessageRepository.save(smsMessage);
     }
 
 }

@@ -46,8 +46,6 @@ public class SmsMessage {
     private List<SmsConversation> conversations;
 
 
-    private Date sentAt;
-
     @Column(nullable = false)
     private String messageType;
 

@@ -2,9 +2,11 @@ package com.smsweb.sms.controllers.smsmessage;
 
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.services.globalaccess.DropdownService;
 //import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import com.smsweb.sms.services.smsmessage.SmsMessageService;
+import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,13 +29,15 @@ public class SmsMessageController {
     private final DropdownService dropdownService;
     private final SmsMessageService smsMessageService;
     private final UserService userService;
+    private final AcademicStudentService academicStudentService;
 
     //, SmsMessageService messageService
-    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService) {
+    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService) {
         this.dropdownService = dropdownService;
         //this.messageService = messageService;
         this.smsMessageService = smsMessageService;
         this.userService = userService;
+        this.academicStudentService = academicStudentService;
     }
 
     // Endpoint for sending a message (only for employees)
@@ -132,6 +136,64 @@ public class SmsMessageController {
         response.put("seen", savedConversation.getSeen());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/sendNewMessage")
+    public ResponseEntity<Map<String, Object>> sendNewMessage(@RequestBody Map<String, Object> payload) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String message = (String) payload.get("message");
+
+            SmsMessage smsMessage;
+            SmsConversation conversation = new SmsConversation();
+            conversation.setContent(message);
+
+            conversation.setInitiatedBy(SmsConversation.INITIATED_BY_SCHOOL);
+
+
+            conversation.setSeen(false);
+            conversation.setIsDeleted(false);
+            conversation.setSentAt(new Date());
+            conversation.setHasAttachment(false);
+            conversation.setHaveDocAttachment(false);
+
+            String heading = (String) payload.get("heading");
+            Long studentId = Long.valueOf(payload.get("studentId").toString());
+
+            Optional<AcademicStudent> studentOpt = academicStudentService.findById(studentId);
+            if (studentOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid studentId"));
+            }
+
+            AcademicStudent student = studentOpt.get();
+
+            smsMessage = new SmsMessage();
+            smsMessage.setSmsHeading(heading);
+            smsMessage.setCreatedAt(new Date());
+            smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_COMPLAINT);
+            smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
+            smsMessage.setSchool(student.getSchool());
+            smsMessage.setCreatedBy(userService.getLoggedInUser().getUsername());
+            smsMessage.setRecipients(Collections.singletonList(student));
+            smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
+            smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
+
+
+            smsMessageService.saveSmsMessage(smsMessage);
+
+            response.put("message", conversation.getContent());
+            response.put("initiatedBy", conversation.getInitiatedBy());
+            response.put("sentAt", conversation.getSentAt());
+            response.put("seen", conversation.getSeen());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Or use a logger like log.error("Error in sendSmsConversation", e);
+            response.put("error", "An unexpected error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     @PostMapping("/resolveSmsMessage/{id}")
