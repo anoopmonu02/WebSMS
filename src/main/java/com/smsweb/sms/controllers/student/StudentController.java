@@ -9,12 +9,9 @@ import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.Student;
-import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.models.universal.City;
-import com.smsweb.sms.models.universal.Discounthead;
-import com.smsweb.sms.models.universal.MonthMaster;
+import com.smsweb.sms.repositories.admin.ExaminationRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
-import com.smsweb.sms.repositories.universal.MonthMasterRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
@@ -59,8 +56,9 @@ public class StudentController extends BaseController {
 
     private final AttendanceRepository attendanceRepository;
 
+    private final ExaminationRepository examinationRepository;
     @Autowired
-    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository){
+    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository){
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.dropdownService = dropdownService;
@@ -68,6 +66,7 @@ public class StudentController extends BaseController {
         this.schoolService = schoolService;
         this.userService = userService1;
         this.attendanceRepository = attendanceRepository;
+        this.examinationRepository = examinationRepository;
     }
 
     @GetMapping("/student")
@@ -419,6 +418,7 @@ public class StudentController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
+        model.addAttribute("examNames",examinationRepository.findAll());
         model.addAttribute("page", "datatable");
         return "/student/stu_exam";
     }

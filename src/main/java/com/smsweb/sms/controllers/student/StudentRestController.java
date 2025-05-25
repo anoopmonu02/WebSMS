@@ -4,6 +4,7 @@ import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.ExamResultSummary;
 import com.smsweb.sms.services.globalaccess.ExcelService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
@@ -487,5 +488,78 @@ public class StudentRestController extends BaseController {
         Map<String, String> response = new HashMap<>();
         response.put("error", "Invalid request data");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @PostMapping("/upload-exam-result-file")
+    public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
+        Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateExamResultData(file);
+        Map<String, List<String[]>> dataMap = new HashMap<>();
+        try{
+            for (Map.Entry<String, Map<String, List<String[]>>> outerEntry : excelData.entrySet()) {
+                String outerKey = outerEntry.getKey();
+                Map<String, List<String[]>> innerMap = outerEntry.getValue();
+
+                System.out.println("Outer Key: " + outerKey);
+                if("success".equalsIgnoreCase(outerKey)){
+                    dataMap.put(outerKey, innerMap.get("DATA"));
+                } else{
+                    List<String[]> lst = new ArrayList<>();
+                    String[] errdata = new String[1];
+                    errdata[0] = innerMap.keySet().toArray()[0].toString();
+                    lst.add(errdata);
+                    dataMap.put(outerKey, lst);
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(dataMap);
+    }
+
+    @PostMapping("/upload-exam-result-data")
+    public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
+        String responseMsg = "";
+        try{
+            System.out.println("Received data: " + tableData);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            responseMsg = studentService.uploadExamResult(tableData, academicYear, school);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return ResponseEntity.ok(responseMsg);
+    }
+
+    @PostMapping("/getStudentsExamResults")
+    public ResponseEntity<?> getSelectedGradeStudentsExamResult(@RequestBody Map<String, String> tableData, Model model){
+        String responseMsg = "";
+        try{
+            if(tableData!=null && !tableData.isEmpty()){
+                System.out.println("Received data: " + tableData);
+                String medium = tableData.getOrDefault("mediumId","0");
+                String grade = tableData.getOrDefault("gradeId","0");
+                String section = tableData.getOrDefault("sectionId","0");
+                String examId = tableData.getOrDefault("examId","0");
+                Long mediumId = (medium!=null && medium!="")?Long.parseLong(medium):0L;
+                Long gradeId = (grade!=null && grade!="")?Long.parseLong(grade):0L;
+                Long sectionId = (section!=null && section!="")?Long.parseLong(section):0L;
+                Long exam = (examId!=null && examId!="")?Long.parseLong(examId):0L;
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                List<ExamResultSummary> examResultSummaries = studentService.getExamResultsForStudents(mediumId, gradeId, sectionId,exam, academicYear.getId(), school.getId());
+                if(examResultSummaries == null || examResultSummaries.isEmpty()){
+                    return ResponseEntity.ok("No result found for the given criteria.");
+                }
+                return ResponseEntity.ok(examResultSummaries);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Request body is missing or invalid.");
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return ResponseEntity.ok(responseMsg);
     }
 }

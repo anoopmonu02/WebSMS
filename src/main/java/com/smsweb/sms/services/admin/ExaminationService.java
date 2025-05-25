@@ -71,4 +71,11 @@ public class ExaminationService {
             throw new ObjectNotSaveException("Unable to delete examination", e);
         }
     }
+
+    public ExamDetails getExamDetailByName(String examName, Long academic_id, Long school_id){
+        return examDetailsRepository.findByExaminationExaminationNameAndAcademicYear_IdAndSchool_Id(examName, academic_id, school_id);
+    }
+    public ExamDetails getExamDetailById(Long examName, Long academic_id, Long school_id){
+        return examDetailsRepository.findByExamination_IdAndAcademicYear_IdAndSchool_Id(examName, academic_id, school_id);
+    }
 }

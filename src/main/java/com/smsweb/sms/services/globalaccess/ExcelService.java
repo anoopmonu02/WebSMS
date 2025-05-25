@@ -15,10 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @Service
 public class ExcelService {
@@ -136,14 +135,44 @@ public class ExcelService {
         List<String[]> validatedData = new ArrayList<>();
         try{
             for(String[] rowData : excelData){
-                if(rowData[5]==null || rowData[5].isEmpty()){
-                    if("aadhar_file".equalsIgnoreCase(fileName)){
-                        rowData[6] = "error#####Failed: Aadhar No required";
-                    } else{
-                        rowData[6] = "error#####Failed: SR No required";
+                if("exam_file".equalsIgnoreCase(fileName)){
+                    //if called from exam result
+                    //rowData[6-12]
+                    if (rowData.length < 15) {
+                        rowData = Arrays.copyOf(rowData, 15);
+                    }
+                    boolean hasMissing = false;
+                    for (int i = 6; i <= 12; i++) {
+                        if (i >= rowData.length || rowData[i] == null || rowData[i].trim().isEmpty()) {
+                            hasMissing = true;
+                            break;
+                        }
+                    }
+                    if(rowData[7]!=null && rowData[7].trim()!=""){
+                        rowData[7] = parseAndFormatDate(rowData[7]);
+                    }
+                    System.out.println("Row Data[7] "+ rowData[7]);
+                    System.out.println("Row Data[7] "+ rowData[8]);
+                    System.out.println("Row Data[7] "+ rowData[9]);
+                    System.out.println("Row Data[7] "+ rowData[10]);
+                    if (hasMissing) {
+                        rowData[14] = "error#####Failed: Mandatory fields for exam result are missing.";
+                    } else {
+                        rowData[14] = "success#####Passed";
                     }
                 } else{
-                    rowData[6] = "success#####Passed";
+                    if (rowData.length < 7) {
+                        rowData = Arrays.copyOf(rowData, 7);
+                    }
+                    if(rowData[5]==null || rowData[5].trim().isEmpty()){
+                        if("aadhar_file".equalsIgnoreCase(fileName)){
+                            rowData[6] = "error#####Failed: Aadhar No required";
+                        } else{
+                            rowData[6] = "error#####Failed: SR No required";
+                        }
+                    } else{
+                        rowData[6] = "success#####Passed";
+                    }
                 }
                 validatedData.add(rowData);
             }
@@ -226,6 +255,75 @@ public class ExcelService {
 
             //Read Data
             excelData = readSRExcelDataAndValidate(excelData, "aadhar_file");
+            if(excelData==null || excelData.isEmpty()){
+                childData.put("Unable to read data", null);
+                validatedData.put("error", childData);
+                return validatedData;
+            }
+            childData.put("DATA", excelData);
+            validatedData.put("success", childData);
+            System.out.println("excelData "+excelData.size());
+            return validatedData;
+
+        }catch(Exception e){
+            e.printStackTrace();
+            childData.put(e.getLocalizedMessage(), null);
+            validatedData.put("error", childData);
+            return validatedData;
+        }
+    }
+
+    List<String> possibleDateFormats = new ArrayList<>(Arrays.asList(
+            "dd/MM/yyyy",
+            "MM-dd-yyyy",
+            "yyyy.MM.dd",
+            "dd/MMM/yyyy",
+            "MM/dd/yy",
+            "MM/dd/yyyy",
+            "MM-dd-yy",
+            "dd/MM/yy",
+            "dd/MMM/yy",
+            "dd-MM-yyyy",
+            "dd-MM-yy"
+    ));
+
+    public String parseAndFormatDate(String inputDate) {
+        for (String format : possibleDateFormats) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.ENGLISH);
+                sdf.setLenient(false); // strict parsing
+                Date date = sdf.parse(inputDate);
+
+                // If parsed successfully, format to desired output format
+                SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
+                return outputFormat.format(date);
+            } catch (ParseException e) {
+                // Try next format
+            }
+        }
+        return null; // or throw exception / return error message
+    }
+
+    public Map<String, Map<String, List<String[]>>> checkAndValidateExamResultData(MultipartFile excelFile){
+        String msg = "";
+        Map<String, Map<String, List<String[]>>> validatedData = new HashMap<>();
+        Map<String, List<String[]>> childData = new HashMap<>();
+        try{
+            boolean isValidFile = excelFileHandler.checkValidExcelFormat(excelFile);
+            if(!isValidFile){
+                childData.put("File format not supported or not valid", null);
+                validatedData.put("error", childData);
+                return validatedData;
+            }
+            List<String[]> excelData = excelFileHandler.excelExamResultDataToList(excelFile.getInputStream(), 2);
+            if(excelData==null || excelData.isEmpty()){
+                childData.put("Data not found or not valid", null);
+                validatedData.put("error", childData);
+                return validatedData;
+            }
+
+            //Read Data
+            excelData = readSRExcelDataAndValidate(excelData, "exam_file");
             if(excelData==null || excelData.isEmpty()){
                 childData.put("Unable to read data", null);
                 validatedData.put("error", childData);

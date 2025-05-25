@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public class ExamResultSummary {
     private ExamDetails examDetails;
 
     @NotNull(message = "Exam result date should be available")
+    @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date examResultDate;
 
     @ManyToOne
