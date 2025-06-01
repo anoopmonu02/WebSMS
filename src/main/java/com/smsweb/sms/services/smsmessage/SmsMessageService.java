@@ -63,4 +63,12 @@ public class SmsMessageService {
         return smsMessageRepository.save(smsMessage);
     }
 
+    public void saveConversation(SmsConversation conversation) {
+        smsConversationRepository.save(conversation);
+    }
+
+    public void saveAllConversations(List<SmsConversation> conversations) {
+        smsConversationRepository.saveAll(conversations); // efficient batch save
+    }
+
 }
