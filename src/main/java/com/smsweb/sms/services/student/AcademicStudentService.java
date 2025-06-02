@@ -105,4 +105,8 @@ public class AcademicStudentService {
             return "error#####" + e.getLocalizedMessage();
         }
     }
+
+    public Optional<AcademicStudent> findById(Long academicStudentId) {
+        return academicStudentRepository.findById(academicStudentId);
+    }
 }

@@ -161,4 +161,8 @@ public class EmployeeService {
         Employee employee = employeeRepository.findByUserEntity(userService.getLoggedInUser());
         return  employee.getSchool();
     }
+
+    public Optional<School> getLoggedInEmployeeSchool(String username) {
+        return employeeRepository.findSchoolByUsername(username);
+    }
 }

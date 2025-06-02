@@ -13,8 +13,8 @@ import java.util.List;
 
 public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
 
-    @Query("SELECT m FROM SmsMessage m JOIN m.recipients r WHERE r.id = :studentId ORDER BY m.sentAt DESC")
-    List<SmsMessage> findByAcademicStudentId(Long studentId);
+    @Query("SELECT m FROM SmsMessage m JOIN m.recipients r WHERE r.id = :studentId ORDER BY m.createdAt DESC")
+    List<SmsMessage> findByRecipients_Id(Long studentId);
 
     @Query("select sc from SmsConversation  sc where sc.smsMessage.id=:messageId order by  sc.sentAt desc")
     List<SmsConversation> findSmsConversationBySmsMessageId(Long messageId);

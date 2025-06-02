@@ -122,7 +122,10 @@
                                 </table>
                             </div>
                             <div class="col-md-6" id="conversationDiv" style="display: none;">
-                                <h5>Conversation</h5>
+                                <div class="d-flex align-items-center">
+                                    <h5 class="mb-0 me-2">Conversation</h5>
+                                    <h4 id="smsSubject" class="mb-0"></h4>
+                                </div>
                                 <div id="conversationTimeline"
                                      class="border rounded p-3"
                                      style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
@@ -156,6 +159,7 @@
             </div>
         </div>
     </div>
+    <div id="NotificationList"></div>
 
     <!-- Modal -->
     <div class="modal fade" id="newMessageModal" tabindex="-1" role="dialog" aria-labelledby="newMessageModalLabel" aria-hidden="true">
@@ -198,6 +202,48 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="notificationMessageModal" tabindex="-1" aria-labelledby="addConversationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <!-- Modal Header -->
+                <div class="modal-header flex-column align-items-start">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="modal-title mb-1" id="notificationMessageModalLabel">Send Notification</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <small id="modalMessageDetails" class="text-muted"></small>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <!-- Message Heading Field -->
+                    <div class="form-group mb-3">
+                        <label for="notificationHeading" class="form-label">Message Heading</label>
+                        <input type="text" class="form-control" id="notificationHeading" placeholder="Enter message heading">
+                    </div>
+
+                    <!-- Message Body Field -->
+                    <div class="form-group">
+                        <label for="notificationTextArea" class="form-label">Message</label>
+                        <textarea class="form-control" rows="5" id="notificationTextArea" placeholder="Type your message here..."></textarea>
+                    </div>
+
+                    <div class="text-danger d-none" id="notificationModalError"></div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" onclick="sendNotification()">Send Message</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
 
 
     <!-- Add SMS Conversation Modal -->
@@ -250,6 +296,8 @@
         let selectedStudent = null;
         $(document).ready(function () {
             $('#messageType').change(function () {
+                selectedStudent = null;
+                selectedMessageIdForConversation = null;
                 resetMessageForm();
                 const messageType = $(this).val();
                 $('#recipientTypeDiv').hide();
@@ -341,7 +389,14 @@
                         let section = data.student.section.sectionName;
                         $("#headingStudentDetail button").html(`${name} / ${grade}-${section}`);
                     }
-                    loadSmsMessagesForStudent(id);
+                    let messageType = $("#messageType").val();
+
+                    if (messageType==="complaint" ) {
+                        loadSmsMessagesForStudent(id);
+                        $("#conversationTimeline").html("");
+                        $("#smsSubject").html("")
+                    }
+
                 });
             }
         }
@@ -447,7 +502,13 @@
             const url = `${window.location.origin}/message/getSmsConversationsByMessage/${messageId}`;
             fetch(url)
                 .then(response => response.json())
-                .then(conversations => {
+                .then(data => {
+                    const heading = data.smsHeading;
+                    const conversations = data.conversations;
+
+                    // Set the heading
+                    $("#smsSubject").text(heading);
+
                     $('#conversationDiv').show();
                     conversations.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
 
@@ -456,11 +517,10 @@
                         const by = conv.initiatedBy;
                         const time = new Date(conv.sentAt).toLocaleString();
 
-                        // Show ✅✅ blue tick if seen is true
                         const tick = conv.seen ? '<span style="color: #0ea5e9;">&#10004;&#10004;</span>' : '';
 
-                        const alignClass = (conv.initiatedBy === 'SCHOOL') ? 'text-start' : 'text-end';
-                        const bubbleClass = (conv.initiatedBy === 'SCHOOL') ? 'bg-light' : 'bg-primary text-white';
+                        const alignClass = (by === 'SCHOOL') ? 'text-start' : 'text-end';
+                        const bubbleClass = (by === 'SCHOOL') ? 'bg-light' : 'bg-primary text-white';
 
                         timelineHTML += `
                     <div class="${alignClass} mb-2">
@@ -481,6 +541,7 @@
                     convoDiv.scrollTop = convoDiv.scrollHeight;
                 });
         };
+
 
         $('form').on('submit', function(e) {
             e.preventDefault(); // Prevent form submission
@@ -589,19 +650,73 @@
 
 
         document.getElementById("sendNewMessage").addEventListener("click", function () {
-            if (!selectedStudent) {
-                alert("Please select a student first.");
-                return;
+            let messageType = $("#messageType").val();
+
+            if (messageType==="complaint" ) {
+                if(!selectedStudent){
+                    alert("Please select a student first.");
+                    return;
+                }
+                document.getElementById("studentName").innerText = selectedStudent.student.studentName;
+
+                document.getElementById("studentClass").innerText = `${selectedStudent.grade.gradeName}/${selectedStudent.section.sectionName}`
+                document.getElementById("studentParent").innerText = `${selectedStudent.student.fatherName}/${selectedStudent.student.motherName}`
+
+                document.getElementById("messageHeading").value = "";
+                document.getElementById("messageText").value = "";
+                document.getElementById("modalError").classList.add("d-none");
+
+                $('#newMessageModal').modal('show');
             }
-            document.getElementById("studentName").innerText = selectedStudent.student.studentName;
-            document.getElementById("studentClass").innerText = `${selectedStudent.grade.gradeName}/${selectedStudent.section.sectionName}`
-            document.getElementById("studentParent").innerText = `${selectedStudent.student.fatherName}/${selectedStudent.student.motherName}`
+            if (messageType === "notification") {
+                let recipientType = $("#recipientType").val();
+                if (recipientType === "") {
+                    alert("Please select Recipient type to proceed");
+                    return;
+                }
+                if (recipientType === "ALL") {
+                    let messageDetails = `Type: <strong>${messageType.toUpperCase()}</strong> | Recipient: <strong>${recipientType.toUpperCase()}</strong>`;
+                    $("#modalMessageDetails").html(messageDetails);
+                    $("#notificationMessageModal").modal("show");
+                }
+                else if (recipientType === "CLASS") {
+                    let messageDetails = `Type: <strong>${messageType.toUpperCase()}</strong> | Recipient: <strong>${recipientType.toUpperCase()}</strong>`;
+                    const selectedClass = $("#grade option:selected").text();
+                    const selectedSection = $("#section option:selected").text();
+                    if(selectedClass==='Select Grade'){
+                        alert("Please select Grade to proceed");
+                        return;
+                    }
+                    if(selectedSection==='Select Section'){
+                        alert("Please select Section to proceed");
+                        return;
+                    }
+                    messageDetails += ` | Class: <strong>${selectedClass}</strong> - Section: <strong>${selectedSection}</strong>`;
+                    $("#modalMessageDetails").html(messageDetails);
+                    $("#notificationMessageModal").modal("show");
+                }
+                else if (recipientType === "STUDENT") {
+                    let messageDetails = `Type: <strong>${messageType.toUpperCase()}</strong> | Recipient: <strong>${recipientType.toUpperCase()}</strong>`;
 
-            document.getElementById("messageHeading").value = "";
-            document.getElementById("messageText").value = "";
-            document.getElementById("modalError").classList.add("d-none");
+                    if(!selectedStudent){
+                        alert("Please select Student to proceed");
+                        return;
+                    }
+                    let name = selectedStudent.student.studentName;
+                    let grade = selectedStudent.grade.gradeName;
+                    let section = selectedStudent.section.sectionName;
+                    const selectedStudentText = `${name} / ${grade}-${section}`;
+                    messageDetails += ` | Student: <strong>${selectedStudentText}</strong>`;
+                    $("#modalMessageDetails").html(messageDetails);
+                    $("#notificationMessageModal").modal("show");
+                }
 
-            $('#newMessageModal').modal('show');
+
+            }
+
+
+
+
         });
 
 
@@ -615,13 +730,254 @@
                 errorDiv.classList.remove("d-none");
                 return;
             }
-
+            if(!selectedStudent){
+                const errorDiv = document.getElementById("modalError");
+                errorDiv.innerText = "No Student selected";
+                errorDiv.classList.remove("d-none");
+                return;
+            }
             // Proceed to send via AJAX (optional)
-            console.log("Sending:", { heading, message, student: selectedStudent });
+            console.log("Sending:", { heading, message, student: selectedStudent.id });
+            sendNewMessage(heading, message, selectedStudent.id)
+
 
             // Close modal and show success
             $('#newMessageModal').modal('hide');
             alert("Message sent!");
+        }
+
+        function sendNewMessage(message, smsConversation, studentId) {
+            const url = `${window.location.origin}/message/sendNewMessage`;
+            console.log("message-->"+message);
+            console.log("smsConversation-->"+smsConversation);
+            console.log("student--->"+studentId)
+            const payload = {
+                heading: message,
+                message: smsConversation,
+                studentId: studentId
+            };
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        loadSmsMessagesForStudent(studentId);
+                        console.log("Server response:", response);
+
+                    } else {
+                        console.error("Error sending message:", error);
+                        alert("Failed to send message.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error sending conversation:", error);
+                    alert("Error sending conversation.");
+                });
+
+
+        }
+
+
+        function sendNotification() {
+            const heading = document.getElementById("notificationHeading").value.trim();
+            const message = document.getElementById("notificationTextArea").value.trim();
+            const errorDiv = document.getElementById("notificationModalError");
+
+            const recipientType = document.getElementById("recipientType")?.value;
+            const messageType = document.getElementById("messageType")?.value;
+
+            // Validation
+            if (!heading || !message || !recipientType || !messageType) {
+                errorDiv.textContent = "Please fill all required fields.";
+                errorDiv.classList.remove("d-none");
+                return;
+            }
+
+            // Build request payload
+            const requestData = {
+                heading: heading,
+                message: message,
+                messageType: messageType,
+                recipientType: recipientType
+            };
+
+            if (recipientType === "CLASS") {
+                const selectedClass = document.getElementById("grade")?.value;
+                const selectedSection = document.getElementById("section")?.value;
+
+                if (!selectedClass || !selectedSection) {
+                    errorDiv.textContent = "Please select class and section.";
+                    errorDiv.classList.remove("d-none");
+                    return;
+                }
+
+                requestData.classId = selectedClass;
+                requestData.sectionId = selectedSection;
+            } else if (recipientType === "STUDENT") {
+                if(!selectedStudent){
+                    errorDiv.textContent = "Please enter a student ID.";
+                    errorDiv.classList.remove("d-none");
+                    return;
+                }
+
+
+                requestData.studentId = selectedStudent.id;
+            }
+            const url = `${window.location.origin}/message/sendNewNotification`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData),
+                credentials: 'include'
+            })
+                .then(response => {
+                    if (response.ok) {
+                        clearNotificationModalFields()
+                        return response.text(); // Assuming response is plain text
+                    } else {
+                        throw new Error("Failed to send Notification.");
+                    }
+                })
+                .then(data => {
+                    const infoMessage = "Notification Sent Successfully.";
+                    if (infoMessage) {
+                        //toastr.success(successMessage);
+                        toastr["info"](infoMessage,"Info");
+                        toastr.options = {
+                            "closeButton": true,
+                            "debug": false,
+                            "newestOnTop": true,
+                            "progressBar": false,
+                            "positionClass": "toast-top-right",
+                            "preventDuplicates": false,
+                            "onclick": null,
+                            "showDuration": "600",
+                            "hideDuration": "1000",
+                            "timeOut": "5000",
+                            "extendedTimeOut": "1000",
+                            "showEasing": "swing",
+                            "hideEasing": "linear",
+                            "showMethod": "fadeIn",
+                            "hideMethod": "fadeOut"
+                        }
+                    }
+
+                })
+                .catch(error => {
+                    const errorMessage = error.message;
+                    if (errorMessage) {
+                        //toastr.error(errorMessage);
+                        toastr["error"](errorMessage, "Error");
+                        toastr.options = {
+                            "closeButton": true,
+                            "debug": false,
+                            "newestOnTop": false,
+                            "progressBar": false,
+                            "positionClass": "toast-top-right",
+                            "preventDuplicates": false,
+                            "onclick": null,
+                            "showDuration": "500",
+                            "hideDuration": "1000",
+                            "timeOut": "5000",
+                            "extendedTimeOut": "1000",
+                            "showEasing": "swing",
+                            "hideEasing": "linear",
+                            "showMethod": "fadeIn",
+                            "hideMethod": "fadeOut"
+                        }
+                    }
+                });
+
+        }
+
+
+        function fetchMessagesAndPopulateTable() {
+            const messageType = document.getElementById("messageTypeSelect")?.value;
+            const recipientType = document.getElementById("recipientTypeSelect")?.value;
+
+            const requestData = {
+                messageType: messageType,
+                recipientType: recipientType
+            };
+
+            if (recipientType === "CLASS") {
+                const selectedClass = document.getElementById("classSelect")?.value;
+                const selectedSection = document.getElementById("sectionSelect")?.value;
+
+                if (!selectedClass || !selectedSection) {
+                    alert("Please select both class and section.");
+                    return;
+                }
+
+                requestData.className = selectedClass;
+                requestData.section = selectedSection;
+
+            } else if (recipientType === "STUDENT") {
+                const studentId = document.getElementById("studentIdInput")?.value;
+
+                if (!studentId) {
+                    alert("Please enter a student ID.");
+                    return;
+                }
+
+                requestData.studentId = studentId;
+            }
+
+            fetch('/api/sms/fetch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const tableHtml = `
+            <table id="messagesTable" class="table table-bordered table-striped" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Message Type</th>
+                        <th>Recipient Type</th>
+                        <th>Class</th>
+                        <th>Section</th>
+                        <th>Student</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        `;
+
+                    document.getElementById("NotificationList").innerHTML = tableHtml;
+
+                    $('#messagesTable').DataTable({
+                        data: data,
+                        columns: [
+                            { data: 'messageType' },
+                            { data: 'recipientType' },
+                            { data: 'className', defaultContent: '' },
+                            { data: 'section', defaultContent: '' },
+                            { data: 'studentName', defaultContent: '' }
+                        ]
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching messages:", error);
+                    alert("Failed to fetch messages.");
+                });
+        }
+
+        function clearNotificationModalFields() {
+            document.getElementById("notificationHeading").value = "";
+            document.getElementById("notificationTextArea").value = "";
+            document.getElementById("notificationModalError").classList.add("d-none");
+            document.getElementById("notificationModalError").innerText = "";
         }
 
     </script>
