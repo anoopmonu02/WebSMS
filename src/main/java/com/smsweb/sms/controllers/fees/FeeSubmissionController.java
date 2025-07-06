@@ -256,4 +256,15 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("page", "datatable");
         return "/fees/pending-fee-report";
     }
+
+    @GetMapping("fees-total-deposited-report")
+    public String totalDepositedFee(Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        model.addAttribute("grades",gradeService.getAllGrades());
+        model.addAttribute("sections",sectionService.getAllSections());
+        model.addAttribute("mediums", mediumService.getAllMediums());
+        model.addAttribute("page", "datatable");
+        return "/fees/total_deposited_fees";
+    }
 }

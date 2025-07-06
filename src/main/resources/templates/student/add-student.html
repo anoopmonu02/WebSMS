@@ -12,7 +12,7 @@
     <div class="mt-2 gy-5 mb-5">
       <div class="card-header fs-3">Student Registration Form</div>
       <hr/>
-      <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data">
+      <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data" id="myForm">
         <!-- Personal Info -->
         <div class="col-12">
           <h4>Personal Information</h4>
@@ -441,6 +441,34 @@
       $('.intfields').on('input', function() {
         this.value = this.value.replace(/[^0-9]/g, '');
       });
+
+      //validating the phone and email data
+      $("#myForm").submit(function (e) {
+        let isValid = true;
+        //$("#nameError, #emailError").text(""); // Clear errors
+
+        const mobile1 = $("#mobile1").val().trim();
+        const email = $("#email").val().trim();
+        const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+        if (!mobile1) {
+          showWarningMsg("error", "Mobile no is required.","Error");
+          //$("#nameError").text("Name is required.");
+          isValid = false;
+        }
+
+        if (!email) {
+          //$("#emailError").text("Email is required.");
+          showWarningMsg("error", "Email is required.","Error");
+          isValid = false;
+        } else if (!emailPattern.test(email)) {
+          showWarningMsg("error", "Enter a valid email.","Error");
+          isValid = false;
+        }
+
+        if (!isValid) e.preventDefault(); // Prevent submission
+      });
+
     });
 
     /*$("#dob").datepicker({
@@ -493,6 +521,27 @@
         "showMethod": "fadeIn",
         "hideMethod": "fadeOut"
       }
+    }
+
+    function showWarningMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
     }
 
 
