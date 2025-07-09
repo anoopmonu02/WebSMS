@@ -9,7 +9,7 @@
     <div class="container">
         <div class="row mt-2 ">
             <div class="col-md-12">
-                <div class="card-header fs-3">Pending Fee</div>
+                <div class="card-header fs-3">Total Deposited Fee</div>
                 <hr/>
                 <div>
                     <div class="row mt-3">
@@ -34,17 +34,7 @@
                                 <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label for="month" class="form-label">Month</label>
-                            <select name="month" id="month" class="form-select">
-                                <option value="">Select Month</option>
-                                <option th:each="med : ${monthmapping}" th:value="${med.monthMaster.id}" th:text="${med.monthMaster.monthName}">Month</option>
-                            </select>
-                        </div>
-                        <!--<div class="col-md-2">
-                            <label for="section" class="form-label">Last Date</label>
-                            <input type="text" class="form-control" name="lastdate" id="lastdate"/>
-                        </div>-->
+
                         <div class="col-md-3 align-self-end">
                             <div class="col-sm-5">
                                 <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get List </button>
@@ -55,7 +45,7 @@
                 </div>
 
                 <div class="col-md-12" id="printable-div" style="display: none">
-                    <div class="card-header fs-3">Pending Fee(s) Detail</div><hr/>
+                    <div class="card-header fs-3">Deposited Fee(s) Detail</div><hr/>
 
                     <div class="row">
                         <div class="student-details" id="student-collection-data">
@@ -110,23 +100,20 @@
             const medium = $('#medium').val();
             const grade = $('#grade').val();
             const section = $('#section').val();
-            const month = $('#month').val();
 
-            if(medium === '' || grade === '' || section === '' || month === ''){
-                showWarningMsg('error','Medium/Grade/Section/Month all are mandatory',"Warning");
+            if(medium === '' || grade === '' || section === '' ){
+                showWarningMsg('error','Medium/Grade/Section all are mandatory',"Warning");
                 return;
             }
             let checkBoxes = "";
 
-            let url = `${window.location.origin}/getFeeReminderDetails`;
+            let url = `${window.location.origin}/getTotalDepositedFeeSubmittedDetailsForGrades`;
             try{
                 const requestBody = {
                     checkBoxes: checkBoxes,
                     grade: grade,
                     medium: medium,
-                    section: section,
-                    lastdate: "",
-                    month: month
+                    section: section
                 };
                 const response = await fetch(url, {
                     method: 'POST',
@@ -139,21 +126,24 @@
                 if (!response.ok) {
                     throw new Error('Network response was not ok ' + response.statusText);
                 }
-                console.log("-----------------------------")
+                //console.log("-----------------------------")
                 const data = await response.json();
-                console.log("res: "+data.finalData);
-                console.log("res: "+data.STUDENT_NOT_FOUND);
+                /*console.log("res: "+data.FEE_DATA);
+                console.log("res: "+data.NO_STUDENT_FOUND);
                 console.log("res:3: "+data);
-                console.log("res:4: "+data.error);
-                if(data.STUDENT_NOT_FOUND!=null){
-                    console.log("-------------------------------");
-                    $('.fetch-class-value').html('<p class="text-center">No data found.</p>');
+                console.log("res:4: "+data.error);*/
+                if(data.NO_STUDENT_FOUND!=null){
                     $("#student-collection-data").empty();
                     $("#printable-div").hide();
-                    showWarningMsg("error", "No matching student data found", "No Data");
+                    showWarningMsg("error", data.NO_STUDENT_FOUND, "No Data");
+                    return;
+                } else if(data.NO_PARAMS_FOUND!=null) {
+                    $("#student-collection-data").empty();
+                    $("#printable-div").hide();
+                    showWarningMsg("error", data.NO_PARAMS_FOUND, "No Data");
                     return;
                 } else{
-                    if (!data.finalData || data.finalData.length === 0) {
+                    if (!data.FEE_DATA || data.FEE_DATA.length === 0) {
                         if(data.error.length >0){
                             showWarningMsg("error", data.error, "No Data");
                             return;
@@ -164,59 +154,79 @@
                         return;
                     }
                     // If userWiseFeeCollection is a string, show a message
-                    if (typeof data.finalData === 'string') {
+                    if (typeof data.FEE_DATA === 'string') {
                         $("#student-collection-data").empty();
                         $("#printable-div").hide();
-                        showWarningMsg("error",`${data.finalData}`,"No Data");
+                        showWarningMsg("error",`${data.FEE_DATA}`,"No Data");
                         return; // Stop further execution
                     }
-                    if(data.finalData!=null){
-                        let stulist = data.finalData;
-                        console.log(stulist);
-                        console.log(stulist.length);
-
+                    if(data.FEE_DATA!=null){
+                        let stulist = data.FEE_DATA;
+                        /*console.log(stulist);
+                        console.log(stulist.length);*/
+                        let monthslist = data.MONTHS;
                         $("#printable-div").show();
                         let tblData = `<table class="table table-striped table-bordered table-sm" id="studentTable">
-                                <thead>
-                                <tr>
-                                    <th>SNo</th>
-                                    <th>Student Name</th>
-                                    <th>Father Name</th>
-                                    <th>Mother Name</th>
-                                    <th>SR No</th>
-                                    <th>Grade</th>
-                                    <th>Pending Amount</th>
-                                    <th>Upto Month</th>
-                                    <th>Fee Head(s)</th>
-                                </tr>
-                                </thead>
-                                <tbody class="table-group-divider">`;
+                            <thead>
+                            <tr>
+                                <th>SNo</th>
+                                <th>Student Details</th>
+                                <th>SR No</th>`;
+                        for(let l=0;l<monthslist.length;l++){
+                            tblData+=`<th>${monthslist[l].toUpperCase()}</th>`;
+                        }
+                        tblData+=`</tr></thead><tbody class="table-group-divider">`;
                         let counter = 1;
                         for (let key in stulist) {
                             if (stulist.hasOwnProperty(key)) {
                                 let studentData = stulist[key];
-
-                                let srno = studentData.academicStudent.classSrNo ? studentData.academicStudent.classSrNo.trim() : '';
-                                let grd = studentData.academicStudent.grade.gradeName + ' - ' + studentData.academicStudent.section.sectionName;
-                                tblData += `<tr>
+                                /*console.log("key====== "+key);
+                                console.log("Student::: "+studentData[0]);
+                                console.log("Student::: "+studentData[0].academicStudent);*/
+                                let srno = studentData[0].academicStudent.classSrNo ? studentData[0].academicStudent.classSrNo.trim() : '';
+                                let grd = studentData[0].academicStudent.grade.gradeName + ' - ' + studentData[0].academicStudent.section.sectionName;
+                                //let stuDetail = studentData[0].academicStudent.student.studentName + '</br>' + studentData[0].academicStudent.student.fatherName + '</br>' + studentData[0].academicStudent.student.motherName + '</br';
+                                let s = studentData[0].academicStudent.student;
+                                let stuDetail = `${s.studentName}<br>${s.fatherName}<br>${s.motherName}<br>`;
+                                let isActiveStudent = s.status==='Active'?true:false;
+                                tblData += `<tr class="${isActiveStudent?'':'table-danger'}">
                                     <td>${counter}</td>
-                                    <td>${studentData.academicStudent.student.studentName}</td>
-                                    <td>${studentData.academicStudent.student.fatherName}</td>
-                                    <td>${studentData.academicStudent.student.motherName}</td>
-                                    <td>${srno}</td>
-                                    <td>${grd}</td>
-                                    <td>&#8377; ${studentData.amount}</td>
-                                    <td>${studentData.monthsList}</td>
-                                    <td>${studentData.headList}</td>
-                                </tr>`;
+                                    <td>${stuDetail}</td>
+                                    <td>${srno}</td>`;
+                                //for(let monName in monthslist){
+                                console.log("stu length: "+studentData.length);
+                                    for (let i = 0; i < studentData.length; i++){
+                                        let studentObj = studentData[i];
+                                        let feeLbl = '';
+                                        //console.log("studentObj.blankData----------------------"+studentObj.blankData);
+                                        if(studentObj.blankData===1){
+                                            feeLbl = ``;
+                                        } else{
+                                            feeLbl = `Receipt No: ${studentObj.receipt}<br>Date: ${studentObj.submitDate}<br>Amount: &#8377; ${studentObj.feeSubmitted}<br>Late Fee: &#8377; ${studentObj.fineAmount}`;
+                                        }
+
+                                        //console.log("studentData====== "+studentObj);
+                                        //console.log("studentData.academicStudent====== "+studentObj.academicStudent);
+                                        //console.log("Counter - "+i+"   --"+studentObj.totalPaidAmount+" - "+studentObj.submitDate);
+                                        //let isStudentDataPresent = studentData==='NO_DATA_FOUND'?false:true;
+                                        tblData+=`<td>${feeLbl}</td>`;
+                                    }
+                                //}
+                                tblData+=`</tr>`;
                                 counter++;
                             }
                         }
                         tblData+=`</tbody></table>`;
+                        //console.log("table last-"+tblData)
                         $("#student-collection-data").html(tblData);
-                        const exportColumns = [0,1,2,3,4,5,6,7,8];
+                        const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
                         const columnDefs = [{ "orderable": false, "targets": [0] }];
                         $("#studentTable").DataTable({
+                            scrollX: true,
+                            scrollCollapse: true,
+                            paging: true,
+                            sort: false,
+                            fixedColumns: false,
                             layout: {
                                 bottomEnd: {
                                     paging: {
@@ -229,7 +239,7 @@
                                             extend: 'excelHtml5',
                                             text: '<i class="bi bi-file-excel-fill text-success"></i>',
                                             titleAttr: 'Excel',
-                                            title: 'Total Students Pending Fees Data export',
+                                            title: 'Total Students Deposited Fees Data export',
                                             exportOptions: {
                                                 columns: exportColumns
                                             }
@@ -238,14 +248,19 @@
                                             extend: 'csvHtml5',
                                             text: '<i class="bi bi-filetype-csv text-info"></i>',
                                             titleAttr: 'CSV',
-                                            title: 'Total Students Pending Fees Data export'
+                                            title: 'Total Students Deposited Fees Data export'
                                         },
                                         {
                                             extend: 'pdfHtml5',
                                             text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
                                             titleAttr: 'PDF',
                                             orientation: 'landscape',
-                                            title: 'Total Students Pending Fees Data export',
+                                            scale: '40%',
+                                            pageSize: 'A3',
+                                            title: 'Total Students Deposited Fees Data export',
+                                            customize: function (doc) {
+                                                doc.defaultStyle.fontSize = 8; // smaller font helps fit more columns
+                                            },
                                             exportOptions: {
                                                 columns: exportColumns
                                             }
@@ -270,7 +285,7 @@
                     if(data.error!=null){
                         $("#student-collection-data").empty();
                         $("#printable-div").hide();
-                        showWarningMsg('error', data.error, "Error");
+                        showWarningMsg('error', "11111 "+data.error, "Error");
                     }
                 }
 

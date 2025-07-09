@@ -699,7 +699,7 @@ public class StudentService {
                 String medium = paramsMap.get("medium");
 
                 List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllStudentsDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
-                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No Fee details found for Medium": totalStudentCollectionDetails);
+                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No students details found for Medium": totalStudentCollectionDetails);
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -721,7 +721,7 @@ public class StudentService {
 
                 List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(),
                         Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
-                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No Fee details found for selected Grade": totalStudentCollectionDetails);
+                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No students details found for selected Grade": totalStudentCollectionDetails);
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){

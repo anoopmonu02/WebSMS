@@ -90,7 +90,8 @@ public class FeeSubmissionService {
     }
 
     public List<FeeSubmission> getAllFeeSubmissionByAcademicStudent(Long academic_stu_id){
-        return feeSubmissionRepository.findAllByAcademicStudent_Id(academic_stu_id);
+        //return feeSubmissionRepository.findAllByAcademicStudent_Id(academic_stu_id);
+        return feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(academic_stu_id,"Active");
     }
 
     public List<FeeSubmission> getAllActiveFeeSubmissionByAcademicStudent(Long academic_stu_id){
@@ -598,7 +599,8 @@ public class FeeSubmissionService {
                                         }
                                     } catch (Exception e) {
                                         e.printStackTrace();
-                                        responseMap.put("FINE_ERROR", "Error in calculating fine: "+e.getLocalizedMessage());
+                                        //responseMap.put("FINE_ERROR", "Error in calculating fine: "+e.getLocalizedMessage());
+                                        responseMap.put("error", "Error in calculating fine: "+e.getLocalizedMessage());
                                     }
                                     //Calculate Discount
                                     //BigDecimal discountAmt = BigDecimal.ZERO;
@@ -614,7 +616,8 @@ public class FeeSubmissionService {
                                                 }
                                             }
                                         } else{
-                                            responseMap.put("DISCOUNT_CLASS_MAP_NOT_FOUND","Discount-class-map not found");
+                                            //responseMap.put("DISCOUNT_CLASS_MAP_NOT_FOUND","Discount-class-map not found");
+                                            responseMap.put("error","Discount-class-map not found");
                                         }
                                     } else{
                                         System.out.println("Discount not assigned to student: "+academicStudent.getStudent().getStudentName());
@@ -657,7 +660,8 @@ public class FeeSubmissionService {
                                         }
                                     } else{
                                         System.out.println("No fee class mapping found for class: "+gradeId);
-                                        responseMap.put("FEE_CLASS_MAP_NOT_FOUND","Fee-class-map not found");
+                                        //responseMap.put("FEE_CLASS_MAP_NOT_FOUND","Fee-class-map not found");
+                                        responseMap.put("error","Fee-class-map not found");
                                     }
                                     //int monthDiff = monthmappingRepository.findMonthDifference(14L, 4L, allMonthsList.get(0).getMonthName(), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
                                     List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(academicYear.getId(), school.getId(), LocalDate.now().getMonthValue());
@@ -665,30 +669,36 @@ public class FeeSubmissionService {
                                     if(feeDates!=null && !feeDates.isEmpty()){
                                         feeDate = feeDates.get(0);
                                     }
-                                    int cdiff = monthmappingRepository.currentFeeDateDifference(new SimpleDateFormat("dd/MMM/yyyy").format(feeDate.getFeeSubmissiondate()), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
-                                    int monthdiff = monthmappingRepository.firstMonthDifference(new SimpleDateFormat("dd/MMM/yyyy").format(new Date()), academicYear.getStartDate());
-                                    try {
-                                        if (monthdiff > 2) {
-                                            fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fine.getMaxCalculated()));
-                                        } else if (monthdiff<0 && monthdiff >= -2) {
-                                            if (cdiff<0) {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + (monthdiff * monthdiff) + 1));
+                                    if(feeDate!=null){
+                                        int cdiff = monthmappingRepository.currentFeeDateDifference(new SimpleDateFormat("dd/MMM/yyyy").format(feeDate.getFeeSubmissiondate()), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
+                                        int monthdiff = monthmappingRepository.firstMonthDifference(new SimpleDateFormat("dd/MMM/yyyy").format(new Date()), academicYear.getStartDate());
+                                        try {
+                                            if (monthdiff > 2) {
+                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fine.getMaxCalculated()));
+                                            } else if (monthdiff<0 && monthdiff >= -2) {
+                                                if (cdiff<0) {
+                                                    fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + (monthdiff * monthdiff) + 1));
+                                                } else {
+                                                    fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + (monthdiff * monthdiff)));//(monthdiff + (monthdiff * monthdiff)) * fine.getFineAmount();
+                                                }
+                                            } else if (monthdiff < -2) {
+                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fine.getMaxCalculated()));
                                             } else {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + (monthdiff * monthdiff)));//(monthdiff + (monthdiff * monthdiff)) * fine.getFineAmount();
+                                                if (cdiff<0) {
+                                                    fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + 1));
+                                                } else {
+                                                    fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff));
+                                                }
                                             }
-                                        } else if (monthdiff < -2) {
-                                            fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fine.getMaxCalculated()));
-                                        } else {
-                                            if (cdiff<0) {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff + 1));
-                                            } else {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(monthdiff));
-                                            }
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                            //responseMap.put("FINE_ERROR", "Error in calculating fine: "+e.getLocalizedMessage());
+                                            responseMap.put("error", "Error in calculating fine: "+e.getLocalizedMessage());
                                         }
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                        responseMap.put("FINE_ERROR", "Error in calculating fine: "+e.getLocalizedMessage());
+                                    } else{
+                                        responseMap.put("error","Fee date not found, Please add fee date first");
                                     }
+
                                     //Calculate Discount
                                     BigDecimal discountAmt = BigDecimal.ZERO;
                                     StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
@@ -938,6 +948,159 @@ public class FeeSubmissionService {
             responseMap.put("error", e.getLocalizedMessage());
         }
         return responseMap;
+    }
+
+    public Map getSubmittedFeeDetailForGrade(School school, AcademicYear academicYear, Map<String, String> paramsMap){
+        Map responseMap  = new HashMap();
+        try{
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                String medium = paramsMap.get("medium");
+                String section = paramsMap.get("section");
+                String grade = paramsMap.get("grade");
+                SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+                List<MonthMapping> mmList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+                List<String> monthNamesList = mmList.stream()
+                        .map(mm -> mm.getMonthMaster().getMonthName())
+                        .collect(Collectors.toList());
+                responseMap.put("MONTHS",monthNamesList);
+                List<Long> orderedMonthIds = mmList.stream()
+                        .map(mm -> mm.getMonthMaster().getId())
+                        .collect(Collectors.toList());
+                List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
+                if(academicStudents!=null && !academicStudents.isEmpty()){
+                    Map stuFeeSubMap = new HashMap();
+                    for(AcademicStudent student:academicStudents){
+                        Map stuFeeDataMap = new HashMap();
+                        List<FeeSubmission> feeSubmissions = feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(student.getId(), "Active");
+                        List depositedFeeList = new ArrayList();
+                        int monthCount = 0;
+                        if(feeSubmissions!=null && !feeSubmissions.isEmpty()){
+                            //Calculate Fee + discount + Fine
+                            BigDecimal fineAmount = BigDecimal.ZERO;
+                            for(FeeSubmission feeSubmission:feeSubmissions){
+                                List<FeeSubmissionMonths> feeSubmissionMonths = feeSubmission.getFeeSubmissionMonths();
+                                /**
+                                 * divide submitted fees by submitted months when every month fee calculated by fee mapped to class
+                                 * calculate any discount, fine if applicable
+                                 * */
+                                BigDecimal paidAmount = feeSubmission.getPaidAmount();
+                                BigDecimal discountAmt = feeSubmission.getDiscountAmount();
+                                BigDecimal amountSubmitted = BigDecimal.valueOf(0.0);
+                                BigDecimal discountReceived = BigDecimal.valueOf(0.0);
+                                fineAmount = feeSubmission.getFineAmount();
+                                amountSubmitted = paidAmount;
+                                discountReceived = discountAmt;
+                                if(feeSubmissionMonths!=null && feeSubmissionMonths.size()>0){
+                                    //Months ids fetched which are submitted based on fee_submission
+
+                                    //Calculating Fees based on month
+                                    //List<Long> monthMasterIds = feeSubmissionMonths.stream().map(fsm -> fsm.getMonthMaster().getId()).collect(Collectors.toList());
+                                    List<Long> monthMasterIds = feeSubmissionMonths.stream()
+                                            .map(fsm -> fsm.getMonthMaster().getId())
+                                            .sorted(Comparator.comparingInt(orderedMonthIds::indexOf))
+                                            .collect(Collectors.toList());
+                                    monthCount+=monthMasterIds.size();
+                                    for(Long monthId:monthMasterIds){
+                                        List<Long> monthIdList = new ArrayList<>();
+                                        monthIdList.add(monthId);
+                                        Map feeDetailMap = new HashMap();
+                                        feeDetailMap.put("receipt", feeSubmission.getReceiptNo());
+                                        feeDetailMap.put("submitId", feeSubmission.getId());
+                                        feeDetailMap.put("totalPaidAmount",paidAmount);
+                                        feeDetailMap.put("totalDiscountAmount",discountAmt);
+                                        feeDetailMap.put("feeSubmitted",BigDecimal.valueOf(0.0));
+                                        BigDecimal discountAppliedForMonth = BigDecimal.ZERO;
+                                        //Calculating Discount based on month
+                                        if (discountAmt.compareTo(BigDecimal.ZERO) > 0 && feeSubmission.getDiscounthead()!=null) {
+                                            //System.out.println("Discount is greater than 0");
+                                            List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId());
+                                            feeDetailMap.put("discountApplied", BigDecimal.valueOf(0.0));
+                                            if(discountBasedOnMonths!=null && !discountBasedOnMonths.isEmpty()){
+                                                discountAppliedForMonth = (discountBasedOnMonths.get(0)[0]!=null)?new BigDecimal(""+discountBasedOnMonths.get(0)[0]): BigDecimal.valueOf(0.0);
+                                                feeDetailMap.put("discountApplied", discountAppliedForMonth);
+                                                //discountReceived = discountAmt.subtract(discountAppliedForMonth);
+                                            }
+                                        }
+
+                                        List<Object[]> feesBasedOnMonths = feeclassmapRepository.findAmountAndFeeHeadNames(academicYear.getId(), school.getId(), monthIdList, Long.parseLong(grade));
+                                        BigDecimal amt = BigDecimal.ZERO;
+                                        if(feesBasedOnMonths!=null && !feesBasedOnMonths.isEmpty()) {
+                                            //fee heads + amount for selected months
+                                            for(Object[] obj : feesBasedOnMonths){
+                                                BigDecimal amount = (obj[0] != null)
+                                                        ? new BigDecimal(obj[0].toString())
+                                                        : BigDecimal.ZERO;
+                                                amt = amt.add(amount);
+                                            }
+                                            //BigDecimal feesubmitformonth = (feesBasedOnMonths.get(0)[0] != null) ? new BigDecimal("" + feesBasedOnMonths.get(0)[0]) : BigDecimal.valueOf(0.0);
+                                            if (amt.compareTo(amountSubmitted) >= 0) {
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
+                                            } else {
+                                                amountSubmitted = paidAmount.subtract(amt);
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
+                                            }
+                                        }
+
+                                        feeDetailMap.put("submitDate",sf.format(feeSubmission.getFeeSubmissionDate()));
+                                        feeDetailMap.put("month_"+monthId.toString(),monthId.toString());
+                                        feeDetailMap.put("fineAmount",fineAmount);
+                                        feeDetailMap.put("academicStudent", student);
+                                        feeDetailMap.put("blankData",0);
+                                        fineAmount = BigDecimal.ZERO;
+                                        depositedFeeList.add(feeDetailMap);
+                                    }
+                                }
+                            }
+                            if(monthCount<12){
+                                depositedFeeList = setBlankForNotSubmittedMonth(monthCount, student, depositedFeeList);
+                            }
+                            //System.out.println("depositedFeeList:"+depositedFeeList);
+                            stuFeeSubMap.put(""+student.getId(), depositedFeeList);
+                        } else{
+                            depositedFeeList = setBlankForNotSubmittedMonth(monthCount, student, depositedFeeList);
+                            //System.out.println("depositedFeeList:"+depositedFeeList);
+                            stuFeeSubMap.put(""+student.getId(), depositedFeeList);
+                        }
+                    }
+                    responseMap.put("FEE_DATA", stuFeeSubMap);
+
+                } else{
+                    responseMap.put("NO_STUDENT_FOUND","No student found for selected grade.");
+                }
+            } else {
+                //No class found
+                responseMap.put("NO_PARAMS_FOUND","No selected parameters found.");
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
+    public List setBlankForNotSubmittedMonth(int monthCount, AcademicStudent student, List depositedFeeList){
+        try{
+            for(int k=monthCount;k<12;k++){
+                Map feeDetailMap = new HashMap();
+                feeDetailMap.put("receipt", "");
+                feeDetailMap.put("submitId", "");
+                feeDetailMap.put("totalPaidAmount", BigDecimal.valueOf(0.0));
+                feeDetailMap.put("totalDiscountAmount",BigDecimal.valueOf(0.0));
+                feeDetailMap.put("feeSubmitted",BigDecimal.valueOf(0.0));
+                feeDetailMap.put("discountApplied", BigDecimal.valueOf(0.0));
+                feeDetailMap.put("feeSubmitted", BigDecimal.valueOf(0.0));
+                feeDetailMap.put("submitDate",null);
+                feeDetailMap.put("month_"+(k+1),(k+1));
+                feeDetailMap.put("fineAmount",BigDecimal.valueOf(0.0));
+                feeDetailMap.put("academicStudent", student);
+                feeDetailMap.put("blankData",1);
+                depositedFeeList.add(feeDetailMap);
+            }
+            return depositedFeeList;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }
