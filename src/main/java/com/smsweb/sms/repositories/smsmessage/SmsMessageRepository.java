@@ -24,4 +24,21 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Query("UPDATE SmsMessage m SET m.resolution = 'RESOLVED', m.updatedBy = :updatedBy, m.updatedAt = :updatedAt WHERE m.id = :id")
     int resolveSmsMessage(@Param("id") Long id, @Param("updatedBy") String updatedBy, @Param("updatedAt") Date updatedAt);
     // Returns number of rows updated
+
+    @Query("SELECT DISTINCT m FROM SmsMessage m " +
+            "LEFT JOIN m.recipients r " +
+            "WHERE m.messageType = '" + SmsMessage.MESSAGE_TYPE_NOTIFICATION + "' " +
+            "AND ( " +
+            "    (m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_STUDENT + "' AND r.id = :studentId) " +
+            "    OR (m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_CLASS + "' " +
+            "        AND m.grade.id = (SELECT s.grade.id FROM AcademicStudent s WHERE s.id = :studentId) " +
+            "        AND m.section.id = (SELECT s.section.id FROM AcademicStudent s WHERE s.id = :studentId)) " +
+            "    OR m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_ALL + "' " +
+            ") " +
+            "ORDER BY m.createdAt DESC")
+    List<SmsMessage> findByRecipientId(@Param("studentId") Long studentId);
+
+    @Query("SELECT m FROM SmsMessage m WHERE m.grade.id = ?1 AND m.section.id = ?2 AND m.messageType = ?3")
+    List<SmsMessage> findByGradeIdAndSectionIdAndMessageType(Long gradeId, Long sectionId, String messageType);
+
 }

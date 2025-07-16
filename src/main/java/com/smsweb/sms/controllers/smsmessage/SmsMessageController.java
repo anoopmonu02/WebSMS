@@ -1,5 +1,6 @@
 package com.smsweb.sms.controllers.smsmessage;
 
+import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
@@ -335,8 +336,24 @@ public class SmsMessageController {
 
 
 
+    @GetMapping("/viewNotification")
+    public String viewStudentNotifications(Model model) {
+        model.addAttribute("page", "datatable");
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        model.addAttribute("todayDate", new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
+        return "message/studentNotifications";
+    }
 
-
+    @GetMapping("/notifications")
+    public ResponseEntity<List<SmsNotificationDto>> getStudentNotifications(@RequestParam(required = false) Long studentId) {
+        List<SmsNotificationDto> notifications = new ArrayList<>();
+        if (studentId != null) {
+            notifications = smsMessageService.getNotificationDtosByStudentId(studentId);
+        }
+        return ResponseEntity.ok(notifications);
+    }
 
 
 }

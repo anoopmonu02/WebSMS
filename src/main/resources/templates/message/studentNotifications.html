@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+
+    <meta charset="UTF-8">
+    <title>Send Message</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-result {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1050; /* Higher than Bootstrap cards */
+            background: white;
+            border: 1px solid #ddd;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        .search-result a {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<section>
+    <div class="container">
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <div class="card-header fs-3">View Notification</div>
+                <hr/>
+
+                <form id="messageForm">
+
+
+
+
+                    <div id="studentSelector" class="search-container my-3" >
+                        <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                        <div class="search-result">
+
+                        </div>
+                        <hr>
+                        <div class="accordion mb-3" id="studentDetailAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingStudentDetail">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStudentDetail" aria-expanded="false" aria-controls="collapseStudentDetail">
+                                        View Student & Academic Details
+                                    </button>
+                                </h2>
+                                <div id="collapseStudentDetail" class="accordion-collapse collapse" aria-labelledby="headingStudentDetail" data-bs-parent="#studentDetailAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <div class="card border-success">
+                                                    <h5 class="card-header">Student Detail</h5>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item studname"><strong>Student Name:</strong></li>
+                                                        <li class="list-group-item fname"><strong>Father Name:</strong></li>
+                                                        <li class="list-group-item mname"><strong>Mother Name:</strong></li>
+                                                        <li class="list-group-item contactno contact-update-btn"><strong>Contact No:</strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-sm-6">
+                                                <div class="card border-success">
+                                                    <h5 class="card-header">Academic Detail</h5>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item cmedium"><strong>Medium: </strong></li>
+                                                        <li class="list-group-item cgrade"><strong>Class: </strong></li>
+                                                        <li class="list-group-item csection"><strong>Section: </strong></li>
+                                                        <li class="list-group-item csr"><strong>SR No: </strong></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4" id="smsSection" style="display: none;">
+                            <div class="col-md-6">
+                                <h5>Message History</h5>
+                                <table class="table table-bordered" id="smsMessagesTable">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Subject</th>
+                                        <th>Date</th>
+                                        <th>Action/Status</th> <!-- New column -->
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <!-- Dynamically loaded via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6" id="conversationDiv" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <h5 class="mb-0 me-2">Conversation</h5>
+                                    <h4 id="smsSubject" class="mb-0"></h4>
+                                </div>
+                                <div id="conversationTimeline"
+                                     class="border rounded p-3"
+                                     style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <!-- Messages will appear here -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+
+                </form>
+            </div>
+        </div>
+    </div>
+    <div id="NotificationList">
+        <table class="table table-bordered table-striped table-hover table-sm"  id="notificationTable">
+            <thead>
+            <tr>
+                <th>Class</th>
+                <th>Section</th>
+                <th>Recipient Type</th>
+                <th>Message Heading</th>
+                <th>Message Content</th>
+                <th>Message Date</th>
+            </tr>
+            </thead>
+            <tbody class="table-group-divider"></tbody>
+        </table>
+    </div>
+
+
+
+
+
+    <!-- Add SMS Conversation Modal -->
+
+
+
+
+
+
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+
+
+
+    <script type="text/javascript"  th:inline="javascript">
+        let selectedStudent = null;
+        $(document).ready(function () {
+
+            $('#notificationTable').DataTable({
+                layout: {
+                    bottomEnd: {
+                        paging: {
+                            firstLast: false
+                        }
+                    },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Notification Data export',
+                                exportOptions: {
+                                    columns: [0, 1, 2, 3, 4, 5]
+                                }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Notification Data export'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Notification Data export',
+                                exportOptions: {
+                                    columns: [0, 1, 2, 3, 4, 5]
+                                }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, 'All']
+                ],
+                pageLength: 25,
+                columnDefs: [
+                    { "orderable": false, "targets": [] } // Disable sorting on the first and fourth columns
+                ]
+            });
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                // Remove the btn-secondary class from each button
+                $(this).removeClass("btn-secondary");
+            });
+
+
+
+
+        });
+
+
+        let selectedId = null;;
+        const searchStuName=() =>{
+            let query=$("#search-input").val();
+            console.log('searched.....'+query);
+            if(query.trim().length>2){
+
+                //Sending request to server
+                let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                }).then((data)=>{
+                    console.log(data);
+                    let text = `<div class='list-group'>`;
+
+                    data.forEach((student) =>{
+                        selectedId = student.id
+                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                    });
+
+                    text+=`</div>`;
+                    $(".search-result").html(text);
+                    $(".search-result").show();
+                });
+
+
+            } else{
+                $(".search-result").hide();
+            }
+        }
+        selectedStudent;
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            if(id>0){
+
+                console.log("id::::"+id);
+                let url = `${window.location.origin}/getStudentDetailForDiscount/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log("data----"+data);
+                    console.log("data.studen--t"+data.student);
+                    if('noAcademicStudent' in data){
+                        //toastr["warning"](data.noAcademicStudent,"Message");
+                        showWarningMsg("warning",data.noAcademicStudent,"Message");
+                    }
+                    else{
+                        selectedStudent = data.student
+                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                        $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
+                        $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
+                        $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
+
+                        $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
+                        $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
+                        $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+                        $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
+                        // ✅ Set the accordion title
+                        let name = data.student.student.studentName;
+                        let grade = data.student.grade.gradeName;
+                        let section = data.student.section.sectionName;
+                        $("#headingStudentDetail button").html(`${name} / ${grade}-${section}`);
+                    }
+                    let messageType = $("#messageType").val();
+
+                    fetchMessagesAndPopulateTable(id);
+
+                });
+            }
+        }
+
+
+
+        $('form').on('submit', function(e) {
+            e.preventDefault(); // Prevent form submission
+        });
+
+
+
+
+        function fetchMessagesAndPopulateTable(selectedId) {
+            const url = `${window.location.origin}/message/notifications?studentId=${selectedId}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Data received from backend:", data);
+
+                    let table = $('#notificationTable').DataTable();
+                    table.clear();
+
+                    const rows = data.map(item => [
+                        item.className,        // Class
+                        item.sectionName,      // Section
+                        item.recipientType,    // Recipient Type
+                        item.smsHeading,       // Message Heading
+                        item.smsContent,       // Message Content
+                        item.smsDate           // Message Date
+                    ]);
+
+                    table.rows.add(rows);
+                    table.draw();
+                })
+                .catch(error => {
+                    console.error("Error fetching messages:", error);
+                    alert("Failed to fetch messages.");
+                });
+        }
+
+
+
+
+
+
+
+
+
+    </script>
+</section>
+</body>
+</html>
