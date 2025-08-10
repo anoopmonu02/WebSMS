@@ -302,9 +302,10 @@
                         <tr>
                             <th>SNo</th>
                             <th>Student Name</th>
+                            <th>SR No</th>
+                            <th>Grade</th>
                             <th>Father Name</th>
                             <th>Mother Name</th>
-                            <th>SR No</th>
                             ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
                             <th>Paid Amount</th>
                             <th>Fine Amount</th>
@@ -314,6 +315,8 @@
                         </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
+                    let totalAmountSubmitted = 0;
+                    let totalAmount = 0;
                     //tblData+='<th>Discount Amount</th><th>Total Amount</th><th>Balance Amount</th></tr></thead><tbody class="table-group-divider">';
                     feeData.forEach(feeSubmission =>{
                         let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
@@ -330,9 +333,10 @@
                         tblData += `<tr>
                                 <td>${counter}</td>
                                 <td>${feeSubmission.academicStudent.student.studentName}</td>
+                                <td>${srno}</td>
+                                <td>${feeSubmission.academicStudent.grade.gradeName} - ${feeSubmission.academicStudent.section.sectionName}</td>
                                 <td>${feeSubmission.academicStudent.student.fatherName}</td>
                                 <td>${feeSubmission.academicStudent.student.motherName}</td>
-                                <td>${srno}</td>
                                 ${selectedOption === 'range' ? `<td>${dt}</td>` : ''}
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
@@ -340,9 +344,21 @@
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                             </tr>`;
+                        totalAmountSubmitted+=feeSubmission.paidAmount;
+                        totalAmount+=feeSubmission.totalAmount;
                         counter++;
                     });
-                    tblData+=`</tbody></table>`;
+                    const totalCols = selectedOption === 'range' ? 12 : 11;
+                    const halfCols = Math.floor(totalCols / 2);
+                    const remainingCols = totalCols - halfCols;
+                    tblData+=`</tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="${halfCols}" class="text-center">Total Amount: <strong>&#8377; ${totalAmount}</strong></td>
+                            <td colspan="${remainingCols}" class="text-center">Total Paid Amount: <strong>&#8377; ${totalAmountSubmitted}</strong></td>
+                        </tr>
+                    </tfoot>
+                    </table>`;
                     $("#userwise-collection-data").html(tblData);
                 }
             })

@@ -178,7 +178,8 @@
                     let text = `<div class='list-group'>`;
 
                     data.forEach((student) =>{
-                        text+=`<a onclick="loadStudentData('${student.uuid}')" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}</a>`;
+                        let srval = student.classSrNo!=null && student.classSrNo!=''?' / ' + student.classSrNo: ' / -'
+                        text+=`<a onclick="loadStudentData('${student.uuid}')" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
                     });
 
                     text+=`</div>`;

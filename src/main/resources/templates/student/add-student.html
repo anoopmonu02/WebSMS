@@ -444,29 +444,42 @@
 
       //validating the phone and email data
       $("#myForm").submit(function (e) {
-        let isValid = true;
-        //$("#nameError, #emailError").text(""); // Clear errors
+        e.preventDefault(); // Always prevent submission until all checks pass
 
         const mobile1 = $("#mobile1").val().trim();
         const email = $("#email").val().trim();
         const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        const religion = $("#religion").val().trim();
+        const castVal = $("#cast").val().trim();
 
         if (!mobile1) {
-          showWarningMsg("error", "Mobile no is required.","Error");
-          //$("#nameError").text("Name is required.");
-          isValid = false;
+          showWarningMsg("error", "Mobile no is required.", "Error");
+          return false; // stop checking further
         }
 
         if (!email) {
-          //$("#emailError").text("Email is required.");
-          showWarningMsg("error", "Email is required.","Error");
-          isValid = false;
-        } else if (!emailPattern.test(email)) {
-          showWarningMsg("error", "Enter a valid email.","Error");
-          isValid = false;
+          showWarningMsg("error", "Email is required.", "Error");
+          return false;
         }
 
-        if (!isValid) e.preventDefault(); // Prevent submission
+        if (!emailPattern.test(email)) {
+          showWarningMsg("error", "Enter a valid email.", "Error");
+          return false;
+        }
+
+        if (!religion) {
+          showWarningMsg("error", "Religion is required.", "Error");
+          return false; // stop checking further
+        }
+
+        if (!castVal) {
+          showWarningMsg("error", "Cast is required.", "Error");
+          return false; // stop checking further
+        }
+
+
+        // If all validations pass, submit the form
+        this.submit();
       });
 
     });

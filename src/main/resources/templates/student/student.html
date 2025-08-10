@@ -23,6 +23,9 @@
             <!--<th>Regis. #</th>-->
             <th>Mother Name</th>
             <th>Father Name</th>
+            <th>Aadhaar No.</th>
+            <th>Religion</th>
+            <th>Cast</th>
             <th>Mobile</th>
             <th>Email</th>
             <th>Address</th>
@@ -39,6 +42,9 @@
             <!--<td th:text="${customer.registrationNo}"></td>-->
             <td th:text="${student.motherName}"></td>
             <td th:text="${student.fatherName}"></td>
+            <td th:text="${student.aadharNo}"></td>
+            <td th:text="${student.religion}"></td>
+            <td th:text="${student.cast.castName}"></td>
             <td th:text="${student.mobile1}"></td>
             <td th:text="${student.getUserEntity().getEmail()}"></td>
             <td th:text="${student.address}"></td>
@@ -99,6 +105,9 @@
               : [{ "orderable": false, "targets": [0, 7] }]; // Keep Actions column
 
       $('#student-list').DataTable({
+        scrollX: true,
+        autoWidth: false,
+        responsive: false,
         layout: {
           bottomEnd: {
             paging: {
