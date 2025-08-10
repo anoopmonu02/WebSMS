@@ -135,10 +135,10 @@
                     <tr>
                         <th>SNo</th>
                         <th>Student Name</th>
-                        <th>Father Name</th>
-                        <th>Mother Name</th>
                         <th>SR No</th>
                         <th>Grade</th>
+                        <th>Father Name</th>
+                        <th>Mother Name</th>
                         <th>Submission Date</th>
                         <th>Receipt#</th>
                         <th>Paid Amount</th>
@@ -149,6 +149,8 @@
                     </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
+                    let totalPaidAmount = 0;
+                    let totalAmount = 0;
                     feeData.forEach(feeSubmission =>{
                         let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
                         let grd = feeSubmission.academicStudent.grade.gradeName + ' - ' + feeSubmission.academicStudent.section.sectionName;
@@ -166,10 +168,10 @@
                         tblData += `<tr>
                             <td>${counter}</td>
                             <td>${feeSubmission.academicStudent.student.studentName}</td>
-                            <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                            <td>${feeSubmission.academicStudent.student.motherName}</td>
                             <td>${srno}</td>
                             <td>${grd}</td>
+                            <td>${feeSubmission.academicStudent.student.fatherName}</td>
+                            <td>${feeSubmission.academicStudent.student.motherName}</td>
                             <td>${dt}</td>
                             <td ${receiptStyle}>${receiptNo}</td>
                             <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
@@ -178,9 +180,16 @@
                             <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                         </tr>`;
+                        totalPaidAmount+=feeSubmission.paidAmount;
+                        totalAmount+=feeSubmission.totalAmount;
                         counter++;
                     });
-                    tblData+=`</tbody></table>`;
+                    tblData+=`</tbody><tfoot>
+                        <tr>
+                            <td colspan="6" class="text-center">Total Amount: <strong>&#8377; ${totalAmount}</strong></td>
+                            <td colspan="7" class="text-center">Total Paid Amount: <strong>&#8377; ${totalPaidAmount}</strong></td>
+                        </tr>
+                    </tfoot></table>`;
                     $("#userwise-collection-data").html(tblData);
                     const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12];
                     const columnDefs = [{ "orderable": false, "targets": [0] }];
