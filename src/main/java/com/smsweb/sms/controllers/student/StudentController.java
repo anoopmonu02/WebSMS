@@ -423,5 +423,11 @@ public class StudentController extends BaseController {
         return "/student/stu_exam";
     }
 
+    @GetMapping("/look-up-student")
+    public String searchStudent(Model model){
+        return "/student/search-student";
+
+    }
+
 
 }

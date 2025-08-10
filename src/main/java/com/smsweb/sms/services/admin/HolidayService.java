@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -23,6 +25,11 @@ public class HolidayService {
 
     public List<Holiday> getAllHoliday(Long academic_year, Long school_id){
         return holidayRepository.findAllByAcademicYear_IdAndSchool_IdOrderByIdAsc(academic_year, school_id);
+    }
+
+    public List<Holiday> getAllHolidayStartsFromToday(Long academic_year, Long school_id){
+        Date today = new Date();
+        return holidayRepository.findAllByAcademicYear_IdAndSchool_IdAndHolidayStartDateAfterOrderByIdAsc(academic_year, school_id, today);
     }
 
     public Holiday save(Holiday holiday){

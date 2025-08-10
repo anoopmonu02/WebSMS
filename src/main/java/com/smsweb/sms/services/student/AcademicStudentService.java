@@ -109,4 +109,12 @@ public class AcademicStudentService {
     public Optional<AcademicStudent> findById(Long academicStudentId) {
         return academicStudentRepository.findById(academicStudentId);
     }
+
+    public List<AcademicStudent> searchStudentsAll(String qry, Long academicYear, Long school){
+        //Pageable pageable = PageRequest.of(0, 10);
+        System.out.println("qry: "+qry+"-");
+        System.out.println("academicYear: "+academicYear);
+        System.out.println("school: "+school);
+        return academicStudentRepository.findAllByAcademicYearAndSchoolAndStudentNames(academicYear, school, qry);
+    }
 }

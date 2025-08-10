@@ -45,7 +45,7 @@
                 </li>-->
 
                 <li class="sidebar-item">
-                    <a href="#" class="sidebar-link">
+                    <a href="/dashboard" class="sidebar-link">
                         <!--<i class="fa-solid fa-list pe-2"></i>-->
                         <i class="bi bi-box-fill pe-2"></i>
                         <span>Dashboard</span>
@@ -199,9 +199,9 @@
                                 <li class="sidebar-item submenu">
                                     <a th:href="@{'/student/grade-total-students-detail'}" class="sidebar-link">Student List</a>
                                 </li>
-                                <!--<li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">Absent Student List</a>
-                                </li>-->
+                                <li class="sidebar-item submenu">
+                                    <a th:href="@{'/student/look-up-student'}" class="sidebar-link">Search Student</a>
+                                </li>
                                 <li class="sidebar-item submenu">
                                     <a href="#" class="sidebar-link">Birth Certificate</a>
                                 </li>
@@ -237,8 +237,11 @@
                     </a>
                     <ul id="attendance" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-person-check pe-2"></i> Student Attendance </a></li>
+                        <!--<li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-file-earmark-person-fill pe-2"></i> Employee Attendance </a></li>-->
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
+
+
                 </li>
 
             </ul>

@@ -1103,4 +1103,16 @@ public class FeeSubmissionService {
         return null;
     }
 
+    public BigDecimal getTodayFeeCollection(Long school, Long academic){
+        try{
+            BigDecimal totalFeeSubmitted = feeSubmissionRepository.getTodayTotalFeeSubmission(school, academic);
+            if(totalFeeSubmitted.compareTo(BigDecimal.ZERO) > 0){
+                return totalFeeSubmitted;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return BigDecimal.ZERO;
+    }
+
 }
