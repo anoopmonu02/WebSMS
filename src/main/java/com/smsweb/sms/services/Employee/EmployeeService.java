@@ -15,9 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Service
 public class EmployeeService {
@@ -105,6 +106,10 @@ public class EmployeeService {
         return employeeRepository.findAllBySchool_IdAndStatusOrderByEmployeeNameAsc(school, "Active");
     }
 
+    public int getAllActiveEmployeesCount(Long school){
+        return employeeRepository.countAllBySchool_IdAndStatus(school, "Active");
+    }
+
     public List<Employee> getAllActiveEmployees(){
         return employeeRepository.findAllByStatusOrderByEmployeeNameAsc("Active");
     }
@@ -164,5 +169,30 @@ public class EmployeeService {
 
     public Optional<School> getLoggedInEmployeeSchool(String username) {
         return employeeRepository.findSchoolByUsername(username);
+    }
+
+    public List<String[]> getComingBirthDays(Long school, Long academic){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
+        List<String[]> dataList = new ArrayList<>();
+        try{
+            List<Object[]> stuDobList = employeeRepository.findUpcomingBirthdaysInNext7Days(school, "Active");
+            if(!stuDobList.isEmpty()){
+                for(Object[] dd:stuDobList){
+                    LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    String formattedDob = dob.format(formatter);
+                    String studentName = (String) dd[1];
+                    System.out.println("DOB: "+dd[0]+" Name: "+dd[1]);
+                    String[] dobList = new String[2];
+                    dobList[1] = studentName + " ("+dd[2]+")";
+                    dobList[0] = formattedDob;
+                    dataList.add(dobList);
+                }
+            }
+            //Employee Data added
+            return dataList;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
     }
 }

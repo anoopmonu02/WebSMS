@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -133,4 +134,9 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium,
             @Param("grade") Long grade, @Param("section") Long section);
+
+    @Query("SELECT COALESCE(SUM(f.paidAmount), 0) FROM FeeSubmission f " +
+            "WHERE f.feeSubmissionDate = CURRENT_DATE AND f.school.id = :school AND f.academicYear.id = :academic and f.status = 'ACTIVE'")
+    BigDecimal getTodayTotalFeeSubmission(@Param("school") Long school,
+                                          @Param("academic") Long academic);
 }

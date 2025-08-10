@@ -37,6 +37,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -75,6 +76,13 @@ public class StudentService {
 
     public List<Student> getAllStudents(Long school_id) {
         return repository.findAllBySchool_IdOrderByStudentNameAsc(school_id);
+    }
+
+    public int getAllStudentsCount(Long school_id, Long academic_year_id) {
+        return academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_year_id, "Active");
+    }
+    public int getAllInactiveStudentsCount(Long school_id, Long academic_year_id) {
+        return academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_year_id, "Inactive");
     }
 
     public Optional<Student> getStudentDetail(Long student_id, Long school_id) {
@@ -833,4 +841,126 @@ public class StudentService {
         return examResultSummaries;
     }
 
+    public List getAttendanceDetailsCollectedByClass(Long school, Long academic){
+        try{
+            List<Object[]> results = attendanceRepository.findAttendanceCollectedSummaryBySchoolAndAcademicYear(school, academic);
+            List<Map<String, Object>> summaries = new ArrayList<>();
+            for (Object[] row : results) {
+                System.out.println("row"+row);
+                Map<String, Object> summary = new HashMap<>();
+                summary.put("mediumName", row[0]);        // Grade Name
+                summary.put("gradeName", row[1]);        // Grade Name
+                summary.put("presentCount", row[2]);    // Present Count
+                summary.put("absentCount", row[3]);     // Absent Count
+                summaries.add(summary);
+            }
+            return summaries;
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public Map getPieChartData(Long school, Long academic, int totalActiveStudents){
+        try{
+            Map<String, Object> chartData = new HashMap<>();
+            //1. Total Active Student, 2. Total SR, 3. Total Aadhaar, 4. Total Absent, 5. Total Boys/Girls Absent, 6. Total Boys/Girls
+            int girlsCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndStudent_Gender(school, academic, "Active","Female");
+            int boysCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndStudent_Gender(school, academic, "Active","Male");
+            int noPreferenceCount = totalActiveStudents - (boysCount + girlsCount);
+
+            int aadharCount = academicStudentRepository.countWhereAadharNoIsPresent(school, academic, "Active");
+            int srCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndClassSrNoIsNotNull(school, academic, "Active");
+            int totalStudentPresentToday = attendanceRepository.countAllBySchool_IdAndAcademicYear_IdAndAcademicStudent_StatusAndIsPresentAndAttendanceDate(school, academic, "Active", true, new Date());
+            System.out.println("girlsCount: "+girlsCount+" aadharCount: "+aadharCount+" srCount: "+srCount);
+            chartData.put("totalAadhaarCount", aadharCount);
+            chartData.put("totalSRCount", srCount);
+            chartData.put("totalAbsentCount", (totalActiveStudents-totalStudentPresentToday));
+            chartData.put("totalGirlsCount", girlsCount);
+            chartData.put("totalBoysCount", boysCount);
+            chartData.put("totalNPCount", noPreferenceCount);
+
+            //Counting gender-wise
+            int girlsPresentCount = attendanceRepository.countPresentStudentsByGenderToday(school, academic, "Active", "Female");
+            int boysPresentCount = attendanceRepository.countPresentStudentsByGenderToday(school, academic, "Active", "Male");
+            int noPreferencePresentCount = attendanceRepository.countPresentStudentsByGenderToday(school, academic, "Active", "No_Preference");
+
+            chartData.put("totalGirlsAbsent", (girlsCount-girlsPresentCount));
+            chartData.put("totalBoysAbsent", (boysCount-boysPresentCount));
+            chartData.put("totalNPAbsent", (noPreferenceCount-noPreferencePresentCount));
+
+            return chartData;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new HashMap();
+    }
+
+    private String getStudentCountByGender(Long school, Long academic, int totalActiveStudents){
+        try{
+            int boyCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndStudent_Gender(school, academic, "Active","Male");
+            int girlCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndStudent_Gender(school, academic, "Active","Female");
+            int otherCount = totalActiveStudents - (boyCount + girlCount);
+            return "BSC_"+boyCount+"###GSC_"+girlCount+"###NPSC_"+otherCount;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public List<String[]> getComingBirthDays(Long school, Long academic){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
+        List<String[]> dataList = new ArrayList<>();
+        try{
+            List<Object[]> stuDobList = academicStudentRepository.findUpcomingBirthdaysInNext7Days(school, academic, "Active");
+            if(!stuDobList.isEmpty()){
+                for(Object[] dd:stuDobList){
+                    LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    String formattedDob = dob.format(formatter);
+                    String studentName = (String) dd[1];
+                    System.out.println("DOB: "+dd[0]+" Name: "+dd[1]);
+                    String[] dobList = new String[2];
+                    dobList[1] = studentName;
+                    dobList[0] = formattedDob;
+                    dataList.add(dobList);
+                }
+            }
+            //Student Data added
+            return dataList;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
+    public List getAbsentSummaryGradewise(Long school, Long academic){
+        try{
+            boolean hasAny = attendanceRepository.existsAnyAttendanceForToday(school, academic)>0;
+            if(!hasAny){
+                return new ArrayList<>();
+            }
+            List<Object[]> results = academicStudentRepository.getGradeWiseAttendanceSummary(school, academic);
+            List<Map<String, Object>> summaries = new ArrayList<>();
+            if(!results.isEmpty()){
+                for (Object[] row : results) {
+                    Map<String, Object> summary = new HashMap<>();
+                    /*String className = (String) row[0];
+                    Long total = ((Number) row[1]).longValue();
+                    Long present = ((Number) row[2]).longValue();
+                    Long absent = ((Number) row[3]).longValue();*/
+                    summary.put("absentSummaryCount", row[3]);     // Absent Count
+                    summary.put("presentSummaryCount", row[2]);     // Present Count
+                    summary.put("totalSummaryCount", row[1]);     // Total Count
+                    summary.put("gradeNameSummary", row[0]);     // Grade Name
+                    summaries.add(summary);
+                    //System.out.println(className + " → Total: " + total + ", Present: " + present + ", Absent: " + absent);
+                }
+                return summaries;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
 }

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Search Student</div>
+                <hr/>
+                <div class="row">
+                    <div class="col-md-9">
+                        <input type="text" class="form-control" id="search-student" placeholder="Search student name">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary" onclick="searchStudentDetail()"><i class="bi bi-search"></i> Search</button>
+                    </div>
+                </div>
+                <hr/>
+            </div>
+            <div class="col-md-12">
+                <div class="search-data  d-flex justify-content-center align-items-center" id="search-data">
+                    <p>No Data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showWarningMsg("success", successMessage, "Success");
+        }
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showWarningMsg("info", infoMessage, "Info");
+        }
+        // Display error message
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showWarningMsg("error", errorMessage, "Error");
+        }
+
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const searchStudentDetail=()=>{
+            let query=$("#search-student").val();
+            if(query.trim().length>0){
+                let url = `${window.location.origin}/searchStudentData/${query}`;
+                fetch(url).then(response=>{
+                    return response.json();
+                })
+                .then((data)=>{
+                    /*console.log("data: "+data);
+                    console.log("length: "+data.length);*/
+                    if(data.length>0){
+                        let text = `<table class="table table-bordered table-striped table-hover table-sm">
+                            <thead><th>SNo</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Grade</th><th>SR No</th><th>Contact No</th><th>Address</th></thead>
+                            <tbody class="table-group-divider">`;
+                        let counter = 1;
+                        data.forEach((student) =>{
+                            let stuStatusClass = student.student.status==='Active'?'':'table-danger';
+                            //let classSRNoVal = student.classSrNo==null || student.classSrNo==''?'':student.classSrNo;
+                            //console.log("SR: "+classSRNoVal);
+                            text+=`<tr class="${stuStatusClass}"><td>${counter}</td><td>${student.student.studentName}</td><td>${student.student.fatherName}</td><td>${student.student.motherName}</td><td>${student.grade.gradeName}-${student.section.sectionName}</td>
+                                      <td>${student.classSrNo==null || student.classSrNo==''?'':student.classSrNo}</td><td>${student.student.mobile1}</td><td>${student.student.address}</td></tr>`;
+                            counter++;
+                        });
+                        text+= `</tbody>
+                        </table>`;
+                        $(".search-data").html(text);
+                        $(".search-data").show();
+                    } else{
+                        $(".search-data").html('No Data');
+                        $(".search-data").hide();
+                    }
+
+                })
+                .catch(err => {
+                    console.error("Fetch error:", err);
+                    showWarningMsg("error", "Unable to fetch student data", "Error");
+                });
+            } else{
+                showWarningMsg("error","Please enter value for search","Error")
+            }
+        }
+
+    </script>
+
+</section>
+</body>
+</html>

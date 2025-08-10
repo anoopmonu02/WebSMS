@@ -562,4 +562,18 @@ public class StudentRestController extends BaseController {
         }
         return ResponseEntity.ok(responseMsg);
     }
+
+    //searchStudentData
+    @GetMapping("/searchStudentData/{query}")
+    public ResponseEntity<?> searchStudentData(@PathVariable("query") String query, Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<AcademicStudent> studentDataList = new ArrayList();
+        try{
+            studentDataList = academicStudentService.searchStudentsAll(query, academicYear.getId(), school.getId());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return ResponseEntity.ok(studentDataList);
+    }
 }

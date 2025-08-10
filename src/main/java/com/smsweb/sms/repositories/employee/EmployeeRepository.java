@@ -25,4 +25,16 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e.school FROM Employee e WHERE e.userEntity.username = :username")
     Optional<School> findSchoolByUsername(@Param("username") String username);
 
+    int countAllBySchool_IdAndStatus(Long school, String status);
+
+    @Query(value = "SELECT a.dob, a.employee_name, a.employee_code " +
+            "FROM employees a " +
+            "WHERE a.school_id = :schoolId " +
+            "AND a.status = :status " +
+            "AND a.dob IS NOT NULL " +
+            "AND DATE_FORMAT(a.dob, '%m-%d') BETWEEN DATE_FORMAT(CURDATE(), '%m-%d') " +
+            "AND DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 7 DAY), '%m-%d')",
+            nativeQuery = true)
+    List<Object[]> findUpcomingBirthdaysInNext7Days(@Param("schoolId") Long school,
+                                                    @Param("status") String status);
 }
