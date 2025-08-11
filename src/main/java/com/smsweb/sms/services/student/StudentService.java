@@ -706,7 +706,7 @@ public class StudentService {
                 System.out.println("paramsMap:: "+paramsMap);
                 String medium = paramsMap.get("medium");
 
-                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllStudentsDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
+                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllStudentsDetailsBySession(school.getId(), academicYear.getId(), Long.parseLong(medium));
                 finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No students details found for Medium": totalStudentCollectionDetails);
             }
             responseMap.put("finalData", finalDataMap);

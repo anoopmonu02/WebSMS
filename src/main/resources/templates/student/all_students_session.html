@@ -159,17 +159,32 @@
                     <thead>
                     <tr>
                         <th>SNo</th>
-                        <th>Student Name</th>
-                        <th>SR No</th>
                         <th>Grade</th>
+                        <th>SR No</th>
+                        <th>Student Name</th>
                         <th>Father Name</th>
                         <th>Mother Name</th>
-
-                        <th>Regis. Date</th>
                         <th>DOB</th>
+                        <th>Religion</th>
+                        <th>Caste</th>
+                        <th>Category</th>
                         <th>Gender</th>
+                        <th>Contact 1</th>
+                        <th>Contact 2</th>
                         <th>Address</th>
-                        <th>Contact#</th>
+                        <th>Distance->School</th>
+                        <th>Aadhaar No</th>
+                        <th>PEN No</th>
+                        <th>Apaar ID</th>
+                        <th>Blood Group</th>
+                        <th>Height</th>
+                        <th>Weight</th>
+                        <th>Father's Qualification</th>
+                        <th>Mother's Qualification</th>
+                        <th>Account No</th>
+                        <th>IFSC Code</th>
+                        <th>Bank Name</th>
+                        <th>Branch Name</th>
                     </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
@@ -216,19 +231,36 @@
                         } else if(academicStudent.student.aadharNo===''){
                             noAadharCounter++;
                         }
-                        tblData += `<tr>
+                        let statusClass = academicStudent.student.status === 'Inactive' ? 'class="table-danger"' : '';
+                        tblData += `<tr ${statusClass}>
                             <td>${counter}</td>
-                            <td>${academicStudent.student.studentName}</td>
-                            <td>${srno}</td>
                             <td>${grd}</td>
+                            <td>${srno}</td>
+                            <td>${academicStudent.student.studentName}</td>
                             <td>${academicStudent.student.fatherName}</td>
                             <td>${academicStudent.student.motherName}</td>
 
-                            <td>${dt}</td>
                             <td>${dob}</td>
+                            <td>${academicStudent.student.religion}</td>
+                            <td>${academicStudent.student.cast.castName}</td>
+                            <td>${academicStudent.student.category}</td>
                             <td>${academicStudent.student.gender}</td>
-                            <td>${address}</td>
                             <td>${academicStudent.student.mobile1}</td>
+                            <td>${academicStudent.student.mobile2}</td>
+                            <td>${address}</td>
+                            <td>${academicStudent.student.distanceFromSchool}</td>
+                            <td>${academicStudent.student.aadharNo}</td>
+                            <td>${academicStudent.student.apaarNo}</td>
+                            <td>${academicStudent.student.penNo}</td>
+                            <td>${academicStudent.student.bloodGroup}</td>
+                            <td>${academicStudent.student.height}</td>
+                            <td>${academicStudent.student.weight}</td>
+                            <td>${academicStudent.student.fatherOccupation}</td>
+                            <td>${academicStudent.student.motherOccupation}</td>
+                            <td>${academicStudent.student.accountNo}</td>
+                            <td>${academicStudent.student.ifscCode}</td>
+                            <td>${academicStudent.student.bank.bankName}</td>
+                            <td>${academicStudent.student.branchName}</td>
                         </tr>`;
                         counter++;
                         let color = getRandomColor();
@@ -240,6 +272,7 @@
                     const exportColumns = [0,1,2,3,4,5,6,7,8,9,10];
                     const columnDefs = [{ "orderable": false, "targets": [0] }];
                     $("#studentTable").DataTable({
+                        scrollX: true,
                         layout: {
                             bottomEnd: {
                                 paging: {

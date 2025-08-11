@@ -74,8 +74,8 @@ public class Student { // Extend UserEntity
 
     @ManyToOne
     @JoinColumn(name = "cast_id")
-    @NotNull(message = "Cast should be available")
-    @DisplayLabel("Cast")
+    @NotNull(message = "Caste should be available")
+    @DisplayLabel("Caste")
     private Cast cast;
 
     @DisplayLabel("Gender")
@@ -132,7 +132,8 @@ public class Student { // Extend UserEntity
     @DisplayLabel("Mobile-2")
     private String mobile2;
 
-
+    @DisplayLabel("Distance From School")
+    private Integer distanceFromSchool;
 
     // Previous Academic Details
     private String previousSchool;
@@ -213,6 +214,14 @@ public class Student { // Extend UserEntity
     @Pattern(regexp = "^$|^[0-9]{12}$", message = "Aadhar number must be a 12-digit number")
     @Column(length = 12)
     private String aadharNo;
+
+    @Pattern(regexp = "^$|^[0-9]{12}$", message = "Apaar id must be a 12-digit number")
+    @Column(length = 12)
+    private String apaarId;
+
+    @Pattern(regexp = "^$|^[0-9]{11}$", message = "PEN number must be a 11-digit number")
+    @Column(length = 11)
+    private String penNo;
 
     @JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
