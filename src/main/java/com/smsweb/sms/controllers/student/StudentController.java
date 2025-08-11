@@ -167,7 +167,7 @@ public class StudentController extends BaseController {
         }
         if(result.hasErrors()){
             model = getAllGlobalModels(model);
-            model.addAttribute("error", result.getFieldError());
+            model.addAttribute("error", result.getFieldError().getDefaultMessage());
             return returnStr;
         }
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
@@ -196,13 +196,11 @@ public class StudentController extends BaseController {
             ffe.printStackTrace();
             model = getAllGlobalModels(model);
             model.addAttribute("error", ffe.getMessage());
-
             return returnStr;
         } catch(FileSizeLimitExceededException ffle){
             ffle.printStackTrace();
             model.addAttribute("error", ffle.getMessage());
             model = getAllGlobalModels(model);
-
             return returnStr;
         } catch(UniqueConstraintsException ue){
             model.addAttribute("error", ue.getMessage());

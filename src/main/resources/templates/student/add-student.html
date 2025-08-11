@@ -105,7 +105,7 @@
         </div>
 
         <div class="col-md-3">
-          <label for="cast" class="form-label">Cast</label>
+          <label for="cast" class="form-label">Caste</label>
           <select id="cast" class="form-control" th:field="*{cast.id}">
             <option th:each="cast : ${casts}" th:value="${cast.id}" th:text="${cast.castName}"
                     th:selected="${cast} == ${student.cast}"></option>
@@ -231,7 +231,12 @@
           <p class="text-danger" th:if="${#fields.hasErrors('userEntity.email')}" th:errors="*{userEntity.email}">City Error</p>
         </div>
         <div class="col-md-8"></div>
-
+        <div class="col-md-4">
+          <label for="distanceFromSchool" class="form-label">Distance From School</label>
+          <input type="text" id="distanceFromSchool" class="form-control intfields" th:field="*{distanceFromSchool}">
+          <p class="text-danger" th:if="${#fields.hasErrors('distanceFromSchool')}" th:errors="*{distanceFromSchool}">Distance From School</p>
+        </div>
+        <div class="col-md-8"></div>
         <!-- Previous Academic Details -->
         <div class="col-12">
           <h4>Previous Academic Details</h4>
@@ -373,6 +378,16 @@
           <input type="text" id="aadharNo" class="form-control" th:field="*{aadharNo}">
           <p class="text-danger" th:if="${#fields.hasErrors('aadharNo')}" th:errors="*{aadharNo}">aadharNo Error</p>
         </div>
+        <div class="col-md-4">
+          <label for="apaarId" class="form-label">Apaar ID</label>
+          <input type="text" id="apaarId" class="form-control" th:field="*{apaarId}">
+          <p class="text-danger" th:if="${#fields.hasErrors('apaarId')}" th:errors="*{apaarId}">apaarId Error</p>
+        </div>
+        <div class="col-md-4 mb-4">
+          <label for="penNo" class="form-label">PEN Number</label>
+          <input type="text" id="penNo" class="form-control" th:field="*{penNo}">
+          <p class="text-danger" th:if="${#fields.hasErrors('penNo')}" th:errors="*{penNo}">PEN No Error</p>
+        </div>
 
         <!-- Submit Button -->
         <hr/>
@@ -448,9 +463,10 @@
 
         const mobile1 = $("#mobile1").val().trim();
         const email = $("#email").val().trim();
-        const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        const emailPattern = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
         const religion = $("#religion").val().trim();
         const castVal = $("#cast").val().trim();
+        const category = $("#category").val().trim();
 
         if (!mobile1) {
           showWarningMsg("error", "Mobile no is required.", "Error");
@@ -473,7 +489,11 @@
         }
 
         if (!castVal) {
-          showWarningMsg("error", "Cast is required.", "Error");
+          showWarningMsg("error", "Caste is required.", "Error");
+          return false; // stop checking further
+        }
+        if (!category) {
+          showWarningMsg("error", "Category is required.", "Error");
           return false; // stop checking further
         }
 
@@ -489,7 +509,7 @@
     });*/
 
     // Display success message
-    const successMessage = [[${success}]];
+    const successMessage = /*[[${success}]]*/ "";
     if (successMessage) {
       //toastr.success(successMessage);
       toastr["success"](successMessage,"Success");
@@ -513,7 +533,7 @@
     }
 
     // Display error message
-    const errorMessage = [[${error}]];
+    const errorMessage = /*[[${error}]]*/ "";
     if (errorMessage) {
       //toastr.error(errorMessage);
       toastr["error"](errorMessage, "Error");

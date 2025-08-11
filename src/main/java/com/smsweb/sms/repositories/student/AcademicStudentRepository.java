@@ -45,6 +45,13 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium);
 
+
+    @Query("SELECT f FROM AcademicStudent f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.medium.id = :medium")
+    List<AcademicStudent> findAllStudentsDetailsBySession(
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("medium") Long medium);
+
     Optional<AcademicStudent> findById(Long academicStudentId);
 
     int countAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
