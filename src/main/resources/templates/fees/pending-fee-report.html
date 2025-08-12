@@ -181,10 +181,10 @@
                                 <tr>
                                     <th>SNo</th>
                                     <th>Student Name</th>
-                                    <th>Father Name</th>
-                                    <th>Mother Name</th>
                                     <th>SR No</th>
                                     <th>Grade</th>
+                                    <th>Father Name</th>
+                                    <th>Mother Name</th>
                                     <th>Pending Amount</th>
                                     <th>Upto Month</th>
                                     <th>Fee Head(s)</th>
@@ -198,18 +198,20 @@
 
                                 let srno = studentData.academicStudent.classSrNo ? studentData.academicStudent.classSrNo.trim() : '';
                                 let grd = studentData.academicStudent.grade.gradeName + ' - ' + studentData.academicStudent.section.sectionName;
-                                tblData += `<tr>
-                                    <td>${counter}</td>
-                                    <td>${studentData.academicStudent.student.studentName}</td>
-                                    <td>${studentData.academicStudent.student.fatherName}</td>
-                                    <td>${studentData.academicStudent.student.motherName}</td>
-                                    <td>${srno}</td>
-                                    <td>${grd}</td>
-                                    <td>&#8377; ${studentData.amount}</td>
-                                    <td>${studentData.monthsList}</td>
-                                    <td>${studentData.headList}</td>
-                                </tr>`;
-                                counter++;
+                                if(Number(studentData.amount) > 0){
+                                    tblData += `<tr>
+                                        <td>${counter}</td>
+                                        <td>${studentData.academicStudent.student.studentName}</td>
+                                        <td>${srno}</td>
+                                        <td>${grd}</td>
+                                        <td>${studentData.academicStudent.student.fatherName}</td>
+                                        <td>${studentData.academicStudent.student.motherName}</td>
+                                        <td>&#8377; ${studentData.amount}</td>
+                                        <td>${studentData.monthsList}</td>
+                                        <td>${studentData.headList}</td>
+                                    </tr>`;
+                                    counter++;
+                                }
                             }
                         }
                         tblData+=`</tbody></table>`;
