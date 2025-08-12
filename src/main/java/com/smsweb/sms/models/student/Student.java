@@ -66,6 +66,9 @@ public class Student { // Extend UserEntity
     private String fatherOccupation;
     private String motherOccupation;
 
+    private String fatherQualification;
+    private String motherQualification;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     @NotNull(message = "Category should be available")
@@ -211,7 +214,7 @@ public class Student { // Extend UserEntity
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
 
-    @Pattern(regexp = "^$|^[0-9]{12}$", message = "Aadhar number must be a 12-digit number")
+    @Pattern(regexp = "^$|^[0-9]{12}$", message = "Aadhaar number must be a 12-digit number")
     @Column(length = 12)
     private String aadharNo;
 

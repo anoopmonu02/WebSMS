@@ -51,7 +51,9 @@
           <p class="text-danger" th:if="${#fields.hasErrors('fatherOccupation')}" th:errors="*{fatherOccupation}">f name Error</p>
         </div>
         <div class="col-md-3">
-
+          <label for="fatherQualification" class="form-label">Father Qualification</label>
+          <input type="text" id="fatherQualification" class="form-control" th:field="*{fatherQualification}">
+          <p class="text-danger" th:if="${#fields.hasErrors('fatherQualification')}" th:errors="*{fatherQualification}">m name Error</p>
         </div>
 
         <div class="col-md-6">
@@ -66,7 +68,9 @@
           <p class="text-danger" th:if="${#fields.hasErrors('motherOccupation')}" th:errors="*{motherOccupation}">m name Error</p>
         </div>
         <div class="col-md-3">
-
+          <label for="motherQualification" class="form-label">Mother Qualification</label>
+          <input type="text" id="motherQualification" class="form-control" th:field="*{motherQualification}">
+          <p class="text-danger" th:if="${#fields.hasErrors('motherQualification')}" th:errors="*{motherQualification}">m name Error</p>
         </div>
 
         <div class="col-md-3">

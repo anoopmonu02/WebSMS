@@ -617,7 +617,7 @@ public class FeeSubmissionService {
                                             }
                                         } else{
                                             //responseMap.put("DISCOUNT_CLASS_MAP_NOT_FOUND","Discount-class-map not found");
-                                            responseMap.put("error","Discount-class-map not found");
+                                            //responseMap.put("error","Discount-class-map not found");
                                         }
                                     } else{
                                         System.out.println("Discount not assigned to student: "+academicStudent.getStudent().getStudentName());
