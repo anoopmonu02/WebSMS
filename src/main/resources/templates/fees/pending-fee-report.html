@@ -195,7 +195,6 @@
                         for (let key in stulist) {
                             if (stulist.hasOwnProperty(key)) {
                                 let studentData = stulist[key];
-
                                 let srno = studentData.academicStudent.classSrNo ? studentData.academicStudent.classSrNo.trim() : '';
                                 let grd = studentData.academicStudent.grade.gradeName + ' - ' + studentData.academicStudent.section.sectionName;
                                 if(Number(studentData.amount) > 0){
@@ -219,6 +218,7 @@
                         const exportColumns = [0,1,2,3,4,5,6,7,8];
                         const columnDefs = [{ "orderable": false, "targets": [0] }];
                         $("#studentTable").DataTable({
+                            scrollX: true,
                             layout: {
                                 bottomEnd: {
                                     paging: {

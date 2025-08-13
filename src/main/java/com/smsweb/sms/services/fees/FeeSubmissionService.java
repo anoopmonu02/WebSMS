@@ -966,7 +966,7 @@ public class FeeSubmissionService {
                 List<Long> orderedMonthIds = mmList.stream()
                         .map(mm -> mm.getMonthMaster().getId())
                         .collect(Collectors.toList());
-                List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
+                List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_Id(school.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId());
                 if(academicStudents!=null && !academicStudents.isEmpty()){
                     Map stuFeeSubMap = new HashMap();
                     for(AcademicStudent student:academicStudents){
@@ -977,8 +977,11 @@ public class FeeSubmissionService {
                         if(feeSubmissions!=null && !feeSubmissions.isEmpty()){
                             //Calculate Fee + discount + Fine
                             BigDecimal fineAmount = BigDecimal.ZERO;
+
                             for(FeeSubmission feeSubmission:feeSubmissions){
+                                int feeSubmissionMonthCounter = 0;
                                 List<FeeSubmissionMonths> feeSubmissionMonths = feeSubmission.getFeeSubmissionMonths();
+                                FeeSubmissionBalance feeSubmissionBalance = feeSubmission.getFeeSubmissionBalance();
                                 /**
                                  * divide submitted fees by submitted months when every month fee calculated by fee mapped to class
                                  * calculate any discount, fine if applicable
@@ -1001,6 +1004,7 @@ public class FeeSubmissionService {
                                             .collect(Collectors.toList());
                                     monthCount+=monthMasterIds.size();
                                     for(Long monthId:monthMasterIds){
+                                        feeSubmissionMonthCounter++;
                                         List<Long> monthIdList = new ArrayList<>();
                                         monthIdList.add(monthId);
                                         Map feeDetailMap = new HashMap();
@@ -1046,6 +1050,11 @@ public class FeeSubmissionService {
                                         feeDetailMap.put("fineAmount",fineAmount);
                                         feeDetailMap.put("academicStudent", student);
                                         feeDetailMap.put("blankData",0);
+                                        if(feeSubmissionMonthCounter==monthMasterIds.size()){
+                                            feeDetailMap.put("balanceAmount", feeSubmissionBalance.getBalanceAmount());
+                                        } else{
+                                            feeDetailMap.put("balanceAmount", BigDecimal.valueOf(0.0));
+                                        }
                                         fineAmount = BigDecimal.ZERO;
                                         depositedFeeList.add(feeDetailMap);
                                     }

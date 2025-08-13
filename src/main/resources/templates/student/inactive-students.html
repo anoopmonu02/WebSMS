@@ -18,6 +18,8 @@
           <thead>
           <tr>
             <th>Student Name</th>
+            <th>SR No</th>
+            <th>Grade</th>
             <th>Regis. Date</th>
             <!--<th>Regis. #</th>-->
             <th>Mother Name</th>
@@ -31,19 +33,21 @@
           </thead>
           <tbody class="table-group-divider">
 
-          <tr th:each="student,iterStat : ${students}">
+          <tr th:each="academicStudent,iterStat : ${students}">
             <td>
-              <a th:href="@{/student/student/showdeleted/{id}(id=${student.uuid})}" th:text="${student.studentName}"></a>
+              <a th:href="@{/student/student/showdeleted/{id}(id=${academicStudent.student.uuid})}" th:text="${academicStudent.student.studentName}"></a>
             </td>
-            <td th:text="${#dates.format(student.registrationDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${academicStudent.classSrNo}"></td>
+            <td th:text="${academicStudent.grade.gradeName} + ' - ' + ${academicStudent.section.sectionName}"></td>
+            <td th:text="${#dates.format(academicStudent.student.registrationDate, 'dd/MMM/yyyy')}"></td>
             <!--<td th:text="${customer.registrationNo}"></td>-->
-            <td th:text="${student.motherName}"></td>
-            <td th:text="${student.fatherName}"></td>
-            <td th:text="${student.mobile1}"></td>
-            <td th:text="${student.getUserEntity().getEmail()}"></td>
-            <td th:text="${student.address}"></td>
-            <td th:text="${student.status}"></td>
-            <td th:text="${#dates.format(student.lastUpdated, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${academicStudent.student.motherName}"></td>
+            <td th:text="${academicStudent.student.fatherName}"></td>
+            <td th:text="${academicStudent.student.mobile1}"></td>
+            <td th:text="${academicStudent.student.getUserEntity().getEmail()}"></td>
+            <td th:text="${academicStudent.student.address}"></td>
+            <td th:text="${academicStudent.student.status}"></td>
+            <td th:text="${#dates.format(academicStudent.student.lastUpdated, 'dd/MMM/yyyy')}"></td>
 
           </tr>
           </tbody>
@@ -66,6 +70,7 @@
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function () {
       $('#students-deleted').DataTable({
+        scrollX: true,
         layout: {
           bottomEnd: {
             paging: {
