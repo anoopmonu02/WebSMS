@@ -44,7 +44,7 @@
                     <hr/>
                 </div>
 
-                <div class="col-md-12" id="printable-div" style="display: none">
+                <div class="row" id="printable-div" style="display: none">
                     <div class="card-header fs-3">Deposited Fee(s) Detail</div><hr/>
 
                     <div class="row">
@@ -189,27 +189,48 @@
                                 let s = studentData[0].academicStudent.student;
                                 let stuDetail = `${s.studentName}<br>${s.fatherName}<br>${s.motherName}<br>`;
                                 let isActiveStudent = s.status==='Active'?true:false;
+                                let stuId = studentData[0].academicStudent.id;
+                                console.log(" studentData[0].:"+studentData[0]);
                                 tblData += `<tr class="${isActiveStudent?'':'table-danger'}">
-                                    <td>${counter}</td>
-                                    <td>${stuDetail}</td>
-                                    <td>${srno}</td>`;
+                                    <td><small>${counter}</small></td>
+                                    <td><small>${stuDetail}</small></td>
+                                    <td><small>${srno}</small></td>`;
+                                let myMap = new Map();
                                 //for(let monName in monthslist){
                                 console.log("stu length: "+studentData.length);
+                                    let lastBalanceAmount = 0;
+                                    for (let i = 0; i < studentData.length; i++){
+                                        let studentObj = studentData[i];
+                                        let balanceAmount = studentObj.balanceAmount;
+                                        if(balanceAmount!==undefined){
+                                            lastBalanceAmount = balanceAmount;//>0?balanceAmount:lastBalanceAmount;
+                                            myMap.set(stuId, lastBalanceAmount);
+                                        }
+                                    }
                                     for (let i = 0; i < studentData.length; i++){
                                         let studentObj = studentData[i];
                                         let feeLbl = '';
-                                        //console.log("studentObj.blankData----------------------"+studentObj.blankData);
+                                        let balanceAmount = undefined;
+                                        if(studentObj.balanceAmount!= undefined){
+                                            balanceAmount = studentObj.balanceAmount;//studentObj.balanceAmount ?? 0; // nullish coalescing
+                                        }
+                                        if(stuId==myMap.has(stuId)){
+                                            balanceAmount = myMap.get(stuId);
+                                        }
                                         if(studentObj.blankData===1){
                                             feeLbl = ``;
                                         } else{
                                             feeLbl = `Receipt No: ${studentObj.receipt}<br>Date: ${studentObj.submitDate}<br>Amount: &#8377; ${studentObj.feeSubmitted}<br>Late Fee: &#8377; ${studentObj.fineAmount}`;
                                         }
-
+                                        console.log("studentObj.balanceAmount----------------------"+balanceAmount + " i: "+(i+1) + " studentData.length: "+studentData.length);
+                                        if(balanceAmount>0){
+                                            feeLbl+=`<br><small class="text-bg-danger">Balance Amount: &#8377; ${balanceAmount}</small>`;
+                                        }
                                         //console.log("studentData====== "+studentObj);
                                         //console.log("studentData.academicStudent====== "+studentObj.academicStudent);
                                         //console.log("Counter - "+i+"   --"+studentObj.totalPaidAmount+" - "+studentObj.submitDate);
                                         //let isStudentDataPresent = studentData==='NO_DATA_FOUND'?false:true;
-                                        tblData+=`<td>${feeLbl}</td>`;
+                                        tblData+=`<td><small>${feeLbl}</small></td>`;
                                     }
                                 //}
                                 tblData+=`</tr>`;
@@ -223,6 +244,7 @@
                         const columnDefs = [{ "orderable": false, "targets": [0] }];
                         $("#studentTable").DataTable({
                             scrollX: true,
+                            autoWidth: false,
                             scrollCollapse: true,
                             paging: true,
                             sort: false,

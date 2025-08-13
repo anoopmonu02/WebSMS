@@ -69,9 +69,15 @@ public class StudentService {
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Active");
     }
+    //findAllBySchool_IdAndStatus
+
 
     public List<Student> getAllInActiveStudents(Long school_id) {
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Inactive");
+    }
+
+    public List<AcademicStudent> getAllInActiveStudentsList(Long school_id) {
+        return academicStudentRepository.findAllBySchool_IdAndStatus(school_id, "Inactive");
     }
 
     public List<Student> getAllStudents(Long school_id) {

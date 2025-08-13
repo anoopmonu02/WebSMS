@@ -8,6 +8,7 @@ import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.repositories.admin.ExaminationRepository;
@@ -316,7 +317,7 @@ public class StudentController extends BaseController {
     @GetMapping("/stu-deleted-list")
     public String deletedStudentList(Model model){
         School school = (School)model.getAttribute("school");
-        List<Student> studentList = studentService.getAllInActiveStudents(school.getId());
+        List<AcademicStudent> studentList = studentService.getAllInActiveStudentsList(school.getId());
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
