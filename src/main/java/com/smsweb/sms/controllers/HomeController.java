@@ -88,8 +88,16 @@ public class HomeController {
                 totalPresentCount += ((Number) absentObj).intValue();
             }
         }
+        List chunks = new ArrayList();
+        for(int i=0;i< attendanceList.size();i+=5){
+            chunks.add(attendanceList.subList(i, Math.min(i+5, attendanceList.size())));
+        }
         model.addAttribute("attendances", attendanceList);
         model.addAttribute("isAttendance", !attendanceList.isEmpty());
+        int preferredColumns = (attendanceList.size()+5-1)/5;
+        model.addAttribute("preferredColumns", preferredColumns);
+        model.addAttribute("recordsPerColumns", 5);
+        model.addAttribute("chunks", chunks);
         int totalAbsent = totalStudents - totalPresentCount;
         model.addAttribute("totalAbsent",totalAbsent);
         model.addAttribute("totalPresent",totalPresentCount);

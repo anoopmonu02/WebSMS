@@ -321,10 +321,27 @@
                     <div class="card text-center mb-4">
                         <div class="card-header">Today's Absent Students(Grade-wise)</div>
                         <div class="card-body">
-                            <ul class="list-group list-group-flush text-start" th:each="holiday, iter : ${attendances}" th:if="${isAttendance}">
-                                <li class="list-group-item small" th:text="${holiday.gradeNameSummary + ' - ' + holiday.absentSummaryCount}"></li>
-                            </ul>
+                            <div class="row">
+                                <div class="col" th:each="chunk:${chunks}">
+                                    <ul>
+                                        <li th:each="attendance : ${chunk}">
+                                            <span th:text="${attendance.gradeNameSummary}"></span>
+                                            <span class="badge text-bg-danger rounded-pill"
+                                                  th:text="${attendance.absentSummaryCount}"></span>
+                                        </li>
+                                    </ul>
 
+                                </div>
+                            </div>
+
+                            <!--<ul class="list-group list-group-flush text-start"
+                                th:if="${isAttendance}">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center" th:each="attendance : ${attendances}">
+                                        <span th:text="${attendance.gradeNameSummary}"></span>
+                                        <span class="badge text-bg-danger rounded-pill"
+                                              th:text="${attendance.absentSummaryCount}"></span>
+                                    </li>
+                            </ul>-->
                             <div th:if="${!isAttendance}">
                                 <p class="text-center"><strong>No attendance data found for today</strong></p>
                             </div>
