@@ -8,6 +8,7 @@ import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.Roles;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
@@ -1134,18 +1135,53 @@ public class GlobalController extends BaseController {
     /*************************** User-Role *************************/
     @GetMapping("/user-role-list")
     public String getUserRoleList(Model model){
-        School school = (School)model.getAttribute("school");
-        //List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
-        model.addAttribute("hasUserRoleMapping",false);
-        //model.addAttribute("employees",employees);
+        List<Employee> employees = null;
+        Map<Employee, List<Roles>> userRoleMap = new HashMap<>();
+        boolean isSuperAdmin = isSuperAdminLoggedIn();
+        boolean isAdmin = isAdminLogin();
+        if(isSuperAdmin){
+            employees = employeeService.getAllActiveEmployees();
+        } else if(isAdmin){
+            School school = (School)model.getAttribute("school");
+            employees = employeeService.getAllActiveEmployees(school.getId());
+        } else{
+
+        }
+        if(employees!=null && !employees.isEmpty()){
+            for(Employee employee: employees){
+                UserEntity user = employee.getUserEntity();
+                userRoleMap.put(employee, user.getRoles().isEmpty()?null:user.getRoles());
+            }
+        }
+        model.addAttribute("hasUserRoleMapping",userRoleMap.size()>0?true:false);
+        model.addAttribute("isSuperAdminLoggedIn", isSuperAdmin);
+        model.addAttribute("isAdminLoggedIn", isAdmin);
+        model.addAttribute("userRoleMap", userRoleMap);
+        model.addAttribute("isUserRoleMap", !userRoleMap.isEmpty());
+        model.addAttribute("employees",employees);
         //System.out.println("employees:::: "+employees);
         return "/admin/user-role";
     }
 
     @GetMapping("/add-user-to-role")
     public String addUserRole(Model model){
-        School school = (School)model.getAttribute("school");
-        List<Employee> employees = employeeService.getAllActiveEmployees(school.getId());
+        List<Employee> employees = null;
+        boolean isSuperAdmin = isSuperAdminLoggedIn();
+        boolean isAdmin = isAdminLogin();
+        if(isSuperAdmin){
+            employees = employeeService.getAllActiveEmployees();
+        } else if(isAdmin){
+            School school = (School)model.getAttribute("school");
+            employees = employeeService.getAllActiveEmployees(school.getId());
+        } else{
+
+        }
+        /*if(employees!=null && !employees.isEmpty()){
+            for(Employee employee: employees){
+                UserEntity user = employee.getUserEntity();
+                userRoleMap.put(employee, user.getRoles().isEmpty()?null:user.getRoles());
+            }
+        }*/
         List<Roles> roles = roleRepository.findAll();
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
