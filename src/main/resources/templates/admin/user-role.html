@@ -18,18 +18,20 @@
                         <th>Username</th>
                         <th>Name</th>
                         <th>Mobile</th>
-                        <th>Role</th>
-                        <th>Actions</th>
+                        <th>Roles</th>
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
-                    <!--<tr th:each="emp : ${employees}">
-                        <td th:text="${emp.userEntity.username}"></td>
-                        <td th:text="${emp.employeeName}"></td>
-                        <td th:text="${emp.mobile1}"></td>
-                        <td th:text="${emp.userEntity.roles}"></td>
-                        <td></td>
-                    </tr>-->
+                    <tr th:each="emp, iter : ${userRoleMap}">
+                        <td th:text="${iter.index+1}"></td>
+                        <td th:text="${emp.key.userEntity.username}"></td>
+                        <td th:text="${emp.key.employeeName}"></td>
+                        <td th:text="${emp.key.mobile1}"></td>
+                        <td>
+                            <span th:if="${emp.value == null}">No Roles</span>
+                            <span th:each="role : ${emp.value}" th:text="${role.name + ', '}"></span>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <div th:if="${!hasUserRoleMapping}">

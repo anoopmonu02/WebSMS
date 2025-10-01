@@ -54,22 +54,26 @@ public class HomeController {
 
     @GetMapping("/dashboard")
     public String index(HttpSession session, Model model){
-        School school = (School) session.getAttribute("school");
-        AcademicYear academicYear = (AcademicYear)session.getAttribute("activeAcademicYear");
-
-        System.out.println("school--"+school);
-        model.addAttribute("school", school);
+        if(isSuperAdminLoggedIn()){
+            model.addAttribute("isSuperAdmin", true);
+        }
+        else{
+            School school = (School) session.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)session.getAttribute("activeAcademicYear");
+            model.addAttribute("isSuperAdmin", false);
+            System.out.println("school--"+school);
+            model.addAttribute("school", school);
         /*schoolHolder.setCurrentSchool(school);
         academicYearHolder.setCurrentAcademicYear(academicyearService.getCurrentAcademicYear(school.getId()));*/
 
-        //fetching holidays & Events
-        List<Holiday> holidayList = holidayService.getAllHolidayStartsFromToday(academicYear.getId(), school.getId());
-        model.addAttribute("holidays", holidayList);
-        model.addAttribute("isHoliDays", !holidayList.isEmpty());
+            //fetching holidays & Events
+            List<Holiday> holidayList = holidayService.getAllHolidayStartsFromToday(academicYear.getId(), school.getId());
+            model.addAttribute("holidays", holidayList);
+            model.addAttribute("isHoliDays", !holidayList.isEmpty());
 
-        //fetching total students
-        int totalStudents = studentService.getAllStudentsCount(school.getId(), academicYear.getId());
-        model.addAttribute("totalStudents", totalStudents>0? totalStudents:0);
+            //fetching total students
+            int totalStudents = studentService.getAllStudentsCount(school.getId(), academicYear.getId());
+            model.addAttribute("totalStudents", totalStudents>0? totalStudents:0);
 
         /*int deleteStudents = studentService.getAllInactiveStudentsCount(school.getId(), academicYear.getId());
         model.addAttribute("deleteStudents", deleteStudents>0?deleteStudents:0);
@@ -77,64 +81,77 @@ public class HomeController {
         int totalEmployees = employeeService.getAllActiveEmployeesCount(school.getId());
         model.addAttribute("totalEmployees", totalEmployees>0?totalEmployees:0);*/
 
-        //Fetch Grade-wise absent student list
-        //List<Map<String, Object>> attendanceList = studentService.getAttendanceDetailsCollectedByClass(school.getId(), academicYear.getId());
-        List<Map<String, Object>> attendanceList = studentService.getAbsentSummaryGradewise(school.getId(), academicYear.getId());
+            //Fetch Grade-wise absent student list
+            //List<Map<String, Object>> attendanceList = studentService.getAttendanceDetailsCollectedByClass(school.getId(), academicYear.getId());
+            List<Map<String, Object>> attendanceList = studentService.getAbsentSummaryGradewise(school.getId(), academicYear.getId());
 
-        int totalPresentCount = 0;
-        for (Map<String, Object> summary : attendanceList) {
-            Object absentObj = summary.get("presentSummaryCount");
-            if (absentObj != null) {
-                totalPresentCount += ((Number) absentObj).intValue();
+            int totalPresentCount = 0;
+            for (Map<String, Object> summary : attendanceList) {
+                Object absentObj = summary.get("presentSummaryCount");
+                if (absentObj != null) {
+                    totalPresentCount += ((Number) absentObj).intValue();
+                }
             }
+            List chunks = new ArrayList();
+            for(int i=0;i< attendanceList.size();i+=5){
+                chunks.add(attendanceList.subList(i, Math.min(i+5, attendanceList.size())));
+            }
+            model.addAttribute("attendances", attendanceList);
+            model.addAttribute("isAttendance", !attendanceList.isEmpty());
+            int preferredColumns = (attendanceList.size()+5-1)/5;
+            model.addAttribute("preferredColumns", preferredColumns);
+            model.addAttribute("recordsPerColumns", 5);
+            model.addAttribute("chunks", chunks);
+            int totalAbsent = totalStudents - totalPresentCount;
+            model.addAttribute("totalAbsent",totalAbsent);
+            model.addAttribute("totalPresent",totalPresentCount);
+
+
+            //Fetch Upcoming Events
+
+            //Fetch Aadhaar & SR details of students for chart
+            //count of - Total Aadhaar/No Aadhaar, total absent gender-wise, Total SR/No SR, Gender Ratio
+            Map chartDataMap = studentService.getPieChartData(school.getId(), academicYear.getId(), totalStudents);
+            model.addAttribute("totalGirlsCount", chartDataMap.get("totalGirlsCount"));
+            model.addAttribute("totalBoysCount", chartDataMap.get("totalBoysCount"));
+            model.addAttribute("totalNPCount", chartDataMap.get("totalNPCount"));
+            model.addAttribute("totalAadhaar", chartDataMap.get("totalAadhaarCount"));
+            model.addAttribute("totalSR", chartDataMap.get("totalSRCount"));
+
+            model.addAttribute("totalGirlsAbsentCount", chartDataMap.get("totalGirlsAbsent"));
+            model.addAttribute("totalBoysAbsentCount", chartDataMap.get("totalBoysAbsent"));
+            model.addAttribute("totalNPAbsentCount", chartDataMap.get("totalNPAbsent"));
+
+            //Fetch upcoming birthdays
+            List<String[]> stuDobList = studentService.getComingBirthDays(school.getId(), academicYear.getId());
+            List<String[]> empDobList = employeeService.getComingBirthDays(school.getId(), academicYear.getId());
+            List<String[]> combinedList = new ArrayList<>();
+            combinedList.addAll(stuDobList);
+            combinedList.addAll(empDobList);
+            model.addAttribute("studentsDobUpcoming", combinedList);
+            model.addAttribute("isStudentsDobUpcoming", !combinedList.isEmpty());
+            //Fetch month-wise collection
+
+            //Fetch fee submitted today
+            BigDecimal totalFeeSubmittedAmount = feeSubmissionService.getTodayFeeCollection(school.getId(), academicYear.getId());
+            model.addAttribute("totalFeeSubmittedToday", totalFeeSubmittedAmount.toString());
         }
-        List chunks = new ArrayList();
-        for(int i=0;i< attendanceList.size();i+=5){
-            chunks.add(attendanceList.subList(i, Math.min(i+5, attendanceList.size())));
-        }
-        model.addAttribute("attendances", attendanceList);
-        model.addAttribute("isAttendance", !attendanceList.isEmpty());
-        int preferredColumns = (attendanceList.size()+5-1)/5;
-        model.addAttribute("preferredColumns", preferredColumns);
-        model.addAttribute("recordsPerColumns", 5);
-        model.addAttribute("chunks", chunks);
-        int totalAbsent = totalStudents - totalPresentCount;
-        model.addAttribute("totalAbsent",totalAbsent);
-        model.addAttribute("totalPresent",totalPresentCount);
-
-
-        //Fetch Upcoming Events
-
-        //Fetch Aadhaar & SR details of students for chart
-        //count of - Total Aadhaar/No Aadhaar, total absent gender-wise, Total SR/No SR, Gender Ratio
-        Map chartDataMap = studentService.getPieChartData(school.getId(), academicYear.getId(), totalStudents);
-        model.addAttribute("totalGirlsCount", chartDataMap.get("totalGirlsCount"));
-        model.addAttribute("totalBoysCount", chartDataMap.get("totalBoysCount"));
-        model.addAttribute("totalNPCount", chartDataMap.get("totalNPCount"));
-        model.addAttribute("totalAadhaar", chartDataMap.get("totalAadhaarCount"));
-        model.addAttribute("totalSR", chartDataMap.get("totalSRCount"));
-
-        model.addAttribute("totalGirlsAbsentCount", chartDataMap.get("totalGirlsAbsent"));
-        model.addAttribute("totalBoysAbsentCount", chartDataMap.get("totalBoysAbsent"));
-        model.addAttribute("totalNPAbsentCount", chartDataMap.get("totalNPAbsent"));
-
-        //Fetch upcoming birthdays
-        List<String[]> stuDobList = studentService.getComingBirthDays(school.getId(), academicYear.getId());
-        List<String[]> empDobList = employeeService.getComingBirthDays(school.getId(), academicYear.getId());
-        List<String[]> combinedList = new ArrayList<>();
-        combinedList.addAll(stuDobList);
-        combinedList.addAll(empDobList);
-        model.addAttribute("studentsDobUpcoming", combinedList);
-        model.addAttribute("isStudentsDobUpcoming", !combinedList.isEmpty());
-        //Fetch month-wise collection
-
-        //Fetch fee submitted today
-        BigDecimal totalFeeSubmittedAmount = feeSubmissionService.getTodayFeeCollection(school.getId(), academicYear.getId());
-        model.addAttribute("totalFeeSubmittedToday", totalFeeSubmittedAmount.toString());
-
         return "index";
+
     }
 
+    private boolean isSuperAdminLoggedIn(){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName(); // Get logged-in username
+            if(username.equalsIgnoreCase("super_admin")){
+                return true;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
 
     public boolean isSuperAdmin(){
         try{
