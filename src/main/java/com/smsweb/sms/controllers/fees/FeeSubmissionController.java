@@ -267,4 +267,29 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("page", "datatable");
         return "/fees/total_deposited_fees";
     }
+
+    @GetMapping("fees-pending-report")
+    public String feePendingReport(Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+        model.addAttribute("monthmapping", monthMappingList);
+        model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+        model.addAttribute("grades",gradeService.getAllGrades());
+        model.addAttribute("sections",sectionService.getAllSections());
+        model.addAttribute("mediums", mediumService.getAllMediums());
+        model.addAttribute("page", "datatable");
+        return "/fees/pending-fee-report";
+    }
+
+    @GetMapping("/fees-total-gradewise-income-report")
+    public String gradeWiseFeeIncomeDetail(Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List dataMap = feeSubmissionService.calculateTotalGradewiseFees(school.getId(), academicYear.getId());
+        model.addAttribute("hasData", !dataMap.isEmpty());
+        model.addAttribute("page", "datatable");
+        model.addAttribute("datalist", dataMap);
+        return "/fees/fees-total-gradewise-income";
+    }
 }

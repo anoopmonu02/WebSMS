@@ -139,4 +139,72 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             "WHERE f.feeSubmissionDate = CURRENT_DATE AND f.school.id = :school AND f.academicYear.id = :academic and f.status = 'ACTIVE'")
     BigDecimal getTodayTotalFeeSubmission(@Param("school") Long school,
                                           @Param("academic") Long academic);
+
+    @Query("SELECT f.amount,f.grade.id, f.grade.gradeName FROM FeeClassMap f where f.school.id = :school AND f.academicYear.id = :academic AND f.grade.id in(:gradeIds) AND f.feehead.feeHeadName=:feeHeadName")
+    List<Object[]> getGradewiseTutionFees(@Param("school") Long school,
+                                      @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds, @Param("feeHeadName") String feeHeadName);
+
+    /*@Query("""
+    SELECT COUNT(s.academicStudent.id) AS studentCount,
+           dc.amount AS amount,
+           (COUNT(s.academicStudent.id) * dc.amount) AS total,
+           a.grade.id AS gradeName, a.section.id as sectionName
+    FROM AcademicStudent  a left join StudentDiscount s ON a.id=s.academicStudent.id AND s.status = 'Active'
+    JOIN DiscountClassMap dc
+         ON dc.discounthead.id = s.discounthead.id
+         AND dc.academicYear.id = s.academicYear.id
+         AND dc.school.id = s.school.id
+    JOIN DiscountMonthMap dm
+         ON dm.school.id = s.school.id
+         AND dm.academicYear.id = s.academicYear.id
+         AND dm.discounthead.id = s.discounthead.id
+         AND dc.discounthead.id = dm.discounthead.id
+    WHERE 
+      s.academicYear.id = :academicYearId
+      AND s.school.id = :schoolId
+      AND dm.monthMaster.id = FUNCTION('MONTH', CURRENT_DATE) AND a.grade.gradeName = :grade AND a.section.sectionName = :section AND dc.grade.id = a.grade.id 
+    GROUP BY a.grade.id, a.section.id, dc.amount
+""")
+    List<Object[]> getStudentDiscountSummary(@Param("academicYearId") Long academicYearId,
+                                             @Param("schoolId") Long schoolId, @Param("grade") String grade, @Param("section") String section);*/
+
+    @Query(value = """
+    SELECT 
+        COUNT(s.academic_student_id) AS student_count,
+        IFNULL(dc.amount, 0) AS amount,
+        (COUNT(s.academic_student_id) * IFNULL(dc.amount, 0)) AS total,
+        g.grade_name AS gradeName,
+        sec.section_name AS sectionName
+    FROM academic_students a
+    JOIN student_discount s 
+        ON a.id = s.academic_student_id
+    JOIN discount_class_map dc 
+        ON dc.discounthead_id = s.discount_head_id
+        AND s.academic_year_id = dc.academic_year_id
+        AND s.school_id = dc.school_id
+    JOIN discount_month_map dm 
+        ON s.school_id = dm.school_id
+        AND s.academic_year_id = dm.academic_year_id
+        AND s.discount_head_id = dm.discounthead_id
+    JOIN grade g 
+        ON a.grade_id = g.id
+    JOIN section sec 
+        ON a.section_id = sec.id
+    WHERE (LOWER(s.status) = 'active')
+      AND s.academic_year_id = :academicYearId  
+      AND s.school_id = :schoolId                
+      AND dm.month_master_id = MONTH(curdate())
+      AND g.grade_name = :gradeName
+      AND sec.section_name = :sectionName
+      AND dm.is_applicable = true
+      AND (a.grade_id = dc.grade_id OR dc.grade_id IS NULL)
+    GROUP BY a.grade_id, a.section_id, dc.amount
+""", nativeQuery = true)
+    List<Object[]> getStudentDiscountSummary(
+            @Param("academicYearId") Long academicYearId,
+            @Param("schoolId") Long schoolId,
+            @Param("gradeName") String gradeName,
+            @Param("sectionName") String sectionName
+    );
+
 }
