@@ -18,6 +18,8 @@
             <th>#</th>
             <th>Discount Name</th>
             <th>Student Name</th>
+            <th>Grade</th>
+            <th>SR</th>
             <th>Father Name</th>
             <th>Mother Name</th>
             <th>Contact#</th>
@@ -31,6 +33,8 @@
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${student.discounthead.discountName}"></td>
             <td th:text="${student.academicStudent.student.studentName}"></td>
+            <td th:text="${student.academicStudent.grade.gradeName+'-'+student.academicStudent.section.sectionName}"></td>
+            <td th:text="${student.academicStudent.classSrNo}"></td>
             <td th:text="${student.academicStudent.student.fatherName}"></td>
             <td th:text="${student.academicStudent.student.motherName}"></td>
             <td th:text="${student.academicStudent.student.mobile1}"></td>
@@ -74,7 +78,7 @@
         ],
         pageLength: 10,
         columnDefs: [
-          { "orderable": false, "targets": [0,7] } // Disable sorting on the first and fourth columns
+          { "orderable": false, "targets": [0,9] } // Disable sorting on the first and fourth columns
         ]
       });
     });

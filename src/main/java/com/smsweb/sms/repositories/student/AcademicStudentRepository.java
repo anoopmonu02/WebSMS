@@ -131,4 +131,9 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                                  @Param("academicYearId") Long academicYearId);
 
 
+    @Query(value = "SELECT a.grade.gradeName, a.section.sectionName, a.grade.id as gradeId, a.section.id as sectionId, count(a.student.id) as TotalStudents FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status group by a.grade, a.section")
+    List<Object[]> getGradesAndSectionList(@Param("schoolId") Long schoolId,
+                                 @Param("academicYearId") Long academicYearId,
+                                 @Param("status") String status);
+
 }

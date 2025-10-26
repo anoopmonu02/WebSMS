@@ -131,7 +131,7 @@
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks pe-2"></i> Assign Discount </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill pe-2"></i> Assign SR </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-sign-merge-left-fill pe-2"></i> Migrate Student </a></li>
+                        <li class="sidebar-item submenu"><a class="sidebar-link" href="#"><i class="bi bi-sign-merge-left-fill pe-2"></i> Migrate Student </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-mortarboard-fill pe-2"></i> Edit Grade/Section </a></li>
                         <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-deleted-list'}"><i class="bi bi-person-x pe-2"></i> Remove Student </a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
@@ -185,6 +185,12 @@
                                 </li>
                                 <li class="sidebar-item submenu">
                                     <a th:href="@{'/fees/fees-total-deposited-report'}" class="sidebar-link">Total Deposited Fee List</a>
+                                </li>
+                                <li class="sidebar-item submenu">
+                                    <a href="#" class="sidebar-link">Pending Fee Report</a>
+                                </li>
+                                <li class="sidebar-item submenu">
+                                    <a th:href="@{'/fees/fees-total-gradewise-income-report'}" class="sidebar-link">Grade-wise Collection</a>
                                 </li>
                             </ul>
                         </li>

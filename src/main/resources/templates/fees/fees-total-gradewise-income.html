@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <div class="container">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Garde-wise Fees Income</div>
+                <hr/>
+                <table id="student-discount-list" class="table table-bordered table-striped table-hover table-sm" th:if="${hasData}">
+                    <thead>
+                    <tr>
+                        <th>Garde</th>
+                        <th>Section</th>
+                        <th>Total Students</th>
+                        <th>Monthly Fees</th>
+                        <th>Total Students(Discount)</th>
+                        <th>Total Discount Fees</th>
+                        <th>Fee Income(Section)</th>
+                    </tr>
+                    </thead>
+                    <tbody class="table-group-divider">
+
+                    <tr th:each="feelist,iterStat : ${datalist}">
+                        <td th:text="${feelist[0]}"></td>
+                        <td th:text="${feelist[1]}"></td>
+                        <td th:text="${feelist[2]}"></td>
+                        <td th:text="${feelist[3]}"></td>
+                        <td th:text="${feelist[4]}"></td>
+                        <td th:text="${feelist[5]}"></td>
+                        <td th:text="${feelist[6]}"></td>
+
+                    </tr>
+                    </tbody>
+                </table>
+                <div th:if="${!hasData}">
+                    <p class="text-center">No Grade-wise Fee Income Found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/jquery-3.7.1.js"></script>
+    <script src="/js/jquery-3.6.0.min.js"></script>
+    <script src="/js/toastr.min.js"></script>
+    <script type="text/javascript" th:inline="javascript">
+        $(document).ready(function () {
+            const exportColumns = [0,1,2,3,4,5,6];
+            $('#student-discount-list').DataTable({
+                layout: {
+                    bottomEnd: {
+                        paging: {
+                            firstLast: false
+                        }
+                    },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Grade-wise Fees Income Data Report',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Grade-wise Fees Income Data Report'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Grade-wise Fees Income Data Report',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, 'All']
+                ],
+                pageLength: 10,
+                columnDefs: [
+                    { "orderable": false, "targets": [0,6] } // Disable sorting on the first and fourth columns
+                ]
+            });
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                // Remove the btn-secondary class from each button
+                $(this).removeClass("btn-secondary");
+            });
+        });
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "600",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+        // Display success message
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            //toastr.success(successMessage);
+            toastr["success"](successMessage,"Success");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            //toastr.success(successMessage);
+            toastr["info"](infoMessage,"Info");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+
+        // Display error message
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            //toastr.error(errorMessage);
+            toastr["error"](errorMessage, "Error");
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "500",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        }
+    </script>
+
+</section>
+</body>
+</html>

@@ -1124,4 +1124,92 @@ public class FeeSubmissionService {
         return BigDecimal.ZERO;
     }
 
+    public List calculateTotalGradewiseFees(Long school, Long academic){
+        try{
+            //Get All classes
+            List<Object[]> gradeSectionList = academicStudentRepository.getGradesAndSectionList(school, academic, "Active");
+            System.out.println("gradeSectionList: "+gradeSectionList);
+            if(!gradeSectionList.isEmpty()){
+                List<List> finalDataList = new ArrayList<>();
+                Map<Long, List<Long>> gradeSectionMap = new HashMap<>();
+                Map<String, List<String>> gradeSectionNameMap = new HashMap<>();
+                Map<String, Long> studentTotal = new HashMap<>();
+                for (Object[] row : gradeSectionList) {
+                    String gradeName = (String) row[0];
+                    String sectionName = (String) row[1];
+                    Long gradeId = (Long) row[2];
+                    Long sectionId = (Long) row[3];
+                    Long students = (Long) row[4];
+                    System.out.println("Students:m "+students);
+                    // Grade-Section IDs mapping
+                    gradeSectionMap
+                            .computeIfAbsent(gradeId, k -> new ArrayList<>())
+                            .add(sectionId);
+
+                    // Grade-Section Names mapping
+                    gradeSectionNameMap
+                            .computeIfAbsent(gradeName, k -> new ArrayList<>())
+                            .add(sectionName);
+                    studentTotal.put(gradeName+"###"+sectionName, students);
+                }
+                List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFees(school, academic, gradeSectionMap.keySet().stream().toList(),"Tution Fee");
+
+                System.out.println("feeAmountDetails: "+feeAmountDetails);
+                for(Object[] objLst: feeAmountDetails){
+                    System.out.println("Grade:"+objLst[2]+" Amount:"+objLst[0]);
+                    if(objLst[1]!=null && gradeSectionNameMap.containsKey(objLst[2])){
+                        List<String> sectionList = gradeSectionNameMap.get(objLst[2]);
+                        for(String section: sectionList){
+                            List list = new ArrayList<>();
+                            String gradeName = (String)objLst[2];
+                            list.add(gradeName);
+                            list.add(section);
+                            Long noOfStudents = 0L;
+                            String key = gradeName+"###"+section;
+                            if(studentTotal.containsKey(key)){
+                                noOfStudents = studentTotal.get(key);
+                            } else{
+                                noOfStudents = 0L;
+                            }
+                            list.add(noOfStudents);
+                            list.add(objLst[0]);
+                            //Add discount detail
+                            System.out.println("class: school:"+school.getClass()+" academic: "+academic.getClass()+" grade: "+gradeName.getClass()+"-"+section.getClass());
+                            List<Object[]> discountDetails = feeSubmissionRepository.getStudentDiscountSummary(academic, school, gradeName, section);
+                            //List<Object[]> discountDetails = feeSubmissionRepository.getStudentDiscountSummary(school, academic, gradeName, section, monthId);
+                            Long studentCountForDiscount = 0L;
+                            BigDecimal studentAmountSumForDiscount = BigDecimal.ZERO;
+                            if(discountDetails!=null && !discountDetails.isEmpty()){
+                                for(Object[] discountDetail : discountDetails){
+                                    studentCountForDiscount += (Long)discountDetail[0];
+                                    studentAmountSumForDiscount = studentAmountSumForDiscount.add((BigDecimal) discountDetail[2]);
+                                    System.out.println("Duscoiunt: "+discountDetail[0]+" total: "+discountDetail[2]+" Grade:"+discountDetail[3]+", "+discountDetail[4]+"== "+studentAmountSumForDiscount);
+                                }
+                            }
+                            list.add(studentCountForDiscount);
+                            list.add(studentAmountSumForDiscount);
+                            BigDecimal feeAmount = (BigDecimal) objLst[0];
+                            BigDecimal totalFeesIncome = feeAmount.multiply(BigDecimal.valueOf(noOfStudents));
+                            BigDecimal incomeAmount  = totalFeesIncome.subtract(studentAmountSumForDiscount);
+                            list.add(incomeAmount);
+                            System.out.println("discountDetails: "+discountDetails);
+                            //add total discount fees
+                            finalDataList.add(list);
+                        }
+
+                    }
+                }
+                //Get tution fee amount for classes
+                System.out.println("finalDataList: "+finalDataList);
+                return finalDataList;
+            } else{
+                new ArrayList<>();
+            }
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+
 }
