@@ -135,10 +135,10 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
-
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showMsg("success", successMessage, "Success");
@@ -196,7 +196,7 @@
                 proceed = validateMandatoryValues();
             }
             if(proceed){
-                let url = `${window.location.origin}/downloadSRSampleFile`;
+                let url = `${contextPath}downloadSRSampleFile`;
                 let requestData = {
                     mediumId: '',
                     gradeId: '',
@@ -297,7 +297,7 @@
         document.getElementById("getfee").onclick = function(){
             let proceed = validateMandatoryValues();
             if(proceed){
-                let url = `${window.location.origin}/getStudentsForSR`;
+                let url = `${contextPath}getStudentsForSR`;
                 let requestData = {
                     mediumId: medium.toString(),
                     gradeId: grade.toString(),
@@ -371,8 +371,8 @@
                     let value = $(this).val();      // Get the value of the input field
                     allValues[id] = value;          // Store in an object with ID as the key
                 });
-                let url = `${window.location.origin}/saveStudentSRFromTable`;
-                fetch('/saveStudentSRFromTable', {
+                let url = `${contextPath}saveStudentSRFromTable`;
+                fetch(`${contextPath}saveStudentSRFromTable`, {
                     method: 'POST',              // Specify the HTTP method
                     headers: {
                         'Content-Type': 'application/json'  // Send JSON data
@@ -415,7 +415,7 @@
             formData.append("file", fileInput.files[0]);
 
             // AJAX call to send the file to the server
-            fetch('/upload-sr-file', {
+            fetch(`${contextPath}upload-sr-file`, {
                 method: 'POST',
                 body: formData,
             })
@@ -508,7 +508,7 @@
 
             // Send data to the Spring Boot controller via AJAX
             $.ajax({
-                url: '/upload-sr-data', // Replace with your controller endpoint
+                url: `${contextPath}upload-sr-data`, // Replace with your controller endpoint
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(tableData),

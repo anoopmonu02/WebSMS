@@ -54,14 +54,14 @@
           <p class="text-center">No Student-Discount found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/student/assign-discount/add"><i class="bi bi-node-plus-fill"></i> Assign Discount</a>
+          <a class="btn btn-success" th:href="@{/student/assign-discount/add}"><i class="bi bi-node-plus-fill"></i> Assign Discount</a>
         </div>
       </div>
     </div>
   </div>
-  <script src="/js/jquery-3.7.1.js"></script>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function () {
       $('#student-discount-list').DataTable({

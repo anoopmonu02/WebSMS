@@ -126,9 +126,10 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showMsg("success", successMessage, "Success");
@@ -170,7 +171,7 @@
             console.log('searched.....'+query);
             if(query.trim().length>2){
                 //Sending request to server
-                let url = `${window.location.origin}/searchStudentForOtherPage/${query}`;
+                let url = `${contextPath}searchStudentForOtherPage/${query}`;
                 fetch(url).then(response=>{
                     return response.json();
                 }).then((data)=>{
@@ -197,7 +198,7 @@
             $(".discountassigned").hide();
             if(id!=''){
                 console.log("id::::"+id);
-                let url = `${window.location.origin}/getStudentDetail/${id}`;
+                let url = `${contextPath}getStudentDetail/${id}`;
                 fetch(url).then(response => {
                     return response.json();
                 }).then((data) => {
@@ -286,7 +287,7 @@
                 reason: reason
             };
 
-            fetch('/updateStudentGradeSection', {
+            fetch(`${contextPath}updateStudentGradeSection`, {
                 method: 'POST',              // Specify the HTTP method
                 headers: {
                     'Content-Type': 'application/json'  // Send JSON data

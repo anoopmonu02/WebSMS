@@ -18,7 +18,7 @@
         <link rel="stylesheet" th:href="@{/dtbl/buttons.bootstrap5.css}" />
     </th:block>
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
-    <link rel="stylesheet" crossorigin="anonymous" href="/css/bootstrap-icons.css">
+    <link rel="stylesheet" crossorigin="anonymous" th:href="@{/css/bootstrap-icons.css}">
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">-->
     <link rel="stylesheet" th:href="@{/css/toastr.min.css}" />
     <link rel="stylesheet" th:href="@{/css/style.css}" />
@@ -45,7 +45,7 @@
                 </li>-->
 
                 <li class="sidebar-item">
-                    <a href="/dashboard" class="sidebar-link">
+                    <a th:href="@{/dashboard}" class="sidebar-link">
                         <!--<i class="fa-solid fa-list pe-2"></i>-->
                         <i class="bi bi-box-fill pe-2"></i>
                         <span>Dashboard</span>
@@ -58,15 +58,15 @@
                         <span>Global Settings</span>
                     </a>
                     <ul id="gsetting" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu" ><a href="/universal/medium" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Medium</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/grade" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Grade</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/section" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Section</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/category" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Category</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/cast" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Cast</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/bank" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Bank</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/medium}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Medium</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/grade}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Grade</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/section}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Section</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/category}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Category</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/cast}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Cast</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/bank}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Bank</a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/feehead" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fee head</a></li>
-                        <li class="sidebar-item submenu" ><a href="/universal/discounthead" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Discount head</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/feehead}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fee head</a></li>
+                        <li class="sidebar-item submenu" ><a th:href="@{/universal/discounthead}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Discount head</a></li>
                         <li class="sidebar-item submenu" ><a th:href="@{'/universal/finehead'}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fine head</a></li>
                         <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
                     </ul>
@@ -295,7 +295,7 @@
                         <li class="nav-item dropdown">
                             <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-0" >
                                 <!--Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>-->
-                                <img src="/image/profile.jpg" class="avatar img-fluid rounded" alt="USER">
+                                <img th:src="@{/image/profile.jpg}" class="avatar img-fluid rounded" alt="USER">
                                 <!--<i class="bi bi-person-circle text-end text-success align-items-center"></i>-->
                             </a>
                             <!--<div class="dropdown-menu dropdown-menu-end">
@@ -325,35 +325,35 @@
         </div>
     </div>
 <!--<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" ></script>-->
-<th:block th:if="${page == 'datatable'}">
-    <script src="/js/jquery-3.7.1.js"></script>
-    <script src="/js/popper.min.js"></script>
-    <script src="/dtbl/bootstrap.bundle.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
-    <script src="/js/script.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
-    <script src="/js/dataTables.js"></script>
-    <script src="/js/dataTables.bootstrap5.js"></script>
+    <th:block th:if="${page == 'datatable'}">
+        <script th:src="@{/js/jquery-3.7.1.js}"></script>
+        <script th:src="@{/js/popper.min.js}"></script>
+        <script th:src="@{/dtbl/bootstrap.bundle.min.js}"></script>
+        <script th:src="@{/js/toastr.min.js}"></script>
+        <script th:src="@{/js/script.js}"></script>
+        <script th:src="@{/js/jquery-ui.min.js}"></script>
+        <script th:src="@{/js/dataTables.js}"></script>
+        <script th:src="@{/js/dataTables.bootstrap5.js}"></script>
 
-    <script src="/js/dataTables.buttons.js"></script>
-    <script src="/js/buttons.bootstrap5.js"></script>
-    <script src="/js/jszip.min.js"></script>
-    <script src="/js/pdfmake.min.js"></script>
-    <script src="/js/vfs_fonts.js"></script>
-    <script src="/js/buttons.html5.min.js"></script>
+        <script th:src="@{/js/dataTables.buttons.js}"></script>
+        <script th:src="@{/js/buttons.bootstrap5.js}"></script>
+        <script th:src="@{/js/jszip.min.js}"></script>
+        <script th:src="@{/js/pdfmake.min.js}"></script>
+        <script th:src="@{/js/vfs_fonts.js}"></script>
+        <script th:src="@{/js/buttons.html5.min.js}"></script>
 
-    <script src="/js/select2.min.js"></script>
-</th:block>
-<th:block th:unless="${page == 'datatable'}">
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <!--<script src="/js/popper.min.js"></script>-->
-    <!--<script src="/js/bootstrap.js"></script>-->
-    <script th:src="@{/js/bootstrap.bundle.min.js}" crossorigin="anonymous"></script>
-    <script src="/js/toastr.min.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
-    <script src="/js/script.js"></script>
-    <script src="/js/select2.min.js"></script>
-</th:block>
+        <script th:src="@{/js/select2.min.js}"></script>
+    </th:block>
+    <th:block th:unless="${page == 'datatable'}">
+        <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+        <!--<script th:src="@{/js/popper.min.js}"></script>-->
+        <!--<script th:src="@{/js/bootstrap.js}"></script>-->
+        <script th:src="@{/js/bootstrap.bundle.min.js}" crossorigin="anonymous"></script>
+        <script th:src="@{/js/toastr.min.js}"></script>
+        <script th:src="@{/js/jquery-ui.min.js}"></script>
+        <script th:src="@{/js/script.js}"></script>
+        <script th:src="@{/js/select2.min.js}"></script>
+    </th:block>
 
 </body>
 

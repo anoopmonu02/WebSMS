@@ -67,7 +67,7 @@
           <p class="text-center">No Student found.</p>
         </div>
         <div class="pt-5 mb-5" th:if="${hasSuperAdmin==null  || !hasSuperAdmin}">
-          <a class="btn btn-success" href="/student/student/add"><i class="bi bi-node-plus-fill"></i> Add Student</a>
+          <a class="btn btn-success" th:href="@{/student/student/add}"><i class="bi bi-node-plus-fill"></i> Add Student</a>
         </div>
       </div>
     </div>
@@ -93,9 +93,9 @@
   </div>
 
 
-  <script src="/js/jquery-3.7.1.js"></script>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function() {
       const hasSuperAdmin = $("#isSuperAdmin").val(); // Get the value of the hasSuperAdmin attribute
@@ -230,6 +230,7 @@
     }
 
     let deleteId = null;
+    const contextPath = /*[[@{/}]]*/ '/';
 
     // Capture the ID of the record to be deleted when the delete button is clicked
     $('a[data-bs-target="#deleteConfirmationModal"]').on('click', function () {
@@ -240,7 +241,7 @@
     $('#confirmDeleteButton').on('click', function () {
       if (deleteId) {
         // Redirect to the delete URL
-        window.location.href = `/student/delete-student/${deleteId}`;
+        window.location.href = `${contextPath}student/delete-student/${deleteId}`;
       }
     });
 

@@ -44,7 +44,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-5">
-                                <a class="btn btn-info" href="/sibling/sibling-group"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                                <a class="btn btn-info" th:href="@{/sibling/sibling-group}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                             </div>
                             <div class="col-md-6 mb-5">
                                 <button type="button" onclick="checkData()" class="btn btn-primary" id="siblingSubmitBtn"><i class="bi bi-save2-fill"></i> Save</button>
@@ -58,9 +58,10 @@
     </div>
 
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showMsg("success", successMessage, "Success");
@@ -120,7 +121,7 @@
             if (groupId) {
                 $('#grp').val(groupId);
                 $.ajax({
-                    url: '/sibling/groups/by-group/' + groupId,
+                    url: `${contextPath}sibling/groups/by-group/`+ groupId,
                     type: 'GET',
                     success: function(data) {
                         $('.datadiv').show();
@@ -167,7 +168,7 @@
                 if (selectedValue) {
                     console.log("Selected value: " + selectedValue);
                     $.ajax({
-                        url: '/sibling/validate-student/'+selectedValue,
+                        url: `${contextPath}sibling/validate-student/`+selectedValue,
                         type: 'GET',
                         success: function(response) {
                             console.log("Response: "+response.error);

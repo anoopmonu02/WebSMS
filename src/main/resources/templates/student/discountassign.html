@@ -103,7 +103,7 @@
 
                 <hr/>
                 <div class="col-md-4">
-                  <a class="btn btn-info" href="/student/stu-discount-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                  <a class="btn btn-info" th:href="@{/student/stu-discount-list}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                 </div>
                 <div class="col-md-6 mb-5">
                   <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save </button>
@@ -128,9 +128,10 @@
     </div>
   </div>
 
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
+      const contextPath = /*[[@{/}]]*/ '/';
       const successMessage = [[${success}]];
       if (successMessage) {
         showMsg("success", successMessage, "Success");
@@ -172,7 +173,7 @@
           if(query.trim().length>2){
 
               //Sending request to server
-              let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+              let url = `${contextPath}searchStudentForFeePage/${query}`;
               fetch(url).then(response=>{
                 return response.json();
               }).then((data)=>{
@@ -201,7 +202,7 @@
           $(".discountassigned").hide();
           if(id>0){
             console.log("id::::"+id);
-            let url = `${window.location.origin}/getStudentDetailForDiscount/${id}`;
+            let url = `${contextPath}getStudentDetailForDiscount/${id}`;
             fetch(url).then(response => {
               return response.json();
             }).then((data) => {

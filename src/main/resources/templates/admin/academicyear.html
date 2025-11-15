@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>UAIC - School</title>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script th:src="@{https://code.jquery.com/jquery-3.6.0.min.js}"></script>
 </head>
 <body>
 <section>
@@ -48,7 +48,7 @@
           <p class="text-center">No Academic-year found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/admin/academicyear/add"><i class="bi bi-node-plus-fill"></i> Add Academic-year</a>
+          <a class="btn btn-success" th:href="@{/admin/academicyear/add}"><i class="bi bi-node-plus-fill"></i> Add Academic-year</a>
         </div>
       </div>
     </div>

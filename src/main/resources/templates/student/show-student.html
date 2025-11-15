@@ -302,12 +302,12 @@
                 <hr/>
                 <div th:if="${!fromDelete}">
                     <div class="col-md-4">
-                        <a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                        <a class="btn btn-info" th:href="@{/student/student}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                     </div>
                 </div>
                 <div th:if="${fromDelete}">
                     <div class="col-md-4">
-                        <a class="btn btn-info" href="/student/stu-deleted-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                        <a class="btn btn-info" th:href="@{/student/stu-deleted-list}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                     </div>
                 </div>
 
@@ -315,8 +315,8 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/jquery-ui.min.js}"></script>
 
     <script type="text/javascript" th:inline="javascript">
         $(document).ready(function() {
