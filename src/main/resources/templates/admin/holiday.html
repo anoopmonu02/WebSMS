@@ -42,15 +42,16 @@
           <p class="text-center">No Holiday found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/admin/holiday/add"><i class="bi bi-node-plus-fill"></i> Add Holiday</a>
+          <a class="btn btn-success" th:href="@{/admin/holiday/add}"><i class="bi bi-node-plus-fill"></i> Add Holiday</a>
         </div>
       </div>
     </div>
   </div>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
 
-  <script th:inline="javascript">
+  <script th:inline="javascript" type="text/javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
     $(document).ready(function () {
       $('.delete-btn').click(function (e) {
         e.preventDefault(); // Prevent default action of the button
@@ -60,7 +61,7 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/holiday/delete/' + itemId,
+            url: `${contextPath}admin/holiday/delete/` + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);

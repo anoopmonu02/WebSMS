@@ -46,14 +46,14 @@
                     <p class="text-center">No Employee found.</p>
                 </div>
                 <div class="pt-5 mb-5">
-                    <a class="btn btn-success" href="/employee/employee-add"><i class="bi bi-node-plus-fill"></i> Add Employee</a>
+                    <a class="btn btn-success" th:href="@{/employee/employee-add}"><i class="bi bi-node-plus-fill"></i> Add Employee</a>
                 </div>
             </div>
         </div>
     </div>
-    <script src="/js/jquery-3.7.1.js"></script>
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         $(document).ready(function () {
             $('#employee-list').DataTable({

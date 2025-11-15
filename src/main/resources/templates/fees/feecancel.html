@@ -86,9 +86,10 @@
 
 
 
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
     const successMessage = [[${success}]];
     if (successMessage) {
       showWarningMsg("success", successMessage, "Success");
@@ -131,7 +132,7 @@
         //Sending request to server
         let encodeQry = encodeURIComponent(query.trim().replace(/\//g, '-'));
         console.log('searched encodeQry.....'+encodeQry);
-        let url = `${window.location.origin}/searchReceiptForFeePage/${encodeQry}`;
+        let url = `${contextPath}searchReceiptForFeePage/${encodeQry}`;
         fetch(url).then(response=>{
           return response.json();
         }).then((data)=>{
@@ -150,7 +151,7 @@
       $("#search-input").val('');
       if(id>0){
         console.log("id::::"+id);
-        let url = `${window.location.origin}/getStudentFeeDetails/${id}`;
+        let url = `${contextPath}getStudentFeeDetails/${id}`;
         fetch(url).then(response => {
           return response.json();
         }).then((data) => {
@@ -198,7 +199,7 @@
     }
     const loadStudentReceiptData=(id)=>{
       if(id>0){
-        let url = `${window.location.origin}/student-receipt-print/${id}`;
+        let url = `${contextPath}student-receipt-print/${id}`;
         fetch(url).then(response => {
           return response.json();
         }).then((data) => {

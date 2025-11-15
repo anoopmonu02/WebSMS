@@ -81,7 +81,7 @@
 
         <hr/>
         <div class="col-md-4">
-          <a class="btn btn-info" href="/admin/fine"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+          <a class="btn btn-info" th:href="@{/admin/fine}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
         </div>
         <div class="col-md-6 mb-5">
           <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
@@ -98,8 +98,8 @@
   <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
   <!--<script src="/js/jquery-3.6.0.min.js" />
   <script src="/js/toastr.min.js" />-->
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
 
   <script type="text/javascript" th:inline="javascript">
     const successMessage = [[${success}]];

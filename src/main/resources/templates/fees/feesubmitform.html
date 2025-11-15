@@ -210,10 +210,10 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
-
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showWarningMsg("success", successMessage, "Success");
@@ -258,7 +258,7 @@
             if(query.trim().length>2){
 
                 //Sending request to server
-                let url = `${window.location.origin}/searchStudentForFeePage/${query}`;
+                let url = `${contextPath}searchStudentForFeePage/${query}`;
                 fetch(url).then(response=>{
                     return response.json();
                 }).then((data)=>{
@@ -289,7 +289,7 @@
                 resetMonthCheckBoxes();
                 resetFeeFields(0);
                 console.log("id::::"+id);
-                let url = `${window.location.origin}/getStudentDetailForFee/${id}`;
+                let url = `${contextPath}getStudentDetailForFee/${id}`;
                 fetch(url).then(response => {
                     return response.json();
                 }).then((data) => {
@@ -459,7 +459,7 @@
         });
 
         async function calculateFee(requestBody){
-            let url = `${window.location.origin}/getFeeDetailsBasedOnMonth`;
+            let url = `${contextPath}getFeeDetailsBasedOnMonth`;
             let total = 0;
             let prevBalAmount = 0;
             let tot = 0;
@@ -512,7 +512,7 @@
         }
 
         async function calculateDiscount(requestBody){
-            let url = `${window.location.origin}/getDiscountDetailsBasedOnMonth`;
+            let url = `${contextPath}getDiscountDetailsBasedOnMonth`;
             let tot = $('#totalAmount').val();
             console.log("TOTAL AMT: "+tot +"   ::: ");
             try {
@@ -570,7 +570,7 @@
                 'feeDate' : feeDate,
             };
             console.log("requestbody---------------------"+newRequestBody);
-            let url = `${window.location.origin}/getFineDetailsBasedOnMonth`;
+            let url = `${contextPath}getFineDetailsBasedOnMonth`;
             let tot = $('#totalAmount').val();
             console.log("TOTAL AMT: "+tot +"   ::: ");
             try {
@@ -688,7 +688,7 @@
 
             // Example API URL and data
             //const apiUrl = 'https://example.com/api/updateContact';
-            const apiUrl = `${window.location.origin}/updateContact`;
+            const apiUrl = `${contextPath}updateContact`;
             const requestData = {
                 contactNumber: contactNumber,
                 stuId: studentId
