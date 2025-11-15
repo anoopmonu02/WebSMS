@@ -28,14 +28,14 @@
 <div class="error-container">
     <div class="error-title">
         <!--<i class="fas fa-exclamation-triangle text-danger"></i>-->
-        <img src="/images/errorimg.png">
+        <img th:src="@{/images/errorimg.png}">
     </div>
     <div class="error-message">
         <p th:text="${errorMessage}">An unexpected error occurred</p>
     </div>
     <div>
         <div>
-            <a href="/" class="btn btn-primary mt-4">Go to Homepage</a>
+            <a th:href="@{/}" class="btn btn-primary mt-4">Go to Homepage</a>
         </div>
         <div>
 

@@ -71,12 +71,12 @@
     </div>
   </div>
 
-  <script src="/js/jquery-3.7.1.js"></script>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
-  <script src="/js/chart.js"></script>
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script th:src="@/js/chart.js}"></script>
   <script type="text/javascript" th:inline="javascript">
-
+    const contextPath = /*[[@{/}]]*/ '/';
     const successMessage = [[${success}]];
     if (successMessage) {
       showMsg("success", successMessage, "Success");
@@ -130,7 +130,7 @@
         section: section,
         grade: grade
       };
-      let url = `${window.location.origin}/getTotalStudentDetailsByGrade`;
+      let url = `${contextPath}getTotalStudentDetailsByGrade`;
       fetch(url, {
         method: 'POST',
         headers: {

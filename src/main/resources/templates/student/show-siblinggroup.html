@@ -43,13 +43,13 @@
                         </tbody>
                     </table>
                     <div class="pt-5">
-                        <a class="btn btn-info" href="/sibling/sibling-group"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                        <a class="btn btn-info" th:href="@{/sibling/sibling-group}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                     </div>
                 </div>
             </div>
         </div>
-        <script src="/js/jquery-3.6.0.min.js"></script>
-        <script src="/js/toastr.min.js"></script>
+        <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+        <script th:src="@{/js/toastr.min.js}"></script>
         <script type="text/javascript" th:inline="javascript">
             const successMessage = [[${success}]];
             if (successMessage) {

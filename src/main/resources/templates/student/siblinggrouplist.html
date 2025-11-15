@@ -54,7 +54,7 @@
                             <p class="text-center">No Sibling-Group found.</p>
                         </div>
                         <div class="pt-5">
-                            <a class="btn btn-success" href="/sibling/sibling-group/add"><i class="bi bi-node-plus-fill"></i> Add Sibling-Group</a>
+                            <a class="btn btn-success" th:href="@{/sibling/sibling-group/add}"><i class="bi bi-node-plus-fill"></i> Add Sibling-Group</a>
                         </div>
                     </div>
                 </div>
@@ -79,9 +79,10 @@
                 </div>
             </div>
 
-            <script src="/js/jquery-3.6.0.min.js"></script>
-            <script src="/js/toastr.min.js"></script>
+            <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+            <script th:src="@{/js/toastr.min.js}"></script>
             <script type="text/javascript" th:inline="javascript">
+                const contextPath = /*[[@{/}]]*/ '/';
                 toastr.options = {
                     "closeButton": true,
                     "debug": false,
@@ -180,7 +181,7 @@
                 $('#confirmDeleteButton').on('click', function () {
                     if (deleteId) {
                         // Redirect to the delete URL
-                        window.location.href = `/sibling/sibling-group/delete/${deleteId}`;
+                        window.location.href = `${contextPath}sibling/sibling-group/delete/${deleteId}`;
                     }
                 });
             </script>

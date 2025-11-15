@@ -74,12 +74,12 @@
   </div>
 
 
-  <script src="/js/jquery-3.7.1.js"></script>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
-  <script src="/js/chart.js"></script>
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script th:src="@{/js/chart.js}"></script>
   <script type="text/javascript" th:inline="javascript">
-
+    const contextPath = /*[[@{/}]]*/ '/';
 
     // Display success message
     const successMessage = [[${success}]];
@@ -136,7 +136,7 @@
     document.getElementById("getstu").onclick = function(){
       let proceed = validateMandatoryValues();
       if(proceed){
-        let url = `${window.location.origin}/getStudentsMonthlyAttendance`;
+        let url = `${contextPath}getStudentsMonthlyAttendance`;
         let requestData = {
           mediumId: medium.toString(),
           gradeId: grade.toString(),

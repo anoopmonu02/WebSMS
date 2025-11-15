@@ -606,7 +606,7 @@ public class StudentService {
                                 UUID.fromString(uuid), "Active", academic, school).orElse(null);
                         Student studentObj = academicStudent.getStudent();
                         if (studentObj != null) {
-                            studentObj.setAadharNo(rowData.get("SR"));
+                            studentObj.setAadharNo(rowData.get("Aadhar"));
                             students.add(studentObj);  // Collect the student for bulk saving
                             srPassCounter++;
                         } else {
@@ -649,7 +649,8 @@ public class StudentService {
                                 UUID.fromString(uuid), "Active", academic, school).orElse(null);
                         Student studentObj = academicStudent.getStudent();
                         if (studentObj != null) {
-                            if(!value.equalsIgnoreCase(studentObj.getAadharNo().trim())){
+                            String aadharStr = studentObj.getAadharNo();
+                            if(aadharStr==null || !value.equalsIgnoreCase(aadharStr.trim())){
                                 if(value.length()==12){
                                     studentObj.setAadharNo(value);
                                     studentsToSave.add(studentObj);

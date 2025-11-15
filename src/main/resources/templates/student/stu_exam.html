@@ -143,10 +143,10 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
-
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showMsg("success", successMessage, "Success");
@@ -204,7 +204,7 @@
                 proceed = validateMandatoryValues();
             }
             if(proceed){
-                let url = `${window.location.origin}/downloadSampleFileToEnterExamResult`;
+                let url = `${contextPath}downloadSampleFileToEnterExamResult`;
                 let requestData = {
                     mediumId: '',
                     gradeId: '',
@@ -393,7 +393,7 @@
                     showMsg('error','Examination name is mandatory to view the records',"Warning");
                     return false;
                 }
-                let url = `${window.location.origin}/getStudentsExamResults`;
+                let url = `${contextPath}getStudentsExamResults`;
                 let requestData = {
                     mediumId: medium.toString(),
                     gradeId: grade.toString(),

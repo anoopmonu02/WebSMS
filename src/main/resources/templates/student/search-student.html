@@ -32,9 +32,10 @@
 
 
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
         if (successMessage) {
             showWarningMsg("success", successMessage, "Success");
@@ -73,7 +74,7 @@
         const searchStudentDetail=()=>{
             let query=$("#search-student").val();
             if(query.trim().length>0){
-                let url = `${window.location.origin}/searchStudentData/${query}`;
+                let url = `${contextPath}searchStudentData/${query}`;
                 fetch(url).then(response=>{
                     return response.json();
                 })

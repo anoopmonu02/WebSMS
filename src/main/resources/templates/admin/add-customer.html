@@ -127,7 +127,7 @@
           </div>
           <hr/>
           <div class="col-md-4">
-            <a class="btn btn-info" href="/admin/customer"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+            <a class="btn btn-info" th:href="@{/admin/customer}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
           </div>
         <div class="col-md-6 mb-5">
           <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
@@ -150,7 +150,7 @@
         if (state) {
           $.ajax({
             type: 'GET',
-            url: '/admin/customer/cities',
+            url:  /*[[@{/admin/customer/cities}]]*/ '/admin/customer/cities',
             data: { provinceId: state },
             success: function(cities) {
               console.log("cities: "+cities);

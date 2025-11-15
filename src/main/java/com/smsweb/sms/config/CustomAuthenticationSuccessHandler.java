@@ -88,7 +88,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         }
 
         // Redirect to the default success URL
-        response.sendRedirect("/dashboard");
+        response.sendRedirect(request.getContextPath() +"/dashboard");
     }
 
 
