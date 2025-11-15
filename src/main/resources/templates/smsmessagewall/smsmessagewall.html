@@ -70,7 +70,8 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
 <!-- Custom JS to handle sending message and dynamic fields -->
-<script type="text/javascript">
+<script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
     function sendMessage() {
         let studentId = document.getElementById("studentSelect").value;
         let messageContent = document.getElementById("messageBox").value;
@@ -84,7 +85,7 @@
         }
 
         // Ajax request to send message with additional fields
-        fetch(`/messages/send`, {
+        fetch(`${contextPath}messages/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -107,7 +108,7 @@
     }
 
     function loadMessagesForStudent(studentId) {
-        fetch(`/messages/student/${studentId}`)
+        fetch(`${contextPath}messages/student/${studentId}`)
             .then(response => response.json())
             .then(data => {
                 let messageWall = document.getElementById("messageWall");

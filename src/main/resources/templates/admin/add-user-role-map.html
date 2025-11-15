@@ -46,14 +46,15 @@
                       <p class="text-center">No user/role found to assign.</p>
                   </div>
                   <div class="pt-5">
-                    <a class="btn btn-info" href="/admin/user-role-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to User-Role List</a>
+                    <a class="btn btn-info" th:href="@{/admin/user-role-list}"><i class="bi bi-arrow-left-circle-fill"></i> Back to User-Role List</a>
                   </div>
                 </div>
       </div>
-  <script src="/js/jquery-3.6.0.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
+      const contextPath = /*[[@{/}]]*/ '/';
     const successMessage = [[${success}]];
     if (successMessage) {
       showMsg("success", successMessage, "Success");
@@ -107,7 +108,7 @@
 
         // AJAX call to save the employee-role mapping
         $.ajax({
-            url: '/admin/api/user-role/save',
+            url: `${contextPath}admin/api/user-role/save`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(data),

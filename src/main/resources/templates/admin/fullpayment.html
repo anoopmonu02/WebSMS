@@ -47,7 +47,7 @@
           <p class="text-center">No Full-Payment details found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" href="/admin/full-payment-discount/add"><i class="bi bi-node-plus-fill"></i> Add Full-Payment</a>
+          <a class="btn btn-success" th:href="@{/admin/full-payment-discount/add}"><i class="bi bi-node-plus-fill"></i> Add Full-Payment</a>
         </div>
       </div>
     </div>
@@ -55,11 +55,13 @@
 
 
 
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
 
-  <script th:inline="javascript">
+  <script th:inline="javascript" type="text/javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
     $(document).ready(function () {
+
       $('.delete-btn').click(function (e) {
         e.preventDefault(); // Prevent default action of the button
         var itemId = $(this).data('item-id'); // Get the item ID from data attribute
@@ -68,7 +70,7 @@
           // Send DELETE request using AJAX
           $.ajax({
             type: 'POST',
-            url: '/admin/full-payment-discount/delete/' + itemId,
+            url: `${contextPath}admin/full-payment-discount/delete/` + itemId,
             success: function (response) {
               // Optionally handle success response
               console.log('Item deleted successfully '+response);

@@ -70,14 +70,15 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
-    <script src="/js/flatpickr.js"></script>
+    <script th:src="@{/js/flatpickr.js}"></script>
     <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>-->
 
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
         flatpickr("#lastdate", {
             dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
         });
@@ -134,7 +135,7 @@
                 return;
             }
 
-            let url = `${window.location.origin}/getFeeReminderDetails`;
+            let url = `${contextPath}getFeeReminderDetails`;
             try{
                 const requestBody = {
                     checkBoxes: checkBoxes,

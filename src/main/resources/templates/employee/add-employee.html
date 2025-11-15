@@ -135,7 +135,7 @@
                 <div class="col-md-6"></div>
                 <hr/>
                 <div class="col-md-4">
-                    <a class="btn btn-info" href="/employee/employee-list"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
+                    <a class="btn btn-info" th:href="@{/employee/employee-list}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
                 </div>
                 <div class="col-md-6 mb-5">
                     <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
@@ -144,11 +144,11 @@
         </div>
     </div>
 
-    <script src="/js/jquery-3.6.0.min.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
-    <script src="/js/toastr.min.js"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/jquery-ui.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
     <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
-    <script src="/js/flatpickr.js"></script>
+    <script th:src="@{/js/flatpickr.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         $('.intfields').on('input', function() {
             this.value = this.value.replace(/[^0-9]/g, '');
