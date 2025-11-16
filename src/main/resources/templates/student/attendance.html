@@ -257,7 +257,7 @@
                   //console.log("=========Data::::::: "+row.find("td:nth-child(6) input[type='checkbox']").attr('id'));
                   tableData.push(rowData);
               });
-              fetch('/saveStudentAttendance', {
+              fetch(`${contextPath}saveStudentAttendance`, {
                   method: 'POST',              // Specify the HTTP method
                   headers: {
                       'Content-Type': 'application/json'  // Send JSON data
