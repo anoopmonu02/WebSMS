@@ -319,12 +319,13 @@
     <script th:src="@{/js/jquery-ui.min.js}"></script>
 
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
         $(document).ready(function() {
             function loadCities(state, selectedCity) {
                 if (state) {
                     $.ajax({
                         type: 'GET',
-                        url: '/admin/customer/cities',
+                        url: `${contextPath}admin/customer/cities`,
                         data: { provinceId: state },
                         success: function(cities) {
                             console.log("cities: "+cities);

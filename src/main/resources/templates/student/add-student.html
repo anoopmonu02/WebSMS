@@ -421,7 +421,7 @@
         if (state) {
           $.ajax({
             type: 'GET',
-            url: `/admin/customer/cities`,
+            url: `${contextPath}admin/customer/cities`,
             data: { provinceId: state },
             success: function(cities) {
               console.log("cities: "+cities);
