@@ -62,7 +62,7 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("monthmapping", monthMappingList);
         model.addAttribute("feesubmissionobj", new FeeSubmission());
         model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
-        return "/fees/feesubmitform";
+        return "fees/feesubmitform";
     }
 
     @PostMapping("/feesubmit")
@@ -126,7 +126,7 @@ public class FeeSubmissionController extends BaseController {
         }catch(Exception e){
             model.addAttribute("error", e.getLocalizedMessage());
         }*/
-        return "/fees/fee-receipt";
+        return "fees/fee-receipt";
     }
 
     @GetMapping("/receipt-print/{id}")
@@ -193,7 +193,7 @@ public class FeeSubmissionController extends BaseController {
         Map<String, Object> receiptData = feeSubmissionService.getFeeReceiptData(id, school, academicYear);
         model.addAllAttributes(receiptData);
 
-        return "/fees/receipt";
+        return "fees/receipt";
     }
 
     @GetMapping("fee-reminder")
@@ -206,24 +206,24 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("grades",gradeService.getAllGrades());
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
-        return "/fees/feereminder";
+        return "fees/feereminder";
     }
     @GetMapping("/fee-cancel")
     public String cancelFeePage(Model model){
-        return "/fees/feecancel";
+        return "fees/feecancel";
 
     }
 
     @GetMapping("/fees-user-wise-collection")
     public String userwiseCollection(Model model){
-        return "/fees/fees_user_collection";
+        return "fees/fees_user_collection";
     }
 
 
     @GetMapping("/fees-drop-off-collection")
     public String feesCancellation(Model model){
         model.addAttribute("page", "datatable");
-        return "/fees/fees_cancelled";
+        return "fees/fees_cancelled";
     }
 
 
@@ -231,7 +231,7 @@ public class FeeSubmissionController extends BaseController {
     public String totalFeeSubmissionDetail(Model model){
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
-        return "/fees/total_fee_submitted_details";
+        return "fees/total_fee_submitted_details";
     }
 
     @GetMapping("fees-submitted-total-detail-grade-wise")
@@ -240,7 +240,7 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
-        return "/fees/total_fee_submitted_details_grade";
+        return "fees/total_fee_submitted_details_grade";
     }
 
     @GetMapping("fees-pending-total-report")
@@ -254,7 +254,7 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
-        return "/fees/pending-fee-report";
+        return "fees/pending-fee-report";
     }
 
     @GetMapping("fees-total-deposited-report")
@@ -265,7 +265,7 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
-        return "/fees/total_deposited_fees";
+        return "fees/total_deposited_fees";
     }
 
     @GetMapping("fees-pending-report")
@@ -279,7 +279,7 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
-        return "/fees/pending-fee-report";
+        return "fees/pending-fee-report";
     }
 
     @GetMapping("/fees-total-gradewise-income-report")
@@ -290,6 +290,6 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("hasData", !dataMap.isEmpty());
         model.addAttribute("page", "datatable");
         model.addAttribute("datalist", dataMap);
-        return "/fees/fees-total-gradewise-income";
+        return "fees/fees-total-gradewise-income";
     }
 }

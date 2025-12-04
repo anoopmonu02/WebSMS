@@ -32,6 +32,9 @@ public class FileHandleHelper {
     @Value("${school.image.storage.path}")
     private String SCHOOL_IMG_FOLDER_PATH;
 
+    @Value("${customer.image.storage.path}")
+    private String CUSTOMER_IMG_FOLDER_PATH;
+
     public FileHandleHelper() throws IOException
     {
     }
@@ -103,6 +106,9 @@ public class FileHandleHelper {
                         return imageFileName;
                     } else if (imageFolderName.equalsIgnoreCase("employee")) {
                         Path savedImageFile = saveImageInDirectory(EMPLOYEE_IMG_FOLDER_PATH, imageFileName, imageFile);
+                        return imageFileName;
+                    } else if (imageFolderName.equalsIgnoreCase("customer")) {
+                        Path savedImageFile = saveImageInDirectory(CUSTOMER_IMG_FOLDER_PATH, imageFileName, imageFile);
                         return imageFileName;
                     } else{
                         fileName = "Specified category not valid";

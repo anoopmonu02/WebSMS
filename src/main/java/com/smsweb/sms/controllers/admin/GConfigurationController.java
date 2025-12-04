@@ -30,6 +30,6 @@ public class GConfigurationController {
         model.addAttribute("fieldLabels", fieldLabels);
 
         // Return the Thymeleaf template
-        return "/admin/selectColumns";
+        return "admin/selectColumns";
     }
 }

@@ -36,7 +36,7 @@ public class SchoolController {
     private final SchoolService schoolService;
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
-    private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
+    //private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
     private final UserService userService;
 
     @Autowired

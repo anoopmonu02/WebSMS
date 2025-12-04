@@ -52,7 +52,7 @@ public class SiblingDiscountController extends BaseController {
         List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
         model.addAttribute("siblingGroups", siblingGroupList);
         model.addAttribute("hasSiblingGroup", !siblingGroupList.isEmpty());
-        return "/student/siblingdiscountassign";
+        return "student/siblingdiscountassign";
     }
 
     @ResponseBody

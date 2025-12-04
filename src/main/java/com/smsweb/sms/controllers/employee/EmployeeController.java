@@ -70,7 +70,7 @@ public class EmployeeController extends BaseController {
         model.addAttribute("hasEmployee", !employees.isEmpty());
         model.addAttribute("page", "datatable");
         log.debug("Total employees - "+employees.size());
-        return "/employee/employee";
+        return "employee/employee";
     }
 
     @GetMapping("/employee-add")
@@ -97,7 +97,7 @@ public class EmployeeController extends BaseController {
             e.printStackTrace();
         }
 
-        return "/employee/add-employee";
+        return "employee/add-employee";
     }
 
     private boolean isSuperAdminLoggedIn(){
@@ -136,7 +136,7 @@ public class EmployeeController extends BaseController {
         try {
             if(employee.getUuid()!=null){
                 existingEmployee = employeeService.getEmployeeByUUID(employee.getUuid()).orElse(null);
-                returnStr = "/employee/edit-employee";
+                returnStr = "employee/edit-employee";
             }
 
         } catch (Exception e) {
@@ -200,7 +200,7 @@ public class EmployeeController extends BaseController {
             }
             Employee employee = employeeOptional.get();
             model.addAttribute("employee", employee);
-            return "/employee/edit-employee";
+            return "employee/edit-employee";
         } catch (Exception e) {
             // Log the error for debugging purposes
             System.err.println("Error fetching employee: " + e.getMessage());
