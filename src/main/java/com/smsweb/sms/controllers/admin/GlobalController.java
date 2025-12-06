@@ -124,7 +124,7 @@ public class GlobalController extends BaseController {
             model.addAttribute("adminLogin", true);
             model.addAttribute("school", employeeService.getLoggedInEmployeeSchool());
         }
-        return "/admin/add-academicyear";
+        return "admin/add-academicyear";
     }
 
     @PostMapping("/academicyear")
@@ -132,7 +132,7 @@ public class GlobalController extends BaseController {
                                    BindingResult result, Model model, RedirectAttributes ra) {
         if (result.hasErrors()) {
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/add-academicyear";
+            return "admin/add-academicyear";
         }
 
         try {
@@ -151,12 +151,12 @@ public class GlobalController extends BaseController {
             de.printStackTrace();
             model.addAttribute("error", "Duplicate entry '" + academicYear.getSessionFormat() + "' for Academic Year.");
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/add-academicyear";
+            return "admin/add-academicyear";
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", e.getMessage());
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/add-academicyear";
+            return "admin/add-academicyear";
         }
 
         return "redirect:/admin/academicyear";
@@ -176,7 +176,7 @@ public class GlobalController extends BaseController {
             model.addAttribute("adminLogin", true);
             model.addAttribute("school", employeeService.getLoggedInEmployeeSchool());
         }
-        return "/admin/edit-academicyear";
+        return "admin/edit-academicyear";
     }
 
     @PostMapping("/academicyear/{id}")
@@ -184,7 +184,7 @@ public class GlobalController extends BaseController {
                                  BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/edit-academicyear";
+            return "admin/edit-academicyear";
         }
         try{
             if (academicYear.getSchool() == null || academicYear.getSchool().getId() == null) {
@@ -201,12 +201,12 @@ public class GlobalController extends BaseController {
             de.printStackTrace();
             model.addAttribute("error", "Duplicate entry '"+ academicYear.getSessionFormat() +"' for Academic-Year.");
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/edit-academicyear";
+            return "admin/edit-academicyear";
         }catch (Exception e){
             e.printStackTrace();
             model.addAttribute("error", e.getMessage());
             model.addAttribute("schools", schoolService.getAllSchools());
-            return "/admin/edit-academicyear";
+            return "admin/edit-academicyear";
         }
 
         return "redirect:/admin/academicyear";
@@ -222,7 +222,7 @@ public class GlobalController extends BaseController {
         List<MonthMapping> monthmappings = monthmappingService.getAllMonthMapping(academicYear.getId(), school.getId());
         model.addAttribute("monthmappings", monthmappings);
         model.addAttribute("hasMonthMappings", !monthmappings.isEmpty());
-        return "/admin/monthmapping";
+        return "admin/monthmapping";
     }
 
     @GetMapping("/month-mapping/add")
@@ -233,7 +233,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("hasMonths", !months.isEmpty());
         /*List<Integer> numbers = IntStream.rangeClosed(1, 12).boxed().collect(Collectors.toList());*/
         //model.addAttribute("numbers", numbers);
-        return "/admin/add-month-mapping";
+        return "admin/add-month-mapping";
     }
 
 
@@ -255,7 +255,7 @@ public class GlobalController extends BaseController {
                 else{
                     model.addAttribute("months", months);
                     model.addAttribute("monthMapping", new MonthMapping());
-                    return "/admin/add-month-mapping";
+                    return "admin/add-month-mapping";
                 }
             }
         }catch(RuntimeException re){
@@ -263,13 +263,13 @@ public class GlobalController extends BaseController {
             model.addAttribute("monthMapping", new MonthMapping());
             model.addAttribute("error","Error in saving: "+re.getMessage());
             re.printStackTrace();
-            return "/admin/add-month-mapping";
+            return "admin/add-month-mapping";
         }catch(Exception e){
             model.addAttribute("months", months);
             model.addAttribute("monthMapping", new MonthMapping());
             model.addAttribute("error","Error in saving: "+e.getMessage());
             e.printStackTrace();
-            return "/admin/add-month-mapping";
+            return "admin/add-month-mapping";
         }
 
         return "redirect:/admin/month-mapping";
@@ -285,14 +285,14 @@ public class GlobalController extends BaseController {
         List<FeeDate> feeDateList = feedateService.getAllFeeDates(academicYear.getId(), school.getId());
         model.addAttribute("feedates", feeDateList);
         model.addAttribute("isFeeDates", !feeDateList.isEmpty());
-        return "/admin/feedate";
+        return "admin/feedate";
     }
 
     @GetMapping("/feedate/add")
     public String getAddFeeDateForm(Model model){
         model.addAttribute("feedate", new FeeDate());
         model.addAttribute("months", monthMasterService.getAllMonths());
-        return "/admin/add-feedate";
+        return "admin/add-feedate";
     }
 
     @PostMapping("/feedate")
@@ -300,7 +300,7 @@ public class GlobalController extends BaseController {
         if(result.hasErrors()){
             model.addAttribute("months", monthMasterService.getAllMonths());
             model.addAttribute("error", result.getFieldError());
-            return "/admin/add-feedate";
+            return "admin/add-feedate";
         }
         try{
             School school = (School)model.getAttribute("school");
@@ -314,17 +314,17 @@ public class GlobalController extends BaseController {
             model.addAttribute("error", "Duplicate entry for "+feedate.getMonthMaster().getMonthName());
             model.addAttribute("months", monthMasterService.getAllMonths());
             de.printStackTrace();
-            return "/admin/add-feedate";
+            return "admin/add-feedate";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+feedate.getMonthMaster().getMonthName()+". "+de.getLocalizedMessage());
             model.addAttribute("months", monthMasterService.getAllMonths());
             de.printStackTrace();
-            return "/admin/add-feedate";
+            return "admin/add-feedate";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             model.addAttribute("months", monthMasterService.getAllMonths());
             e.printStackTrace();
-            return "/admin/add-feedate";
+            return "admin/add-feedate";
         }
         return "redirect:/admin/feedate";
     }
@@ -359,14 +359,14 @@ public class GlobalController extends BaseController {
         List<Fine> fineList = fineService.getAllFines(school.getId(), academicYear.getId());
         model.addAttribute("fines", fineList);
         model.addAttribute("isFine", !fineList.isEmpty());
-        return "/admin/fine";
+        return "admin/fine";
     }
 
     @GetMapping("/fine/add")
     public String getFineAddForm(Model model){
         model.addAttribute("fine", new Fine());
         model.addAttribute("fineheads", fineheadService.getAllFineHeads());
-        return "/admin/add-fine";
+        return "admin/add-fine";
     }
 
     @PostMapping("/fine")
@@ -374,7 +374,7 @@ public class GlobalController extends BaseController {
         if(result.hasErrors()){
             model.addAttribute("fineheads", fineheadService.getAllFineHeads());
             model.addAttribute("error", result.getFieldError());
-            return "/admin/add-fine";
+            return "admin/add-fine";
         }
         try{
             School school = (School)model.getAttribute("school");
@@ -395,12 +395,12 @@ public class GlobalController extends BaseController {
             model.addAttribute("error","Duplicate entry for "+fine.getFinehead().getFineHeadName());
             model.addAttribute("fineheads", fineheadService.getAllFineHeads());
             de.printStackTrace();
-            return "/admin/add-fine";
+            return "admin/add-fine";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             model.addAttribute("fineheads", fineheadService.getAllFineHeads());
             e.printStackTrace();
-            return "/admin/add-fine";
+            return "admin/add-fine";
         }
         return "redirect:/admin/fine";
     }
@@ -411,7 +411,7 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fine Id:" + id));
         model.addAttribute("fine",fine);
         model.addAttribute("fineheads", fineheadService.getAllFineHeads());
-        return "/admin/edit-fine";
+        return "admin/edit-fine";
     }
 
     @PostMapping("/fine/delete/{id}")
@@ -444,7 +444,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("feeclass", feeClassMaps);
         model.addAttribute("hasFeeClassMap", !feeClassMaps.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/admin/feeclassmap";
+        return "admin/feeclassmap";
     }
 
     @GetMapping("/fee-class/add")
@@ -453,7 +453,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("grades", gradeService.getAllGrades());
         FeeClassMapWrapper feeClassMapWrapper = new FeeClassMapWrapper();
         model.addAttribute("feeClassMapWrapper", feeClassMapWrapper);
-        return "/admin/add-feeclassmap";
+        return "admin/add-feeclassmap";
     }
 
     @PostMapping("/fee-class/getAllFeeData/{classId}")
@@ -534,7 +534,7 @@ public class GlobalController extends BaseController {
             }
         }catch(Exception e){
             model.addAttribute("error", "Error: "+e.getLocalizedMessage());
-            return "/admin/add-feeclassmap";
+            return "admin/add-feeclassmap";
         }
         return "redirect:/admin/fee-class";
     }
@@ -545,13 +545,13 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee-class Id:" + id));
         model.addAttribute("feeclassmap",feeClassMap);
         model.addAttribute("gradename",feeClassMap.getGrade().getGradeName());
-        return "/admin/edit-feeclassmap";
+        return "admin/edit-feeclassmap";
     }
 
     @PostMapping("/edit-fee-class")
     public String updateFeeClassMap(@Valid @ModelAttribute("feeclassmap")FeeClassMap feeClassMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
-            return "/admin/edit-feeclassmap";
+            return "admin/edit-feeclassmap";
         }
         try{
             feeClassMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
@@ -560,7 +560,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
-            return "/admin/edit-feeclassmap";
+            return "admin/edit-feeclassmap";
         }
         return "redirect:/admin/fee-class";
     }
@@ -598,7 +598,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("feemonths", feeMonthMaps);
         model.addAttribute("hasFeeMonthMap", !feeMonthMaps.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/admin/feemonthmap";
+        return "admin/feemonthmap";
     }
 
     @GetMapping("/fee-month/add")
@@ -606,7 +606,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("fees", feeheadService.getAllFeeheads());
         FeeMonthMapWrapper feeMonthMapWrapper = new FeeMonthMapWrapper();
         model.addAttribute("feeMonthMapWrapper", feeMonthMapWrapper);
-        return "/admin/add-feemonthmap";
+        return "admin/add-feemonthmap";
     }
 
     @PostMapping("/fee-month/getAllFeeMonthData/{feeId}")
@@ -690,7 +690,7 @@ public class GlobalController extends BaseController {
             }
         }catch(Exception e){
             model.addAttribute("error", "Error: "+e.getLocalizedMessage());
-            return "/admin/add-feemonthmap";
+            return "admin/add-feemonthmap";
         }
         return "redirect:/admin/fee-month";
     }
@@ -701,13 +701,13 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee-month Id:" + id));
         model.addAttribute("feemonthmap",feeMonthMap);
         model.addAttribute("monthname",feeMonthMap.getMonthMaster().getMonthName());
-        return "/admin/edit-feemonthmap";
+        return "admin/edit-feemonthmap";
     }
 
     @PostMapping("/edit-fee-month")
     public String updateFeeMonthMap(@Valid @ModelAttribute("feemonthmap")FeeMonthMap feeMonthMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
-            return "/admin/edit-feemonthmap";
+            return "admin/edit-feemonthmap";
         }
         try{
             feeMonthMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
@@ -716,7 +716,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
-            return "/admin/edit-feemonthmap";
+            return "admin/edit-feemonthmap";
         }
         return "redirect:/admin/fee-month";
     }
@@ -755,7 +755,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("discountclasses", discountClassMaps);
         model.addAttribute("hasDiscountClassMap", !discountClassMaps.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/admin/discountclassmap";
+        return "admin/discountclassmap";
     }
 
     @GetMapping("/discount-class/add")
@@ -763,7 +763,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("grades", gradeService.getAllGrades());
         DiscountClassMapWrapper discountClassMapWrapper = new DiscountClassMapWrapper();
         model.addAttribute("discountClassMapWrapper", discountClassMapWrapper);
-        return "/admin/add-discountclassmap";
+        return "admin/add-discountclassmap";
     }
 
     @PostMapping("/discount-class/getAllDiscountData/{classId}")
@@ -839,7 +839,7 @@ public class GlobalController extends BaseController {
             }
         }catch(Exception e){
             model.addAttribute("error", "Error: "+e.getLocalizedMessage());
-            return "/admin/add-discountclassmap";
+            return "admin/add-discountclassmap";
         }
         return "redirect:/admin/discount-class";
     }
@@ -850,13 +850,13 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount-class Id:" + id));
         model.addAttribute("discountclassmap",discountClassMap);
         model.addAttribute("gradename",discountClassMap.getGrade().getGradeName());
-        return "/admin/edit-discountclassmap";
+        return "admin/edit-discountclassmap";
     }
 
     @PostMapping("/edit-discount-class")
     public String updateDiscountClassMap(@Valid @ModelAttribute("discountclassmap")DiscountClassMap discountClassMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
-            return "/admin/edit-discountclassmap";
+            return "admin/edit-discountclassmap";
         }
         try{
             discountClassMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
@@ -865,7 +865,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
-            return "/admin/edit-discountclassmap";
+            return "admin/edit-discountclassmap";
         }
         return "redirect:/admin/discount-class";
     }
@@ -903,7 +903,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("discountmonths", discountMonthMaps);
         model.addAttribute("hasDiscountMonthMap", !discountMonthMaps.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/admin/discountmonthmap";
+        return "admin/discountmonthmap";
     }
 
     @GetMapping("/discount-month/add")
@@ -911,7 +911,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("discounts", discountService.getAllDiscountheads());
         DiscountMonthMapWrapper discountMonthMapWrapper = new DiscountMonthMapWrapper();
         model.addAttribute("discountMonthMapWrapper", discountMonthMapWrapper);
-        return "/admin/add-discountmonthmap";
+        return "admin/add-discountmonthmap";
     }
 
     @PostMapping("/discount-month/getAllDiscountMonthData/{feeId}")
@@ -995,7 +995,7 @@ public class GlobalController extends BaseController {
             }
         }catch(Exception e){
             model.addAttribute("error", "Error: "+e.getLocalizedMessage());
-            return "/admin/add-discountmonthmap";
+            return "admin/add-discountmonthmap";
         }
         return "redirect:/admin/discount-month";
     }
@@ -1006,13 +1006,13 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount-month Id:" + id));
         model.addAttribute("discountmonthmap",discountMonthMap);
         model.addAttribute("monthname",discountMonthMap.getMonthMaster().getMonthName());
-        return "/admin/edit-discountmonthmap";
+        return "admin/edit-discountmonthmap";
     }
 
     @PostMapping("/edit-discount-month")
     public String updateDiscountMonthMap(@Valid @ModelAttribute("discountmonthmap")DiscountMonthMap discountMonthMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
-            return "/admin/edit-discountmonthmap";
+            return "admin/edit-discountmonthmap";
         }
         try{
             discountMonthMap.setUpdatedBy(userService.getLoggedInUser().getUsername());
@@ -1021,7 +1021,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
-            return "/admin/edit-discountmonthmap";
+            return "admin/edit-discountmonthmap";
         }
         return "redirect:/admin/discount-month";
     }
@@ -1059,21 +1059,21 @@ public class GlobalController extends BaseController {
         List<FullPayment> fullPaymentList = fullpaymentService.getAllFullPayments(school.getId(), academicYear.getId());
         model.addAttribute("fullpayments", fullPaymentList);
         model.addAttribute("hasFullPayment", !fullPaymentList.isEmpty());
-        return "/admin/fullpayment";
+        return "admin/fullpayment";
     }
 
     @GetMapping("/full-payment-discount/add")
     public String getAddFullPaymentForm(Model model){
         model.addAttribute("grades", gradeService.getAllGrades());
         model.addAttribute("fullpayment", new FullPayment());
-        return "/admin/add-fullpayment";
+        return "admin/add-fullpayment";
     }
 
     @PostMapping("/full-payment-discount")
     public String saveFullPayment(@Valid @ModelAttribute("fullpayment") FullPayment fullPayment, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
             model.addAttribute("grades", gradeService.getAllGrades());
-            return "/admin/add-fullpayment";
+            return "admin/add-fullpayment";
         }
         try{
             School school = (School)model.getAttribute("school");
@@ -1089,15 +1089,15 @@ public class GlobalController extends BaseController {
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", de.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
-            return "/admin/add-fullpayment";
+            return "admin/add-fullpayment";
         } catch(ObjectNotSaveException oe){
             model.addAttribute("error", oe.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
-            return "/admin/add-fullpayment";
+            return "admin/add-fullpayment";
         } catch(Exception e){
             model.addAttribute("error", e.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
-            return "/admin/add-fullpayment";
+            return "admin/add-fullpayment";
         }
         return "redirect:/admin/full-payment-discount";
     }
@@ -1106,7 +1106,7 @@ public class GlobalController extends BaseController {
         FullPayment fullPayment = fullpaymentService.getFullPaymentById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid full-payment Id:" + id));
         model.addAttribute("fullpayment",fullPayment);
-        return "/admin/edit-fullpayment";
+        return "admin/edit-fullpayment";
     }
 
     @PostMapping("/full-payment-discount/delete/{id}")
@@ -1160,7 +1160,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("isUserRoleMap", !userRoleMap.isEmpty());
         model.addAttribute("employees",employees);
         //System.out.println("employees:::: "+employees);
-        return "/admin/user-role";
+        return "admin/user-role";
     }
 
     @GetMapping("/add-user-to-role")
@@ -1187,7 +1187,7 @@ public class GlobalController extends BaseController {
         model.addAttribute("hasEmployee", !employees.isEmpty());
         model.addAttribute("roles",roles);
         model.addAttribute("hasRoles",!roles.isEmpty());
-        return "/admin/add-user-role-map";
+        return "admin/add-user-role-map";
     }
 
     @PostMapping("/api/user-role/save")
@@ -1248,20 +1248,20 @@ public class GlobalController extends BaseController {
         List<Holiday> holidayList = holidayService.getAllHoliday(academicYear.getId(), school.getId());
         model.addAttribute("holidays", holidayList);
         model.addAttribute("isHoliDays", !holidayList.isEmpty());
-        return "/admin/holiday";
+        return "admin/holiday";
     }
 
     @GetMapping("/holiday/add")
     public String getAddHolidayForm(Model model){
         model.addAttribute("holiday", new Holiday());
-        return "/admin/add-holiday";
+        return "admin/add-holiday";
     }
 
     @PostMapping("/holiday")
     public String save(@Valid @ModelAttribute("holiday")Holiday holiday, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
-            return "/admin/add-holiday";
+            return "admin/add-holiday";
         }
         try{
             School school = (School)model.getAttribute("school");
@@ -1274,16 +1274,16 @@ public class GlobalController extends BaseController {
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName());
             de.printStackTrace();
-            return "/admin/add-holiday";
+            return "admin/add-holiday";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName()+". "+de.getLocalizedMessage());
             de.printStackTrace();
-            return "/admin/add-holiday";
+            return "admin/add-holiday";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             System.out.println("ERRORRRR");
             e.printStackTrace();
-            return "/admin/add-holiday";
+            return "admin/add-holiday";
         }
         return "redirect:/admin/holidays";
     }
@@ -1313,13 +1313,13 @@ public class GlobalController extends BaseController {
         List<Examination> examinationList = examinationService.getAllExamination();
         model.addAttribute("examinations", examinationList);
         model.addAttribute("isExamination", !examinationList.isEmpty());
-        return "/admin/examination";
+        return "admin/examination";
     }
 
     @GetMapping("/examination/add")
     public String getAddExaminationForm(Model model){
         model.addAttribute("examination", new Examination());
-        return "/admin/add-examination";
+        return "admin/add-examination";
     }
 
     @PostMapping("/examination/delete/{id}")
@@ -1346,7 +1346,7 @@ public class GlobalController extends BaseController {
     public String save(@Valid @ModelAttribute("examination")Examination examination, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
-            return "/admin/add-examination";
+            return "admin/add-examination";
         }
         try{
             examination = examinationService.save(examination);
@@ -1355,16 +1355,16 @@ public class GlobalController extends BaseController {
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName());
             de.printStackTrace();
-            return "/admin/add-examination";
+            return "admin/add-examination";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName()+". "+de.getLocalizedMessage());
             de.printStackTrace();
-            return "/admin/add-examination";
+            return "admin/add-examination";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             System.out.println("ERRORRRR");
             e.printStackTrace();
-            return "/admin/add-examination";
+            return "admin/add-examination";
         }
         return "redirect:/admin/examinations";
     }
@@ -1376,14 +1376,14 @@ public class GlobalController extends BaseController {
         List<ExamDetails> examinationList = examinationService.getAllExaminationDates(academicYear.getId(), school.getId());
         model.addAttribute("examinations", examinationList);
         model.addAttribute("isExamination", !examinationList.isEmpty());
-        return "/admin/examination_date";
+        return "admin/examination_date";
     }
 
     @GetMapping("/examination-details/add")
     public String getAddExaminationDateForm(Model model){
         model.addAttribute("examDetails", new ExamDetails());
         model.addAttribute("examinations", examinationService.getAllExamination());
-        return "/admin/add-examination-details";
+        return "admin/add-examination-details";
     }
 
     @PostMapping("/examination-details")
@@ -1392,7 +1392,7 @@ public class GlobalController extends BaseController {
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
             //model.addAttribute("examinations", examinationService.getAllExamination());
-            return "/admin/add-examination-details";
+            return "admin/add-examination-details";
         }
         try{
             School school = (School)model.getAttribute("school");
@@ -1406,16 +1406,16 @@ public class GlobalController extends BaseController {
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName());
             de.printStackTrace();
-            return "/admin/add-examination-details";
+            return "admin/add-examination-details";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName()+". "+de.getLocalizedMessage());
             de.printStackTrace();
-            return "/admin/add-examination-details";
+            return "admin/add-examination-details";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
             System.out.println("ERRORRRR");
             e.printStackTrace();
-            return "/admin/add-examination-details";
+            return "admin/add-examination-details";
         }
         return "redirect:/admin/examinations-date";
     }

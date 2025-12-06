@@ -38,7 +38,7 @@ public class SiblingGroupController extends BaseController {
         List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
         model.addAttribute("siblingGroups", siblingGroupList);
         model.addAttribute("hasSiblingGroup", !siblingGroupList.isEmpty());
-        return "/student/siblinggrouplist";
+        return "student/siblinggrouplist";
     }
 
     @GetMapping("/sibling-group/add")
@@ -56,21 +56,21 @@ public class SiblingGroupController extends BaseController {
             Map responseMap = siblingGroupService.save(paramMap, school, academicYear);
             if(responseMap.containsKey("STUDENT_EXIST")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("STUDENT_EXIST"));
-                return "/student/add-siblinggroup";
+                return "student/add-siblinggroup";
             }
             if(responseMap.containsKey("error")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("error"));
-                return "/student/add-siblinggroup";
+                return "student/add-siblinggroup";
             }
             if(responseMap.containsKey("NOT_SAVED")){
                 redirectAttributes.addFlashAttribute("error", "Error in saving");
-                return "/student/add-siblinggroup";
+                return "student/add-siblinggroup";
             }
             if(responseMap.containsKey("siblingGroup")){
                 List<SiblingGroup> siblingGroupList = (List<SiblingGroup>) responseMap.get("siblingGroup");
                 if(siblingGroupList==null || siblingGroupList.isEmpty()){
                     redirectAttributes.addFlashAttribute("error", "Error in sibling group creation");
-                    return "/student/add-siblinggroup";
+                    return "student/add-siblinggroup";
                 }
             }
             redirectAttributes.addFlashAttribute("success", "Group saved successfully");
@@ -89,7 +89,7 @@ public class SiblingGroupController extends BaseController {
             redirectAttributes.addFlashAttribute("error", "Sibling group detail not found.");
             return "redirect:/sibling/sibling-group";
         }
-        return "/student/show-siblinggroup";
+        return "student/show-siblinggroup";
     }
 
     @GetMapping("/sibling-group/delete/{id}")

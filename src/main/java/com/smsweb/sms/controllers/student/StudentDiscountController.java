@@ -52,7 +52,7 @@ public class StudentDiscountController extends BaseController {
         model.addAttribute("studentDiscounts", studentDiscountList);
         model.addAttribute("hasDiscounts", !studentDiscountList.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/student/assigneddiscount";
+        return "student/assigneddiscount";
     }
 
     @GetMapping("/assign-discount/add")
@@ -60,7 +60,7 @@ public class StudentDiscountController extends BaseController {
         List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
         model.addAttribute("discounts",discountheads);
         model.addAttribute("studentDiscount",new StudentDiscount());
-        return "/student/discountassign";
+        return "student/discountassign";
     }
 
     @PostMapping("/assign-discount")
@@ -68,7 +68,7 @@ public class StudentDiscountController extends BaseController {
         if(result.hasErrors()){
             List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
             model.addAttribute("discounts",discountheads);
-            return "/student/discountassign";
+            return "student/discountassign";
         }
         try{
             System.out.println("studentDiscount: "+studentDiscount);
@@ -92,17 +92,17 @@ public class StudentDiscountController extends BaseController {
             model.addAttribute("error", de.getLocalizedMessage());
             List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
             model.addAttribute("discounts",discountheads);
-            return "/student/discountassign";
+            return "student/discountassign";
         } catch(ObjectNotSaveException oe){
             model.addAttribute("error", oe.getLocalizedMessage());
             List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
             model.addAttribute("discounts",discountheads);
-            return "/student/discountassign";
+            return "student/discountassign";
         } catch(Exception e){
             model.addAttribute("error", e.getLocalizedMessage());
             List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
             model.addAttribute("discounts",discountheads);
-            return "/student/discountassign";
+            return "student/discountassign";
         }
         return "redirect:/student/stu-discount-list";
     }

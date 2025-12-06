@@ -87,7 +87,7 @@ public class StudentController extends BaseController {
         model.addAttribute("students", studentList);
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
-        return "/student/student";
+        return "student/student";
     }
 
     private boolean isSuperAdminLoggedIn(){
@@ -110,9 +110,9 @@ public class StudentController extends BaseController {
         model.addAttribute("student", student);
         model = getAllGlobalModels(model);
         if(isSuperAdminLoggedIn()){
-            return "/student/student";
+            return "student/student";
         }
-        return "/student/add-student";
+        return "student/add-student";
     }
 
     public Model getAllGlobalModels(Model model){
@@ -160,7 +160,7 @@ public class StudentController extends BaseController {
         try{
             if(student.getId()!=null){
                 existingStudent = studentService.getStudentDetail(student.getId(), school.getId()).orElse(null);
-                returnStr = "/student/edit-student";
+                returnStr = "student/edit-student";
             }
 
         }catch(Exception e){
@@ -286,23 +286,23 @@ public class StudentController extends BaseController {
             model = getAllGlobalModels(model);
             model.addAttribute("error", ffe.getMessage());
             ffe.printStackTrace();
-            return "/student/edit-student";
+            return "student/edit-student";
         } catch(FileSizeLimitExceededException ffle){
             model.addAttribute("error", ffle.getMessage());
             model = getAllGlobalModels(model);
             ffle.printStackTrace();
-            return "/student/edit-student";
+            return "student/edit-student";
         } catch(UniqueConstraintsException ue){
             model.addAttribute("error", ue.getMessage());
             model = getAllGlobalModels(model);
             ue.printStackTrace();
-            return "/student/edit-student";
+            return "student/edit-student";
         } catch(Exception ex){
             model.addAttribute("error", ex.getMessage());
             model = getAllGlobalModels(model);
             model.addAttribute("error", "Error in updating student!"+ex.getMessage());
             ex.printStackTrace();
-            return "/student/edit-student";
+            return "student/edit-student";
         }
     }
 
@@ -311,7 +311,7 @@ public class StudentController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
-        return "/student/assign-srno";
+        return "student/assign-srno";
     }
 
     @GetMapping("/stu-deleted-list")
@@ -322,7 +322,7 @@ public class StudentController extends BaseController {
         model.addAttribute("hasStudent", !studentList.isEmpty());
         model.addAttribute("page", "datatable");
 
-        return "/student/inactive-students";
+        return "student/inactive-students";
     }
     @GetMapping("/delete-student/{deleteId}")
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
@@ -345,7 +345,7 @@ public class StudentController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
-        return "/student/edit-grade-section";
+        return "student/edit-grade-section";
     }
 
     @GetMapping("/student-attendance")
@@ -362,7 +362,7 @@ public class StudentController extends BaseController {
             e.printStackTrace();
         }
         model.addAttribute("page", "datatable");
-        return "/student/student-attendance";
+        return "student/student-attendance";
     }
     @GetMapping("/student-submit-attendance")
     public String studentAttendanceSave(Model model){
@@ -376,7 +376,7 @@ public class StudentController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
         }
-        return "/student/attendance";
+        return "student/attendance";
     }
 
     @GetMapping("/student-show-attendance")
@@ -385,7 +385,7 @@ public class StudentController extends BaseController {
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
         model.addAttribute("months", dropdownService.getMonths());
-        return "/student/show-attendance";
+        return "student/show-attendance";
     }
 
     @GetMapping("/edit-aadhar-detail")
@@ -393,14 +393,14 @@ public class StudentController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
-        return "/student/update-aadhar";
+        return "student/update-aadhar";
     }
 
     @GetMapping("/sessions-total-students-detail")
     public String totalFeeSubmissionDetail(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("page", "datatable");
-        return "/student/all_students_session";
+        return "student/all_students_session";
     }
 
     @GetMapping("/grade-total-students-detail")
@@ -409,7 +409,7 @@ public class StudentController extends BaseController {
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
         model.addAttribute("page", "datatable");
-        return "/student/all_students_grade";
+        return "student/all_students_grade";
     }
 
     @GetMapping("/stu-exam-result")
@@ -419,12 +419,12 @@ public class StudentController extends BaseController {
         model.addAttribute("sections", dropdownService.getSections());
         model.addAttribute("examNames",examinationRepository.findAll());
         model.addAttribute("page", "datatable");
-        return "/student/stu_exam";
+        return "student/stu_exam";
     }
 
     @GetMapping("/look-up-student")
     public String searchStudent(Model model){
-        return "/student/search-student";
+        return "student/search-student";
 
     }
 
