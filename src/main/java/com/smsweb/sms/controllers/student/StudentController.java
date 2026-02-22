@@ -177,12 +177,12 @@ public class StudentController extends BaseController {
             AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
             student.setAcademicYear(academicYear);
             student.setSchool(school);
-            if(existingStudent!=null){
+            /*if(existingStudent!=null){
                 student.setUpdatedBy(userService.getLoggedInUser().getUsername());
             }
             else{
                 student.setCreatedBy(userService.getLoggedInUser().getUsername());
-            }
+            }*/
             Student savedStudent = studentService.saveStudent(student, customerPic, fileNameOrSchoolCode, existingStudent);
             String msg = "Student " + student.getStudentName() + " saved successfully";
             try{
@@ -327,6 +327,22 @@ public class StudentController extends BaseController {
     @GetMapping("/delete-student/{deleteId}")
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         String msg = studentService.deleteStudent(Long.valueOf(id));
+        if(msg.contains("success")){
+            redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
+        } else if(msg.contains("Error")){
+            School school = (School)model.getAttribute("school");
+            List<Student> studentList = studentService.getAllActiveStudentsOfSchool(school.getId());
+            model.addAttribute("students", studentList);
+            model.addAttribute("hasStudent", !studentList.isEmpty());
+            model.addAttribute("page", "datatable");
+            redirectAttributes.addFlashAttribute("error",msg.split("#####")[1]);
+        }
+        return "redirect:/student/student";
+    }
+
+    @GetMapping("/activate-student/{studentIdForUpdate}")
+    public String activateStudent(@PathVariable("studentIdForUpdate")String id, Model model, RedirectAttributes redirectAttributes){
+        String msg = studentService.activateStudent(Long.valueOf(id));
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
         } else if(msg.contains("Error")){

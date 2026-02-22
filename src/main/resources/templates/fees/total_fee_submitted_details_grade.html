@@ -153,18 +153,20 @@
                       <thead>
                       <tr>
                           <th>SNo</th>
-                          <th>Student Name</th>
-                          <th>SR No</th>
                           <th>Grade</th>
+                          <th>SR No</th>
+                          <th>Student Name</th>
                           <th>Father Name</th>
-                          <th>Mother Name</th>
+                          <th>Months</th>
                           <th>Submission Date</th>
-                          <th>Receipt#</th>
-                          <th>Paid Amount</th>
-                          <th>Fine Amount</th>
-                          <th>Discount Amount</th>
+                          <th>Receipt No</th>
                           <th>Total Amount</th>
                           <th>Balance Amount</th>
+                          <th>Paid Amount</th>
+                          <!--<th>Fine Amount</th>
+                          <th>Discount Amount</th>-->
+                         <th>User</th>
+
                       </tr>
                       </thead>
                       <tbody class="table-group-divider">`;
@@ -184,20 +186,32 @@
                         dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                         dt = dt.replaceAll(" ","/");
                       }
+                      let feeSubmissionMonths = feeSubmission.feeSubmissionMonths;
+                      //console.log(feeSubmissionMonths);
+                      let month_names = '';
+                      if (feeSubmissionMonths && feeSubmissionMonths.length > 0) {
+                          feeSubmissionMonths.forEach(m => {
+                              //console.log(m.monthMaster.monthName);
+                              month_names+=m.monthMaster.monthName + ',';
+                          });
+                      }
+                      //.monthMaster.monthName
                       tblData += `<tr>
                                 <td>${counter}</td>
-                                <td>${feeSubmission.academicStudent.student.studentName}</td>
-                                <td>${srno}</td>
                                 <td>${grd}</td>
+                                <td>${srno}</td>
+                                <td>${feeSubmission.academicStudent.student.studentName}</td>
                                 <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                                <td>${feeSubmission.academicStudent.student.motherName}</td>
+                                <td>${month_names}</td>
                                 <td>${dt}</td>
                                 <td ${receiptStyle}>${receiptNo}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
+                                <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
+                                <td>${feeSubmission.createdBy}</td>
+
                             </tr>`;
                       totalPaidAmount+=feeSubmission.paidAmount;
                       totalAmount+=feeSubmission.totalAmount;

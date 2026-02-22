@@ -8,6 +8,7 @@ import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.repositories.users.RoleRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.users.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,13 +29,15 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
 
-    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService, RoleRepository roleRepository) {
+    public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService, RoleRepository roleRepository, UserRepository userRepository) {
         this.fileHandleHelper = fileHandleHelper;
         this.employeeRepository = employeeRepository;
         this.passwordEncoder = passwordEncoder;
         this.userService = userService;
         this.roleRepository = roleRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -60,11 +63,14 @@ public class EmployeeService {
             userEntity.setEmail(employee.getUserEntity().getEmail());
             userEntity.setUsername(existingEmployee.getUserEntity().getUsername());
             userEntity.setPassword(existingEmployee.getUserEntity().getPassword());
-            employee.setUserEntity(userEntity);
+            UserEntity updateUserEntity = userRepository.save(userEntity);
+            employee.setUserEntity(updateUserEntity);
+            employee.setUpdatedBy(userService.getLoggedInUser());
             // Ensure other necessary fields from UserEntity are retained
         } else {
             // Generate employee code for new employee
-            employee.setEmployeeCode("ERN-" + fileNameOrSchoolCode);
+            String empCode = "ERN-" + fileNameOrSchoolCode;
+            employee.setEmployeeCode(empCode);
 
             // Create new UserEntity for new employee
             userEntity = new UserEntity();
@@ -72,8 +78,11 @@ public class EmployeeService {
             // Generate username and password
             userEntity = generateUsernameAndPassword(employee, userEntity);
             userEntity.setEmail(employee.getUserEntity().getEmail());
+            userEntity.setEnabled(true);
+            UserEntity empEnt = userRepository.save(userEntity);
             // Assign UserEntity to the new employee
-            employee.setUserEntity(userEntity);
+            employee.setUserEntity(empEnt);
+            employee.setCreatedBy(userService.getLoggedInUser());
         }
 
         // Handle image upload logic

@@ -74,7 +74,7 @@
   <script th:src="@{/js/jquery-3.7.1.js}"></script>
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
-  <script th:src="@/js/chart.js}"></script>
+  <script th:src="@{/js/chart.js}"></script>
   <script type="text/javascript" th:inline="javascript">
     const contextPath = /*[[@{/}]]*/ '/';
     const successMessage = [[${success}]];
@@ -210,7 +210,7 @@
                   if (dob) {
                     let dateObj = new Date(dob);
                     dob = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    dob = dt.replaceAll(" ","/");
+                    dob = dob.replaceAll(" ","/");
                   }
                   if(academicStudent.student.gender==='Male'){
                     maleCounter++;

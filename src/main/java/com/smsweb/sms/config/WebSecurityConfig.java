@@ -38,7 +38,8 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable()
+                //.csrf().disable()
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/images/**", "/css/**", "/js/**","/images/students/**","/images/employees/**").permitAll()
                         .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll() // Fixed duplicate matchers

@@ -185,6 +185,7 @@
                         <th>IFSC Code</th>
                         <th>Bank Name</th>
                         <th>Branch Name</th>
+                        <th>Status</th>
                     </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
@@ -261,6 +262,7 @@
                             <td>${academicStudent.student.ifscCode}</td>
                             <td>${academicStudent.student.bank.bankName}</td>
                             <td>${academicStudent.student.branchName}</td>
+                            <td>${academicStudent.student.status}</td>
                         </tr>`;
                         counter++;
                         let color = getRandomColor();
@@ -269,7 +271,7 @@
                     });
                     tblData+=`</tbody></table>`;
                     $("#student-collection-data").html(tblData);
-                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10];
+                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27];
                     const columnDefs = [{ "orderable": false, "targets": [0] }];
                     $("#studentTable").DataTable({
                         scrollX: true,

@@ -18,6 +18,8 @@ import com.smsweb.sms.services.universal.MediumService;
 import com.smsweb.sms.services.universal.SectionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -216,6 +218,16 @@ public class FeeSubmissionController extends BaseController {
 
     @GetMapping("/fees-user-wise-collection")
     public String userwiseCollection(Model model){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication.getAuthorities()
+                    .stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+            model.addAttribute("isAdmin", isAdmin);
+        }catch(Exception e){
+            e.printStackTrace();        }
+
         return "fees/fees_user_collection";
     }
 

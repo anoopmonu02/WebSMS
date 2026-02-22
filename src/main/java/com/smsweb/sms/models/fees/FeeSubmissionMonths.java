@@ -5,9 +5,12 @@ import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 
-@Data
+@Getter
+@Setter
 @Entity
 public class FeeSubmissionMonths {
 

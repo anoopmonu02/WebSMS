@@ -84,6 +84,22 @@
     </div>
   </div>
 
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Action</h5>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to proceed?
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="confirmYes" class="btn btn-danger">Yes</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
@@ -264,6 +280,66 @@
         $('#feesubmission_id').val('');
       }
     }
+
+    /*$("#feeSubmitBtn").click(function () {
+      let confirmAction = confirm("Are you sure you want to cancel the fee?");
+      if (confirmAction) {
+        // User clicked OK → continue flow
+        cancelFee();
+      } else {
+        // User clicked Cancel → stop
+        return false;
+      }
+    });*/
+
+    const cancelFee=() =>{
+      const stuId = $('#StudentId').val();
+      const feeSubId = $('#feesubmission_id').val();
+      console.log("stu::: "+stuId+" -->fee:::: "+feeSubId);
+
+      if(stuId === '' || feeSubId === ''){
+        showWarningMsg('error','Student/Fee Details all are mandatory',"Warning");
+        return;
+      }
+
+      let requestBody = {};
+      requestBody = {
+        studentId: stuId,
+        feeId: feeSubId
+      };
+      let url = `${contextPath}cancelFeeForStudent`;
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        console.log("======"+response);
+        return response.json();  // Parse response as JSON
+      }).then(data=>{
+        console.log("DTAAA==="+data.success);
+        if(data.success){
+          showWarningMsg("success",data.success,"Fee Cancelled");
+        } else{
+          showWarningMsg("error", data.error,"Error");
+        }
+      }).catch(error=>{
+        showWarningMsg("error", error, "Error");
+      });
+    }
+
+    $("#feeSubmitBtn").click(function () {
+      $("#confirmModal").modal("show");
+    });
+
+    $("#confirmYes").click(function () {
+      $("#confirmModal").modal("hide");
+      cancelFee();
+    });
 
   </script>
 

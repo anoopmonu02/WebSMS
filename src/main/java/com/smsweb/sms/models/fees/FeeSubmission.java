@@ -12,8 +12,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 
 public class FeeSubmission {
@@ -37,17 +38,17 @@ public class FeeSubmission {
 
     private String receiptNo;//auto-generated
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_student_id")
     @NotNull(message = "Student should be available")
     private AcademicStudent academicStudent;
@@ -101,11 +102,15 @@ public class FeeSubmission {
     @ToString.Exclude
     private FeeSubmissionBalance feeSubmissionBalance;
 
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @Override
     public String toString() {

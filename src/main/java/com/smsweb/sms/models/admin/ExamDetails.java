@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -11,7 +13,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.util.Date;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_examdetails",columnNames = {"examination_id", "academic_year_id", "school_id"})})
 public class ExamDetails {
@@ -28,12 +31,12 @@ public class ExamDetails {
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
     private Date examDeclaredDate;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;

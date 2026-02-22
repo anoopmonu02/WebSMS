@@ -135,8 +135,10 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("medium") Long medium,
             @Param("grade") Long grade, @Param("section") Long section);
 
-    @Query("SELECT COALESCE(SUM(f.paidAmount), 0) FROM FeeSubmission f " +
-            "WHERE f.feeSubmissionDate = CURRENT_DATE AND f.school.id = :school AND f.academicYear.id = :academic and f.status = 'ACTIVE'")
+    @Query(value="""
+            SELECT COALESCE(SUM(f.paid_amount), 0) FROM Fee_Submission f 
+            WHERE DATE(f.fee_submission_date) = CURDATE() AND f.school_id = :school AND f.academic_Year_id = :academic and LOWER(f.status) = 'active'
+            """,nativeQuery = true)
     BigDecimal getTodayTotalFeeSubmission(@Param("school") Long school,
                                           @Param("academic") Long academic);
 
@@ -206,5 +208,15 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("gradeName") String gradeName,
             @Param("sectionName") String sectionName
     );
+
+    @Query(value = """
+    SELECT MAX(id)
+    FROM fee_submission 
+    WHERE academic_student_id = :studentId and status = :status and academic_year_id = :academicId
+    """, nativeQuery = true)
+    Long findLatestSubmissionId(@Param("studentId") Long studentId,
+                                @Param("status") String status,
+                                @Param("academicId") Long academicId);
+
 
 }

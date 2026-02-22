@@ -1,19 +1,24 @@
 package com.smsweb.sms.models.admin;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.MonthMaster;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_feedate",columnNames = {"month_master_id", "academic_year_id", "school_id"})})
 
@@ -33,7 +38,7 @@ public class FeeDate {
     @NotNull(message = "Months should be available")
     private MonthMaster monthMaster;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
@@ -44,7 +49,7 @@ public class FeeDate {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
@@ -54,10 +59,14 @@ public class FeeDate {
     private String description;
 
 
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    @JsonIgnore
+    private UserEntity updatedBy;
 
 }

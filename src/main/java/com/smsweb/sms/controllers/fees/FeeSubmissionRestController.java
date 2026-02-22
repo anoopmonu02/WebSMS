@@ -113,7 +113,12 @@ public class FeeSubmissionRestController extends BaseController {
                         result.put("student",academicStudent);
                         result.put("feeDate",fd);
                         result.put("todayDate",new Date());
-                        result.put("countStu", academicStudentService.countNoOfYearsOfStudent(academicStudent)>1?"OLD":"NEW");
+                        //result.put("countStu", academicStudentService.countNoOfYearsOfStudent(academicStudent)>1?"OLD":"NEW");
+                        if(academicStudentService.countNoOfYearsOfStudent(academicStudent)>1){
+                            result.put("countStu", "OLD");
+                        } else{
+                            result.put("countStu", academicStudent.getStudent().getStudentType().equalsIgnoreCase("old")?"OLD":"NEW");
+                        }
                         result.put("academicYear", academicYear);
                         FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(school.getId(), academicYear.getId(), academicStudent.getId());
                         if(feeSubmission!=null){
@@ -660,6 +665,28 @@ public class FeeSubmissionRestController extends BaseController {
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map result = feeSubmissionService.getSubmittedFeeDetailForGrade(school, academicYear, requestBody);
+                return ResponseEntity.ok(result);
+            }
+        }catch(Exception e){
+            receiptData.put("error","error#####"+e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(receiptData);
+    }
+
+
+    @PostMapping("/cancelFeeForStudent")
+    public ResponseEntity<?> cancelFeeForStudent(@RequestBody Map<String, String> requestBody, Model model){
+        Map<String, Object> receiptData = new HashMap<>();
+        try{
+            System.out.println("requestBody--------> "+requestBody);
+            if(requestBody!=null){
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                Map result = feeSubmissionService.cancelSubmittedFeeForStudent(requestBody, school, academicYear);
+                //System.out.println("responseMap "+result);
+                //System.out.println("result "+result.keySet());
                 return ResponseEntity.ok(result);
             }
         }catch(Exception e){

@@ -66,7 +66,10 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         // Access the session
         HttpSession session = request.getSession();
         School school = null;
-        if (employee != null && !employee.getUserEntity().getRoles().contains("ROLE_SUPERADMIN")) {
+        boolean isSuperAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
+        if (employee != null && !isSuperAdmin) {
             // Set employee details in the session
             school = employee.getSchool(); // Ensure that getSchool() is a valid method
             session.setAttribute("school", school);

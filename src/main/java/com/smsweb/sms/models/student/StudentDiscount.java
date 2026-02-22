@@ -7,12 +7,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_student_discount_id",columnNames = {"academic_student_id", "discount_head_id", "academic_year_id", "school_id"})})
 public class StudentDiscount {
@@ -21,17 +24,17 @@ public class StudentDiscount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-Year should be available")
     private AcademicYear academicYear;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_student_id")
     @NotNull(message = "Student should be available")
     private AcademicStudent academicStudent;

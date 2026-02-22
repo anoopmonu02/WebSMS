@@ -3,9 +3,7 @@ package com.smsweb.sms.models.Users;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,7 +11,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.util.Date;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -22,9 +21,17 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    /*@OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
-    private UserEntity userEntity; // One-to-One association with UserEntity
+    private UserEntity userEntity; // One-to-One association with UserEntity*/
+
+    /*
+     * Authentication Link
+     * Each student has exactly one user account
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private UserEntity userEntity;
 
     @Column(nullable = false, unique = true)
     private String employeeCode;
@@ -95,11 +102,18 @@ public class Employee {
     @NotNull(message = "School should be available")
     private School school;
 
-    @JoinColumn(name = "created_by", updatable = false)
+    /*@JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
 
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private String updatedBy;*/
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private UserEntity updatedBy;
 
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;

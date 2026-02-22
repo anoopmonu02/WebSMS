@@ -6,6 +6,8 @@ import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -13,7 +15,8 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 
-@Data
+@Getter
+@Setter
 @Entity
 public class FeeSubmissionBalance {
 

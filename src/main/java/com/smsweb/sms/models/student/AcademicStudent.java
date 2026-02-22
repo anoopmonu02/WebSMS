@@ -1,6 +1,8 @@
 package com.smsweb.sms.models.student;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.Grade;
@@ -12,13 +14,16 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "academic_students")  // Specify the table name explicitly
 
@@ -83,11 +88,21 @@ public class AcademicStudent {
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
 
-    @JoinColumn(name = "created_by", updatable = false)
+    /*@JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
 
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private String updatedBy;*/
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     // Set uuid on create
     @PrePersist

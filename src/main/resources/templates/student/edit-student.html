@@ -395,9 +395,15 @@
 
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/jquery-ui.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script th:src="@{/js/flatpickr.js}"></script>
 
   <script type="text/javascript" th:inline="javascript">
     const contextPath = /*[[@{/}]]*/ '/';
+    flatpickr("#dob", {
+      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+    });
       $(document).ready(function() {
         function loadCities(state, selectedCity) {
           if (state) {

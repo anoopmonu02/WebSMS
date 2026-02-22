@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -390,7 +391,7 @@ public class FeeSubmissionService {
                         submissionBalance.setFeeSubmission(feeSubmission);
                         feeSubmission.setFeeSubmissionSub(submissionSubList);
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
-                        feeSubmission.setCreatedBy(userService.getLoggedInUser().getUsername());
+                        feeSubmission.setCreatedBy(userService.getLoggedInUser());
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());
@@ -1210,6 +1211,41 @@ public class FeeSubmissionService {
             e.printStackTrace();
         }
         return new ArrayList<>();
+    }
+
+    public Map cancelSubmittedFeeForStudent(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map<String, String> responseMap  = new HashMap();
+        try{
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                //Get Student detail & max submitted fee id
+                Long id = paramsMap.get("studentId")!=null?Long.parseLong(paramsMap.get("studentId")):0L;
+                AcademicStudent student = academicStudentRepository.findByAcademicYearAndSchoolAndAcademicStudentId(academicYear.getId(), school.getId(), id);
+                if(student!=null && student.getStatus().equalsIgnoreCase("active")){
+                    Long feeId = paramsMap.get("feeId")!=null? Long.parseLong(paramsMap.get("feeId")):0L;
+                    System.out.println("islatest::::: "+feeSubmissionRepository.findLatestSubmissionId(id, "Active", academicYear.getId()));
+                    Long isLatest = feeSubmissionRepository.findLatestSubmissionId(id, "Active", academicYear.getId());
+                    if (!feeId.equals(isLatest)) {
+                        responseMap.put("error", "Only latest fee submission can be processed");
+                    } else{
+                        FeeSubmission feeSubmission = feeSubmissionRepository.findById(feeId).get();
+                        feeSubmission.setStatus("Inactive");
+                        feeSubmissionRepository.save(feeSubmission);
+                        responseMap.put("success","Fee cancelled successfully for "+student.getStudent().getStudentName());
+                    }
+                } else{
+                    //set response map
+                    responseMap.put("error","Student not found/matched!");
+                }
+            } else{
+                responseMap.put("error","No matching data found.");
+            }
+            System.out.println("responseMap: "+responseMap);
+            //responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
     }
 
 }

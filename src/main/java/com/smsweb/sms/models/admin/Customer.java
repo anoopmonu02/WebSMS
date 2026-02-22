@@ -1,16 +1,23 @@
 package com.smsweb.sms.models.admin;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Province;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 public class Customer {
 
@@ -76,13 +83,18 @@ public class Customer {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @Column(name = "created_by", updatable = false)
-    @Size(max = 100, message = "Created by should not exceed 100 chars")
-    private String createdBy;
+    /*
+     * Audit Fields
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
-    @Column(name = "updated_by")
-    @Size(max = 100, message = "Updated by should not exceed 100 chars")
-    private String updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @PreUpdate
     protected void onUpdate() {

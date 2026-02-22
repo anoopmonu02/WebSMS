@@ -11,10 +11,10 @@
 
         <div class="container" th:if="${!isSuperAdmin}">
             <!--Cards for summary details-->
-            <div class="row">
-                <div class="col-md-4 col-lg-3 mb-4">
+            <div class="row row-cols-1 row-cols-md-4 g-4 mb-4">
+                <!--<div class="col-md-4 col-lg-3 mb-4">
                     <div class="card text-bg-primary text-center">
-                        <!--<div class="card-header">Students</div>-->
+                        &lt;!&ndash;<div class="card-header">Students</div>&ndash;&gt;
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-4 text-lg-start">
@@ -28,16 +28,47 @@
 
                         </div>
                     </div>
+                </div>-->
+                <div class="col">
+                    <div class="card text-bg-primary text-center h-100">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-4 text-lg-start">
+                                    <h3 class="card-title">
+                                        <i class="bi bi-collection-fill"></i>
+                                    </h3>
+                                </div>
+
+                                <div class="col-8 mb-1">
+                                    <!-- Amount + toggle inline -->
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        <h5 class="card-title fee-amount "
+                                            th:attr="data-actual=${totalFeeSubmittedToday}">
+                                            ******
+                                        </h5>
+
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input toggle-fee-amount" type="checkbox">
+
+                                        </div>
+                                    </div>
+
+                                    <p class="card-text mt-1">Today's Fee Collection</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4 col-lg-3 mb-4">
-                    <div class="card text-bg-danger text-center">
+
+                <div class="col">
+                    <div class="card text-bg-danger text-center h-100">
                         <!--<div class="card-header">Students</div>-->
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-4 text-lg-start">
                                     <h3 class="card-title"><i class="bi bi-people-fill"></i></h3>
                                 </div>
-                                <div class="col-8">
+                                <div class="col-8 mb-3">
                                     <h5 class="card-title" th:text="${totalAbsent}">200</h5>
                                     <p class="card-text">Today's Absent Student</p>
                                 </div>
@@ -46,9 +77,10 @@
                         </div>
                     </div>
                 </div>
+
                 <!-- Repeat more .col-md-4 blocks for more cards -->
-                <div class="col-md-4 col-lg-3 mb-4">
-                    <div class="card text-bg-success text-center">
+                <div class="col">
+                    <div class="card text-bg-success text-center h-100">
                         <!--<div class="card-header">Students</div>-->
                         <div class="card-body">
                             <div class="row">
@@ -56,7 +88,7 @@
                                     <!--<h3 class="card-title"><i class="bi bi-person-circle"></i></h3>-->
                                     <h3 class="card-title"><img th:src="@{/images/Aadhar_logo-hindi1.png}" alt="" class="img-fluid"/></h3>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6 mb-3">
                                     <h5 class="card-title" th:text="${totalAadhaar + '/' + totalStudents}">50</h5>
                                     <p class="card-text">Aadhaar</p>
                                 </div>
@@ -66,8 +98,8 @@
                     </div>
                 </div>
 
-                <div class="col-md-4 col-lg-3 mb-4">
-                    <div class="card text-bg-warning text-center">
+                <div class="col">
+                    <div class="card text-bg-warning text-center h-100">
                         <!--<div class="card-header">Students</div>-->
                         <div class="card-body">
                             <div class="row">
@@ -75,7 +107,7 @@
                                     <!--<h3 class="card-title"><i class="bi bi-mortarboard-fill"></i></h3>-->
                                     <h3 class="card-title"><img th:src="@{/images/commerce (1).png}" alt=""/></h3>
                                 </div>
-                                <div class="col-6">
+                                <div class="col-6 mb-3">
                                     <h5 class="card-title" th:text="${totalSR + '/' + totalStudents}">200</h5>
                                     <p class="card-text">SR</p>
                                 </div>
