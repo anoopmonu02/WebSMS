@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.helper.DisplayLabel;
 import com.smsweb.sms.models.Users.UserEntity;
@@ -38,6 +39,7 @@ public class Student { // Extend UserEntity
     */
    @OneToOne(fetch = FetchType.LAZY)
    @JoinColumn(name = "user_entity_id", nullable = false, unique = true)
+   @JsonBackReference("student-user")
    private UserEntity userEntity;
 
     @DisplayLabel("Registration No")

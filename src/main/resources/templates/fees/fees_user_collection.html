@@ -352,6 +352,8 @@
                                 month_names+=m.monthMaster.monthName + ',';
                             });
                         }
+                        console.log(feeSubmission.createdBy);
+                        console.log(feeSubmission.createdByName );
                         tblData += `<tr>
                                 <td>${counter}</td>
                                 <td>${feeSubmission.academicStudent.grade.gradeName} - ${feeSubmission.academicStudent.section.sectionName}</td>
@@ -366,7 +368,7 @@
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                                <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
-                                <td>${feeSubmission.createdBy}</td>
+                                <td>${feeSubmission.createdByName ?? ''}</td>
 
                             </tr>`;
                         totalAmountSubmitted+=feeSubmission.paidAmount;

@@ -2,6 +2,7 @@ package com.smsweb.sms.models.fees;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
@@ -122,6 +123,12 @@ public class FeeSubmission {
                 ", fineRemark='" + fineRemark + '\'' +
                 // Include other relevant fields
                 '}';
+    }
+
+    @JsonProperty("createdByName")
+    public String getCreatedByName() {
+        if (createdBy == null) return null;
+        return createdBy.getDisplayName();
     }
 
 }

@@ -190,7 +190,7 @@
                             <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                             <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
-                            <td>${feeSubmission.createdBy}</td>
+                            <td>${feeSubmission.createdByName ?? ''}</td>
 
                         </tr>`;
                         totalPaidAmount+=feeSubmission.paidAmount;

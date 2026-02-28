@@ -87,7 +87,9 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId);
 
-    @Query("SELECT f FROM FeeSubmission f " +
+    @Query("SELECT DISTINCT f FROM FeeSubmission f LEFT JOIN FETCH f.createdBy u" +
+            "       LEFT JOIN FETCH u.employee " +
+            "       LEFT JOIN FETCH u.student " +
             "WHERE f.status = :status " +
             "  AND f.school.id = :schoolId " +
             "  AND f.academicYear.id = :academicYearId " +
@@ -122,13 +124,13 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("endDate") String endDate);
 
 
-    @Query("SELECT f FROM FeeSubmission f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium")
+    @Query("SELECT DISTINCT f FROM FeeSubmission f LEFT JOIN FETCH f.createdBy u LEFT JOIN FETCH u.employee LEFT JOIN FETCH u.student WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium")
     List<FeeSubmission> findAllFeeSubmittedDetails(
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium);
 
-    @Query("SELECT f FROM FeeSubmission f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium AND f.academicStudent.grade.id = :grade AND f.academicStudent.section.id = :section")
+    @Query("SELECT DISTINCT f FROM FeeSubmission f LEFT JOIN FETCH f.createdBy u LEFT JOIN FETCH u.employee LEFT JOIN FETCH u.student WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.academicStudent.medium.id = :medium AND f.academicStudent.grade.id = :grade AND f.academicStudent.section.id = :section")
     List<FeeSubmission> findAllFeeSubmittedDetailsGradeWise(
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId,

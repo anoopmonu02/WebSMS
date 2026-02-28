@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.Users;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -31,6 +32,7 @@ public class Employee {
      */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JsonBackReference("employee-user")
     private UserEntity userEntity;
 
     @Column(nullable = false, unique = true)

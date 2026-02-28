@@ -1,5 +1,7 @@
 package com.smsweb.sms.models.Users;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -27,6 +29,7 @@ public class UserEntity {
     private String email;
 
     @Column(name = "password", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(nullable = false)
@@ -41,11 +44,14 @@ public class UserEntity {
     private List<Roles> roles = new ArrayList<>();
 
     @OneToOne(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    @JsonManagedReference("employee-user")
     private Employee employee;
 
     @OneToOne(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    @JsonManagedReference("student-user")
     private Student student;
 
+    @JsonProperty("displayName")
     public String getDisplayName() {
         if (employee != null) {
             return employee.getEmployeeName();
