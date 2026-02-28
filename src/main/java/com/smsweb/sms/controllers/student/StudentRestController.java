@@ -238,19 +238,26 @@ public class StudentRestController extends BaseController {
                 //List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
                 Map academicAttendaceMap = studentService.getAllStudentsAttendanceByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
                 if(academicAttendaceMap!=null && !academicAttendaceMap.isEmpty()){
-                    if(!academicAttendaceMap.containsKey("academicStudents")){
-                        academicAttendaceMap.put("academicStudentError", "No students found for the given criteria.");
+                    try{
+                        if(!academicAttendaceMap.containsKey("academicStudents")){
+                            academicAttendaceMap.put("academicStudentError", "No students found for the given criteria.");
+                        }
+                    }catch(Exception ee){
+                        ee.printStackTrace();
                     }
+
                 } else {
                     academicAttendaceMap = new HashMap();
                     academicAttendaceMap.put("academicStudentError", "No students found for the given criteria.");
                 }
                 return ResponseEntity.ok(academicAttendaceMap);
             } else{
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Request body is missing or invalid.");
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Request body is missing or invalid.");
+                return ResponseEntity.badRequest().body(error);
             }
         }catch(Exception e){
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An unexpected error occurred: " + e.getMessage());
         }

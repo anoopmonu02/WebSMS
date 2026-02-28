@@ -319,17 +319,14 @@
                 return response.json();
             }).then((data) => {
                 console.log(data);
-                console.log(data.student);
                 if('studentError' in data){
-                    showWarningMsg("warning", data.noAcademicStudent,"Message");
+                    showWarningMsg("warning", data.studentError,"Message");
                     setFeeRelatedData(data, 0)
                 } else{
                     if('feeSubmissionError' in data){
-                        showWarningMsg("warning", data.noFeeDate,"Message");
+                        showWarningMsg("warning", data.feeSubmissionError,"Message");
                     } else{
                         if('feeSubmissions' in data){
-                            console.log("data.feeSubmissions---- "+data.feeSubmissions);
-                            console.log("data.student status---- "+data.student.status);
                             if(data.student.status==='Active'){
                                 /*const msg = "Discount: "+ data.assignedDiscount.discounthead.discountName +" already assigned to this student."
                                 showWarningMsg("info", msg, "Message");
@@ -471,13 +468,12 @@
                           <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
                           <label class="col-md-5 col-form-label">${data.student.student.motherName}</label>
                       </div>
-                      <div class="col-md-6"></div>
                       <div class="col-md-6">
+                          <label class="col-md-3"></label>
                           <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
-                          <label class="col-md-5 col-form-label">(+91) ${data.student.student.mobile1}</label>
+                          <label class="col-md-4 col-form-label">(+91) ${data.student.student.mobile1}</label>
                       </div>
-                      <div class="col-md-6">
-                      </div>
+
                   </div>
                   <hr/>
                   <div class="row fee-month-detail">

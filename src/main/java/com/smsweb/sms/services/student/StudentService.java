@@ -17,6 +17,7 @@ import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.student.ExamResultSummaryRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.ExaminationService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.ConstraintViolation;
@@ -53,9 +54,10 @@ public class StudentService {
     private final AttendanceRepository attendanceRepository;
     private final ExaminationService examinationService;
     private final ExamResultSummaryRepository examResultSummaryRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -64,6 +66,7 @@ public class StudentService {
         this.attendanceRepository = attendanceRepository;
         this.examinationService = examinationService;
         this.examResultSummaryRepository = examResultSummaryRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -111,22 +114,29 @@ public class StudentService {
         String imageResponse = fileHandleHelper.saveImage("student", logo);
         try{
             boolean proceedFlag = false;
+            UserEntity loggedInUser = userService.getLoggedInUser();
             //Saving Student Data
             if(existingStudent==null){
-                student.setRegistrationNo("SRN-"+fileNameOrSchoolCode);
+                String regisNo = "SRN-"+fileNameOrSchoolCode;
+                student.setRegistrationNo(regisNo);
                 // Set username as registration number
                 UserEntity userEntity = new UserEntity();
-                userEntity.setUsername(student.getRegistrationNo());
+                userEntity.setUsername(regisNo);
                 // Generate password
                 String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
                 userEntity.setPassword(passwordEncoder.encode(password));
                 userEntity.setEmail(student.getUserEntity().getEmail());
-                student.setUserEntity(userEntity);
+                userEntity.setEnabled(true);
+                UserEntity savedUser = userRepository.save(userEntity);
+                student.setUserEntity(savedUser);
+
+                student.setCreatedBy(loggedInUser);
             } else if(existingStudent!=null){
                 if(existingStudent.getPic()!=null && existingStudent.getPic()!=""){
                     student.setPic(existingStudent.getPic());
                     student.setRegistrationNo(existingStudent.getRegistrationNo());
                 }
+                student.setUpdatedBy(userService.getLoggedInUser());
             }
             Student savedStudent = repository.save(student);
             if(savedStudent!=null){
@@ -141,6 +151,7 @@ public class StudentService {
                 academicStudent.setSection(savedStudent.getSection());
                 academicStudent.setDescription("Saving at time of student creation.");
                 academicStudent.setStudent(savedStudent);
+                academicStudent.setCreatedBy(loggedInUser);
                 academicStudentRepository.save(academicStudent);
             }
             boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
@@ -164,31 +175,6 @@ public class StudentService {
             if(proceedFlag){
                 savedStudent = repository.save(student);
             }
-            /*if(proceedFlag){
-                if(existingStudent==null){
-                    // Set username as registration number
-                    UserEntity userEntity = new UserEntity();
-                    userEntity.setUsername(student.getRegistrationNo());
-                    // Generate password
-                    String password = generatePassword(student.getRegistrationNo(), student.getMobile1());
-                    userEntity.setPassword(passwordEncoder.encode(password));
-                    userEntity.setEmail(student.getUserEntity().getEmail());
-                    student.setUserEntity(userEntity);
-                }
-                Student savedStudent = repository.save(student);
-                if(existingStudent==null){
-                    AcademicStudent academicStudent = new AcademicStudent();
-                    academicStudent.setAcademicYear(savedStudent.getAcademicYear());
-                    academicStudent.setSchool(savedStudent.getSchool());
-                    academicStudent.setGrade(savedStudent.getGrade());
-                    academicStudent.setMedium(savedStudent.getMedium());
-                    academicStudent.setSection(savedStudent.getSection());
-                    academicStudent.setDescription("Saving at time of student creation.");
-                    academicStudent.setStudent(savedStudent);
-                    academicStudentRepository.save(academicStudent);
-                }
-                return savedStudent;
-            }*/
             return savedStudent;
         }catch(Exception e){
             log.debug("error while saving Student--"+e.getMessage());
@@ -209,7 +195,7 @@ public class StudentService {
             Student student = repository.findById(studentId).orElse(null);
             if (student != null) {
                 student.setMobile1(contactNo);
-                student.setUpdatedBy(userService.getLoggedInUser().getUsername());
+                student.setUpdatedBy(userService.getLoggedInUser());
                 repository.save(student);
                 return studentId;
             }
@@ -288,7 +274,7 @@ public class StudentService {
                 existingStudent.setPersonName(student.getPersonName());
                 existingStudent.setPersonContact(student.getPersonContact());
                 existingStudent.setRelationship(student.getRelationship());
-                existingStudent.setUpdatedBy(userService.getLoggedInUser().getUsername());
+                existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 return existingStudent;
             }
@@ -321,8 +307,38 @@ public class StudentService {
             Student student = academicList.get(0).getStudent();
 
             student.setStatus(Student.STATUS_INACTIVE);
+            String remarkString = student.getRemark() + "Deleted At: "+new SimpleDateFormat("dd/MMM/YYYY").format(new Date());
+            student.setRemark(remarkString);
             student = repository.save(student);
             msg = "success#####Student: " + student.getStudentName() + " deleted successfully";
+
+        }catch(Exception e){
+            msg = "error#####"+e.getLocalizedMessage();
+        }
+        return msg;
+    }
+
+    @Transactional
+    public String activateStudent(Long id){
+        String msg = "";
+        try{
+            List<AcademicStudent> academicList = academicStudentRepository.findAllByStudent_IdAndStatus(id, "Inactive");
+
+            if(academicList == null || academicList.isEmpty()){
+                return "success#####Student not found";
+            }
+            for(AcademicStudent academicStudent : academicList){
+                academicStudent.setStatus(AcademicStudent.STATUS_ACTIVE);
+            }
+            academicStudentRepository.saveAll(academicList);
+
+            Student student = academicList.get(0).getStudent();
+
+            student.setStatus(Student.STATUS_ACTIVE);
+            String remarkString = student.getRemark() + "Activated At: "+new SimpleDateFormat("dd/MMM/YYYY").format(new Date());
+            student.setRemark(remarkString);
+            student = repository.save(student);
+            msg = "success#####Student: " + student.getStudentName() + " activated successfully";
 
         }catch(Exception e){
             msg = "error#####"+e.getLocalizedMessage();
@@ -460,6 +476,7 @@ public class StudentService {
         int passCounter = 0;
         try{
             Date truncatedDate = truncateTime(new Date());
+            UserEntity loggedInUser = userService.getLoggedInUser();
             for (Map<String, Object> record : studentData){
                 System.out.println("Record----"+record);
                 boolean isChecked = (Boolean) record.get("isChecked");
@@ -474,6 +491,7 @@ public class StudentService {
                             if(attendanceExist.isPresent() != isChecked){
                                 attendanceExist.setPresent(isChecked);
                                 attendanceExist.setRemark(remark);
+                                attendanceExist.setUpdatedBy(loggedInUser);
                                 studentsToSave.add(attendanceExist);
                                 passCounter++;
                             }
@@ -485,6 +503,7 @@ public class StudentService {
                             attendance.setAcademicStudent(academicStudent);
                             attendance.setPresent(isChecked);
                             attendance.setRemark(remark);
+                            attendance.setCreatedBy(loggedInUser);
                             studentsToSave.add(attendance);
                             passCounter++;
                         }
@@ -808,8 +827,8 @@ public class StudentService {
                                     examResultSummary.setTotalMarks(Long.parseLong(rowData.get("Total Marks")));
                                     examResultSummary.setPercentageMarks(Double.parseDouble(rowData.get("Percentage(%)")));
                                     examResultSummary.setRemarks(rowData.get("remarks"));
-                                    examResultSummary.setCreatedBy(userService.getLoggedInUser().getUsername());
-                                    examResultSummary.setUpdatedBy(userService.getLoggedInUser().getUsername());
+                                    examResultSummary.setCreatedBy(userService.getLoggedInUser());
+                                    examResultSummary.setUpdatedBy(userService.getLoggedInUser());
 
                                     studentsResultsToSave.add(examResultSummary);  // Collect the student for bulk saving
                                     erPassCounter++;

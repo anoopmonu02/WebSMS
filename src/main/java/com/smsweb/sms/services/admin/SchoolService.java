@@ -128,10 +128,10 @@ public class SchoolService {
                 school.setSchoolCode(existingSchool.getSchoolCode());
             }
             if(existingSchool!=null && existingSchool.getId()!=null){
-                school.setUpdatedBy(getLoggedInUser().getUsername());
+                school.setUpdatedBy(getLoggedInUser());
             }
             else{
-                school.setCreatedBy(getLoggedInUser().getUsername());
+                school.setCreatedBy(getLoggedInUser());
             }
             return schoolRepository.save(school);
         }catch (DataIntegrityViolationException ed) {

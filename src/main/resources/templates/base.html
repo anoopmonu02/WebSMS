@@ -22,7 +22,18 @@
     <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">-->
     <link rel="stylesheet" th:href="@{/css/toastr.min.css}" />
     <link rel="stylesheet" th:href="@{/css/style.css}" />
+    <style type="text/css">
+        .text-bg-primary .form-check-input {
+            background-color: #ffffff;
+            border-color: #ffffff;
+        }
 
+        .text-bg-primary .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #ffffff;
+        }
+
+    </style>
 
 </head>
 
@@ -354,7 +365,20 @@
         <script th:src="@{/js/script.js}"></script>
         <script th:src="@{/js/select2.min.js}"></script>
     </th:block>
+<script type="text/javascript">
+    $(document).on("change", ".toggle-fee-amount", function () {
+        let card = $(this).closest(".card-body");
+        let amountEl = card.find(".fee-amount");
+        let actualValue = amountEl.data("actual");
 
+        if ($(this).is(":checked")) {
+            amountEl.text(actualValue);
+        } else {
+            amountEl.text("******");
+        }
+    });
+
+</script>
 </body>
 
 </html>

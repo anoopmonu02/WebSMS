@@ -2,6 +2,7 @@ package com.smsweb.sms.models.fees;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
@@ -12,8 +13,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 
 public class FeeSubmission {
@@ -37,17 +39,17 @@ public class FeeSubmission {
 
     private String receiptNo;//auto-generated
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-year should be available")
     private AcademicYear academicYear;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_student_id")
     @NotNull(message = "Student should be available")
     private AcademicStudent academicStudent;
@@ -101,11 +103,15 @@ public class FeeSubmission {
     @ToString.Exclude
     private FeeSubmissionBalance feeSubmissionBalance;
 
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @Override
     public String toString() {
@@ -117,6 +123,12 @@ public class FeeSubmission {
                 ", fineRemark='" + fineRemark + '\'' +
                 // Include other relevant fields
                 '}';
+    }
+
+    @JsonProperty("createdByName")
+    public String getCreatedByName() {
+        if (createdBy == null) return null;
+        return createdBy.getDisplayName();
     }
 
 }

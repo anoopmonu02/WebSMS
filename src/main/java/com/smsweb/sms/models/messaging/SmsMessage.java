@@ -1,6 +1,8 @@
 package com.smsweb.sms.models.messaging;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.universal.Grade;
@@ -8,13 +10,16 @@ import com.smsweb.sms.models.universal.Section;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class SmsMessage {
 
     @Id
@@ -54,13 +59,10 @@ public class SmsMessage {
     @Column(nullable = true)
     private String resolution;
 
-    @Column(nullable = false, updatable = false)
-    private String createdBy;
-
     @Column(nullable = false)
     private String smsHeading;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id", nullable = false)
     @NotNull(message = "School should be available")
     private School school;
@@ -76,9 +78,15 @@ public class SmsMessage {
     @JoinColumn(name = "section_id", nullable = true)
     private Section section;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
-    @Column(nullable = true)
-    private String updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @Column(nullable = true)
     private Date updatedAt;

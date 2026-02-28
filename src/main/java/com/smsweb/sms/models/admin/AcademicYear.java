@@ -1,16 +1,23 @@
 package com.smsweb.sms.models.admin;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_sessionformat", columnNames = {"sessionFormat", "school_id"})})
 public class AcademicYear {
@@ -44,16 +51,18 @@ public class AcademicYear {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @Column(name = "created_by", updatable = false)
-    @Size(max = 100, message = "Created by should not exceed 100 chars")
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
-    @Column(name = "updated_by")
-    @Size(max = 100, message = "Updated by should not exceed 100 chars")
-    private String updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 }

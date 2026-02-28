@@ -78,13 +78,12 @@
                                 <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
                                 <label class="col-md-5 col-form-label" th:text="${student.getStudent().motherName}"></label>
                             </div>
-                            <div class="col-md-6"></div>
+
                             <div class="col-md-6">
                                 <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
                                 <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
                             </div>
-                            <div class="col-md-6">
-                            </div>
+
                         </div>
                         <hr/>
                         <div class="row fee-month-detail">
@@ -207,70 +206,6 @@
       toastr[msgType](msg,headerValue);
 
     }
-
-    /*document.getElementById("printreceipt").addEventListener("click", function() {
-        const divId = this.getAttribute("data-div-id");
-        const idVal = $('#feeid').val();
-        fetch("/exportPdf", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-                divId: divId,
-                id: idVal
-            })
-        })
-            .then(response => response.blob())
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "receipt.pdf";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            })
-            .catch(error => console.error("Error:", error));
-    });*/
-
-
-    /*async function printDivToPDF() {
-        const { jsPDF } = window.jspdf;
-
-        // Select the div to be printed
-        const content = document.getElementById('contentToExport');
-
-        // Use html2canvas to capture the div as an image
-        html2canvas(content).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-
-            // Create a PDF document
-            const pdf = new jsPDF('p', 'mm', 'a4');
-
-            // Calculate image dimensions and add it to the PDF
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 295; // A4 height in mm
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            // Add a new page if necessary
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-
-            // Save the PDF
-            pdf.save('document.pdf');
-        });
-    }*/
 
 
     function printDivToPDF(){

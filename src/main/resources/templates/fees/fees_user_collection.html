@@ -69,16 +69,16 @@
 
         <div class="card-header fs-3">Collection Summary</div><hr/>
             <div class="row">
-                  <div class="col-md-6">
+                  <div class="col-md-12">
                       <div class="userwise-collection-info" id="userwise-collection-info">
 
                       </div>
                   </div>
-                  <div class="col-md-6">
+                  <!--<div class="col-md-6">
                       <div id="chart-area" style="width: 400px; height: 400px;">
                           <canvas id="collectionChart"></canvas>
                       </div>
-                  </div>
+                  </div>-->
            </div>
         <div class="card-header fs-3">Collection Data</div><hr/>
            <div class="row">
@@ -96,15 +96,33 @@
   <script th:src="@{/js/flatpickr.js}"></script>
     <script th:src="@{/js/chart.js}"></script>
   <script type="text/javascript" th:inline="javascript">
+      let isAdmin = [[${isAdmin}]];
       const contextPath = /*[[@{/}]]*/ '/';
     flatpickr("#endDate", {
       dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
     });//,"#startDate","#currentDate"
-    flatpickr("#startDate", {
+    /*flatpickr("#startDate", {
       dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
-    });
+      //maxDate: "today",
+      minDate: new Date().fp_incr(-9)
+    });*/
+
+      if (isAdmin) {
+          flatpickr("#startDate", {
+              dateFormat: "d/M/Y"
+          });
+      } else {
+          flatpickr("#startDate", {
+              dateFormat: "d/M/Y",
+              minDate: new Date().fp_incr(-9)
+          });
+      }
+
     flatpickr("#currentDate", {
       dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+        minDate: "today",
+        //maxDate: new Date().fp_incr(14) // 14 days from now
+        maxDate: "today"
     });
     const successMessage = [[${success}]];
     if (successMessage) {
@@ -186,7 +204,7 @@
         let b = Math.floor(Math.random() * 255);
         return `rgba(${r}, ${g}, ${b}, 0.6)`; // Background with opacity
     }
-    let collectionChart;
+    //let collectionChart;
     const validateAndSubmit=()=>{
       const selectedOption = $('input[name="dateOption"]:checked').val();
       let url = "";
@@ -245,15 +263,6 @@
             .then(data => {
                 //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
                 let rowData = data.finalData.userWiseFeeCollection;
-                //console.log("rowData:"+rowData);
-                /*let rowData = [
-                    [5000, 10, "John Doe"],
-                    [3000, 5, "Jane Smith"],
-                    [7000, 15, "Alice Johnson"],
-                    [2000, 8, "Bob Williams"],
-                    [4500, 9, "Michael Brown"]
-                ];
-*/
                 // If userWiseFeeCollection is a string, show a message
                 if (typeof rowData === 'string') {
                     showMsg("error",`${rowData}`,"No Data");
@@ -272,15 +281,15 @@
                     //console.log(rowData[i]);
                     let rowVal = rowData[i];
                     tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[2]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[0]}.00 </span></td><td>${rowVal[1]}</td></tr>`;
-                    labels.push(rowVal[2]); // User Name
+                    /*labels.push(rowVal[2]); // User Name
                     amounts.push(rowVal[0]);
                     let color = getRandomColor();
                     backgroundColors.push(color);
-                    borderColors.push(color.replace('0.6', '1'));
+                    borderColors.push(color.replace('0.6', '1'));*/
                 }
                 tableData+=`</tbody></table>`;
                 $("#userwise-collection-info").html(tableData);
-                generateChart(labels,amounts, backgroundColors, borderColors);
+                //generateChart(labels,amounts, backgroundColors, borderColors);
 
                 //Setting fee data - userwise-collection-data
                 let feeData;
@@ -302,17 +311,20 @@
                     <thead>
                         <tr>
                             <th>SNo</th>
-                            <th>Student Name</th>
-                            <th>SR No</th>
                             <th>Grade</th>
+                            <th>SR No</th>
+                            <th>Student Name</th>
                             <th>Father Name</th>
-                            <th>Mother Name</th>
+                            <th>Months</th>
                             ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
-                            <th>Paid Amount</th>
-                            <th>Fine Amount</th>
-                            <th>Discount Amount</th>
+                            <th>Receipt No</th>
                             <th>Total Amount</th>
                             <th>Balance Amount</th>
+                            <th>Paid Amount</th>
+                            <!--<th>Fine Amount</th>
+                            <th>Discount Amount</th>-->
+                            <th>User</th>
+
                         </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
@@ -331,19 +343,33 @@
                             dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                             dt = dt.replaceAll(" ","/");
                         }
+                        let feeSubmissionMonths = feeSubmission.feeSubmissionMonths;
+                        //console.log(feeSubmissionMonths);
+                        let month_names = '';
+                        if (feeSubmissionMonths && feeSubmissionMonths.length > 0) {
+                            feeSubmissionMonths.forEach(m => {
+                                //console.log(m.monthMaster.monthName);
+                                month_names+=m.monthMaster.monthName + ',';
+                            });
+                        }
+                        console.log(feeSubmission.createdBy);
+                        console.log(feeSubmission.createdByName );
                         tblData += `<tr>
                                 <td>${counter}</td>
-                                <td>${feeSubmission.academicStudent.student.studentName}</td>
-                                <td>${srno}</td>
                                 <td>${feeSubmission.academicStudent.grade.gradeName} - ${feeSubmission.academicStudent.section.sectionName}</td>
+                                <td>${srno}</td>
+                                <td>${feeSubmission.academicStudent.student.studentName}</td>
                                 <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                                <td>${feeSubmission.academicStudent.student.motherName}</td>
+                                <td>${month_names}</td>
                                 ${selectedOption === 'range' ? `<td>${dt}</td>` : ''}
-                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>
+                                <td>${feeSubmission.receiptNo}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
+                               <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
+                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
+                                <td>${feeSubmission.createdByName ?? ''}</td>
+
                             </tr>`;
                         totalAmountSubmitted+=feeSubmission.paidAmount;
                         totalAmount+=feeSubmission.totalAmount;
@@ -371,7 +397,7 @@
       }
     }
 
-    const generateChart=(labels, amounts, backgroundColors, borderColors)=>{
+    /*const generateChart=(labels, amounts, backgroundColors, borderColors)=>{
 
         if (collectionChart) {
             collectionChart.destroy();
@@ -398,7 +424,7 @@
                 }
             }
         });
-    }
+    }*/
     function printDiv(divId, title) {
         // Get the original container element
         const originalContent = document.getElementById(divId);

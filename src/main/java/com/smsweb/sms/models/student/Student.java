@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.helper.DisplayLabel;
 import com.smsweb.sms.models.Users.UserEntity;
@@ -9,6 +10,8 @@ import com.smsweb.sms.models.universal.*;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -17,7 +20,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.util.Date;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "students")  // Specifies the table name for Student entities
 public class Student { // Extend UserEntity
@@ -26,9 +30,17 @@ public class Student { // Extend UserEntity
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+   /* @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_entity_id", referencedColumnName = "id")
-    private UserEntity userEntity; // Create a one-to-one relationship with UserEntity
+    private UserEntity userEntity; // Create a one-to-one relationship with UserEntity*/
+   /*
+    * Authentication Link
+    * Each student has exactly one user account
+    */
+   @OneToOne(fetch = FetchType.LAZY)
+   @JoinColumn(name = "user_entity_id", nullable = false, unique = true)
+   @JsonBackReference("student-user")
+   private UserEntity userEntity;
 
     @DisplayLabel("Registration No")
     private String registrationNo; // Auto-generated
@@ -226,17 +238,34 @@ public class Student { // Extend UserEntity
     @Column(length = 11)
     private String penNo;
 
-    @JoinColumn(name = "created_by", updatable = false)
+    /*@JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
 
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private String updatedBy;*/
+
+    /*
+     * Audit Fields
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private UserEntity updatedBy;
 
     @PrePersist
     protected void onCreate() {
         if (uuid == null) {
             uuid = UUID.randomUUID();
         }
+    }
+    /*
+     * Helper Method
+     */
+    public String getDisplayName() {
+        return studentName;
     }
 
     public static final String STATUS_ACTIVE = "Active";

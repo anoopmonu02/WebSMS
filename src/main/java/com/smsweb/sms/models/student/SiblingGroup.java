@@ -1,8 +1,10 @@
 package com.smsweb.sms.models.student;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import jakarta.persistence.*;
@@ -11,13 +13,18 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(name = "uk_student_sibling_grp",columnNames = {"groupName", "academic_year_id", "school_id"})})
 
@@ -36,12 +43,12 @@ public class SiblingGroup {
     private String description;
     private String status = "Active";
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
     private School school;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "academic_year_id")
     @NotNull(message = "Academic-Year should be available")
     private AcademicYear academicYear;
@@ -69,9 +76,21 @@ public class SiblingGroup {
         student.setSiblingGroup(null);
     }
 
-    @JoinColumn(name = "created_by", updatable = false)
+    /*@JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
 
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private String updatedBy;*/
+    /*
+     * Audit Fields
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    @JsonIgnore
+    private UserEntity updatedBy;
 }

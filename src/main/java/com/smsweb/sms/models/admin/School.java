@@ -1,17 +1,22 @@
 package com.smsweb.sms.models.admin;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.City;
 import com.smsweb.sms.models.universal.Province;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
 @Entity
 public class School {
     @Id
@@ -88,11 +93,15 @@ public class School {
     @NotNull(message = "Customer should be available")
     private Customer customer;
 
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    @JsonIgnore
+    private UserEntity updatedBy;
 
     @PreUpdate
     protected void onUpdate() {

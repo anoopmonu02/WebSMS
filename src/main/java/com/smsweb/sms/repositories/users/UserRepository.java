@@ -4,9 +4,11 @@ package com.smsweb.sms.repositories.users;
 import com.smsweb.sms.models.Users.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
@@ -19,4 +21,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Query("SELECT u FROM UserEntity u JOIN FETCH u.roles")
     List<UserEntity> findAllWithRoles();
+
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.roles WHERE u.username = :username")
+    Optional<UserEntity> findByUsernameWithRoles(@Param("username") String username);
 }

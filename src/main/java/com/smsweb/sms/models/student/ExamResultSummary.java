@@ -1,5 +1,6 @@
 package com.smsweb.sms.models.student;
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.ExamDetails;
 import com.smsweb.sms.models.admin.School;
@@ -68,11 +69,22 @@ public class ExamResultSummary {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @JoinColumn(name = "created_by", updatable = false)
+   /* @JoinColumn(name = "created_by", updatable = false)
     private String createdBy;
 
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private String updatedBy;*/
+
+    /*
+     * Audit Fields
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private UserEntity updatedBy;
 
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;

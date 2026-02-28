@@ -12,7 +12,7 @@
             <div class="card-header fs-3">Cancelled Fee List</div>
             <hr/>
         </div>
-        <div class="row justify-content-center">
+        <div class="justify-content-center">
             <div class="row">
                 <div class="col-md-6">
                     <div class="row mb-3">
@@ -34,12 +34,10 @@
             </div>
             <hr/>
 
-            <div class="row " id="printable-div" style="display: none">
+            <div class="col-md-12 " id="printable-div" style="display: none">
                 <div class="card-header fs-3">Cancelled Fees Data</div><hr/>
-                <div class="row">
-                    <div class="fee-details" id="userwise-collection-data">
+                <div class="fee-details" id="userwise-collection-data">
 
-                    </div>
                 </div>
             </div>
         </div>
@@ -146,18 +144,16 @@
                     <thead>
                     <tr>
                         <th>SNo</th>
+                        <th>Grade</th>
+                        <th>SR No</th>
                         <th>Student Name</th>
                         <th>Father Name</th>
-                        <th>Mother Name</th>
-                        <th>SR No</th>
-                        <th>Grade</th>
+                        <th>Months</th>
                         <th>Submission Date</th>
                         <th>Receipt#</th>
-                        <th>Paid Amount</th>
-                        <th>Fine Amount</th>
-                        <th>Discount Amount</th>
                         <th>Total Amount</th>
                         <th>Balance Amount</th>
+                         <th>Paid Amount</th>
                     </tr>
                     </thead>
                     <tbody class="table-group-divider">`;
@@ -174,26 +170,33 @@
                         dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                         dt = dt.replaceAll(" ","/");
                     }
+                    let feeSubmissionMonths = feeSubmission.feeSubmissionMonths;
+                    //console.log(feeSubmissionMonths);
+                    let month_names = '';
+                    if (feeSubmissionMonths && feeSubmissionMonths.length > 0) {
+                        feeSubmissionMonths.forEach(m => {
+                            //console.log(m.monthMaster.monthName);
+                            month_names+=m.monthMaster.monthName + ',';
+                        });
+                    }
                     tblData += `<tr>
                             <td>${counter}</td>
+                            <td>${grd}</td>
+                            <td>${srno}</td>
                             <td>${feeSubmission.academicStudent.student.studentName}</td>
                             <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                            <td>${feeSubmission.academicStudent.student.motherName}</td>
-                            <td>${srno}</td>
-                            <td>${grd}</td>
+                            <td>${month_names}</td>
                             <td>${dt}</td>
                             <td>${feeSubmission.receiptNo}</td>
-                            <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
-                            <td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
-                            <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
+                            <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                         </tr>`;
                     counter++;
                 });
                 tblData+=`</tbody></table>`;
                 $("#userwise-collection-data").html(tblData);
-                const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+                const exportColumns = [0,1,2,3,4,5,6,7,8,9,10];
                 const columnDefs = [{ "orderable": false, "targets": [0] }];
                 $("#feeCollectionTable").DataTable({
                     layout: {

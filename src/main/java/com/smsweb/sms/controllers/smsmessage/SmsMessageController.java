@@ -1,6 +1,7 @@
 package com.smsweb.sms.controllers.smsmessage;
 
 import com.smsweb.sms.dto.SmsNotificationDto;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
@@ -210,7 +211,7 @@ public class SmsMessageController {
             smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_COMPLAINT);
             smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
             smsMessage.setSchool(student.getSchool());
-            smsMessage.setCreatedBy(userService.getLoggedInUser().getUsername());
+            smsMessage.setCreatedBy(userService.getLoggedInUser());
             smsMessage.setRecipients(Collections.singletonList(student));
             smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
             smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
@@ -261,7 +262,9 @@ public class SmsMessageController {
             }
 
             // Get school using logged-in user
-            String loggedInUsername = userService.getLoggedInUser().getUsername();
+            UserEntity loggedInUser = userService.getLoggedInUser();
+            String loggedInUsername = loggedInUser.getUsername();
+
             School school = employeeService.getLoggedInEmployeeSchool(loggedInUsername)
                     .orElseThrow(() -> new RuntimeException("School not found for Logged In user: " + loggedInUsername));
 
@@ -271,7 +274,7 @@ public class SmsMessageController {
             smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_NOTIFICATION);
             smsMessage.setCreatedAt(new Date());
             smsMessage.setSchool(school);
-            smsMessage.setCreatedBy(loggedInUsername);
+            smsMessage.setCreatedBy(loggedInUser);
             smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
 
             // Set recipient type early

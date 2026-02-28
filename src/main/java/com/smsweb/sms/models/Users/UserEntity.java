@@ -1,16 +1,21 @@
 package com.smsweb.sms.models.Users;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.smsweb.sms.models.student.Student;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED) // Change inheritance strategy to JOINED
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "username"),
-        @UniqueConstraint(columnNames = "email")
+        @UniqueConstraint(columnNames = "username")
 })
 public class UserEntity {
     @Id
@@ -20,10 +25,11 @@ public class UserEntity {
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "password", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column(nullable = false)
@@ -36,4 +42,23 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private List<Roles> roles = new ArrayList<>();
+
+    @OneToOne(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    @JsonManagedReference("employee-user")
+    private Employee employee;
+
+    @OneToOne(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    @JsonManagedReference("student-user")
+    private Student student;
+
+    @JsonProperty("displayName")
+    public String getDisplayName() {
+        if (employee != null) {
+            return employee.getEmployeeName();
+        }
+        if (student != null) {
+            return student.getStudentName();
+        }
+        return username;
+    }
 }

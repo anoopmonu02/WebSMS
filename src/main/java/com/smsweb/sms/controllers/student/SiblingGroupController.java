@@ -43,7 +43,7 @@ public class SiblingGroupController extends BaseController {
 
     @GetMapping("/sibling-group/add")
     public String getAddSiblingForm(Model model){
-        return "/student/add-siblinggroup";
+        return "student/add-siblinggroup";
     }
 
     @PostMapping("/savesiblinggroup")

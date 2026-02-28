@@ -29,6 +29,7 @@
             <th>Address</th>
             <th>Status</th>
             <th>Remove Date</th>
+            <th>Action</th>
           </tr>
           </thead>
           <tbody class="table-group-divider">
@@ -48,7 +49,11 @@
             <td th:text="${academicStudent.student.address}"></td>
             <td th:text="${academicStudent.student.status}"></td>
             <td th:text="${#dates.format(academicStudent.student.lastUpdated, 'dd/MMM/yyyy')}"></td>
-
+            <td style="white-space: nowrap" class="text-center">
+              <a class="btn btn-success activateBtn" id="activateBtnLink" th:data-id="${academicStudent.id}" data-bs-toggle="modal" data-bs-target="#activateConfirmationModal" data-bs-title="Default tooltip" th:data-name="${academicStudent.student.studentName}">
+                <i class="bi bi-person-fill-check"></i>
+              </a>
+            </td>
           </tr>
           </tbody>
         </table>
@@ -60,13 +65,30 @@
     </div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="activateConfirmationModal" tabindex="-1" aria-labelledby="activateConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="activateConfirmationModalLabel">Confirm Activation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel </button>
+          <button type="button" class="btn btn-success" id="confirmDeleteButton"><i class="bi bi-person-check-fill"></i> Update </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 
 
-  <script src="/js/jquery-3.7.1.js"></script>
-  <script src="/js/jquery-3.6.0.min.js"></script>
-  <script src="/js/toastr.min.js"></script>
-
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
     $(document).ready(function () {
       $('#students-deleted').DataTable({
@@ -122,8 +144,30 @@
       });
     });
 
+    let studentIdForUpdate = null;
+    const contextPath = /*[[@{/}]]*/ '/';
 
+    // Capture the ID of the record to be deleted when the delete button is clicked
+    $('a[data-bs-target="#activateConfirmationModal"]').on('click', function () {
+      const studentId = $(this).data("id");
+      const studentName = $(this).data("name");
+      console.log("*********************studentName::: "+studentName)
+      // Set dynamic message
+      $("#confirmMessage").html(
+              "Are you sure you want to activate: <b><i>" + studentName + "</i></b>?"
+      );
+      studentIdForUpdate = $(this).data('id');
+      console.log("*********************::: "+studentIdForUpdate)
+    });
 
+    // Handle the deletion when "Delete" button is clicked in the modal
+    $('#confirmDeleteButton').on('click', function () {
+      console.log("============================::: "+studentIdForUpdate)
+      if (studentIdForUpdate) {
+        // Redirect to the activate URL
+        window.location.href = `${contextPath}student/activate-student/${studentIdForUpdate}`;
+      }
+    });
 
   </script>
 

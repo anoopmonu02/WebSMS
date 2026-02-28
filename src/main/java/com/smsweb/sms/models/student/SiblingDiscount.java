@@ -63,9 +63,20 @@ public class SiblingDiscount {
     @UpdateTimestamp
     private Date lastUpdated;
 
-    @JoinColumn(name = "created_by", updatable = false)
-    private String createdBy;
+//    @JoinColumn(name = "created_by", updatable = false)
+//    private String createdBy;
+//
+//    @JoinColumn(name = "updated_by")
+//    private String updatedBy;
 
+    /*
+     * Audit Fields
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false, updatable = false)
+    private UserEntity createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by")
-    private String updatedBy;
+    private UserEntity updatedBy;
 }
