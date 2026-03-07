@@ -958,8 +958,13 @@ public class FeeSubmissionService {
                 String medium = paramsMap.get("medium");
                 String section = paramsMap.get("section");
                 String grade = paramsMap.get("grade");
+                String acadmeicVal = paramsMap.get("academicYearId");
+                Long academicId = 0L;
+                if(acadmeicVal!=null && acadmeicVal.trim()!=""){
+                    academicId = Long.valueOf(acadmeicVal);
+                }
                 SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
-                List<MonthMapping> mmList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+                List<MonthMapping> mmList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicId, school.getId());
                 List<String> monthNamesList = mmList.stream()
                         .map(mm -> mm.getMonthMaster().getMonthName())
                         .collect(Collectors.toList());
@@ -967,7 +972,7 @@ public class FeeSubmissionService {
                 List<Long> orderedMonthIds = mmList.stream()
                         .map(mm -> mm.getMonthMaster().getId())
                         .collect(Collectors.toList());
-                List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_Id(school.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId());
+                List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_Id(school.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicId);
                 if(academicStudents!=null && !academicStudents.isEmpty()){
                     Map stuFeeSubMap = new HashMap();
                     for(AcademicStudent student:academicStudents){
@@ -1018,7 +1023,7 @@ public class FeeSubmissionService {
                                         //Calculating Discount based on month
                                         if (discountAmt.compareTo(BigDecimal.ZERO) > 0 && feeSubmission.getDiscounthead()!=null) {
                                             //System.out.println("Discount is greater than 0");
-                                            List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId());
+                                            List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId());
                                             feeDetailMap.put("discountApplied", BigDecimal.valueOf(0.0));
                                             if(discountBasedOnMonths!=null && !discountBasedOnMonths.isEmpty()){
                                                 discountAppliedForMonth = (discountBasedOnMonths.get(0)[0]!=null)?new BigDecimal(""+discountBasedOnMonths.get(0)[0]): BigDecimal.valueOf(0.0);
@@ -1027,7 +1032,7 @@ public class FeeSubmissionService {
                                             }
                                         }
 
-                                        List<Object[]> feesBasedOnMonths = feeclassmapRepository.findAmountAndFeeHeadNames(academicYear.getId(), school.getId(), monthIdList, Long.parseLong(grade));
+                                        List<Object[]> feesBasedOnMonths = feeclassmapRepository.findAmountAndFeeHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade));
                                         BigDecimal amt = BigDecimal.ZERO;
                                         if(feesBasedOnMonths!=null && !feesBasedOnMonths.isEmpty()) {
                                             //fee heads + amount for selected months

@@ -440,6 +440,9 @@ public class StudentController extends BaseController {
 
     @GetMapping("/look-up-student")
     public String searchStudent(Model model){
+        School school = (School)model.getAttribute("school");
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
+        model.addAttribute("academicYears", academicYears);
         return "student/search-student";
 
     }

@@ -32,22 +32,33 @@
             background-color: #0d6efd;
             border-color: #ffffff;
         }
-
+        html.sidebar-preload #sidebar {
+            /* Apply the expanded state instantly before page paint */
+            width: var(--sidebar-width, 270px); /* match your expanded sidebar width */
+        }
     </style>
+    <script>
+        if (localStorage.getItem("sidebarExpanded") === "true") {
+            document.documentElement.classList.add("sidebar-preload");
+        }
+    </script>
 
 </head>
 
 <body>
     <div class="wrapper">
-        <aside id="sidebar">
-            <div class="d-flex">
-                <button class="toggle-btn" type="button">
-                    <!--<i class="lni lni-grid-alt"></i>-->
+        <aside id="sidebar" class="expand">
+            <!--<div class="d-flex">
+                &lt;!&ndash;<button class="toggle-btn" type="button">
+                    &lt;!&ndash;<i class="lni lni-grid-alt"></i>&ndash;&gt;
                     <i class="bi bi-grid"></i>
-                </button>
+                </button>&ndash;&gt;
                 <div class="sidebar-logo text-center align-items-center">
                     <a href="#"><img th:src="@{/images/logoimg.jpg}" width="40px" height="40px" class="rounded-4"></a>
                 </div>
+            </div>-->
+            <div class="text-center align-items-center py-2">
+                <a href="#"><img th:src="@{/images/logoimg.jpg}" width="40px" height="40px" class="rounded-4"></a>
             </div>
             <ul class="sidebar-nav">
 
@@ -63,7 +74,7 @@
                     </a>
                 </li>
                 <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
+                    <a href="#" class="sidebar-link has-dropdown" data-bs-toggle="collapse"
                        data-bs-target="#gsetting" aria-expanded="false" aria-controls="gsetting">
                         <i class="bi bi-journal-richtext pe-2"></i>
                         <span>Global Settings</span>
@@ -281,7 +292,7 @@
         </aside>
         <div class="main">
 
-            <nav class="navbar navbar-expand px-3 border-bottom">
+            <!--<nav class="navbar navbar-expand px-3 border-bottom">
 
                 <div class="navbar-collapse navbar">
                     <ul class="navbar-nav">
@@ -305,21 +316,69 @@
                         </li>
                         <li class="nav-item dropdown">
                             <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-0" >
-                                <!--Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>-->
+                                &lt;!&ndash;Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>&ndash;&gt;
                                 <img th:src="@{/image/profile.jpg}" class="avatar img-fluid rounded" alt="USER">
-                                <!--<i class="bi bi-person-circle text-end text-success align-items-center"></i>-->
+                                &lt;!&ndash;<i class="bi bi-person-circle text-end text-success align-items-center"></i>&ndash;&gt;
                             </a>
-                            <!--<div class="dropdown-menu dropdown-menu-end">
+                            &lt;!&ndash;<div class="dropdown-menu dropdown-menu-end">
                                 <a href="#" class="dropdown-item">Profile</a>
                                 <a href="#" class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill pe-2"></i> Change Password </a>
                                 <a href="#" class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left pe-2"></i> Logout </a>
-                            </div>-->
+                            </div>&ndash;&gt;
                         </li>
                     </ul>
 
                 </div>
-            </nav>
+            </nav>-->
+            <nav class="navbar navbar-expand px-4 border-bottom bg-white shadow-sm" style="height: 60px;">
+                <div class="navbar-collapse d-flex justify-content-between align-items-center w-100">
 
+                    <!-- Left: School Name -->
+                    <span class="fw-semibold text-secondary fs-5">
+            <i class="bi bi-building pe-1"></i>
+            <span th:text="${#strings.defaultString(session.school?.schoolName, 'E - Siksha Portal')}"></span>
+        </span>
+
+                    <!-- Right: Session + Welcome + Avatar -->
+                    <div class="d-flex align-items-center gap-3">
+
+                        <!-- Session Badge -->
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
+                <i class="bi bi-calendar3 pe-1"></i>
+                Session: <span th:text="${#strings.defaultString(session.activeAcademicYear?.sessionFormat, 'Not Set')}"></span>
+            </span>
+
+                        <!-- Welcome -->
+                        <span class="text-muted small">
+                <i class="bi bi-person-fill pe-1"></i>
+                Welcome, <strong th:text="${#authentication.name != null ? #authentication.name : 'Guest'}"></strong>
+            </span>
+
+                        <!-- Avatar Dropdown -->
+                        <div class="dropdown">
+                            <a href="#" data-bs-toggle="dropdown" aria-expanded="false" class="d-flex align-items-center text-decoration-none">
+                                <img th:src="@{/image/profile.jpg}" alt="USER"
+                                     class="rounded-circle border border-2 border-primary"
+                                     width="36" height="36" style="object-fit: cover;">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                <li><h6 class="dropdown-header text-muted small">Account</h6></li>
+                                <li><a class="dropdown-item" href="#">
+                                    <i class="bi bi-person pe-2 text-primary"></i>Profile</a>
+                                </li>
+                                <li><a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}">
+                                    <i class="bi bi-pencil-fill pe-2 text-warning"></i>Change Password</a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" th:href="@{/logout}">
+                                    <i class="bi bi-box-arrow-left pe-2"></i>Logout</a>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </nav>
             <!--<div class="text-center">
                 <h1>
                     Sidebar Bootstrap 5

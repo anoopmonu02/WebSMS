@@ -14,6 +14,12 @@
                 <div>
                     <div class="row mt-3">
                         <div class="col-md-2">
+                            <label for="academic_year" class="form-label">Academic Year</label>
+                            <select name="academic_year" id="academic_year" class="form-select">
+                                <option th:each="med : ${academicYears}" th:value="${med.id}" th:text="${med.sessionFormat}">Academic Year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
                             <label for="medium" class="form-label">Medium</label>
                             <select name="medium" id="medium" class="form-select">
                                 <option value="">Select Medium</option>
@@ -101,9 +107,10 @@
             const medium = $('#medium').val();
             const grade = $('#grade').val();
             const section = $('#section').val();
+            let academicYearVal = $("#academic_year").val();
 
-            if(medium === '' || grade === '' || section === '' ){
-                showWarningMsg('error','Medium/Grade/Section all are mandatory',"Warning");
+            if(academicYearVal === '' || medium === '' || grade === '' || section === '' ){
+                showWarningMsg('error','Academic Year/Medium/Grade/Section all are mandatory',"Warning");
                 return;
             }
             let checkBoxes = "";
@@ -114,7 +121,8 @@
                     checkBoxes: checkBoxes,
                     grade: grade,
                     medium: medium,
-                    section: section
+                    section: section,
+                    academicYearId:academicYearVal
                 };
                 const response = await fetch(url, {
                     method: 'POST',

@@ -571,14 +571,21 @@ public class StudentRestController extends BaseController {
     }
 
     //searchStudentData
-    @GetMapping("/searchStudentData/{query}")
-    public ResponseEntity<?> searchStudentData(@PathVariable("query") String query, Model model){
+    @PostMapping("/searchStudentData")
+    public ResponseEntity<?> searchStudentData(@RequestBody Map<String, String> requestBody, Model model){
         School school = (School)model.getAttribute("school");
-        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        //AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<AcademicStudent> studentDataList = new ArrayList();
         try{
-            studentDataList = academicStudentService.searchStudentsAll(query, academicYear.getId(), school.getId());
+            if(requestBody!=null){
+                String academicId = requestBody.getOrDefault("academic_year","0");
+                String query = requestBody.getOrDefault("query","No Data");
+                studentDataList = academicStudentService.searchStudentsAll(query, academicId, school.getId());
+            } else{
+                throw new IllegalArgumentException("request is not valid");
+            }
         }catch(Exception e){
+            System.out.println("Error: "+e.getLocalizedMessage());
             e.printStackTrace();
         }
         return ResponseEntity.ok(studentDataList);

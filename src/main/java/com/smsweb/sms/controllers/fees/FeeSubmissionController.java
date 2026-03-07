@@ -5,9 +5,8 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.fees.FeeSubmission;
-import com.smsweb.sms.models.fees.FeeSubmissionMonths;
 import com.smsweb.sms.models.student.AcademicStudent;
-import com.smsweb.sms.models.universal.MonthMaster;
+import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
@@ -25,9 +24,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/fees")
@@ -41,10 +38,11 @@ public class FeeSubmissionController extends BaseController {
     private final GradeService gradeService;
     private final SectionService sectionService;
     private final MediumService mediumService;
+    private final AcademicyearService academicyearService;
 
     @Autowired
     public FeeSubmissionController(StudentService studentService, MonthmappingService mmService, FeeSubmissionService feeSubmissionService, AcademicStudentService academicStudentService, FeeReceiptService receiptService,
-                                   GradeService gradeService, SectionService sectionService, MediumService mediumService){
+                                   GradeService gradeService, SectionService sectionService, MediumService mediumService, AcademicyearService academicyearService){
         this.studentService = studentService;
         this.mmService = mmService;
         this.feeSubmissionService = feeSubmissionService;
@@ -53,6 +51,7 @@ public class FeeSubmissionController extends BaseController {
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.mediumService = mediumService;
+        this.academicyearService = academicyearService;
     }
 
     @GetMapping("/fee-submit-form")
@@ -273,6 +272,8 @@ public class FeeSubmissionController extends BaseController {
     public String totalDepositedFee(Model model){
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
+        model.addAttribute("academicYears", academicYears);
         model.addAttribute("grades",gradeService.getAllGrades());
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());

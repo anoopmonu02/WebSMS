@@ -13,11 +13,18 @@
                 <div class="card-header fs-3">Search Student</div>
                 <hr/>
                 <div class="row">
-                    <div class="col-md-9">
+                    <div class="col-md-3">
+                        <label for="academic_year" class="form-label">Academic Year</label>
+                        <select name="academic_year" id="academic_year" class="form-select">
+                            <option th:each="med : ${academicYears}" th:value="${med.id}" th:text="${med.sessionFormat}">Academic Year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="search-student" class="form-label">Student name for search</label>
                         <input type="text" class="form-control" id="search-student" placeholder="Search student name">
                     </div>
-                    <div class="col-md-3">
-                        <button type="button" class="btn btn-primary" onclick="searchStudentDetail()"><i class="bi bi-search"></i> Search</button>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button id="search-btn" type="button" class="btn btn-primary" onclick="searchStudentDetail()"><i class="bi bi-search"></i> Search</button>
                     </div>
                 </div>
                 <hr/>
@@ -73,9 +80,29 @@
 
         const searchStudentDetail=()=>{
             let query=$("#search-student").val();
+            let academicYearVal = $("#academic_year").val();
+            if(academicYearVal===''){
+                showMsg("error","Academic Year is mandatory","Error");
+                return;
+            }
             if(query.trim().length>0){
-                let url = `${contextPath}searchStudentData/${query}`;
-                fetch(url).then(response=>{
+                let requestBody = {};
+                requestBody = {
+                    academic_year: academicYearVal,
+                    query: query
+                };
+                let url = `${contextPath}searchStudentData`;
+                fetch(url,{
+                    method: "POST",
+                        headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
                     return response.json();
                 })
                 .then((data)=>{
