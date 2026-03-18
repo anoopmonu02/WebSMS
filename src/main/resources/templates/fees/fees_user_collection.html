@@ -98,14 +98,9 @@
   <script type="text/javascript" th:inline="javascript">
       let isAdmin = [[${isAdmin}]];
       const contextPath = /*[[@{/}]]*/ '/';
-    flatpickr("#endDate", {
+    /*flatpickr("#endDate", {
       dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
-    });//,"#startDate","#currentDate"
-    /*flatpickr("#startDate", {
-      dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
-      //maxDate: "today",
-      minDate: new Date().fp_incr(-9)
-    });*/
+    });*///,"#startDate","#currentDate"
 
       if (isAdmin) {
           flatpickr("#startDate", {
@@ -117,6 +112,22 @@
               minDate: new Date().fp_incr(-9)
           });
       }
+      if(isAdmin){
+          flatpickr("#endDate", {
+              dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+          });
+      } else{
+          flatpickr("#endDate", {
+              dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+              maxDate: "today",
+          minDate: new Date().fp_incr(-9)
+          });
+      }
+      /*flatpickr("#endDate", {
+          dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+          maxDate: "today",
+          minDate: new Date().fp_incr(-9)
+      });*/
 
     flatpickr("#currentDate", {
       dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy

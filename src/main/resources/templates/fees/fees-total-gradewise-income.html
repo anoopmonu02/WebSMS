@@ -37,6 +37,17 @@
 
                     </tr>
                     </tbody>
+                    <tfoot class="table-group-divider">
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td th:text="${totalStudentsCount}"></td>
+                        <td></td>
+                        <td th:text="${totalStudentsDiscountCount}"></td>
+                        <td th:text="${'&#8377; '+totalDiscountFees}"></td>
+                        <td th:text="${'&#8377; '+totalFeesCollected}"></td>
+                    </tr>
+                    </tfoot>
                 </table>
                 <div th:if="${!hasData}">
                     <p class="text-center">No Grade-wise Fee Income Found.</p>

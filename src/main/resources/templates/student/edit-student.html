@@ -239,32 +239,6 @@
         </div>
         <div class="col-md-8"></div>
 
-        <!--&lt;!&ndash; Previous Academic Details &ndash;&gt;
-        <div class="col-12">
-          <h4>Previous Academic Details</h4>
-        </div>
-        <div class="col-md-6">
-          <label for="previousSchool" class="form-label">Previous School</label>
-          <input type="text" id="previousSchool" class="form-control" th:field="*{previousSchool}">
-        </div>
-        <div class="col-md-6">
-          <label for="removalCause" class="form-label">Removal Cause</label>
-          <input type="text" id="removalCause" class="form-control" th:field="*{removalCause}">
-        </div>
-        <div class="col-md-3">
-          <label for="previousClass" class="form-label">Previous Class</label>
-          <input type="text" id="previousClass" class="form-control" th:field="*{previousClass}">
-        </div><div class="col-md-1"></div>
-        <div class="col-md-3">
-          <label for="tcNo" class="form-label">TC Number</label>
-          <input type="text" id="tcNo" class="form-control" th:field="*{tcNo}">
-        </div><div class="col-md-1"></div>
-
-        <div class="col-md-3">
-          <label for="passingYear" class="form-label">Passing Year</label>
-          <input type="number" id="passingYear" class="form-control" th:field="*{passingYear}">
-        </div><div class="col-md-1"></div>-->
-
         <!-- Emergency Contact -->
         <div class="col-12">
           <h4>In Case of Emergency</h4>
@@ -288,98 +262,10 @@
         </div>
 
         <!-- Extra Information -->
-        <!--<div class="col-12">
-          <h4>Academic Registration Information</h4>
-        </div>
-        <div class="col-md-4">
-          <label for="medium" class="form-label">Medium</label>
-          <select id="medium" class="form-control" th:field="*{medium}">
-            <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
-                    th:selected="${medium} == ${student.medium}"></option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">medium Error</p>
-        </div>
-        <div class="col-md-4">
-          <label for="grade" class="form-label">Grade</label>
-          <select id="grade" class="form-control" th:field="*{grade}">
-            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}"
-                    th:selected="${grade} == ${student.grade}"></option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('grade')}" th:errors="*{grade}">grade Error</p>
-        </div>
-        <div class="col-md-4">
-          <label for="section" class="form-label">Section</label>
-          <select id="section" class="form-control" th:field="*{section}">
-            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}"
-                    th:selected="${section} == ${student.section}"></option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('section')}" th:errors="*{section}">section Error</p>
-        </div>
 
-        <div class="col-md-4">
-          <label for="studentType" class="form-label">Student Type</label>
-          &lt;!&ndash;<input type="text" id="studentType" class="form-control" th:field="*{studentType}">&ndash;&gt;
-          <select id="studentType" class="form-control" th:field="*{studentType}">
-            <option value="Old" th:selected="Old == ${student.studentType}">Old</option>
-            <option value="New" th:selected="New == ${student.studentType}">New</option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('studentType')}" th:errors="*{studentType}">studentType Error</p>
-        </div>
-        <div class="col-md-4">
-          <label for="schoolStatus" class="form-label">School Status</label>
-          &lt;!&ndash;<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">&ndash;&gt;
-          <select id="schoolStatus" class="form-control" th:field="*{schoolStatus}">
-            <option value="Own" th:selected="Own == ${student.schoolStatus}">Own</option>
-            <option value="Grant" th:selected="Grant == ${student.schoolStatus}">Grant</option>
-            <option value="Other" th:selected="Other == ${student.schoolStatus}">Other</option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('schoolStatus')}" th:errors="*{schoolStatus}">schoolStatus Error</p>
-        </div>
-        <div class="col-md-2"></div>
-
-        &lt;!&ndash;<div class="col-md-12">
-          <label for="remark" class="form-label">Remark</label>
-          <textarea id="remark" class="form-control" th:field="*{remark}"></textarea>
-        </div>&ndash;&gt;
-        <div class="col-md-7">
-          <label for="remark" class="form-label">Remark</label>
-          <div class="form-floating">
-            <textarea id="remark" placeholder="Add Remark here, if any" class="form-control" name="remark" style="height: 100px;" rows="4" cols="50" th:field="*{remark}"></textarea>
-            <label for="address">Add Remark</label>
-          </div>
-          <p class="text-danger" th:if="${#fields.hasErrors('remark')}" th:errors="*{remark}">remark Error</p>
-        </div>
-        <div class="col-md-5"></div>-->
 
         <!-- Bank & Aadhar Details -->
-        <!--<div class="col-12">
-          <h4>Bank & Aadhar Details</h4>
-        </div>
-        <div class="col-md-6">
-          <label for="bank" class="form-label">Bank</label>
-          <select id="bank" class="form-control" th:field="*{bank}">
-            <option th:each="bank : ${banks}" th:value="${bank.id}" th:text="${bank.bankName}"
-                    th:selected="${bank} == ${student.bank}"></option>
-          </select>
-          <p class="text-danger" th:if="${#fields.hasErrors('bank')}" th:errors="*{bank}">bank Error</p>
-        </div>
-        <div class="col-md-6">
-          <label for="branchName" class="form-label">Branch Name</label>
-          <input type="text" id="branchName" class="form-control" th:field="*{branchName}">
-        </div>
-        <div class="col-md-4">
-          <label for="ifscCode" class="form-label">IFSC Code</label>
-          <input type="text" id="ifscCode" class="form-control" th:field="*{ifscCode}">
-        </div>
-        <div class="col-md-4">
-          <label for="accountNo" class="form-label">Account Number</label>
-          <input type="text" id="accountNo" class="form-control" th:field="*{accountNo}">
-        </div>
-        <div class="col-md-4">
-          <label for="aadharNo" class="form-label">Aadhar Number</label>
-          <input type="text" id="aadharNo" class="form-control" th:field="*{aadharNo}">
-          <p class="text-danger" th:if="${#fields.hasErrors('aadharNo')}" th:errors="*{aadharNo}">aadharNo Error</p>
-        </div>-->
+
 
         <!-- Submit Button -->
         <hr/>
@@ -437,9 +323,7 @@
         // Trigger change to load cities if a state is already selected
         let initialSelectedState = $('#province').val();
         let initialSelectedNewCity = $('#hiddencity').val();
-        /*<![CDATA[*/
-        let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
-        /*]]>*/
+        let initialSelectedCity = /*[[${student.city != null ? student.city.id : 0}]]*/ 0;
         console.log("initialSelectedState:> "+initialSelectedState);
         console.log("initialSelectedNewCity:> "+initialSelectedNewCity);
         console.log("initial:> "+initialSelectedCity);

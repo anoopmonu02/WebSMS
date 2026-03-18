@@ -18,7 +18,7 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
 
     //Fetching student by ID
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND a.id = :academicStudentId")
+    @Query("SELECT a FROM AcademicStudent a LEFT JOIN FETCH a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND a.id = :academicStudentId")
     AcademicStudent findByAcademicYearAndSchoolAndAcademicStudentId(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("academicStudentId") Long academic_stu_id);
 
     //Fetching All students by Name

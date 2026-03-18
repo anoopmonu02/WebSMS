@@ -181,11 +181,10 @@
                                 <thead>
                                 <tr>
                                     <th>SNo</th>
-                                    <th>Student Name</th>
-                                    <th>SR No</th>
                                     <th>Grade</th>
+                                    <th>SR No</th>
+                                    <th>Student Name</th>
                                     <th>Father Name</th>
-                                    <th>Mother Name</th>
                                     <th>Pending Amount</th>
                                     <th>Upto Month</th>
                                     <th>Fee Head(s)</th>
@@ -193,6 +192,7 @@
                                 </thead>
                                 <tbody class="table-group-divider">`;
                         let counter = 1;
+                        let totalAmount = 0;
                         for (let key in stulist) {
                             if (stulist.hasOwnProperty(key)) {
                                 let studentData = stulist[key];
@@ -201,20 +201,24 @@
                                 if(Number(studentData.amount) > 0){
                                     tblData += `<tr>
                                         <td>${counter}</td>
-                                        <td>${studentData.academicStudent.student.studentName}</td>
-                                        <td>${srno}</td>
                                         <td>${grd}</td>
+                                        <td>${srno}</td>
+                                        <td>${studentData.academicStudent.student.studentName}</td>
                                         <td>${studentData.academicStudent.student.fatherName}</td>
-                                        <td>${studentData.academicStudent.student.motherName}</td>
                                         <td>&#8377; ${studentData.amount}</td>
                                         <td>${studentData.monthsList}</td>
                                         <td>${studentData.headList}</td>
                                     </tr>`;
+                                    totalAmount+=studentData.amount;
                                     counter++;
                                 }
                             }
                         }
-                        tblData+=`</tbody></table>`;
+                        tblData+=`</tbody><tfoot>
+                        <tr>
+                            <td colspan="8" class="text-end">Total Pending Amount: <strong>&#8377; ${totalAmount}</strong></td>
+                        </tr>
+                        </tfoot></table>`;
                         $("#student-collection-data").html(tblData);
                         const exportColumns = [0,1,2,3,4,5,6,7,8];
                         const columnDefs = [{ "orderable": false, "targets": [0] }];

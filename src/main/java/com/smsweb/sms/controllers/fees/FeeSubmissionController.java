@@ -24,6 +24,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @Controller
@@ -300,6 +301,26 @@ public class FeeSubmissionController extends BaseController {
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List dataMap = feeSubmissionService.calculateTotalGradewiseFees(school.getId(), academicYear.getId());
+
+        long totalStudentsCount = 0L;
+        long totalStudentsDiscountCount = 0L;
+        BigDecimal totalDiscountFees = BigDecimal.ZERO;
+        BigDecimal totalFeesCollected = BigDecimal.ZERO;
+
+        if(dataMap!=null && !dataMap.isEmpty()){
+            for (Object o : dataMap) {
+                List data = (List) o;
+                totalStudentsCount += (long) data.get(2);
+                totalStudentsDiscountCount += (long) data.get(4);
+                totalDiscountFees = totalDiscountFees.add((BigDecimal) data.get(5));
+                totalFeesCollected = totalFeesCollected.add((BigDecimal) data.get(6));
+            }
+        }
+        model.addAttribute("totalStudentsCount", totalStudentsCount);
+        model.addAttribute("totalStudentsDiscountCount", totalStudentsDiscountCount);
+        model.addAttribute("totalDiscountFees", totalDiscountFees);
+        model.addAttribute("totalFeesCollected", totalFeesCollected);
+
         model.addAttribute("hasData", !dataMap.isEmpty());
         model.addAttribute("page", "datatable");
         model.addAttribute("datalist", dataMap);
