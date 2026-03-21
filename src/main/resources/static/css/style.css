@@ -1,3 +1,4 @@
+/*
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
 ::after,
@@ -115,9 +116,9 @@ a.sidebar-link:hover {
     padding: 1.5rem 1.5rem .375rem;
 }
 .sidebar-item .submenu{
-   /* background: var(--bs-dark-bg-subtle);*/
+   !* background: var(--bs-dark-bg-subtle);*!
     padding-left: 5%;
-    /*background: #595408;*/
+    !*background: #595408;*!
 }
 
 #sidebar:not(.expand) .sidebar-item .sidebar-dropdown {
@@ -180,11 +181,11 @@ a.sidebar-link:hover {
 
 
 
-/*My Own Css for search-bar*/
+!*My Own Css for search-bar*!
 
 .search-container {
     position: relative;
-    z-index: 10; /* Ensure this container is above the cards */
+    z-index: 10; !* Ensure this container is above the cards *!
 }
 
 .search-result{
@@ -193,7 +194,7 @@ a.sidebar-link:hover {
     padding: 10px;
     border: 1px solid #babbbc;
     display: none;
-    z-index: 20; /* Ensure this container is above the cards */
+    z-index: 20; !* Ensure this container is above the cards *!
 }
 
 #search-result1{
@@ -202,13 +203,13 @@ a.sidebar-link:hover {
     padding: 10px;
     border: 1px solid #babbbc;
     display: none;
-    z-index: 20; /* Ensure this container is above the cards */
+    z-index: 20; !* Ensure this container is above the cards *!
 }
 
-/*.search-block{
+!*.search-block{
     position: absolute;
     z-index: 20;
-}*/
+}*!
 
 .contact-update-btn button{
     position: absolute;
@@ -231,6 +232,269 @@ a.sidebar-link:hover {
 .hover-shadow:hover {
     box-shadow: 0 0 15px rgba(0, 123, 255, 0.4) !important;
 }
+.transition {
+    transition: all 0.3s ease-in-out;
+}*/
+
+/* ============================================================
+   style.css  —  Avadh-Shiksha Portal
+   Sidebar now uses: #sidebar, .collapsed class, #sidebarToggle
+   Old .expand / .toggle-btn logic removed to avoid conflicts.
+   All custom utility CSS preserved below unchanged.
+   ============================================================ */
+
+/* ============================================================
+   style.css  —  Avadh-Shiksha Portal
+   Sidebar now uses: #sidebar, .collapsed class, #sidebarToggle
+   Old .expand / .toggle-btn logic removed to avoid conflicts.
+   All custom utility CSS preserved below unchanged.
+   ============================================================ */
+
+/* ── Global resets ───────────────────────────────────────── */
+::after,
+::before {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+li {
+    list-style: none;
+}
+
+h1 {
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.875rem;
+    opacity: 1;
+    overflow-y: scroll;
+    margin: 0;
+}
+
+/* ── Layout wrapper ──────────────────────────────────────── */
+.wrapper {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.main {
+    flex: 1;
+    min-width: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    transition: all 0.25s ease-in-out;
+    background-color: #fafbfe;
+}
+
+/* ── Sidebar — base (expanded/default) ──────────────────── */
+/*
+   The new sidebar defaults to EXPANDED (260px).
+   It collapses to icon-only (68px) when .collapsed is added.
+   Do NOT set a narrow default width here — that was the bug.
+*/
+#sidebar {
+    width: 260px;
+    min-width: 260px;
+    z-index: 1000;
+    transition: width 0.25s ease-in-out, min-width 0.25s ease-in-out;
+    background-color: #1e293b;       /* matches base.html --sidebar-bg */
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Collapsed state (icon-rail only) */
+#sidebar.collapsed {
+    width: 68px;
+    min-width: 68px;
+}
+
+/* ── Sidebar nav links ───────────────────────────────────── */
+/*
+   Must be display:flex so icon + text sit side by side.
+   Old style used display:block which broke the layout.
+*/
+a.sidebar-link,
+.sidebar-link {
+    display: flex;              /* flex, NOT block */
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px 9px 16px;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    border-left: 3px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease;
+    position: relative;
+    text-decoration: none;
+}
+
+.sidebar-link i {
+    font-size: 1rem;
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+    line-height: 1;
+}
+
+/* Span must be a visible flex child — NEVER hidden by default */
+a.sidebar-link span,
+.sidebar-link span {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    visibility: visible;
+    opacity: 1;
+}
+
+a.sidebar-link:hover,
+.sidebar-link:hover {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #c7d2fe;
+    border-left-color: transparent;
+}
+
+/* ── Sidebar text visibility rules ──────────────────────── */
+/* Expanded: everything visible */
+#sidebar:not(.collapsed) a.sidebar-link span,
+#sidebar:not(.collapsed) .sidebar-link span {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: auto !important;
+}
+
+/* Collapsed: hide text and dropdown arrows */
+#sidebar.collapsed a.sidebar-link span,
+#sidebar.collapsed .sidebar-link span,
+#sidebar.collapsed .sidebar-brand-text,
+#sidebar.collapsed .sidebar-user-info,
+#sidebar.collapsed .nav-section-label,
+#sidebar.collapsed .sidebar-link.has-dropdown::after {
+    display: none !important;
+}
+
+/* Collapsed: centre icon */
+#sidebar.collapsed a.sidebar-link,
+#sidebar.collapsed .sidebar-link {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+/* ── Dropdown submenus ───────────────────────────────────── */
+/* Collapsed sidebar: hide dropdowns (no flyout needed) */
+#sidebar.collapsed .sidebar-dropdown {
+    display: none !important;
+}
+
+/* Expanded sidebar: normal block flow, no absolute positioning */
+#sidebar:not(.collapsed) .sidebar-item .sidebar-dropdown {
+    position: static;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* ── Legacy classes (kept for safety, neutralised) ──────── */
+/* .toggle-btn is no longer used; kept so old markup doesn't error */
+.toggle-btn {
+    background-color: transparent;
+    cursor: pointer;
+    border: 0;
+    padding: 0.5rem;
+    display: none;     /* hidden — replaced by #sidebarToggle in topbar */
+}
+
+/* .sidebar-logo kept for any pages still using old markup */
+.sidebar-logo { margin: auto 0; }
+.sidebar-logo a { color: #fff; font-size: 1.15rem; font-weight: 600; }
+
+/* ── Misc shared ─────────────────────────────────────────── */
+.avatar {
+    height: 40px;
+    width: 40px;
+}
+
+.navbar-expand .navbar-nav {
+    margin-left: auto;
+}
+
+.content {
+    flex: 1;
+    max-width: 100vw;
+    width: 100vw;
+}
+
+@media (min-width: 768px) {
+    .content {
+        max-width: inherit;
+        width: auto;
+    }
+}
+
+
+/* ============================================================
+   Custom CSS — search bar, fee receipt, utilities
+   (unchanged from original)
+   ============================================================ */
+
+.search-container {
+    position: relative;
+    z-index: 10;
+}
+
+.search-result {
+    position: absolute;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #babbbc;
+    display: none;
+    z-index: 20;
+}
+
+#search-result1 {
+    position: absolute;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #babbbc;
+    display: none;
+    z-index: 20;
+}
+
+.contact-update-btn button {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.feereceiptbox {
+    display: none;
+    width: 100%;
+    padding: 10px;
+}
+
+.fee-month-detail {
+    font-size: 14px;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4) !important;
+}
+
 .transition {
     transition: all 0.3s ease-in-out;
 }

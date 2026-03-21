@@ -8,21 +8,632 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>United Avadh-shiksha Portal</title>
-    <!--<link th:href="@{/css/select2.min.css}" rel="stylesheet" crossorigin="anonymous"/>-->
+
     <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" crossorigin="anonymous"/>
     <link rel="stylesheet" th:href="@{/css/style.css}">
-    <!--<script src="https://kit.fontawesome.com/ae360af17e.js" crossorigin="anonymous"></script>-->
+
     <th:block th:if="${page == 'datatable'}">
         <link rel="stylesheet" th:href="@{/dtbl/bootstrap.min.css}" />
         <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
         <link rel="stylesheet" th:href="@{/dtbl/buttons.bootstrap5.css}" />
     </th:block>
+
     <link rel="stylesheet" th:href="@{/css/jquery-ui.min.css}" />
+    <!-- Bootstrap Icons: local first, CDN as guaranteed fallback -->
     <link rel="stylesheet" crossorigin="anonymous" th:href="@{/css/bootstrap-icons.css}">
-    <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" th:href="@{/css/toastr.min.css}" />
-    <link rel="stylesheet" th:href="@{/css/style.css}" />
-    <style type="text/css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* =========================================
+           CSS VARIABLES & RESET
+        ========================================= */
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 68px;
+            --topbar-height: 62px;
+
+            /* Brand palette — Slate Gray + Sky Blue accent */
+            --brand-50:  #f0f9ff;
+            --brand-100: #e0f2fe;
+            --brand-200: #bae6fd;
+            --brand-500: #0ea5e9;
+            --brand-600: #0284c7;
+            --brand-700: #0369a1;
+            --brand-800: #075985;
+            --brand-900: #0c4a6e;
+
+            --accent:    #0ea5e9;
+            --accent-light: #e0f2fe;
+
+            --sidebar-bg:      #1e293b;
+            --sidebar-text:    #94a3b8;
+            --sidebar-text-active: #ffffff;
+            --sidebar-hover-bg: rgba(14,165,233,0.12);
+            --sidebar-active-bg: rgba(14,165,233,0.20);
+            --sidebar-active-border: #38bdf8;
+            --sidebar-header-text: #64748b;
+
+            --topbar-bg: #ffffff;
+            --topbar-border: #e2e8f0;
+
+            --body-bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+
+            --shadow-xs: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+
+            --transition: 0.22s cubic-bezier(.4,0,.2,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 14px;
+            background: var(--body-bg);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* =========================================
+           LAYOUT WRAPPER
+        ========================================= */
+        .wrapper {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+        /* =========================================
+           SIDEBAR
+        ========================================= */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            transition: width var(--transition), min-width var(--transition);
+            position: relative;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        #sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+            min-width: var(--sidebar-collapsed-width);
+        }
+
+        /* Brand Header */
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            height: var(--topbar-height);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            text-decoration: none;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.12);
+        }
+
+        .sidebar-brand-text {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .sidebar-brand-text .brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 13.5px;
+            color: #ffffff;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+        }
+
+        .sidebar-brand-text .brand-sub {
+            font-size: 10.5px;
+            color: #38bdf8;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+
+        #sidebar.collapsed .sidebar-brand-text { display: none; }
+
+        /* Nav Scroll Area */
+        .sidebar-nav-wrap {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px 0 8px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.1) transparent;
+        }
+
+        .sidebar-nav-wrap::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+
+        /* Nav Groups */
+        .sidebar-nav { list-style: none; margin: 0; padding: 0; }
+
+        .nav-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--sidebar-header-text);
+            padding: 14px 20px 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: clip;
+        }
+
+        /* Collapsed: hide label text, show a thin divider line instead */
+        #sidebar.collapsed .nav-section-label {
+            font-size: 0;
+            padding: 10px 16px 2px;
+            border-top: 1px solid rgba(255,255,255,.06);
+            margin-top: 4px;
+        }
+
+        /* Nav Items */
+        .sidebar-item { position: relative; }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px 9px 16px;
+            margin: 1px 6px;
+            border-radius: var(--radius-sm);
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: background var(--transition), color var(--transition);
+            position: relative;
+            min-width: 0;
+        }
+
+        .sidebar-link i {
+            font-size: 15px;
+            flex-shrink: 0;
+            width: 18px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .sidebar-link span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar-link:hover {
+            background: var(--sidebar-hover-bg);
+            color: #bae6fd;
+        }
+
+        .sidebar-link.active,
+        .sidebar-link[aria-expanded="true"] {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-text-active);
+        }
+
+        .sidebar-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 6px; bottom: 6px;
+            width: 3px;
+            background: var(--sidebar-active-border);
+            border-radius: 0 3px 3px 0;
+        }
+
+        /* Dropdown arrow */
+        .sidebar-link.has-dropdown::after {
+            content: '\F282';
+            font-family: 'bootstrap-icons';
+            font-size: 11px;
+            margin-left: auto;
+            flex-shrink: 0;
+            transition: transform var(--transition);
+            color: var(--sidebar-header-text);
+        }
+
+        .sidebar-link.has-dropdown[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+            color: #bae6fd;
+        }
+
+        /* Collapsed: hide text & arrow */
+        #sidebar.collapsed .sidebar-link span,
+        #sidebar.collapsed .sidebar-link.has-dropdown::after { display: none; }
+
+        /* Dropdown submenus */
+        .sidebar-dropdown {
+            list-style: none;
+            padding: 2px 0 4px;
+            margin: 0;
+            background: rgba(0,0,0,.15);
+        }
+
+        /* Submenu links — left-indent via padding, NOT pushing text off-screen */
+        .sidebar-dropdown > .sidebar-item > .sidebar-link {
+            padding: 7px 12px 7px 16px;
+            padding-left: 42px;
+            font-size: 13px;
+            font-weight: 400;
+            margin: 1px 6px;
+        }
+
+        .sidebar-dropdown > .sidebar-item > .sidebar-link i {
+            font-size: 8px;
+            width: 12px;
+            color: #38bdf8;
+        }
+
+        /* Level-2 (nested inside Reports) */
+        .sidebar-dropdown .sidebar-dropdown > .sidebar-item > .sidebar-link {
+            padding-left: 52px;
+        }
+
+        /* Divider */
+        .sidebar-divider {
+            border-color: rgba(255,255,255,.06);
+            margin: 4px 16px;
+        }
+
+        /* Hide dropdowns entirely when sidebar is icon-only */
+        #sidebar.collapsed .sidebar-dropdown { display: none !important; }
+
+        /* Collapsed: centre the icon */
+        #sidebar.collapsed .sidebar-link {
+            justify-content: center;
+            padding: 10px 0;
+            margin: 1px 6px;
+        }
+
+        /* Footer */
+        .sidebar-footer {
+            border-top: 1px solid rgba(255,255,255,.07);
+            padding: 10px 8px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        /* User profile card in footer */
+        .sidebar-user-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: var(--radius-md);
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.2);
+            overflow: hidden;
+            transition: background var(--transition);
+            min-width: 0;
+        }
+
+        .sidebar-user-card:hover {
+            background: rgba(99,102,241,0.16);
+        }
+
+        /* Avatar wrapper — always shows something */
+        .sidebar-user-avatar-wrap {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative;
+            border: 2px solid rgba(99,102,241,0.55);
+            overflow: hidden;
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-user-avatar-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+
+        /* Initials shown behind image; visible only when image fails */
+        .sidebar-user-avatar-wrap .avatar-initials {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            z-index: 0;
+        }
+
+        .sidebar-user-info {
+            overflow: hidden;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .sidebar-user-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+        }
+
+        .sidebar-user-role {
+            font-size: 10.5px;
+            color: #38bdf8;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar-user-role::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            flex-shrink: 0;
+        }
+
+        /* Hide info text when collapsed */
+        #sidebar.collapsed .sidebar-user-card {
+            justify-content: center;
+            padding: 8px;
+            background: transparent;
+            border-color: transparent;
+        }
+        #sidebar.collapsed .sidebar-user-info { display: none; }
+
+        .sidebar-footer .sidebar-link {
+            font-size: 13px;
+        }
+
+        /* Collapsed icon tooltips */
+        #sidebar.collapsed .sidebar-link[data-tip] {
+            position: relative;
+        }
+        #sidebar.collapsed .sidebar-link[data-tip]:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: #e2e8f0;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,.3);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        /* =========================================
+           MAIN CONTENT AREA
+        ========================================= */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* =========================================
+           TOPBAR / NAVBAR
+        ========================================= */
+        .topbar {
+            height: var(--topbar-height);
+            background: var(--topbar-bg);
+            border-bottom: 1px solid var(--topbar-border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px 0 16px;
+            gap: 12px;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-xs);
+        }
+
+        /* Toggle button */
+        .sidebar-toggle-btn {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+            flex-shrink: 0;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: var(--brand-50);
+            color: var(--brand-600);
+            border-color: var(--brand-200);
+        }
+
+        /* School name */
+        .topbar-school {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-school i { color: var(--brand-500); font-size: 16px; }
+
+        /* Right side items */
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Session badge */
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #f0f9ff;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .session-badge i { font-size: 12px; }
+
+        /* Divider */
+        .topbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-color);
+        }
+
+        /* Welcome text */
+        .topbar-welcome {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .topbar-welcome strong { color: var(--text-primary); font-weight: 600; }
+
+        /* Avatar */
+        .topbar-avatar-btn {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            border-radius: 50%;
+            transition: box-shadow var(--transition);
+        }
+
+        .topbar-avatar-btn:hover { box-shadow: 0 0 0 3px var(--brand-100); }
+
+        .topbar-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #bae6fd;
+        }
+
+        /* Dropdown menu */
+        .topbar-dropdown .dropdown-menu {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 6px;
+            min-width: 180px;
+        }
+
+        .topbar-dropdown .dropdown-item {
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 12px;
+            transition: background var(--transition);
+        }
+
+        .topbar-dropdown .dropdown-item:hover { background: var(--brand-50); }
+        .topbar-dropdown .dropdown-item.text-danger:hover { background: #fff1f2; }
+        .topbar-dropdown .dropdown-header { font-size: 11px; padding: 4px 12px 2px; }
+
+        /* =========================================
+           PAGE CONTENT
+        ========================================= */
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 22px 24px;
+            background: var(--body-bg);
+        }
+
+        /* Scrollbar */
+        .page-content::-webkit-scrollbar { width: 6px; }
+        .page-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .page-content::-webkit-scrollbar-track { background: transparent; }
+
+        /* =========================================
+           UTILITY — keep old toggle-fee-amount
+        ========================================= */
         .text-bg-primary .form-check-input {
             background-color: #ffffff;
             border-color: #ffffff;
@@ -32,415 +643,415 @@
             background-color: #0d6efd;
             border-color: #ffffff;
         }
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: 0; top: 0; bottom: 0;
+                z-index: 999;
+                transform: translateX(-100%);
+                transition: transform var(--transition), width var(--transition);
+            }
+
+            #sidebar.mobile-open {
+                transform: translateX(0);
+                width: var(--sidebar-width) !important;
+                min-width: var(--sidebar-width) !important;
+            }
+
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,.45);
+                z-index: 998;
+                backdrop-filter: blur(2px);
+            }
+
+            .sidebar-overlay.active { display: block; }
+            .topbar-school { font-size: 14px; max-width: 160px; }
+            .session-badge, .topbar-welcome { display: none; }
+            .page-content { padding: 16px; }
+        }
+
+        /* =========================================
+           SIDEBAR PRELOAD (flash prevention)
+        ========================================= */
         html.sidebar-preload #sidebar {
-            /* Apply the expanded state instantly before page paint */
-            width: var(--sidebar-width, 270px); /* match your expanded sidebar width */
+            width: var(--sidebar-width);
+        }
+
+        html.sidebar-preload #sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
         }
     </style>
-    <script>
-        if (localStorage.getItem("sidebarExpanded") === "true") {
-            document.documentElement.classList.add("sidebar-preload");
-        }
-    </script>
 
+    <script>
+        // Prevent sidebar flash on load
+        (function () {
+            var state = localStorage.getItem("sidebarCollapsed");
+            if (state === "true") {
+                document.documentElement.classList.add("sidebar-preload");
+            }
+        })();
+    </script>
 </head>
 
 <body>
-    <div class="wrapper">
-        <aside id="sidebar" class="expand">
-            <!--<div class="d-flex">
-                &lt;!&ndash;<button class="toggle-btn" type="button">
-                    &lt;!&ndash;<i class="lni lni-grid-alt"></i>&ndash;&gt;
-                    <i class="bi bi-grid"></i>
-                </button>&ndash;&gt;
-                <div class="sidebar-logo text-center align-items-center">
-                    <a href="#"><img th:src="@{/images/logoimg.jpg}" width="40px" height="40px" class="rounded-4"></a>
-                </div>
-            </div>-->
-            <div class="text-center align-items-center py-2">
-                <a href="#"><img th:src="@{/images/logoimg.jpg}" width="40px" height="40px" class="rounded-4"></a>
+
+<!-- Mobile overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="wrapper">
+
+    <!-- ====================== SIDEBAR ====================== -->
+    <aside id="sidebar">
+
+        <!-- Brand -->
+        <a th:href="@{/dashboard}" class="sidebar-brand">
+            <img th:src="@{/images/logoimg.jpg}" alt="Logo" class="sidebar-brand-logo">
+            <div class="sidebar-brand-text">
+                <span class="brand-title">United Avadh - Shiksha</span>
+                <span class="brand-sub">School Portal</span>
             </div>
+        </a>
+
+        <!-- Scrollable Nav -->
+        <div class="sidebar-nav-wrap">
             <ul class="sidebar-nav">
 
-                <!--<li class="sidebar-header">
-                    Admin Elements
-                </li>-->
-
+                <!-- Dashboard -->
                 <li class="sidebar-item">
-                    <a th:href="@{/dashboard}" class="sidebar-link">
-                        <!--<i class="fa-solid fa-list pe-2"></i>-->
-                        <i class="bi bi-box-fill pe-2"></i>
+                    <a th:href="@{/dashboard}" class="sidebar-link" data-tip="Dashboard">
+                        <i class="bi bi-grid-1x2-fill"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
+
+                <!-- Global Settings -->
+                <li class="nav-section-label">Configuration</li>
                 <li class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#gsetting" aria-expanded="false" aria-controls="gsetting">
-                        <i class="bi bi-journal-richtext pe-2"></i>
+                       data-bs-target="#gsetting" aria-expanded="false" aria-controls="gsetting"
+                       data-tip="Global Settings">
+                        <i class="bi bi-sliders"></i>
                         <span>Global Settings</span>
                     </a>
-                    <ul id="gsetting" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/medium}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Medium</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/grade}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Grade</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/section}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Section</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/category}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Category</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/cast}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Cast</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/bank}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Bank</a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/feehead}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fee head</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{/universal/discounthead}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Discount head</a></li>
-                        <li class="sidebar-item submenu" ><a th:href="@{'/universal/finehead'}" class="sidebar-link"><i class="bi bi-patch-plus pe-2"></i> Fine head</a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
+                    <ul id="gsetting" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar-nav-group">
+                        <li class="sidebar-item"><a th:href="@{/universal/medium}" class="sidebar-link"><i class="bi bi-dot"></i><span>Medium</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/grade}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/section}" class="sidebar-link"><i class="bi bi-dot"></i><span>Section</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/category}" class="sidebar-link"><i class="bi bi-dot"></i><span>Category</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/cast}" class="sidebar-link"><i class="bi bi-dot"></i><span>Cast</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/bank}" class="sidebar-link"><i class="bi bi-dot"></i><span>Bank</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/feehead}" class="sidebar-link"><i class="bi bi-dot"></i><span>Fee Head</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{/universal/discounthead}" class="sidebar-link"><i class="bi bi-dot"></i><span>Discount Head</span></a></li>
+                        <li class="sidebar-item"><a th:href="@{'/universal/finehead'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Fine Head</span></a></li>
                     </ul>
                 </li>
 
-                <!--Admin Setting options-->
+                <!-- Admin Configuration -->
                 <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#asetting" aria-expanded="false" aria-controls="asetting">
-                        <i class="bi bi-gear pe-2"></i>
-                        <span>Admin Configuration</span>
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#asetting" aria-expanded="false" aria-controls="asetting"
+                       data-tip="Admin Config">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        <span>Admin Config</span>
                     </a>
-                    <ul id="asetting" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item submenu">
-                            <a class="sidebar-link" th:href="@{'/admin/customer'}">
-                                <i class="bi bi-person-lines-fill pe-2"></i> Customer
-                            </a>
+                    <ul id="asetting" class="sidebar-dropdown list-unstyled collapse">
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{'/admin/customer'}"><i class="bi bi-dot"></i><span>Customer</span></a>
                         </li>
-                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item submenu">
-                            <a class="sidebar-link" th:href="@{'/admin/school'}">
-                                <i class="bi bi-building-add pe-2"></i> School
-                            </a>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{'/admin/school'}"><i class="bi bi-dot"></i><span>School</span></a>
                         </li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" href="#"><i class="bi bi-person-circle pe-2"></i> User </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" href="#"><i class="bi bi-ui-checks pe-2"></i> Role </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/user-role-list'}"><i class="bi bi-ui-radios-grid pe-2"></i> Role-User Mapping </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/employee/employee-list'}"><i class="bi bi-people-fill pe-2"></i> Employee </a></li>
-                        <li class="sidebar-item submenu"><hr class="dropdown-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/academicyear'}"><i class="bi bi-calendar2-range pe-2"></i> Academic Year </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/month-mapping'}"><i class="bi bi-border-style pe-2"></i> Month Mapping </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/feedate'}"><i class="bi bi-calendar3 pe-2"></i> Fee Date </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fine'}"><i class="bi bi-journal-bookmark-fill pe-2"></i> Fine </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-class'}"><i class="bi bi-diagram-3-fill pe-2"></i> Fee-Grade Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/fee-month'}"><i class="bi bi-diagram-3-fill pe-2"></i> Fee-Month Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-class'}"><i class="bi bi-diagram-3-fill pe-2"></i> Discount-Grade Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/discount-month'}"><i class="bi bi-diagram-3-fill pe-2"></i> Discount-Month Map </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-file-ruled-fill pe-2"></i> Full Payment Discount </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/select-columns'}"><i class="bi bi-file-ruled-fill pe-2"></i> Report Settings(Student)</a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/holidays'}"><i class="bi bi-calendar3 pe-2"></i> Holiday Calendar</a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/examinations'}"><i class="bi bi-list-columns pe-2"></i> Examination</a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/admin/examinations-date'}"><i class="bi bi-calendar3-week-fill pe-2"></i> Examination Date</a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>User</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>Role</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/user-role-list'}"><i class="bi bi-dot"></i><span>Role-User Mapping</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/employee/employee-list'}"><i class="bi bi-dot"></i><span>Employee</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/academicyear'}"><i class="bi bi-dot"></i><span>Academic Year</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/month-mapping'}"><i class="bi bi-dot"></i><span>Month Mapping</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/feedate'}"><i class="bi bi-dot"></i><span>Fee Date</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/fine'}"><i class="bi bi-dot"></i><span>Fine</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/fee-class'}"><i class="bi bi-dot"></i><span>Fee-Grade Map</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/fee-month'}"><i class="bi bi-dot"></i><span>Fee-Month Map</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/discount-class'}"><i class="bi bi-dot"></i><span>Discount-Grade Map</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/discount-month'}"><i class="bi bi-dot"></i><span>Discount-Month Map</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-dot"></i><span>Full Payment Discount</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/select-columns'}"><i class="bi bi-dot"></i><span>Report Settings</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/holidays'}"><i class="bi bi-dot"></i><span>Holiday Calendar</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/examinations'}"><i class="bi bi-dot"></i><span>Examination</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/admin/examinations-date'}"><i class="bi bi-dot"></i><span>Examination Date</span></a></li>
                     </ul>
                 </li>
 
-                <!--Students Options-->
+                <!-- Students -->
+                <li class="nav-section-label">Academic</li>
                 <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#students" aria-expanded="false" aria-controls="students">
-                        <i class="bi bi-person-video2 pe-2"></i>
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#students" aria-expanded="false" aria-controls="students"
+                       data-tip="Students">
+                        <i class="bi bi-people-fill"></i>
                         <span>Students</span>
                     </a>
-                    <ul id="students" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student'}"><i class="bi bi-person-lines-fill pe-2"></i> Student Registration </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-aadhar-detail'}"><i class="bi bi-building-add pe-2"></i> Update Aadhar Detail </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/sibling-group'}"><i class="bi bi-person-circle pe-2"></i> Sibling Group </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-ui-checks pe-2"></i> Assign Sibling Discount </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-ui-checks pe-2"></i> Assign Discount </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-pass-fill pe-2"></i> Assign SR </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" href="#"><i class="bi bi-sign-merge-left-fill pe-2"></i> Migrate Student </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-mortarboard-fill pe-2"></i> Edit Grade/Section </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-deleted-list'}"><i class="bi bi-person-x pe-2"></i> Remove Student </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/stu-exam-result'}"><i class="bi bi-trophy-fill pe-2"></i></i> Exam Result  </a></li>
+                    <ul id="students" class="sidebar-dropdown list-unstyled collapse">
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/student'}"><i class="bi bi-dot"></i><span>Student Registration</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/edit-aadhar-detail'}"><i class="bi bi-dot"></i><span>Update Aadhar Detail</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/sibling/sibling-group'}"><i class="bi bi-dot"></i><span>Sibling Group</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/sibling/assign-sibling-discount'}"><i class="bi bi-dot"></i><span>Assign Sibling Discount</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/stu-discount-list'}"><i class="bi bi-dot"></i><span>Assign Discount</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/assign-sr'}"><i class="bi bi-dot"></i><span>Assign SR</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>Migrate Student</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-dot"></i><span>Edit Grade/Section</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/stu-deleted-list'}"><i class="bi bi-dot"></i><span>Remove Student</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/stu-exam-result'}"><i class="bi bi-dot"></i><span>Exam Result</span></a></li>
                     </ul>
                 </li>
 
-                <!--Fees Options-->
+                <!-- Attendance -->
                 <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#fees" aria-expanded="false" aria-controls="fees">
-                        <i class="bi bi-card-text pe-2"></i>
-                        <span>Fees</span>
-                    </a>
-                    <ul id="fees" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-collection-fill pe-2"></i> Fee Submission </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/receipt'}"><i class="bi bi-receipt pe-2"></i> Fee Receipt Print </a></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-reminder'}"><i class="bi bi-bell-fill pe-2"></i> Fee Reminder </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/fees/fee-cancel'}"><i class="bi bi-journal-x pe-2"></i> Fee Cancellation </a></li>
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
-                    </ul>
-                </li>
-
-                <!--Reports Options-->
-                <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#reps" aria-expanded="false" aria-controls="reps">
-                        <i class="bi bi-file-earmark-bar-graph-fill pe-2"></i>
-                        <span>Reports</span>
-                    </a>
-                    <ul id="reps" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item">
-                            <a href="#" class="sidebar-link collapsed" data-bs-target="#level-1"
-                               data-bs-toggle="collapse" aria-expanded="false"><i class="bi bi-file-earmark-richtext pe-2"></i>Fee Report</a>
-                            <ul id="level-1" class="sidebar-dropdown list-unstyled collapse">
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-user-wise-collection'}" class="sidebar-link">User-wise Collection</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-submitted-total-detail-grade-wise'}" class="sidebar-link">Fee Submitted List(By Grade)</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-submitted-total-detail'}" class="sidebar-link">Total Fee Submitted List</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-pending-total-report'}" class="sidebar-link">Pending Fee</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-drop-off-collection'}" class="sidebar-link">Cancelled Fee List</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-total-deposited-report'}" class="sidebar-link">Total Deposited Fee List</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">Pending Fee Report</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/fees/fees-total-gradewise-income-report'}" class="sidebar-link">Grade-wise Collection</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a class="sidebar-link" th:href="@{'/student/stu-discount-list-session-wise'}">Discount List Report</a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li class="sidebar-item">
-                            <a href="#" class="sidebar-link collapsed" data-bs-target="#level-2"
-                               data-bs-toggle="collapse" aria-expanded="false"><i class="bi bi-file-person pe-2"></i>Student Report</a>
-                            <ul id="level-2" class="sidebar-dropdown list-unstyled collapse">
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/student/sessions-total-students-detail'}" class="sidebar-link">Student List(Session)</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/student/grade-total-students-detail'}" class="sidebar-link">Student List</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a th:href="@{'/student/look-up-student'}" class="sidebar-link">Search Student</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">Birth Certificate</a>
-                                </li>
-                                <li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">ID Card Print</a>
-                                </li>
-                                <!--<li class="sidebar-item submenu">
-                                    <a href="#" class="sidebar-link">Deleted Student List</a>
-                                </li>-->
-                            </ul>
-                        </li>
-                    </ul>
-                </li>
-                <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#message" aria-expanded="false" aria-controls="reps">
-                        <i class="bi bi-envelope  pe-2"></i>
-                        <span>Message</span>
-                    </a>
-                    <ul id="message" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-
-                        <li class="sidebar-item submenu"><a href="#" class="sidebar-link" th:href="@{'/message/sendMessage'}"><i class="bi bi-send"></i>Send Message</a></li>
-                        <li class="sidebar-item submenu"><a href="#" class="sidebar-link" th:href="@{'/message/viewNotification'}"><i class="bi bi-send"></i>View Notification</a></li>
-                        <li class="sidebar-item submenu"><a href="#" class="sidebar-link" ><i class="bi bi-clock-history"></i>Message Hisotry</a></li>
-                    </ul>
-                </li>
-                <!--Attendance Options-->
-                <li class="sidebar-item">
-                    <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse"
-                       data-bs-target="#attendance" aria-expanded="false" aria-controls="attendance">
-                        <i class="bi bi-person-raised-hand pe-2"></i>
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#attendance" aria-expanded="false" aria-controls="attendance"
+                       data-tip="Attendance">
+                        <i class="bi bi-person-check-fill"></i>
                         <span>Attendance</span>
                     </a>
-                    <ul id="attendance" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-                        <li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-person-check pe-2"></i> Student Attendance </a></li>
-                        <!--<li class="sidebar-item submenu"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-file-earmark-person-fill pe-2"></i> Employee Attendance </a></li>-->
-                        <li class="sidebar-item submenu" ><hr class="sidebar-divider"></li>
+                    <ul id="attendance" class="sidebar-dropdown list-unstyled collapse">
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/student-attendance'}"><i class="bi bi-dot"></i><span>Student Attendance</span></a></li>
                     </ul>
+                </li>
 
+                <!-- Fees -->
+                <li class="nav-section-label">Finance</li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#fees" aria-expanded="false" aria-controls="fees"
+                       data-tip="Fees">
+                        <i class="bi bi-cash-stack"></i>
+                        <span>Fees</span>
+                    </a>
+                    <ul id="fees" class="sidebar-dropdown list-unstyled collapse">
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-dot"></i><span>Fee Submission</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/fees/receipt'}"><i class="bi bi-dot"></i><span>Fee Receipt Print</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/fees/fee-reminder'}"><i class="bi bi-dot"></i><span>Fee Reminder</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/fees/fee-cancel'}"><i class="bi bi-dot"></i><span>Fee Cancellation</span></a></li>
+                    </ul>
+                </li>
 
+                <!-- Reports -->
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#reps" aria-expanded="false" aria-controls="reps"
+                       data-tip="Reports">
+                        <i class="bi bi-bar-chart-line-fill"></i>
+                        <span>Reports</span>
+                    </a>
+                    <ul id="reps" class="sidebar-dropdown list-unstyled collapse">
+                        <!-- Fee Report sub-group -->
+                        <li class="sidebar-item">
+                            <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-target="#level-1"
+                               data-bs-toggle="collapse" aria-expanded="false">
+                                <i class="bi bi-receipt-cutoff"></i><span>Fee Report</span>
+                            </a>
+                            <ul id="level-1" class="sidebar-dropdown list-unstyled collapse">
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-user-wise-collection'}" class="sidebar-link"><i class="bi bi-dot"></i><span>User-wise Collection</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-submitted-total-detail-grade-wise'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Fee Submitted (By Grade)</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-submitted-total-detail'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Total Fee Submitted</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-pending-total-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Pending Fee</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-drop-off-collection'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Cancelled Fee List</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-total-deposited-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Total Deposited Fee</span></a></li>
+                                <li class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Pending Fee Report</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/fees/fees-total-gradewise-income-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade-wise Collection</span></a></li>
+                                <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/student/stu-discount-list-session-wise'}"><i class="bi bi-dot"></i><span>Discount List Report</span></a></li>
+                            </ul>
+                        </li>
+                        <!-- Student Report sub-group -->
+                        <li class="sidebar-item">
+                            <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-target="#level-2"
+                               data-bs-toggle="collapse" aria-expanded="false">
+                                <i class="bi bi-file-person"></i><span>Student Report</span>
+                            </a>
+                            <ul id="level-2" class="sidebar-dropdown list-unstyled collapse">
+                                <li class="sidebar-item"><a th:href="@{'/student/sessions-total-students-detail'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Student List (Session)</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/student/grade-total-students-detail'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Student List</span></a></li>
+                                <li class="sidebar-item"><a th:href="@{'/student/look-up-student'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Search Student</span></a></li>
+                                <li class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Birth Certificate</span></a></li>
+                                <li class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>ID Card Print</span></a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Message -->
+                <li class="nav-section-label">Communication</li>
+                <li class="sidebar-item">
+                    <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
+                       data-bs-target="#message" aria-expanded="false" aria-controls="message"
+                       data-tip="Message">
+                        <i class="bi bi-chat-dots-fill"></i>
+                        <span>Message</span>
+                    </a>
+                    <ul id="message" class="sidebar-dropdown list-unstyled collapse">
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/message/sendMessage'}"><i class="bi bi-dot"></i><span>Send Message</span></a></li>
+                        <li class="sidebar-item"><a class="sidebar-link" th:href="@{'/message/viewNotification'}"><i class="bi bi-dot"></i><span>View Notification</span></a></li>
+                        <li class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Message History</span></a></li>
+                    </ul>
                 </li>
 
             </ul>
-            <div class="sidebar-footer">
-                <a href="#" class="sidebar-link text-center align-items-center">
-                    <!--Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>-->
-                    <!--<img src="/image/profile.jpg" class="avatar img-fluid rounded" alt="USER">-->
-                    <i class="bi bi-person-circle"></i>
+        </div><!-- end sidebar-nav-wrap -->
 
-                </a>
-                <a href="#" class="sidebar-link">
-                    <i class="bi bi-pencil-fill"></i>
-                    <span>Change Password</span>
-                </a>
-                <a href="#" th:href="@{/logout}" class="sidebar-link">
-                    <i class="bi bi-box-arrow-left"></i>
-                    <span>Logout</span>
-                </a>
-            </div>
-        </aside>
-        <div class="main">
+        <!-- Sidebar Footer: User Profile Card -->
+        <div class="sidebar-footer">
 
-            <!--<nav class="navbar navbar-expand px-3 border-bottom">
-
-                <div class="navbar-collapse navbar">
-                    <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
-                            <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-1 text-muted">
-                                <strong><span th:text="${#strings.defaultString(session.school?.schoolName, 'E - Siksha Portal')}"></span></strong>
-                            </a>
-                        </li>
-                    </ul>
-
-                    <ul class="navbar-nav text-center">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <strong>Session: <span th:text="${#strings.defaultString(session.activeAcademicYear?.sessionFormat, 'Not Set')}">2024-2025</span></strong>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-0" >
-                                &lt;!&ndash;Welcome, <span th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">Employee</span>&ndash;&gt;
-                                <img th:src="@{/image/profile.jpg}" class="avatar img-fluid rounded" alt="USER">
-                                &lt;!&ndash;<i class="bi bi-person-circle text-end text-success align-items-center"></i>&ndash;&gt;
-                            </a>
-                            &lt;!&ndash;<div class="dropdown-menu dropdown-menu-end">
-                                <a href="#" class="dropdown-item">Profile</a>
-                                <a href="#" class="dropdown-item" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-pencil-fill pe-2"></i> Change Password </a>
-                                <a href="#" class="dropdown-item" th:href="@{/logout}"><i class="bi bi-box-arrow-left pe-2"></i> Logout </a>
-                            </div>&ndash;&gt;
-                        </li>
-                    </ul>
-
+            <!-- User Card -->
+            <div class="sidebar-user-card">
+                <!-- Avatar: gradient bg with initials always visible underneath; img covers it if it loads -->
+                <div class="sidebar-user-avatar-wrap">
+                    <!-- Initials shown when image fails/missing -->
+                    <span class="avatar-initials"
+                          th:text="${#authentication.name != null ? #strings.substring(#authentication.name,0,1) : 'U'}">U</span>
+                    <!-- Profile image sits on top -->
+                    <img th:src="@{/image/profile.jpg}" alt="Profile"
+                         onerror="this.style.display='none'">
                 </div>
-            </nav>-->
-            <nav class="navbar navbar-expand px-4 border-bottom bg-white shadow-sm" style="height: 60px;">
-                <div class="navbar-collapse d-flex justify-content-between align-items-center w-100">
-
-                    <!-- Left: School Name -->
-                    <span class="fw-semibold text-secondary fs-5">
-            <i class="bi bi-building pe-1"></i>
-            <span th:text="${#strings.defaultString(session.school?.schoolName, 'E - Siksha Portal')}"></span>
-        </span>
-
-                    <!-- Right: Session + Welcome + Avatar -->
-                    <div class="d-flex align-items-center gap-3">
-
-                        <!-- Session Badge -->
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
-                <i class="bi bi-calendar3 pe-1"></i>
-                Session: <span th:text="${#strings.defaultString(session.activeAcademicYear?.sessionFormat, 'Not Set')}"></span>
-            </span>
-
-                        <!-- Welcome -->
-                        <span class="text-muted small">
-                <i class="bi bi-person-fill pe-1"></i>
-                Welcome, <strong th:text="${#authentication.name != null ? #authentication.name : 'Guest'}"></strong>
-            </span>
-
-                        <!-- Avatar Dropdown -->
-                        <div class="dropdown">
-                            <a href="#" data-bs-toggle="dropdown" aria-expanded="false" class="d-flex align-items-center text-decoration-none">
-                                <img th:src="@{/image/profile.jpg}" alt="USER"
-                                     class="rounded-circle border border-2 border-primary"
-                                     width="36" height="36" style="object-fit: cover;">
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                                <li><h6 class="dropdown-header text-muted small">Account</h6></li>
-                                <li><a class="dropdown-item" href="#">
-                                    <i class="bi bi-person pe-2 text-primary"></i>Profile</a>
-                                </li>
-                                <li><a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}">
-                                    <i class="bi bi-pencil-fill pe-2 text-warning"></i>Change Password</a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" th:href="@{/logout}">
-                                    <i class="bi bi-box-arrow-left pe-2"></i>Logout</a>
-                                </li>
-                            </ul>
-                        </div>
-
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name"
+                         th:text="${#authentication.name != null ? #authentication.name : 'Guest User'}">
+                        User Name
                     </div>
+                    <div class="sidebar-user-role">Online</div>
                 </div>
-            </nav>
-            <!--<div class="text-center">
-                <h1>
-                    Sidebar Bootstrap 5
-                </h1>
-            </div>-->
+            </div>
 
-            <!--All Content goes here-->
-            <main class="content px-3 py-2">
-                <div class="container-fluid">
-                    <div id="content" class="container-fluid" th:replace="${content}"></div>
-                </div>
-            </main>
+            <!-- Footer Action Links -->
+            <a th:href="@{'/fees/fee-submit-form'}" class="sidebar-link" data-tip="Change Password">
+                <i class="bi bi-key-fill"></i>
+                <span>Change Password</span>
+            </a>
+            <a th:href="@{/logout}" class="sidebar-link" data-tip="Logout"
+               style="color: #f87171;">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Logout</span>
+            </a>
 
         </div>
-    </div>
-<!--<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" ></script>-->
-    <th:block th:if="${page == 'datatable'}">
-        <script th:src="@{/js/jquery-3.7.1.js}"></script>
-        <script th:src="@{/js/popper.min.js}"></script>
-        <script th:src="@{/dtbl/bootstrap.bundle.min.js}"></script>
-        <script th:src="@{/js/toastr.min.js}"></script>
-        <script th:src="@{/js/script.js}"></script>
-        <script th:src="@{/js/jquery-ui.min.js}"></script>
-        <script th:src="@{/js/dataTables.js}"></script>
-        <script th:src="@{/js/dataTables.bootstrap5.js}"></script>
 
-        <script th:src="@{/js/dataTables.buttons.js}"></script>
-        <script th:src="@{/js/buttons.bootstrap5.js}"></script>
-        <script th:src="@{/js/jszip.min.js}"></script>
-        <script th:src="@{/js/pdfmake.min.js}"></script>
-        <script th:src="@{/js/vfs_fonts.js}"></script>
-        <script th:src="@{/js/buttons.html5.min.js}"></script>
+    </aside>
+    <!-- ====================== END SIDEBAR ====================== -->
 
-        <script th:src="@{/js/select2.min.js}"></script>
-    </th:block>
-    <th:block th:unless="${page == 'datatable'}">
-        <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
-        <!--<script th:src="@{/js/popper.min.js}"></script>-->
-        <!--<script th:src="@{/js/bootstrap.js}"></script>-->
-        <script th:src="@{/js/bootstrap.bundle.min.js}" crossorigin="anonymous"></script>
-        <script th:src="@{/js/toastr.min.js}"></script>
-        <script th:src="@{/js/jquery-ui.min.js}"></script>
-        <script th:src="@{/js/script.js}"></script>
-        <script th:src="@{/js/select2.min.js}"></script>
-    </th:block>
-<script type="text/javascript">
-    $(document).on("change", ".toggle-fee-amount", function () {
-        let card = $(this).closest(".card-body");
-        let amountEl = card.find(".fee-amount");
-        let actualValue = amountEl.data("actual");
+    <!-- ====================== MAIN ====================== -->
+    <div class="main">
 
-        if ($(this).is(":checked")) {
-            amountEl.text(actualValue);
-        } else {
-            amountEl.text("******");
-        }
-    });
+        <!-- Topbar -->
+        <nav class="topbar">
+            <!-- Toggle -->
+            <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                <i class="bi bi-list fs-5"></i>
+            </button>
 
-</script>
+            <!-- School Name -->
+            <span class="topbar-school">
+                <i class="bi bi-building-fill"></i>
+                <span th:text="${#strings.defaultString(session.school?.schoolName, 'E-Siksha Portal')}">School Name</span>
+            </span>
+
+            <!-- Right group -->
+            <div class="topbar-right">
+
+                <!-- Session badge -->
+                <span class="session-badge">
+                    <i class="bi bi-calendar3-week-fill"></i>
+                    <span th:text="${#strings.defaultString(session.activeAcademicYear?.sessionFormat, 'Not Set')}">2024-25</span>
+                </span>
+
+                <div class="topbar-divider"></div>
+
+                <!-- Welcome -->
+                <span class="topbar-welcome">
+                    <i class="bi bi-person-fill me-1"></i>
+                    Welcome, <strong th:text="${#authentication.name != null ? #authentication.name : 'Guest'}">User</strong>
+                </span>
+
+                <!-- Avatar + Dropdown -->
+                <div class="dropdown topbar-dropdown">
+                    <a href="#" data-bs-toggle="dropdown" aria-expanded="false" class="topbar-avatar-btn">
+                        <img th:src="@{/image/profile.jpg}" alt="User" class="topbar-avatar">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><h6 class="dropdown-header text-muted">My Account</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="bi bi-person-circle me-2 text-primary"></i>Profile
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}">
+                                <i class="bi bi-key me-2 text-warning"></i>Change Password
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" th:href="@{/logout}">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Page Content -->
+        <main class="page-content">
+            <div id="content" th:replace="${content}"></div>
+        </main>
+
+    </div><!-- end .main -->
+
+</div><!-- end .wrapper -->
+
+
+<!-- ====================== SCRIPTS ====================== -->
+<th:block th:if="${page == 'datatable'}">
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/popper.min.js}"></script>
+    <script th:src="@{/dtbl/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script th:src="@{/js/jquery-ui.min.js}"></script>
+    <script th:src="@{/js/dataTables.js}"></script>
+    <script th:src="@{/js/dataTables.bootstrap5.js}"></script>
+    <script th:src="@{/js/dataTables.buttons.js}"></script>
+    <script th:src="@{/js/buttons.bootstrap5.js}"></script>
+    <script th:src="@{/js/jszip.min.js}"></script>
+    <script th:src="@{/js/pdfmake.min.js}"></script>
+    <script th:src="@{/js/vfs_fonts.js}"></script>
+    <script th:src="@{/js/buttons.html5.min.js}"></script>
+    <script th:src="@{/js/select2.min.js}"></script>
+    <script th:src="@{/js/script.js}"></script>  <!-- LAST: needs Bootstrap + jQuery ready -->
+</th:block>
+
+<th:block th:unless="${page == 'datatable'}">
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/bootstrap.bundle.min.js}" crossorigin="anonymous"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script th:src="@{/js/jquery-ui.min.js}"></script>
+    <script th:src="@{/js/select2.min.js}"></script>
+    <script th:src="@{/js/script.js}"></script>  <!-- LAST: needs Bootstrap + jQuery ready -->
+</th:block>
+
+<!-- All sidebar/UI logic is in script.js -->
+
 </body>
-
 </html>
