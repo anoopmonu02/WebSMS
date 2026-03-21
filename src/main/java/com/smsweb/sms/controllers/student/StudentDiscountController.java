@@ -9,8 +9,8 @@ import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.services.admin.AcademicyearService;
-import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.admin.SchoolService;
+import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.universal.DiscountService;
@@ -46,7 +46,7 @@ public class StudentDiscountController extends BaseController {
 
     @GetMapping("/stu-discount-list")
     public String discountpage(Model model){
-        School school = (School)model.getAttribute("school");
+        School school = getSchool(model);
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<StudentDiscount> studentDiscountList = studentDiscountService.getAllStudentDiscounts(school.getId(), academicYear.getId());
         model.addAttribute("studentDiscounts", studentDiscountList);
@@ -72,7 +72,7 @@ public class StudentDiscountController extends BaseController {
         }
         try{
             System.out.println("studentDiscount: "+studentDiscount);
-            School school = (School)model.getAttribute("school");
+            School school = getSchool(model);
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             AcademicStudent student = academicStudentService.searchStudentById(studentDiscount.getAcademicStudent().getId(), academicYear.getId(), school.getId());
             studentDiscount.setAcademicYear(academicYear);
@@ -121,4 +121,18 @@ public class StudentDiscountController extends BaseController {
         }
         return "redirect:/student/stu-discount-list";
     }
+
+    @GetMapping("/stu-discount-list-session-wise")
+    public String discountsessionpage(Model model){
+        School school = getSchool(model);
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
+        model.addAttribute("academicYears", academicYears);
+        model.addAttribute("page", "datatable");
+        return "student/student-discount-session-list";
+    }
+
+    private School getSchool(Model model){
+        return (School)model.getAttribute("school");
+    }
+
 }

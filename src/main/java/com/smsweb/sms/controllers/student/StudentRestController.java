@@ -5,8 +5,10 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.ExamResultSummary;
+import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.services.globalaccess.ExcelService;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -27,11 +29,13 @@ public class StudentRestController extends BaseController {
     private final ExcelService excelService;
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
+    private final StudentDiscountService studentDiscountService;
 
-    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService) {
+    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService, StudentDiscountService studentDiscountService) {
         this.excelService = excelService;
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
+        this.studentDiscountService = studentDiscountService;
     }
 
     @PostMapping("/downloadSRSampleFile")
@@ -589,5 +593,33 @@ public class StudentRestController extends BaseController {
             e.printStackTrace();
         }
         return ResponseEntity.ok(studentDataList);
+    }
+
+    @PostMapping("/getStudentsDiscountList")
+    @ResponseBody
+    public ResponseEntity<?> getStudentsDiscountList(@RequestBody Map<String, String> requestBody, Model model){
+        School school = (School)model.getAttribute("school");
+        List<Map<String, String>> studentDataList;
+        Map responseMap = new HashMap<>();
+        try {
+            if(requestBody!=null){
+                String academicId = requestBody.getOrDefault("academicYearId","0");
+                Long acId = 0L;
+                try{
+                    if(academicId!=null){
+                       acId = Long.parseLong(academicId);
+                    }
+                    studentDataList = studentDiscountService.getAllStudentDiscountsBySession(school.getId(), acId);
+                    responseMap.put("stuData", studentDataList);
+                }catch(Exception ex){
+                    responseMap.put("error", ex.getLocalizedMessage());
+                }
+            } else{
+                throw new IllegalArgumentException("request is not valid");
+            }
+        }catch (Exception e){
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(responseMap);
     }
 }

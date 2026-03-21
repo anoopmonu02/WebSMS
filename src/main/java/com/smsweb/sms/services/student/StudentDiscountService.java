@@ -8,8 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class StudentDiscountService {
@@ -61,6 +60,27 @@ public class StudentDiscountService {
         }catch(Exception e){
             throw new ObjectNotDeleteException("Unable to delete discount mapping", e);
         }
+    }
+
+    public List<Map<String, String>> getAllStudentDiscountsBySession(Long school_id, Long academic_id){
+        List<StudentDiscount> stuList = studentDiscountRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
+        List<Map<String, String>> stuDiscList = new ArrayList<>();
+        //Form map which data should show
+        if(stuList!=null && !stuList.isEmpty()){
+            for(StudentDiscount studentDiscount: stuList){
+                Map<String, String> stuDisMap = new HashMap<>();
+                String grade = studentDiscount.getAcademicStudent().getGrade().getGradeName() + " - " + studentDiscount.getAcademicStudent().getSection().getSectionName();
+                stuDisMap.put("studentName", studentDiscount.getAcademicStudent().getStudent().getStudentName());
+                stuDisMap.put("srNo", studentDiscount.getAcademicStudent().getClassSrNo());
+                stuDisMap.put("grade", grade);
+                stuDisMap.put("fatherName", studentDiscount.getAcademicStudent().getStudent().getFatherName());
+                stuDisMap.put("motherName", studentDiscount.getAcademicStudent().getStudent().getMotherName());
+                stuDisMap.put("discount", studentDiscount.getDiscounthead().getDiscountName());
+                stuDisMap.put("description", studentDiscount.getDescription());
+                stuDiscList.add(stuDisMap);
+            }
+        }
+        return stuDiscList;
     }
 
 }
