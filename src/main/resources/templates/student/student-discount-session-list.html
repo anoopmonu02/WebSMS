@@ -143,7 +143,9 @@
                             tblData += `<tr>
                                     <td>${counter}</td>
                                     <td>${studentData.grade}</td>
-                                    <td>${studentData.srNo}</td><td>${studentData.studentName}</td><td>${studentData.fatherName}</td><td>${studentData.discount}</td><td>${studentData.description}</td>`;
+                                    <td>${studentData.srNo}</td><td>${studentData.studentName}</td><td>${studentData.fatherName}</td>
+                                    <td><span class="badge bg-success-subtle text-success-emphasis">${studentData.discount}</span></td>
+                                    <td>${studentData.description}</td>`;
 
                             tblData+=`</tr>`;
                             counter++;
@@ -160,6 +162,15 @@
                             paging: true,
                             sort: false,
                             fixedColumns: false,
+                            //responsive: true,           // makes table work on mobile
+                            //dom: 'Bfrtip',              // cleaner layout control
+                            language: {
+                                emptyTable: "No discount records found.",
+                                zeroRecords: "No matching students found.",
+                                info: "Showing _START_ to _END_ of _TOTAL_ students",
+                                search: "",              // remove "Search:" label
+                                searchPlaceholder: "Search students..."  // add placeholder instead
+                            },
                             layout: {
                                 bottomEnd: {
                                     paging: {
@@ -181,7 +192,7 @@
                                             extend: 'csvHtml5',
                                             text: '<i class="bi bi-filetype-csv text-info"></i>',
                                             titleAttr: 'CSV',
-                                            title: 'Total Students Discount Data export'
+                                            title: 'Total Students Discount Data export',
                                         },
                                         {
                                             extend: 'pdfHtml5',
@@ -213,6 +224,7 @@
                             // Remove the btn-secondary class from each button
                             $(this).removeClass("btn-secondary");
                         });
+
                         if(data.error!=null){
                             $("#student-collection-data").empty();
                             $("#printable-div").hide();

@@ -136,4 +136,25 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                  @Param("academicYearId") Long academicYearId,
                                  @Param("status") String status);
 
+    @Query("""
+        SELECT a FROM AcademicStudent a
+        LEFT JOIN FETCH a.student s
+        LEFT JOIN FETCH s.userEntity
+        LEFT JOIN FETCH a.grade
+        LEFT JOIN FETCH a.section
+        LEFT JOIN FETCH a.medium
+        LEFT JOIN FETCH a.school sc
+        LEFT JOIN FETCH sc.customer
+        LEFT JOIN FETCH a.academicYear
+        WHERE s.id = :studentId
+        AND a.school.id = :branchId
+        AND a.academicYear.id = :sessionId
+        AND a.status = 'Active'
+    """)
+    Optional<AcademicStudent> findStudentProfile(
+            @Param("studentId") Long studentId,
+            @Param("branchId")  Long branchId,
+            @Param("sessionId") Long sessionId
+    );
+
 }

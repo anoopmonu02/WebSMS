@@ -22,4 +22,22 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     public List<Student> findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(String name, Long school_id, String status);
 
     public List<Student> findAllByStatus(String status);
+
+    @Query("""
+    SELECT s FROM Student s
+    LEFT JOIN FETCH s.grade
+    LEFT JOIN FETCH s.section
+    LEFT JOIN FETCH s.medium
+    LEFT JOIN FETCH s.school sc
+    LEFT JOIN FETCH sc.customer
+    LEFT JOIN FETCH s.academicYear
+    WHERE s.id = :studentId
+    AND s.school.id = :branchId
+    AND s.academicYear.id = :sessionId
+""")
+    Optional<Student> findStudentProfile(
+            @Param("studentId") Long studentId,
+            @Param("branchId")  Long branchId,
+            @Param("sessionId") Long sessionId
+    );
 }
