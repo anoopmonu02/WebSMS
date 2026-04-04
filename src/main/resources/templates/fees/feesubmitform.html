@@ -362,20 +362,20 @@
 
         function setFeeRelatedData(data, flag){
             if(flag===1){
-                $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
-                $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
-                $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
-                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}<button type="button" class="btn btn-success dynamic-btn"> <i class="bi bi-telephone-plus"></i> </button>`);
+                $(".studname").html(`<strong>Student Name: </strong> ${data.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                $(".fname").html(`<strong>Father Name: </strong> ${data.student.fatherName}`);
+                $(".mname").html(`<strong>Mother Name: </strong> ${data.student.motherName}`);
+                $(".contactno").html(`<strong>Contact No: </strong> ${data.student.mobile1}<button type="button" class="btn btn-success dynamic-btn"> <i class="bi bi-telephone-plus"></i> </button>`);
 
-                $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium.mediumName}`);
-                $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
-                $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
+                $(".cmedium").html(`<strong>Medium: </strong> ${data.student.medium}`);
+                $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade}`);
+                $(".csection").html(`<strong>Section: </strong> ${data.student.section}`);
                 $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
 
-                $('#academicStudentId').val(`${data.student.id}`);
-                $('#StudentId').val(`${data.student.student.id}`);
-                $('#gradeId').val(`${data.student.grade.id}`);
-                let feeSubmissiondate = formatDate(data.feeDate.feeSubmissiondate, 'short');
+                $('#academicStudentId').val(`${data.student.academicId}`);
+                $('#StudentId').val(`${data.student.id}`);
+                $('#gradeId').val(`${data.student.gradeId}`);
+                let feeSubmissiondate = formatDate(data.feeDate.feeDate, 'short');
                 $("#feedate").val(feeSubmissiondate);
                 let todayDate = formatDate(data.todayDate, 'full');
                 $("#feesubmissiondate").val(todayDate);

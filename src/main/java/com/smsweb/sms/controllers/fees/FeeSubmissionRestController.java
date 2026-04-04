@@ -21,11 +21,13 @@ import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import org.thymeleaf.TemplateEngine;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -82,6 +84,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(students);
     }
 
+    /*@Transactional
     @GetMapping("/getStudentDetailForFee/{id}")
     public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
@@ -150,6 +153,123 @@ public class FeeSubmissionRestController extends BaseController {
             e.printStackTrace();
             result.put("error", "Error: "+e.getLocalizedMessage());
         }
+        return ResponseEntity.ok(result);
+    }*/
+
+    @Transactional
+    @GetMapping("/getStudentDetailForFee/{id}")
+    public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id, Model model) {
+        Map<String, Object> result = new HashMap<>();
+
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentById(
+                id, academicYear.getId(), school.getId());
+
+        try {
+            if (academicStudent != null) {
+                Student student = academicStudent.getStudent();
+
+                int currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1;
+                List<FeeDate> fdList = feedateService.getByGivenMonth(
+                        academicYear.getId(), school.getId(), currentMonth);
+
+                FeeDate fd = null;
+                if (fdList != null && !fdList.isEmpty()) {
+                    fd = fdList.get(0);
+                }
+
+                if (fd != null) {
+                    // ✅ Build flat student map — only primitives, no JPA entities
+                    Map<String, Object> studentMap = new HashMap<>();
+                    studentMap.put("id",              student.getId());
+                    studentMap.put("studentName",     student.getStudentName());
+                    studentMap.put("fatherName",      student.getFatherName());
+                    studentMap.put("motherName",      student.getMotherName());
+                    studentMap.put("mobile1",         student.getMobile1());
+                    studentMap.put("mobile2",         student.getMobile2());
+                    studentMap.put("gender",          student.getGender());
+                    studentMap.put("registrationNo",  student.getRegistrationNo());
+                    studentMap.put("studentType",     student.getStudentType());
+                    studentMap.put("status",          student.getStatus());
+                    studentMap.put("address",         student.getAddress());
+                    studentMap.put("aadharNo",        student.getAadharNo());
+
+                    // from AcademicStudent
+                    studentMap.put("academicId", academicStudent.getId());
+                    studentMap.put("classSrNo",       academicStudent.getClassSrNo());
+                    studentMap.put("boardSrNo",       academicStudent.getBoardSrNo());
+                    studentMap.put("rollNo",          academicStudent.getRollNo());
+                    studentMap.put("gradeId", academicStudent.getGrade().getId());
+                    studentMap.put("grade",           academicStudent.getGrade() != null
+                            ? academicStudent.getGrade().getGradeName() : null);
+                    studentMap.put("section",         academicStudent.getSection() != null
+                            ? academicStudent.getSection().getSectionName() : null);
+                    studentMap.put("medium",          academicStudent.getMedium() != null
+                            ? academicStudent.getMedium().getMediumName() : null);
+
+                    // ✅ Build flat feeDate map
+                    Map<String, Object> feeDateMap = new HashMap<>();
+                    feeDateMap.put("id",          fd.getId());
+                    feeDateMap.put("feeDate",     fd.getFeeSubmissiondate());
+
+                    // ✅ Build flat academicYear map
+                    Map<String, Object> academicYearMap = new HashMap<>();
+                    academicYearMap.put("id",            academicYear.getId());
+                    academicYearMap.put("sessionFormat", academicYear.getSessionFormat());
+                    academicYearMap.put("startDate",     academicYear.getStartDate());
+                    academicYearMap.put("endDate",       academicYear.getEndDate());
+
+                    // student type — old or new
+                    String countStu;
+                    if (academicStudentService.countNoOfYearsOfStudent(academicStudent) > 1) {
+                        countStu = "OLD";
+                    } else {
+                        countStu = student.getStudentType().equalsIgnoreCase("old") ? "OLD" : "NEW";
+                    }
+
+                    // previous balance
+                    BigDecimal previousBalance = BigDecimal.ZERO;
+                    FeeSubmission feeSubmission = feeSubmissionService
+                            .getLastFeeSubmissionOfStudentForBalance(
+                                    school.getId(), academicYear.getId(), academicStudent.getId());
+                    if (feeSubmission != null) {
+                        previousBalance = feeSubmission.getFeeSubmissionBalance().getBalanceAmount();
+                    }
+
+                    result.put("student",         studentMap);      // ✅ flat map, not entity
+                    result.put("feeDate",         feeDateMap);      // ✅ flat map, not entity
+                    result.put("academicYear",    academicYearMap); // ✅ flat map, not entity
+                    result.put("todayDate",       new Date());
+                    result.put("countStu",        countStu);
+                    result.put("previousBalance", previousBalance);
+
+                } else {
+                    result.put("noFeeDate", "No Fee-Date found, Please add fee-date first.");
+                }
+
+                // paid months
+                Map paidMonths = feeSubmissionService.getPaidMonths(
+                        school.getId(), academicYear.getId(), academicStudent.getId());
+                if (paidMonths != null && !paidMonths.isEmpty()) {
+                    if (paidMonths.containsKey("MonthError")) {
+                        result.put("Paid_Month_Error", paidMonths.get("MonthError"));
+                    } else {
+                        result.put("PaidMonths", paidMonths.get("paidMonths"));
+                    }
+                } else {
+                    result.put("Paid_Month_Error", "No fee submission data found.");
+                }
+
+            } else {
+                result.put("noAcademicStudent", "Student not found.");  // ✅ fixed NPE — was calling .getStudent() on null
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("error", "Error: " + e.getLocalizedMessage());
+        }
+
         return ResponseEntity.ok(result);
     }
 

@@ -2,6 +2,7 @@ package com.smsweb.sms.models.student;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.smsweb.sms.helper.DisplayLabel;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
@@ -206,6 +207,7 @@ public class Student { // Extend UserEntity
     @ManyToOne
     @JoinColumn(name = "school_id")
     @NotNull(message = "School should be available")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private School school;
 
     @ManyToOne
