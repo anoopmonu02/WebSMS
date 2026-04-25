@@ -231,6 +231,21 @@ public class FeeSubmissionController extends BaseController {
         return "fees/fees_user_collection";
     }
 
+    @GetMapping("/fees-head-wise-collection-summary")
+    public String headwiseCollectionSummary(Model model){
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication.getAuthorities()
+                    .stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+            model.addAttribute("isAdmin", isAdmin);
+        }catch(Exception e){
+            e.printStackTrace();        }
+
+        return "fees/fees_head_wise_collection";
+    }
+
 
     @GetMapping("/fees-drop-off-collection")
     public String feesCancellation(Model model){

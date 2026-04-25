@@ -314,6 +314,7 @@
         $("#search-input").val('');
         if(id>0){
             console.log("id::::"+id);
+            $('#feetable > tbody').empty();
             let url = `${contextPath}getStudentFeeDetails/${id}`;
             fetch(url).then(response => {
                 return response.json();
@@ -367,8 +368,6 @@
               fetch(url).then(response => {
                   return response.json();
               }).then((data) => {
-                  console.log(data);
-                  console.log(data.student);
                   if('studentError' in data){
                       showWarningMsg("warning", data.noAcademicStudent,"Message");
                       setFeeRelatedData(data, 0)
@@ -376,12 +375,9 @@
                       if('feeSubmissionError' in data){
                           showWarningMsg("warning", data.noFeeDate,"Message");
                       } else{
-                          console.log("Data ",data);
                           const container = $('#disp-receipt');
                           container.empty();
                           container.append(createReceiptHTML(data));
-                          console.log($('#disp-receipt').length);
-                          console.log(createReceiptHTML(data));
                       }
                   }
               });
@@ -439,10 +435,15 @@
                           <label class="col-md-4"><strong>Submission Date: </strong></label>
                           <label class="col-md-5"><strong>${new Date(data.feeSubmission.feeSubmissionDate).toLocaleString()} </strong></label>
                       </div>
-                      <div class="col-md-8">
-                          <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                      <div class="col-md-6">
+                          <label class="col-md-4 col-form-label"><strong>Receipt No: </strong></label>
                           <label class="col-md-5 col-form-label">${data.feeSubmission.receiptNo}</label>
                       </div>
+                      <div class="col-md-6">
+                            <label class="col-md-2"></label>
+                            <label class="col-md-4 col-form-label"><strong>Payment: </strong></label>
+                            <label class="col-md-5 col-form-label">${data.feeSubmission.paymentType!=null?data.feeSubmission.paymentType:"--"}</label>
+                        </div>
                   </div>
                   <hr/>
                   <div class="row">
@@ -462,7 +463,7 @@
                       <div class="col-md-6">
                           <label class="col-md-3"></label>
                           <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
-                          <label class="col-md-4 col-form-label">${data.student.classSrNo}</label>
+                          <label class="col-md-4 col-form-label">${data.student.classSrNo==null?"":data.student.classSrNo}</label>
                       </div>
                       <div class="col-md-6">
                           <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
@@ -501,7 +502,7 @@
                    <hr/>
                    <div class="row amountdetails">
                         <div class="col-md-4"></div>
-                        <div class="col-md-8"><strong>Fine Remark: </strong><span>${data.feeSubmission.fineRemark}</span></div>
+                        <div class="col-md-8"><strong>Fine Remark: </strong><span>${data.feeSubmission.fineRemark!=null?data.feeSubmission.fineRemark:""}</span></div>
 
                         <div class="col-md-4"></div>
                         <div class="col-md-4"><strong>Fine Amount: </strong></div>
@@ -516,8 +517,14 @@
                             <div class="col-md-4"></div>
                             <div class="col-md-4"><strong>Discount Amount: </strong></div>
                             <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.discountAmount}</div>
-                        </div>` : ''}
-                    <hr/>
+                        </div><hr/>` : ''}
+                    ${data.feeSubmission.previousFeeBalanceRemark ? `
+                         <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Previous Balance: </strong></div>
+                            <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.previousFeeBalanceRemark}</div>
+                        </div>
+                        <hr/>` : ''}
                     <div class="row">
                         <div class="col-md-4"></div>
                         <div class="col-md-4"><strong>Total Amount: </strong></div>

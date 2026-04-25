@@ -49,9 +49,14 @@
                                 <label class="col-md-4"><strong>Submission Date: </strong></label>
                                 <label class="col-md-5" th:text="${#dates.format(feeSubmission.feeSubmissionDate,'dd-MMM-yyyy HH:mm:ss')}"><strong>Submission Date: </strong></label>
                             </div>
-                            <div class="col-md-8">
-                              <label class="col-md-3 col-form-label"><strong>Receipt No: </strong></label>
+                            <div class="col-md-6">
+                              <label class="col-md-4 col-form-label"><strong>Receipt No: </strong></label>
                               <label class="col-md-5 col-form-label" th:text="${feeSubmission.receiptNo}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-2"></label>
+                                <label class="col-md-4 col-form-label"><strong>Payment: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${feeSubmission.paymentType}"></label>
                             </div>
                         </div>
                         <hr/>
@@ -61,7 +66,7 @@
                                 <label class="col-md-5 col-form-label" th:text="${student.getStudent().studentName}"></label>
                             </div>
                             <div class="col-md-6">
-                                <label class="col-md-3"></label>
+                                <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
                                 <label class="col-md-4 col-form-label" th:text="${student.getGrade().gradeName}+'-'+${student.getSection().sectionName}"></label>
                             </div>
@@ -70,7 +75,7 @@
                                 <label class="col-md-5 col-form-label" th:text="${student.getStudent().fatherName}"></label>
                             </div>
                             <div class="col-md-6">
-                                <label class="col-md-3"></label>
+                                <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
                                 <label class="col-md-4 col-form-label" th:text="${student.getClassSrNo()}"></label>
                             </div>
@@ -80,6 +85,7 @@
                             </div>
 
                             <div class="col-md-6">
+                                <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
                                 <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
                             </div>
@@ -128,15 +134,26 @@
                             <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.fineAmount}"></div>
                         </div>
                         <hr/>
-                        <div class="row" th:if="${feeSubmission.discounthead}">
-                            <div class="col-md-4"></div>
-                            <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission.discounthead.discountName}"></span></div>
+                        <th:block th:if="${feeSubmission.discounthead}">
+                            <div class="row" th:if="${feeSubmission.discounthead}">
+                                <div class="col-md-4"></div>
+                                <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission.discounthead.discountName}"></span></div>
 
-                            <div class="col-md-4"></div>
-                            <div class="col-md-4"><strong>Discount Amount: </strong></div>
-                            <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.discountAmount}"></div>
-                        </div>
-                        <hr/>
+                                <div class="col-md-4"></div>
+                                <div class="col-md-4"><strong>Discount Amount: </strong></div>
+                                <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.discountAmount}"></div>
+                            </div>
+                            <hr/>
+                        </th:block>
+                        <th:block th:if="${feeSubmission.previousFeeBalanceRemark!=null && feeSubmission.previousFeeBalanceRemark?.trim()!=''}">
+                            <div class="row" th:if="${feeSubmission.previousFeeBalanceRemark}">
+                                <div class="col-md-4"></div>
+                                <div class="col-md-4"><strong>Previous Balance: </strong></div>
+                                <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.previousFeeBalanceRemark}"></div>
+                            </div>
+                            <hr/>
+                        </th:block>
+
                         <div class="row">
                             <div class="col-md-4"></div>
                             <div class="col-md-4"><strong>Total Amount: </strong></div>
@@ -171,6 +188,7 @@
 
   <script type="text/javascript" th:inline="javascript">
     // Display success message
+    const successMessage = [[${success}]];
     if (successMessage) {
         showWarningMsg("success", successMessage, "Success");
     }

@@ -208,31 +208,43 @@
                                 //for(let monName in monthslist){
                                 console.log("stu length: "+studentData.length);
                                     let lastBalanceAmount = 0;
+                                    let receiptNo = '';
                                     for (let i = 0; i < studentData.length; i++){
                                         let studentObj = studentData[i];
                                         let balanceAmount = studentObj.balanceAmount;
                                         if(balanceAmount!==undefined){
                                             lastBalanceAmount = balanceAmount;//>0?balanceAmount:lastBalanceAmount;
-                                            myMap.set(stuId, lastBalanceAmount);
+                                            receiptNo = studentObj.receipt;
                                         }
                                     }
+                                    if(lastBalanceAmount>0){
+                                        myMap.set(stuId + '####' + receiptNo, lastBalanceAmount);
+                                    }
+
+                                    console.log("myMap::: "+myMap.get((stuId + '####' + receiptNo)));
                                     for (let i = 0; i < studentData.length; i++){
                                         let studentObj = studentData[i];
                                         let feeLbl = '';
                                         let balanceAmount = undefined;
+                                        let flag = false;
+                                        let checkVal = stuId + '####' + studentObj.receipt;
+                                        console.log("Balance:studentObj.balanceAmount:::: "+studentObj.balanceAmount+"  checkVal: "+checkVal);
                                         if(studentObj.balanceAmount!= undefined){
                                             balanceAmount = studentObj.balanceAmount;//studentObj.balanceAmount ?? 0; // nullish coalescing
                                         }
-                                        if(stuId==myMap.has(stuId)){
-                                            balanceAmount = myMap.get(stuId);
+                                        if(myMap.has(checkVal)){
+                                            balanceAmount = myMap.get(checkVal);
+                                            flag = true;
                                         }
+                                        console.log("Balance: "+balanceAmount)
                                         if(studentObj.blankData===1){
                                             feeLbl = ``;
                                         } else{
                                             feeLbl = `Receipt No: ${studentObj.receipt}<br>Date: ${studentObj.submitDate}<br>Amount: &#8377; ${studentObj.feeSubmitted}<br>Late Fee: &#8377; ${studentObj.fineAmount}`;
                                         }
                                         console.log("studentObj.balanceAmount----------------------"+balanceAmount + " i: "+(i+1) + " studentData.length: "+studentData.length);
-                                        if(balanceAmount>0){
+                                        console.log("checkVal.split('####')[1] "+checkVal.split('####')[1] + "------flag: "+flag)
+                                        if(flag){
                                             feeLbl+=`<br><small class="text-bg-danger">Balance Amount: &#8377; ${balanceAmount}</small>`;
                                         }
                                         //console.log("studentData====== "+studentObj);

@@ -165,6 +165,17 @@
                                         </div>
                                     </div>
                                     <div class="mb-3 row">
+                                        <label for="paymentType" class="col-sm-5 col-form-label">Payment Type*</label>
+                                        <div class="col-sm-4">
+                                            <select id="paymentType" class="form-select" th:field="*{paymentType}" name="paymentType">
+                                                <option value="">Select</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Online">Online</option>
+                                            </select>
+
+                                        </div>
+                                    </div>
+                                    <div class="mb-3 row">
                                         <label for="feeRemark" class="col-sm-5 col-form-label">Remark</label>
                                         <div class="col-sm-7">
                                             <input type="text" class="form-control" id="feeRemark" name="feeRemark" value="">
@@ -732,24 +743,29 @@
                 return false;
             }
 
-            if($("#feedate").val().toString()==''){
+            if($("#feedate").val().toString()===''){
                 //toastr["warning"]("Fee Date is missing!","Message");
                 showWarningMsg("error","Fee Date is missing!","Message");
                 return false;
             }
-            if($("#totalAmount").val().toString()==''){
+            if($("#totalAmount").val().toString()===''){
                 showWarningMsg("error","Total Amount is missing!","Message");
                 //toastr["warning"]("Total Amount is missing!","Message");
                 return false;
             }
-            if($("#paidAmount").val().toString()==''){
+            if($("#paidAmount").val().toString()===''){
                 //toastr["warning"]("Paid Amount is missing!","Message");
                 showWarningMsg("error","Paid Amount is missing!","Message");
                 return false;
             }
-            if($("#balanceAmount").val().toString()==''){
+            if($("#balanceAmount").val().toString()===''){
                 //toastr["warning"]("Balance Amount is missing!","Message");
                 showWarningMsg("error","Balance Amount is missing!","Message");
+                return false;
+            }
+            if($("#paymentType").val().toString()===''){
+                //toastr["warning"]("Balance Amount is missing!","Message");
+                showWarningMsg("error","Payment type is missing!","Message");
                 return false;
             }
 

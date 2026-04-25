@@ -186,7 +186,7 @@ public class FeeSubmissionService {
 
         List<Map<String, Object>> resultList = new ArrayList<>();
         if (feeData != null && !feeData.isEmpty()) {
-            boolean isOldStudent = student.getStudentType().equalsIgnoreCase("old") || stuCounting > 0;
+            boolean isOldStudent = student.getStudentType().equalsIgnoreCase("old") || stuCounting > 1;
 
             for (Object[] result : feeData) {
                 try {
@@ -229,7 +229,7 @@ public class FeeSubmissionService {
             AcademicStudent academicStudent = academicStudentRepository.findById(academic_stu_id).orElse(null);*/
             //Discount Calculated
             Long discountId = null;
-            StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school_id, academic_id, academic_stu_id).get();
+            StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(school_id, academic_id, academic_stu_id, "Active").get();
             if(studentDiscount!=null){
                 discountId = studentDiscount.getDiscounthead().getId();
             }
@@ -310,7 +310,7 @@ public class FeeSubmissionService {
             if(paramsMap!=null && !paramsMap.isEmpty()) {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyyhhmmss");
                 List<String> feeSubmissionModelColumns = Arrays.asList("feesubmissiondate", "academicStudent.id", "fullPaymentAmount", "fineAmount", "fineRemark", "discountAmount", "discountHead", "totalAmount",
-                        "paidAmount", "balanceAmount", "feeRemark", "headName", "months");
+                        "paidAmount", "balanceAmount", "feeRemark", "headName", "months","previousBalance","paymentType");
                 AcademicStudent student;// = academicStudentRepository.findById(Long.parseLong("0")).orElse(null);
                 String schoolCodeVal = getCodeValue(school.getSchoolName());
                 //Saving fee submission object
@@ -357,6 +357,7 @@ public class FeeSubmissionService {
                             //feeSubmission.setReceiptNo("UA/RCT/"+dateFormat.format(new Date()));
                             feeSubmission.setSchool(school);
                             feeSubmission.setStatus("Active");
+                            feeSubmission.setPaymentType(feeMap.containsKey("paymentType")?feeMap.get("paymentType").toString().trim():null);
                         }
                         List<FeeSubmissionSub> submissionSubList = new ArrayList<>();
                         Map<Feehead, BigDecimal> feeSubMap = feeDataMap.get("FeeSubmission_sub");
@@ -392,6 +393,7 @@ public class FeeSubmissionService {
                         feeSubmission.setFeeSubmissionSub(submissionSubList);
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
                         feeSubmission.setCreatedBy(userService.getLoggedInUser());
+                        feeSubmission.setPreviousFeeBalanceRemark(""+paramsMap.get("previousBalance")[0]);
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());
@@ -420,7 +422,7 @@ public class FeeSubmissionService {
                 String[] values = entry.getValue();
 
                 System.out.println("Key: " + key);
-                System.out.println("Values:");
+                System.out.println("Values:" + values[0]);
                 if(columnsList.contains(key)){
                     if(values.length>0 && (key.equalsIgnoreCase("headName") || key.equalsIgnoreCase("months"))){
                         for (String value : values) {
@@ -457,6 +459,12 @@ public class FeeSubmissionService {
                                         feeMap.put(key, academicStudentRepository.findById(Long.parseLong(value)).get());
                                         break;
                                     case "fineRemark":
+                                    case "previousBalance":
+                                        feeMap.put("previousBalanceAmount", value);
+                                        break;
+                                    case "paymentType":
+                                        feeMap.put("paymentType", value);
+                                        break;
                                     case "feeRemark":
                                         feeMap.put(key, value);
                                         break;
@@ -605,7 +613,7 @@ public class FeeSubmissionService {
                                     }
                                     //Calculate Discount
                                     //BigDecimal discountAmt = BigDecimal.ZERO;
-                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
+                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(school.getId(), academicYear.getId(), academicStudent.getId(),"Active").orElse(null);
                                     if(studentDiscount!=null){
                                         List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
@@ -702,7 +710,7 @@ public class FeeSubmissionService {
 
                                     //Calculate Discount
                                     BigDecimal discountAmt = BigDecimal.ZERO;
-                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school.getId(), academicYear.getId(), academicStudent.getId()).orElse(null);
+                                    StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(school.getId(), academicYear.getId(), academicStudent.getId(),"Active").orElse(null);
                                     if(studentDiscount!=null){
                                         List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){

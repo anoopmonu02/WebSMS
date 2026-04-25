@@ -262,8 +262,18 @@
         </div>
 
         <!-- Extra Information -->
-
-
+        <div class="col-12">
+          <h4>Academic Information</h4>
+        </div>
+        <div class="col-md-4">
+          <label for="studentType" class="form-label">Student Type</label>
+          <!--<input type="text" id="studentType" class="form-control" th:field="*{studentType}">-->
+          <select id="studentType" class="form-control" th:field="*{studentType}">
+            <option value="OLD" th:selected="OLD == ${student.studentType}">Old</option>
+            <option value="NEW" th:selected="NEW == ${student.studentType}">New</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('studentType')}" th:errors="*{studentType}">studentType Error</p>
+        </div>
         <!-- Bank & Aadhar Details -->
 
 

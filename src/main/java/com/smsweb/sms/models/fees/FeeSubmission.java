@@ -113,6 +113,10 @@ public class FeeSubmission {
     @JsonIgnore
     private UserEntity updatedBy;
 
+    private String previousFeeBalanceRemark;
+
+    private String paymentType;
+
     @Override
     public String toString() {
         return "FeeSubmission{" +

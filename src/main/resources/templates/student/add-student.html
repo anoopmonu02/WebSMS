@@ -91,9 +91,9 @@
         <div class="col-md-3">
           <label for="gender" class="form-label">Gender</label>
           <select id="gender" class="form-control" th:field="*{gender}">
-            <option value="Male" th:selected="Male == ${student.gender}">Male</option>
-            <option value="Female" th:selected="Female == ${student.gender}">Female</option>
-            <option value="No_Preference" th:selected="No_Preference == ${student.gender}">No Preference</option>
+            <option value="MALE" th:selected="MALE == ${student.gender}">Male</option>
+            <option value="FEMALE" th:selected="FEMALE == ${student.gender}">Female</option>
+            <option value="NO_PREFERENCE" th:selected="NO_PREFERENCE == ${student.gender}">No Preference</option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}">m name Error</p>
         </div>
@@ -213,19 +213,31 @@
         <div class="col-md-2"></div>
         <div class="col-md-3">
           <label for="pincode" class="form-label">Pincode</label>
-          <input type="text" id="pincode" class="form-control intfields" th:field="*{pincode}">
+          <input type="text" id="pincode" class="form-control intfields" th:field="*{pincode}" maxlength="6"
+                 minlength="6"
+                 pattern="[0-9]{6}"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)">
           <p class="text-danger" th:if="${#fields.hasErrors('pincode')}" th:errors="*{pincode}">City Error</p>
         </div>
         <div class="col-md-9"></div>
         <div class="col-md-3">
           <label for="mobile1" class="form-label">Mobile 1</label>
-          <input type="text" id="mobile1" class="form-control intfields" th:field="*{mobile1}">
+          <input type="text" id="mobile1" class="form-control intfields" th:field="*{mobile1}" maxlength="10"
+                 minlength="10"
+                 pattern="[0-9]{10}"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
           <p class="text-danger" th:if="${#fields.hasErrors('mobile1')}" th:errors="*{mobile1}">City Error</p>
         </div>
         <div class="col-md-3"></div>
         <div class="col-md-3">
           <label for="mobile2" class="form-label">Mobile 2</label>
-          <input type="text" id="mobile2" class="form-control intfields" th:field="*{mobile2}">
+          <input type="text" id="mobile2" class="form-control intfields" th:field="*{mobile2}" maxlength="10"
+                 minlength="10"
+                 pattern="[0-9]{10}"
+                 inputmode="numeric"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)">
           <p class="text-danger" th:if="${#fields.hasErrors('mobile2')}" th:errors="*{mobile2}">City Error</p>
         </div>
         <div class="col-md-3"></div>
@@ -322,8 +334,8 @@
           <label for="studentType" class="form-label">Student Type</label>
           <!--<input type="text" id="studentType" class="form-control" th:field="*{studentType}">-->
           <select id="studentType" class="form-control" th:field="*{studentType}">
-            <option value="Old" th:selected="Old == ${student.studentType}">Old</option>
-            <option value="New" th:selected="New == ${student.studentType}">New</option>
+            <option value="OLD" th:selected="OLD == ${student.studentType}">Old</option>
+            <option value="NEW" th:selected="NEW == ${student.studentType}">New</option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('studentType')}" th:errors="*{studentType}">studentType Error</p>
         </div>
@@ -331,9 +343,9 @@
           <label for="schoolStatus" class="form-label">School Status</label>
           <!--<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">-->
           <select id="schoolStatus" class="form-control" th:field="*{schoolStatus}">
-            <option value="Own" th:selected="Own == ${student.schoolStatus}">Own</option>
-            <option value="Grant" th:selected="Grant == ${student.schoolStatus}">Grant</option>
-            <option value="Other" th:selected="Other == ${student.schoolStatus}">Other</option>
+            <option value="OWN" th:selected="OWN == ${student.schoolStatus}">Own</option>
+            <option value="GRANT" th:selected="GRANT == ${student.schoolStatus}">Grant</option>
+            <option value="OTHER" th:selected="OTHER == ${student.schoolStatus}">Other</option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('schoolStatus')}" th:errors="*{schoolStatus}">schoolStatus Error</p>
         </div>
@@ -473,6 +485,59 @@
         const castVal = $("#cast").val().trim();
         const category = $("#category").val().trim();
 
+        const studentName = $("#studentName").val().trim();
+        const fatherName = $("#fatherName").val().trim();
+        const motherName = $("#motherName").val().trim();
+        const nationality = $("#nationality").val().trim();
+        const gender = $("#gender").val().trim();
+        const address = $("#address").val().trim();
+
+        if (!studentName) {
+          showWarningMsg("error", "Student Name is required.", "Error");
+          return false;
+        }
+
+        if (!fatherName) {
+          showWarningMsg("error", "Father Name is required.", "Error");
+          return false;
+        }
+
+        if (!motherName) {
+          showWarningMsg("error", "Mother Name is required.", "Error");
+          return false;
+        }
+
+        if (!religion) {
+          showWarningMsg("error", "Religion is required.", "Error");
+          return false; // stop checking further
+        }
+
+        if (!nationality) {
+          showWarningMsg("error", "Nationality is required.", "Error");
+          return false;
+        }
+
+        if (!gender) {
+          showWarningMsg("error", "Gender is required.", "Error");
+          return false;
+        }
+
+        if (!category) {
+          showWarningMsg("error", "Category is required.", "Error");
+          return false; // stop checking further
+        }
+
+        if (!castVal) {
+          showWarningMsg("error", "Caste is required.", "Error");
+          return false; // stop checking further
+        }
+
+        if (!address) {
+          showWarningMsg("error", "Address is required.", "Error");
+          return false; // stop checking further
+        }
+
+
         if (!mobile1) {
           showWarningMsg("error", "Mobile no is required.", "Error");
           return false; // stop checking further
@@ -487,22 +552,6 @@
           showWarningMsg("error", "Enter a valid email.", "Error");
           return false;
         }
-
-        if (!religion) {
-          showWarningMsg("error", "Religion is required.", "Error");
-          return false; // stop checking further
-        }
-
-        if (!castVal) {
-          showWarningMsg("error", "Caste is required.", "Error");
-          return false; // stop checking further
-        }
-        if (!category) {
-          showWarningMsg("error", "Category is required.", "Error");
-          return false; // stop checking further
-        }
-
-
         // If all validations pass, submit the form
         this.submit();
       });

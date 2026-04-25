@@ -95,7 +95,7 @@ public class Student { // Extend UserEntity
     private Cast cast;
 
     @DisplayLabel("Gender")
-    private String gender = "No_Preference";
+    private String gender = "NO_PREFERENCE";
 
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Description should not exceed 500 characters")
@@ -103,13 +103,13 @@ public class Student { // Extend UserEntity
 
     private String pic;
     @DisplayLabel("Religion")
-    private String religion = "No Preference";
+    private String religion = "NO PREFERENCE";
 
     // Physical Info
     private Integer height = 0;
     private Integer weight = 0;
-    private String bloodGroup = "No Preference";
-    private String bodyType = "Normal";
+    private String bloodGroup = "NO PREFERENCE";
+    private String bodyType = "NORMAL";
 
     // Contact Info
     @NotBlank(message = "Address should not be blank")
@@ -185,13 +185,13 @@ public class Student { // Extend UserEntity
     private Medium medium;
 
     @Column(nullable = false)
-    private String studentType = "New";
+    private String studentType = "NEW";
 
     @Column(nullable = false)
-    private String schoolStatus = "Own";
+    private String schoolStatus = "OWN";
 
     @Column(nullable = false)
-    private String status = "Active";
+    private String status = "ACTIVE";
 
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Remark should not exceed 500 characters")
@@ -262,6 +262,7 @@ public class Student { // Extend UserEntity
         if (uuid == null) {
             uuid = UUID.randomUUID();
         }
+        toUpperCase();
     }
     /*
      * Helper Method
@@ -270,6 +271,51 @@ public class Student { // Extend UserEntity
         return studentName;
     }
 
-    public static final String STATUS_ACTIVE = "Active";
-    public static final String STATUS_INACTIVE = "Inactive";
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_INACTIVE = "INACTIVE";
+
+ @PreUpdate
+ protected void onUpdate() {
+  toUpperCase();   // ✅ only uppercase
+ }
+
+ private void toUpperCase() {
+   if (studentName         != null) studentName         = studentName.toUpperCase().trim();
+   if (fatherName          != null) fatherName          = fatherName.toUpperCase().trim();
+   if (motherName          != null) motherName          = motherName.toUpperCase().trim();
+   if (nationality         != null) nationality         = nationality.toUpperCase().trim();
+   if (fatherOccupation    != null) fatherOccupation    = fatherOccupation.toUpperCase().trim();
+   if (motherOccupation    != null) motherOccupation    = motherOccupation.toUpperCase().trim();
+   if (fatherQualification != null) fatherQualification = fatherQualification.toUpperCase().trim();
+   if (motherQualification != null) motherQualification = motherQualification.toUpperCase().trim();
+   //if (gender              != null) gender              = gender.toUpperCase().trim();
+   if (description         != null) description         = description.toUpperCase().trim();
+   //if (religion            != null) religion            = religion.toUpperCase().trim();
+   //if (bloodGroup          != null) bloodGroup          = bloodGroup.toUpperCase().trim();
+   //if (bodyType            != null) bodyType            = bodyType.toUpperCase().trim();
+   if (address             != null) address             = address.toUpperCase().trim();
+   if (landmark            != null) landmark            = landmark.toUpperCase().trim();
+   if (pincode             != null) pincode             = pincode.trim();
+   if (mobile1             != null) mobile1             = mobile1.trim();
+   if (mobile2             != null) mobile2             = mobile2.trim();
+   if (previousSchool      != null) previousSchool      = previousSchool.toUpperCase().trim();
+   if (previousClass       != null) previousClass       = previousClass.toUpperCase().trim();
+   if (tcNo                != null) tcNo                = tcNo.toUpperCase().trim();
+   if (removalCause        != null) removalCause        = removalCause.toUpperCase().trim();
+   if (personName          != null) personName          = personName.toUpperCase().trim();
+   if (personContact       != null) personContact       = personContact.trim();
+   if (relationship        != null) relationship        = relationship.toUpperCase().trim();
+   if (studentType         != null) studentType         = studentType.toUpperCase().trim();
+   if (schoolStatus        != null) schoolStatus        = schoolStatus.toUpperCase().trim();
+   //if (status              != null) status              = status.toUpperCase().trim();
+   if (remark              != null) remark              = remark.toUpperCase().trim();
+   if (branchName          != null) branchName          = branchName.toUpperCase().trim();
+   if (ifscCode            != null) ifscCode            = ifscCode.toUpperCase().trim();
+   if (accountNo           != null) accountNo           = accountNo.trim();
+   if (aadharNo            != null) aadharNo            = aadharNo.trim();
+   if (apaarId             != null) apaarId             = apaarId.trim();
+   if (penNo               != null) penNo               = penNo.trim();
+ }
+
+
 }

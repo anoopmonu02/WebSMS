@@ -40,53 +40,53 @@ public class DropdownService {
 
     public Map<String, String> getRelationships() {
         Map<String, String> relationships = new LinkedHashMap<>();
-        relationships.put("Parent", "Parent");
-        relationships.put("Sibling", "Sibling");
-        relationships.put("Friend", "Friend");
-        relationships.put("No Preference", "No Preference");
+        relationships.put("Parent", "PARENT");
+        relationships.put("Sibling", "SIBLING");
+        relationships.put("Friend", "FRIEND");
+        relationships.put("No Preference", "NO PREFERENCE");
         return relationships;
     }
 
     public List<String> getBloodGroups() {
-        return Arrays.asList("A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "No Preference");
+        return Arrays.asList("A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "NO PREFERENCE");
     }
 
     public List<String> getBodyTypes() {
-        return Arrays.asList("Normal", "Blind", "Physically Challenged", "Other");
+        return Arrays.asList("NORMAL", "BLIND", "PHYSICALLY CHALLENGED", "OTHER");
     }
 
     public List<String> getReligions(){
         return Arrays.asList(
-                "Christianity",
-                "Islam",
-                "Hinduism",
-                "Buddhism",
-                "Judaism",
-                "Sikhism",
-                "Bahá'í Faith",
-                "Jainism",
-                "Shinto",
-                "Taoism",
-                "Confucianism",
-                "Zoroastrianism",
-                "Rastafarianism",
-                "Paganism",
-                "New Age",
-                "Unitarian Universalism",
-                "Scientology",
-                "Druze",
-                "Caodaism",
-                "Tenrikyo",
-                "Falun Gong",
-                "African Traditional Religions",
-                "Native American Religions",
-                "Aboriginal Australian Religions",
-                "Chinese Folk Religion",
-                "Atheism",
-                "Agnosticism",
-                "Humanism",
-                "Secularism",
-                "No Preference"
+                "CHRISTIANITY",
+                "ISLAM",
+                "HINDUISM",
+                "BUDDHISM",
+                "JUDAISM",
+                "SIKHISM",
+                "BAHÁ'Í FAITH",
+                "JAINISM",
+                "SHINTO",
+                "TAOISM",
+                "CONFUCIANISM",
+                "ZOROASTRIANISM",
+                "RASTAFARIANISM",
+                "PAGANISM",
+                "NEW AGE",
+                "UNITARIAN UNIVERSALISM",
+                "SCIENTOLOGY",
+                "DRUZE",
+                "CAODAISM",
+                "TENRIKYO",
+                "FALUN GONG",
+                "AFRICAN TRADITIONAL RELIGIONS",
+                "NATIVE AMERICAN RELIGIONS",
+                "ABORIGINAL AUSTRALIAN RELIGIONS",
+                "CHINESE FOLK RELIGION",
+                "ATHEISM",
+                "AGNOSTICISM",
+                "HUMANISM",
+                "SECULARISM",
+                "NO PREFERENCE"
         );
     }
 

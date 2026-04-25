@@ -274,6 +274,7 @@ public class StudentService {
                 existingStudent.setPersonName(student.getPersonName());
                 existingStudent.setPersonContact(student.getPersonContact());
                 existingStudent.setRelationship(student.getRelationship());
+                existingStudent.setStudentType(student.getStudentType());
                 existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 return existingStudent;
