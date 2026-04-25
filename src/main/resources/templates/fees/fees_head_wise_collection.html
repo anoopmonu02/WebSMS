@@ -80,13 +80,13 @@
                       </div>
                   </div>-->
            </div>
-        <div class="card-header fs-3">Collection Data</div><hr/>
+        <!--<div class="card-header fs-3">Collection Data</div><hr/>
            <div class="row">
                 <div class="fee-details" id="userwise-collection-data">
 
                 </div>
            </div>
-    </div>
+    </div>-->
 
   </div>
 
@@ -283,122 +283,26 @@
                 $("#printable-div").show();
                 $("#print-div").show();
 
-                let labels = [];
+                /*let labels = [];
                 let amounts = [];
                 let backgroundColors = [];
-                let borderColors = [];
-                let tableData = '<table class="table table-striped table-bordered table-sm"><thead><tr><th>SNo</th><th>User Name</th><th>Collection</th><th>Total Receipt(s)</th></tr></thead><tbody class="table-group-divider">';
+                let borderColors = [];*/
+                let tableData = '<table class="table table-striped table-bordered table-sm"><thead><tr><th>SNo</th><th>Head Name</th><th>Total Amount</th></tr></thead><tbody class="table-group-divider">';
+                let totalAmt = 0;
                 for(let i=0;i<rowData.length;i++){
                     //console.log(rowData[i]);
                     let rowVal = rowData[i];
-                    tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[2]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[0]}.00 </span></td><td>${rowVal[1]}</td></tr>`;
-                    /*labels.push(rowVal[2]); // User Name
-                    amounts.push(rowVal[0]);
+                    tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[0]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[1]}.00 </span></td></tr>`;
+                    totalAmt+=rowVal[1];
+                    /*labels.push(rowVal[0]); // User Name
+                    amounts.push(rowVal[1]);
                     let color = getRandomColor();
                     backgroundColors.push(color);
                     borderColors.push(color.replace('0.6', '1'));*/
                 }
-                tableData+=`</tbody></table>`;
+                tableData+=`</tbody><tfoot class="table-group-divider"><tr><td></td><td></td><td class="text-center"><strong>Total: </strong> &#8377; ${totalAmt}</td></tr></tfoot></table>`;
                 $("#userwise-collection-info").html(tableData);
                 //generateChart(labels,amounts, backgroundColors, borderColors);
-
-                //Setting fee data - userwise-collection-data
-                let feeData;
-                if(selectedOption === 'range'){
-                    feeData = data.finalData.dateRangeFeeCollectionDetails;
-                } else{
-                    feeData = data.finalData.todayFeeCollectionDetails;
-                }
-                //console.log("feeData:::"+feeData);
-                //console.log("class "+feeData[0]);
-                //console.log("class "+feeData[0].class);
-                if (typeof feeData === 'string') {
-                    $("#userwise-collection-data").html(`<div class="alert alert-danger"><strong>${feeData}</strong></div>`);
-                } else {
-                    //console.log("First entry class:", feeData[0]?.class);
-                    let counter = 1;
-                    //let tblData = '<table class="table table-striped table-bordered table-sm"><thead><tr><th>SNo</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>SR No</th>${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}<th>Paid Amount</th><th>Fine Amount</th>';
-                    let tblData = `<table class="table table-striped table-bordered table-sm">
-                    <thead>
-                        <tr>
-                            <th>SNo</th>
-                            <th>Grade</th>
-                            <th>SR No</th>
-                            <th>Student Name</th>
-                            <th>Father Name</th>
-                            <th>Months</th>
-                            ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
-                            <th>Receipt No</th>
-                            <th>Total Amount</th>
-                            <th>Balance Amount</th>
-                            <th>Paid Amount</th>
-                            <!--<th>Fine Amount</th>
-                            <th>Discount Amount</th>-->
-                            <th>User</th>
-
-                        </tr>
-                    </thead>
-                    <tbody class="table-group-divider">`;
-                    let totalAmountSubmitted = 0;
-                    let totalAmount = 0;
-                    //tblData+='<th>Discount Amount</th><th>Total Amount</th><th>Balance Amount</th></tr></thead><tbody class="table-group-divider">';
-                    feeData.forEach(feeSubmission =>{
-                        let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
-                        //let dt = feeSubmission.feeSubmissionDate ? feeSubmission.feeSubmissionDate: '';
-                        let dt = feeSubmission.feeSubmissionDate
-                            ? new Date(feeSubmission.feeSubmissionDate).toISOString().split('T')[0] // Extracts "2025-01-22"
-                            : '';
-
-                        if (dt) {
-                            let dateObj = new Date(dt);
-                            dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                            dt = dt.replaceAll(" ","/");
-                        }
-                        let feeSubmissionMonths = feeSubmission.feeSubmissionMonths;
-                        //console.log(feeSubmissionMonths);
-                        let month_names = '';
-                        if (feeSubmissionMonths && feeSubmissionMonths.length > 0) {
-                            feeSubmissionMonths.forEach(m => {
-                                //console.log(m.monthMaster.monthName);
-                                month_names+=m.monthMaster.monthName + ',';
-                            });
-                        }
-                        console.log(feeSubmission.createdBy);
-                        console.log(feeSubmission.createdByName );
-                        tblData += `<tr>
-                                <td>${counter}</td>
-                                <td>${feeSubmission.academicStudent.grade.gradeName} - ${feeSubmission.academicStudent.section.sectionName}</td>
-                                <td>${srno}</td>
-                                <td>${feeSubmission.academicStudent.student.studentName}</td>
-                                <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                                <td>${month_names}</td>
-                                ${selectedOption === 'range' ? `<td>${dt}</td>` : ''}
-                                <td>${feeSubmission.receiptNo}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
-                               <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
-                                <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
-                                <td>${feeSubmission.createdByName ?? ''}</td>
-
-                            </tr>`;
-                        totalAmountSubmitted+=feeSubmission.paidAmount;
-                        totalAmount+=feeSubmission.totalAmount;
-                        counter++;
-                    });
-                    const totalCols = selectedOption === 'range' ? 12 : 11;
-                    const halfCols = Math.floor(totalCols / 2);
-                    const remainingCols = totalCols - halfCols;
-                    tblData+=`</tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="${halfCols}" class="text-center">Total Amount: <strong>&#8377; ${totalAmount}</strong></td>
-                            <td colspan="${remainingCols}" class="text-center">Total Paid Amount: <strong>&#8377; ${totalAmountSubmitted}</strong></td>
-                        </tr>
-                    </tfoot>
-                    </table>`;
-                    $("#userwise-collection-data").html(tblData);
-                }
             })
             .catch(error => {
                 console.error('Error:', error);  // Handle error response

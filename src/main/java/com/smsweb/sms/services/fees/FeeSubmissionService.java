@@ -1261,4 +1261,33 @@ public class FeeSubmissionService {
         return responseMap;
     }
 
+    public Map calculateFeeSubmissionHeadWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                if(paramsMap.containsKey("selectedOption")){
+                    if(paramsMap.get("selectedOption").equalsIgnoreCase("today")){
+                        String currentDate = paramsMap.get("todayDate");
+                        System.out.println("currentDate:"+currentDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.getFeeSubmissionHeadWiseToday(currentDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                    } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
+                        String startDate = paramsMap.get("startDate");
+                        String endDate = paramsMap.get("endDate");
+                        System.out.println("start-end:"+startDate+"-"+endDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.getFeeSubmissionHeadWiseAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                    }
+                }
+            }
+            //System.out.println("finalData: "+finalDataMap);
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
 }

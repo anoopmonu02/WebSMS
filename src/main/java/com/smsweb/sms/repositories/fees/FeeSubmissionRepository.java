@@ -59,13 +59,13 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     );
 
     @Query(
-            value = "SELECT SUM(paid_amount) AS totalPaid, COUNT(id) AS totalCount, created_by as createdBy " +
-                    "FROM fee_submission " +
-                    "WHERE status = 'active' " +
-                    "  AND DATE(fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') " +
-                    "  AND school_id = :schoolId " +
-                    "  AND academic_year_id = :academicYearId " +
-                    "GROUP BY created_by ",
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Active' " +
+                    "  AND DATE(fs.fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "GROUP BY fs.created_by ",
             nativeQuery = true)
     List<Object[]> findFeeSubmissionAggregatesForCurrentDate(
             @Param("date") String date,
@@ -220,5 +220,27 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
                                 @Param("status") String status,
                                 @Param("academicId") Long academicId);
 
+
+    @Query(value = """
+        select h.fee_head_name, sum(fs.amount) as AMT
+       from fee_submission f, fee_submission_sub fs, feehead h
+       where f.id=fs.fee_submission_id and fs.fee_head_id=h.id and DATE(f.fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') and f.school_id=:schoolId and f.academic_year_id=:academicYearId and f.status='Active'
+       group by  fs.fee_head_id
+    """, nativeQuery = true)
+    List<Object[]> getFeeSubmissionHeadWiseToday(@Param("date") String date,
+                                                 @Param("schoolId") Long schoolId,
+                                                 @Param("academicYearId") Long academicYearId);
+
+
+    @Query(value = """
+        select h.fee_head_name, sum(fs.amount) as AMT
+       from fee_submission f, fee_submission_sub fs, feehead h
+       where f.id=fs.fee_submission_id and fs.fee_head_id=h.id and DATE(fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') and f.school_id=:schoolId and f.academic_year_id=:academicYearId and f.status='Active'
+       group by  fs.fee_head_id
+    """, nativeQuery = true)
+    List<Object[]> getFeeSubmissionHeadWiseAggregatesForDateRange( @Param("startDate") String startDate,
+                                                                   @Param("endDate") String endDate,
+                                                                   @Param("schoolId") Long schoolId,
+                                                                   @Param("academicYearId") Long academicYearId);
 
 }

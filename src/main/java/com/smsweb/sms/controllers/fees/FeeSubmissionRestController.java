@@ -825,7 +825,7 @@ public class FeeSubmissionRestController extends BaseController {
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-                Map result = feeSubmissionService.calculateFeeSubmissionUserWise(requestBody, school, academicYear);
+                Map result = feeSubmissionService.calculateFeeSubmissionHeadWise(requestBody, school, academicYear);
                 //System.out.println("responseMap "+result);
                 //System.out.println("result "+result.keySet());
                 return ResponseEntity.ok(result);

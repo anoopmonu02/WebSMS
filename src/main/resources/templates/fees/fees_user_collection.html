@@ -291,7 +291,7 @@
                 for(let i=0;i<rowData.length;i++){
                     //console.log(rowData[i]);
                     let rowVal = rowData[i];
-                    tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[2]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[0]}.00 </span></td><td>${rowVal[1]}</td></tr>`;
+                    tableData+=`<tr><td>${(i+1)}</td><td>${rowVal[3]}</td><td class="text-center"><span class="badge rounded-pill text-bg-success"> &#8377; ${rowVal[0]}.00 </span></td><td>${rowVal[1]}</td></tr>`;
                     /*labels.push(rowVal[2]); // User Name
                     amounts.push(rowVal[0]);
                     let color = getRandomColor();
@@ -332,6 +332,7 @@
                             <th>Total Amount</th>
                             <th>Balance Amount</th>
                             <th>Paid Amount</th>
+                            <th>Payment</th>
                             <!--<th>Fine Amount</th>
                             <th>Discount Amount</th>-->
                             <th>User</th>
@@ -341,6 +342,8 @@
                     <tbody class="table-group-divider">`;
                     let totalAmountSubmitted = 0;
                     let totalAmount = 0;
+                    let cashAmount = 0;
+                    let onlineAmount = 0;
                     //tblData+='<th>Discount Amount</th><th>Total Amount</th><th>Balance Amount</th></tr></thead><tbody class="table-group-divider">';
                     feeData.forEach(feeSubmission =>{
                         let srno = feeSubmission.academicStudent.classSrNo ? feeSubmission.academicStudent.classSrNo.trim() : '';
@@ -377,27 +380,44 @@
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
+                                <td>${feeSubmission.paymentType!=null?feeSubmission.paymentType:'-'}</td>
                                <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
                                 <td>${feeSubmission.createdByName ?? ''}</td>
 
                             </tr>`;
+                        console.log("feeSubmission.paymentType---"+feeSubmission.paymentType+"  receipt: "+feeSubmission.receiptNo);
                         totalAmountSubmitted+=feeSubmission.paidAmount;
                         totalAmount+=feeSubmission.totalAmount;
+                        if(feeSubmission.paymentType==='Online'){
+                            onlineAmount+=feeSubmission.paidAmount;
+                        } else {
+                            cashAmount+=feeSubmission.paidAmount;
+                        }
                         counter++;
                     });
-                    const totalCols = selectedOption === 'range' ? 12 : 11;
-                    const halfCols = Math.floor(totalCols / 2);
-                    const remainingCols = totalCols - halfCols;
+                    const totalCols = selectedOption === 'range' ? 13 : 12;
+                    const col1 = Math.floor(totalCols / 4);
+                    const col2 = Math.floor(totalCols / 4);
+                    const col3 = Math.floor(totalCols / 4);
+                    // Remaining goes to last column
+                    const col4 = totalCols - (col1 + col2 + col3);
                     tblData+=`</tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="${halfCols}" class="text-center">Total Amount: <strong>&#8377; ${totalAmount}</strong></td>
-                            <td colspan="${remainingCols}" class="text-center">Total Paid Amount: <strong>&#8377; ${totalAmountSubmitted}</strong></td>
+                            <td colspan="${col1}" class="text-center">Total Amount: <strong>&#8377; ${totalAmount}</strong></td>
+                            <td colspan="${col2}" class="text-center">Total Cash Amount: <strong>&#8377; ${cashAmount}</strong></td>
+                            <td colspan="${col3}" class="text-center">Total Online Amount: <strong>&#8377; ${onlineAmount}</strong></td>
+                            <td colspan="${col4}" class="text-center">Total Paid Amount: <strong>&#8377; ${totalAmountSubmitted}</strong></td>
                         </tr>
                     </tfoot>
                     </table>`;
-                    $("#userwise-collection-data").html(tblData);
+                    //$("#userwise-collection-data").html(tblData);
+                    $("#userwise-collection-data").html(`
+                        <div style="overflow-x:auto; width:100%;">
+                            ${tblData}
+                        </div>
+                    `);
                 }
             })
             .catch(error => {
