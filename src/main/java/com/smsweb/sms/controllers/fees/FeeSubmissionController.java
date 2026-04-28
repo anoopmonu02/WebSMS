@@ -240,6 +240,14 @@ public class FeeSubmissionController extends BaseController {
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
             model.addAttribute("isAdmin", isAdmin);
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+            model.addAttribute("monthmapping", monthMappingList);
+            model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+            model.addAttribute("grades",gradeService.getAllGrades());
+            model.addAttribute("sections",sectionService.getAllSections());
+            model.addAttribute("mediums", mediumService.getAllMediums());
         }catch(Exception e){
             e.printStackTrace();        }
 

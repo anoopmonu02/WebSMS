@@ -23,7 +23,7 @@
         </div>
 
         <div class="col-md-6">
-          <label for="studentName" class="form-label">Student Name</label>
+          <label for="studentName" class="form-label">Student Name<span class="text-danger">*</span></label>
           <input type="text" id="studentName" class="form-control" th:field="*{studentName}">
           <p class="text-danger" th:if="${#fields.hasErrors('studentName')}" th:errors="*{studentName}">stu name Error</p>
         </div>
@@ -40,7 +40,7 @@
 
 
         <div class="col-md-6">
-          <label for="fatherName" class="form-label">Father Name</label>
+          <label for="fatherName" class="form-label">Father Name<span class="text-danger">*</span></label>
           <input type="text" id="fatherName" class="form-control" th:field="*{fatherName}">
           <p class="text-danger" th:if="${#fields.hasErrors('fatherName')}" th:errors="*{fatherName}">f name Error</p>
         </div>
@@ -57,7 +57,7 @@
         </div>
 
         <div class="col-md-6">
-          <label for="motherName" class="form-label">Mother Name</label>
+          <label for="motherName" class="form-label">Mother Name<span class="text-danger">*</span></label>
           <input type="text" id="motherName" class="form-control" th:field="*{motherName}">
           <p class="text-danger" th:if="${#fields.hasErrors('motherName')}" th:errors="*{motherName}">m name Error</p>
         </div>
@@ -74,8 +74,8 @@
         </div>
 
         <div class="col-md-3">
-          <label for="religion" class="form-label">Religion</label>
-          <select id="religion" class="form-control" th:field="*{religion}">
+          <label for="religion" class="form-label">Religion<span class="text-danger">*</span></label>
+          <select id="religion" class="form-select" th:field="*{religion}">
             <option th:each="religion : ${religions}" th:value="${religion}" th:text="${religion}"
                     th:selected="${religion} == ${student.religion}"></option>
           </select>
@@ -84,13 +84,13 @@
 
 
         <div class="col-md-3">
-          <label for="nationality" class="form-label">Nationality</label>
+          <label for="nationality" class="form-label">Nationality<span class="text-danger">*</span></label>
           <input type="text" id="nationality" class="form-control" th:field="*{nationality}" readonly="readonly">
         </div>
 
         <div class="col-md-3">
-          <label for="gender" class="form-label">Gender</label>
-          <select id="gender" class="form-control" th:field="*{gender}">
+          <label for="gender" class="form-label">Gender<span class="text-danger">*</span></label>
+          <select id="gender" class="form-select" th:field="*{gender}">
             <option value="MALE" th:selected="MALE == ${student.gender}">Male</option>
             <option value="FEMALE" th:selected="FEMALE == ${student.gender}">Female</option>
             <option value="NO_PREFERENCE" th:selected="NO_PREFERENCE == ${student.gender}">No Preference</option>
@@ -100,8 +100,8 @@
         <div class="col-md-3">
         </div>
         <div class="col-md-3">
-          <label for="category" class="form-label">Category</label>
-          <select id="category" class="form-control" th:field="*{category}">
+          <label for="category" class="form-label">Category<span class="text-danger">*</span></label>
+          <select id="category" class="form-select" th:field="*{category}">
             <option th:each="category : ${categories}" th:value="${category.id}" th:text="${category.categoryName}"
                     th:selected="${category} == ${student.category}"></option>
           </select>
@@ -109,8 +109,8 @@
         </div>
 
         <div class="col-md-3">
-          <label for="cast" class="form-label">Caste</label>
-          <select id="cast" class="form-control" th:field="*{cast.id}">
+          <label for="cast" class="form-label">Caste<span class="text-danger">*</span></label>
+          <select id="cast" class="form-select" th:field="*{cast.id}">
             <option th:each="cast : ${casts}" th:value="${cast.id}" th:text="${cast.castName}"
                     th:selected="${cast} == ${student.cast}"></option>
           </select>
@@ -158,7 +158,7 @@
         </div>
         <div class="col-md-3">
           <label for="bloodGroup" class="form-label">Blood Group</label>
-          <select id="bloodGroup" class="form-control" th:field="*{bloodGroup}">
+          <select id="bloodGroup" class="form-select" th:field="*{bloodGroup}">
             <option th:each="bloodGroup : ${bloodGroups}" th:value="${bloodGroup}" th:text="${bloodGroup}" th:selected="${bloodGroup} == ${student.bloodGroup}"></option>
           </select>
         </div>
@@ -167,7 +167,7 @@
         <div class="col-md-3">
           <label for="bodyType" class="form-label">Body Type</label>
           <!--<input type="text" id="bodyType" class="form-control" th:field="*{bodyType}">-->
-          <select id="bodyType" class="form-control" th:field="*{bodyType}">
+          <select id="bodyType" class="form-select" th:field="*{bodyType}">
             <option th:each="bodyType : ${bodyTypes}" th:value="${bodyType}" th:text="${bodyType}" th:selected="${bodyType} == ${student.bodyType}"></option>
           </select>
         </div>
@@ -179,7 +179,7 @@
           <h4>Contact Information</h4>
         </div>
         <div class="col-md-7">
-          <label for="address" class="form-label">Address</label>
+          <label for="address" class="form-label">Address<span class="text-danger">*</span></label>
           <div class="form-floating">
             <textarea id="address" placeholder="Add address here" class="form-control" name="address" style="height: 100px;" rows="4" cols="50" th:field="*{address}"></textarea>
             <label for="address">Add Address</label>
@@ -193,7 +193,7 @@
         </div>
         <div class="col-md-8"></div>
         <div class="col-md-4">
-          <label for="province" class="form-label">Province</label>
+          <label for="province" class="form-label">Province<span class="text-danger">*</span></label>
           <select id="province" th:field="*{province}" class="form-select" name="province">
             <option value="">Select Province</option>
             <option th:each="province : ${provinces}" th:value="${province.id}" th:text="${province.provinceName}"
@@ -203,7 +203,7 @@
         </div>
         <div class="col-md-2"></div>
         <div class="col-md-4">
-          <label for="city" class="form-label">City</label>
+          <label for="city" class="form-label">City<span class="text-danger">*</span></label>
           <input type="hidden" th:value="${student.city != null ? student.city.id : ''}" id="hiddencity">
           <select id="city" class="form-select" name="city" th:field="*{city}">
             <option value="">Select City</option>
@@ -222,7 +222,7 @@
         </div>
         <div class="col-md-9"></div>
         <div class="col-md-3">
-          <label for="mobile1" class="form-label">Mobile 1</label>
+          <label for="mobile1" class="form-label">Mobile 1<span class="text-danger">*</span></label>
           <input type="text" id="mobile1" class="form-control intfields" th:field="*{mobile1}" maxlength="10"
                  minlength="10"
                  pattern="[0-9]{10}"
@@ -242,7 +242,7 @@
         </div>
         <div class="col-md-3"></div>
         <div class="col-md-4">
-          <label for="email" class="form-label">Email</label>
+          <label for="email" class="form-label">Email<span class="text-danger">*</span></label>
           <input type="text" id="email" class="form-control" th:field="*{userEntity.email}">
           <p class="text-danger" th:if="${#fields.hasErrors('userEntity.email')}" th:errors="*{userEntity.email}">City Error</p>
         </div>
@@ -295,7 +295,7 @@
         </div>
         <div class="col-md-3">
           <label for="relationship" class="form-label">Relationship</label>
-          <select id="relationship" class="form-control" th:field="*{relationship}">
+          <select id="relationship" class="form-select" th:field="*{relationship}">
             <option th:each="entry : ${relationships}" th:value="${entry.key}" th:text="${entry.value}"
             th:selected="${entry} == ${student.relationship}"></option>
           </select>
@@ -306,16 +306,16 @@
           <h4>Academic Registration Information</h4>
         </div>
         <div class="col-md-4">
-          <label for="medium" class="form-label">Medium</label>
-          <select id="medium" class="form-control" th:field="*{medium}">
+          <label for="medium" class="form-label">Medium<span class="text-danger">*</span></label>
+          <select id="medium" class="form-select" th:field="*{medium}">
             <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
             th:selected="${medium} == ${student.medium}"></option>
           </select>
           <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">medium Error</p>
         </div>
         <div class="col-md-4">
-          <label for="grade" class="form-label">Grade</label>
-          <select id="grade" class="form-control" th:field="*{grade}">
+          <label for="grade" class="form-label">Grade<span class="text-danger">*</span></label>
+          <select id="grade" class="form-select" th:field="*{grade}">
             <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}"
                     th:selected="${grade} == ${student.grade}"></option>
           </select>
@@ -323,7 +323,7 @@
         </div>
         <div class="col-md-4">
           <label for="section" class="form-label">Section</label>
-          <select id="section" class="form-control" th:field="*{section}">
+          <select id="section" class="form-select" th:field="*{section}">
             <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}"
                     th:selected="${section} == ${student.section}"></option>
           </select>
@@ -331,9 +331,9 @@
         </div>
 
         <div class="col-md-4">
-          <label for="studentType" class="form-label">Student Type</label>
+          <label for="studentType" class="form-label">Student Type<span class="text-danger">*</span></label>
           <!--<input type="text" id="studentType" class="form-control" th:field="*{studentType}">-->
-          <select id="studentType" class="form-control" th:field="*{studentType}">
+          <select id="studentType" class="form-select" th:field="*{studentType}">
             <option value="OLD" th:selected="OLD == ${student.studentType}">Old</option>
             <option value="NEW" th:selected="NEW == ${student.studentType}">New</option>
           </select>
@@ -342,7 +342,7 @@
         <div class="col-md-4">
           <label for="schoolStatus" class="form-label">School Status</label>
           <!--<input type="text" id="schoolStatus" class="form-control" th:field="*{schoolStatus}">-->
-          <select id="schoolStatus" class="form-control" th:field="*{schoolStatus}">
+          <select id="schoolStatus" class="form-select" th:field="*{schoolStatus}">
             <option value="OWN" th:selected="OWN == ${student.schoolStatus}">Own</option>
             <option value="GRANT" th:selected="GRANT == ${student.schoolStatus}">Grant</option>
             <option value="OTHER" th:selected="OTHER == ${student.schoolStatus}">Other</option>
@@ -371,7 +371,7 @@
         </div>
         <div class="col-md-6">
           <label for="bank" class="form-label">Bank</label>
-          <select id="bank" class="form-control" th:field="*{bank}">
+          <select id="bank" class="form-select" th:field="*{bank}">
             <option th:each="bank : ${banks}" th:value="${bank.id}" th:text="${bank.bankName}"
             th:selected="${bank} == ${student.bank}"></option>
           </select>
@@ -492,6 +492,12 @@
         const gender = $("#gender").val().trim();
         const address = $("#address").val().trim();
 
+        const medium = $("#medium").val().trim();
+        const studentType = $("#studentType").val().trim();
+        const province = $("#province").val().trim();
+        const city = $("#city").val().trim();
+        const grade = $("#grade").val().trim();
+
         if (!studentName) {
           showWarningMsg("error", "Student Name is required.", "Error");
           return false;
@@ -552,6 +558,32 @@
           showWarningMsg("error", "Enter a valid email.", "Error");
           return false;
         }
+
+        if (!medium) {
+          showWarningMsg("error", "Medium is required.", "Error");
+          return false;
+        }
+
+        if (!studentType) {
+          showWarningMsg("error", "Student Type is required.", "Error");
+          return false;
+        }
+
+        if (!province) {
+          showWarningMsg("error", "Province is required.", "Error");
+          return false;
+        }
+
+        if (!city) {
+          showWarningMsg("error", "City is required.", "Error");
+          return false; // stop checking further
+        }
+
+        if (!grade) {
+          showWarningMsg("error", "Grade is required.", "Error");
+          return false;
+        }
+
         // If all validations pass, submit the form
         this.submit();
       });

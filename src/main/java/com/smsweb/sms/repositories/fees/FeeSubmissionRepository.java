@@ -243,4 +243,48 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
                                                                    @Param("schoolId") Long schoolId,
                                                                    @Param("academicYearId") Long academicYearId);
 
+
+    @Query("""
+    SELECT fb.feehead.feeHeadName,sum(fb.amount) as Total FROM FeeSubmission fs join fs.feeSubmissionSub fb
+    LEFT JOIN fs.academicStudent ac
+    LEFT JOIN ac.medium med
+    LEFT JOIN ac.grade gr
+    LEFT JOIN ac.section sec
+    WHERE fs.school.id = :schoolId
+    AND fs.academicYear.id = :academicYearId
+    AND (:mediumId  IS NULL OR med.id  = :mediumId)
+    AND (:gradeId   IS NULL OR gr.id   = :gradeId)
+    AND (:sectionId IS NULL OR sec.id  = :sectionId) AND fs.status='Active' group by fb.feehead.feeHeadName
+""")
+    List<Object[]> findByGradeWiseFilters(
+            @Param("schoolId")      Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("mediumId")      Long mediumId,
+            @Param("gradeId")       Long gradeId,
+            @Param("sectionId")     Long sectionId
+    );
+
+    @Query("""
+    SELECT fb.feehead.feeHeadName,sum(fb.amount) as Total FROM FeeSubmission fs join fs.feeSubmissionSub fb
+    LEFT JOIN fs.academicStudent ac
+    LEFT JOIN ac.medium med
+    LEFT JOIN ac.grade gr
+    LEFT JOIN ac.section sec
+    WHERE fs.school.id = :schoolId
+    AND fs.academicYear.id = :academicYearId
+    AND (:mediumId  IS NULL OR med.id  = :mediumId)
+    AND (:gradeId   IS NULL OR gr.id   = :gradeId)
+    AND (:sectionId IS NULL OR sec.id  = :sectionId) AND fs.status='Active'
+    AND FUNCTION('MONTHNAME', fs.feeSubmissionDate) = :monthName
+     group by fb.feehead.feeHeadName
+""")
+    List<Object[]> findByGradeWiseFiltersWithMonths(
+            @Param("schoolId")      Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("mediumId")      Long mediumId,
+            @Param("gradeId")       Long gradeId,
+            @Param("sectionId")     Long sectionId,
+            @Param("monthName") String monthName
+    );
+
 }

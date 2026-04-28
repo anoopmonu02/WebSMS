@@ -1261,6 +1261,17 @@ public class FeeSubmissionService {
         return responseMap;
     }
 
+    private Long parseLongSafe(String value) {
+        if (value == null || value.trim().isEmpty() || value.equals("null")) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     public Map calculateFeeSubmissionHeadWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
         Map responseMap  = new HashMap();
         try{
@@ -1278,6 +1289,39 @@ public class FeeSubmissionService {
                         System.out.println("start-end:"+startDate+"-"+endDate);
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.getFeeSubmissionHeadWiseAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                    } else if(paramsMap.get("selectedOption").equalsIgnoreCase("gradewise")){
+                        String mediumId = paramsMap.get("mediumId");
+                        String gradeId = paramsMap.get("gradeId");
+                        String sectionId = paramsMap.get("sectionId");
+                        String monthName = paramsMap.get("monthName");
+                        Long mediumIdLong  = parseLongSafe(mediumId);
+                        Long gradeIdLong   = parseLongSafe(gradeId);
+                        Long sectionIdLong = parseLongSafe(sectionId);
+                        List<Object[]> submissions = new ArrayList<>();;
+                        if(monthName!=null && !monthName.isEmpty()){
+                            if(!monthName.equalsIgnoreCase("all")){
+                                submissions = feeSubmissionRepository
+                                        .findByGradeWiseFiltersWithMonths(
+                                                school.getId(),
+                                                academicYear.getId(),
+                                                mediumIdLong,
+                                                gradeIdLong,
+                                                sectionIdLong,
+                                                monthName
+                                        );
+                            } else{
+                                submissions = feeSubmissionRepository
+                                        .findByGradeWiseFilters(
+                                                school.getId(),
+                                                academicYear.getId(),
+                                                mediumIdLong,
+                                                gradeIdLong,
+                                                sectionIdLong
+                                        );
+                            }
+                        }
+
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(submissions))? "No Data found": submissions);
                     }
                 }
             }
