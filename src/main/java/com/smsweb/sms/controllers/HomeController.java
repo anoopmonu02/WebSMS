@@ -12,6 +12,7 @@ import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -53,8 +54,12 @@ public class HomeController {
     }
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String index(HttpSession session, Model model){
-        if(isSuperAdminLoggedIn()){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
+        if(isSuperAdmin){
             model.addAttribute("isSuperAdmin", true);
         }
         else{
@@ -143,8 +148,8 @@ public class HomeController {
     private boolean isSuperAdminLoggedIn(){
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
         }catch(Exception e){
@@ -156,8 +161,8 @@ public class HomeController {
     public boolean isSuperAdmin(){
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
             /*// Get full UserDetails object if needed

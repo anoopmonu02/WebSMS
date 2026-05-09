@@ -36,7 +36,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     @Autowired
     private AcademicyearService academicYearService;
 
-    @Override
+    /*@Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
         // Access the logged-in user's details
@@ -92,8 +92,57 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
         // Redirect to the default success URL
         response.sendRedirect(request.getContextPath() +"/dashboard");
+    }*/
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+
+        // ── Check if this is a STUDENT login ──────────────────────────────────────
+        boolean isStudent = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"));
+
+        if (isStudent) {
+            // Do NOT load dashboard — redirect to a restricted info-only page
+            response.sendRedirect(request.getContextPath() + "/student-portal/home");
+            return;
+        }
+
+        // ── Employee / Admin / Teacher / Accountant login ─────────────────────────
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        UserEntity userEntity = userRepository.findByUsername(username);
+        Employee employee = null;
+
+        try {
+            if (userEntity != null) {
+                employee = employeeRepository.findByUserEntity(userEntity);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        HttpSession session = request.getSession();
+        boolean isSuperAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
+
+        if (employee != null && !isSuperAdmin) {
+            School school = employee.getSchool();
+            session.setAttribute("school", school);
+
+            if (school != null) {
+                AcademicYear academicYear = academicyearRepository.findTopByStatusOrderByIdDesc("active");
+                if (academicYear == null) {
+                    academicYear = academicYearService.saveAcademicYearIfNotFound();
+                }
+                if (academicYear != null) {
+                    session.setAttribute("activeAcademicYear", academicYear);
+                }
+            }
+        } else {
+            session.setAttribute("username", username);
+        }
+
+        response.sendRedirect(request.getContextPath() + "/dashboard");
     }
-
-
 
 }

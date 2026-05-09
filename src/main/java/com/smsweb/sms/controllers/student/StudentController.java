@@ -1,5 +1,6 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.controllers.employee.EmployeeController;
 import com.smsweb.sms.exceptions.FileFormatException;
@@ -8,6 +9,7 @@ import com.smsweb.sms.exceptions.UniqueConstraintsException;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
@@ -27,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -41,6 +44,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/student")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
 public class StudentController extends BaseController {
     Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -71,6 +75,7 @@ public class StudentController extends BaseController {
     }
 
     @GetMapping("/student")
+    @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
     public String studentData(Model model){
         log.debug("inside student list");
 
@@ -94,7 +99,8 @@ public class StudentController extends BaseController {
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
         }catch(Exception e){
@@ -365,6 +371,7 @@ public class StudentController extends BaseController {
     }
 
     @GetMapping("/student-attendance")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String studentAttendanceForm(Model model){
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
@@ -396,6 +403,7 @@ public class StudentController extends BaseController {
     }
 
     @GetMapping("/student-show-attendance")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String studentShowAttendance(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -429,6 +437,7 @@ public class StudentController extends BaseController {
     }
 
     @GetMapping("/stu-exam-result")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String examResultForm(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -439,6 +448,7 @@ public class StudentController extends BaseController {
     }
 
     @GetMapping("/look-up-student")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String searchStudent(Model model){
         School school = (School)model.getAttribute("school");
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());

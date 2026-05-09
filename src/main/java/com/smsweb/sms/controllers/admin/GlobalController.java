@@ -24,6 +24,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -34,9 +35,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class GlobalController extends BaseController {
 
     private final AcademicyearService academicyearService;
@@ -1134,6 +1137,7 @@ public class GlobalController extends BaseController {
 
     /*************************** User-Role *************************/
     @GetMapping("/user-role-list")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String getUserRoleList(Model model){
         List<Employee> employees = null;
         Map<Employee, List<Roles>> userRoleMap = new HashMap<>();
@@ -1164,6 +1168,7 @@ public class GlobalController extends BaseController {
     }
 
     @GetMapping("/add-user-to-role")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String addUserRole(Model model){
         List<Employee> employees = null;
         boolean isSuperAdmin = isSuperAdminLoggedIn();
@@ -1182,7 +1187,9 @@ public class GlobalController extends BaseController {
                 userRoleMap.put(employee, user.getRoles().isEmpty()?null:user.getRoles());
             }
         }*/
-        List<Roles> roles = roleRepository.findAll();
+        List<Roles> roles = roleRepository.findAll().stream()
+                .filter(role -> !role.getName().equals("ROLE_SUPERADMIN"))
+                .collect(Collectors.toList());
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
         model.addAttribute("roles",roles);
@@ -1214,7 +1221,8 @@ public class GlobalController extends BaseController {
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
         }catch(Exception e){

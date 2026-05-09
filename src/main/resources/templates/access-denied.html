@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Access Denied</title>
+  <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+  <style>
+    body { background: #f1f5f9; display: flex; align-items: center;
+      justify-content: center; min-height: 100vh; }
+    .denied-card { background: #fff; border-radius: 14px; padding: 40px;
+      max-width: 460px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.1); text-align: center; }
+  </style>
+</head>
+<body>
+<div class="denied-card">
+  <div style="font-size:60px">🚫</div>
+  <h4 class="fw-bold mt-3 mb-2">Access Denied</h4>
+  <p class="text-muted">
+    You do not have permission to access this page.<br>
+    If you believe this is a mistake, contact your administrator.
+  </p>
+  <hr>
+  <a th:href="@{/dashboard}" class="btn btn-primary me-2">Go to Dashboard</a>
+  <a th:href="@{/logout}" class="btn btn-outline-danger">Logout</a>
+</div>
+</body>
+</html>

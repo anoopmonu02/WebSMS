@@ -8,6 +8,7 @@ import com.smsweb.sms.models.student.SiblingGroup;
 import com.smsweb.sms.services.student.SiblingGroupService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/sibling")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
 public class SiblingGroupController extends BaseController {
     private SiblingGroupService siblingGroupService;
 

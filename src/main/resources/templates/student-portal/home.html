@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Portal</title>
+  <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+  <style>
+    body { background: #f1f5f9; display: flex; align-items: center;
+      justify-content: center; min-height: 100vh; }
+    .portal-card { background: #fff; border-radius: 14px; padding: 40px;
+      max-width: 480px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,.1); text-align: center; }
+    .portal-icon { font-size: 60px; color: #0ea5e9; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+<div class="portal-card">
+  <div class="portal-icon">🎓</div>
+  <h4 class="fw-bold mb-1">Welcome, <span sec:authentication="name">Student</span></h4>
+  <p class="text-muted mb-4">
+    You are logged in as a <strong>Student</strong>.<br>
+    The web portal is for school staff only.<br>
+    Please use the <strong>mobile app</strong> to access your account.
+  </p>
+  <hr>
+  <a th:href="@{/logout}" class="btn btn-danger w-100 mt-3">
+    🔒 Logout
+  </a>
+</div>
+</body>
+</html>

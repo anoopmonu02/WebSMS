@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +26,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
 public class StudentRestController extends BaseController {
     private final ExcelService excelService;
     private final StudentService studentService;
@@ -502,6 +504,7 @@ public class StudentRestController extends BaseController {
     }
 
     @PostMapping("/upload-exam-result-file")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateExamResultData(file);
         Map<String, List<String[]>> dataMap = new HashMap<>();
@@ -529,6 +532,7 @@ public class StudentRestController extends BaseController {
     }
 
     @PostMapping("/upload-exam-result-data")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
         String responseMsg = "";
         try{
@@ -596,6 +600,7 @@ public class StudentRestController extends BaseController {
     }
 
     @PostMapping("/getStudentsDiscountList")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     @ResponseBody
     public ResponseEntity<?> getStudentsDiscountList(@RequestBody Map<String, String> requestBody, Model model){
         School school = (School)model.getAttribute("school");

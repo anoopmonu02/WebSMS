@@ -30,6 +30,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/message")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
 public class SmsMessageController {
 
     //@Autowired

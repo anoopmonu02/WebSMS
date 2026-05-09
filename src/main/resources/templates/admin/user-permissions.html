@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}"
+      th:inline="javascript">
+<head>
+  <meta charset="UTF-8">
+  <title>Set User Permissions</title>
+</head>
+<body>
+<section>
+  <div class="container-fluid">
+    <div class="mt-2 mb-5">
+
+      <!-- ── Header ── -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="card-header fs-3">
+          <i class="bi bi-shield-lock me-2"></i>
+          Permissions —
+          <span class="text-primary fw-bold" th:text="${user.username}"></span>
+          <span class="fs-6 text-muted ms-2" th:text="|( ${user.displayName} )|"></span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-success" id="saveBtn" onclick="savePermissions()">
+            <i class="bi bi-shield-check me-1"></i>Save All Permissions
+          </button>
+          <a th:href="@{/admin/permissions}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left-circle me-1"></i>Back to Users
+          </a>
+        </div>
+      </div>
+      <hr/>
+
+      <!-- ── Quick-set toolbar ── -->
+      <div class="card bg-light border-0 mb-4 p-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          <span class="fw-semibold text-muted small">Quick-set all screens:</span>
+          <button type="button" class="btn btn-sm btn-outline-success"  onclick="setAll('ALL')">
+            <i class="bi bi-check-all"></i> All Access
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary"  onclick="setAll('VIEW')">
+            <i class="bi bi-eye"></i> View Only
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-warning"  onclick="setAll('CREATE')">
+            <i class="bi bi-plus-circle"></i> Create Only
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger"   onclick="setAll('NOTHING')">
+            <i class="bi bi-slash-circle"></i> Revoke All
+          </button>
+          <span class="vr"></span>
+          <span class="small text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            Changes are saved only when you click <strong>Save All Permissions</strong>.
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Permission matrix — one section per module ── -->
+      <input type="hidden" id="userId" th:value="${user.id}"/>
+
+      <div th:each="module : ${screens}" class="mb-5">
+
+        <!-- Module heading -->
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge bg-dark fs-6 px-3 py-2"
+                th:text="${module.key}"></span>
+          <hr class="flex-grow-1 m-0"/>
+        </div>
+
+        <!-- Screen cards grid -->
+        <div class="row g-3">
+          <div class="col-sm-6 col-md-4 col-xl-3"
+               th:each="screen : ${module.value}">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body p-3">
+
+                <!-- Screen name + module badge -->
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                  <span class="fw-semibold small" th:text="${screen.screenName}"></span>
+                  <span class="badge bg-secondary ms-1 text-nowrap"
+                        th:text="${screen.module}"></span>
+                </div>
+
+                <!-- Description -->
+                <small class="text-muted d-block mb-2"
+                       th:text="${screen.description}"></small>
+
+                <!-- Access-type select -->
+                <select class="form-select form-select-sm perm-select access-select"
+                        th:data-screen-id="${screen.id}"
+                        th:data-screen-key="${screen.screenKey}"
+                        onchange="markDirty(this)">
+
+                  <option th:each="type : ${accessTypes}"
+                          th:value="${type}"
+                          th:text="${type}"
+                          th:selected="${currentMap[screen.id] == type}">
+                  </option>
+
+                  <!--
+                    If this screen has no saved permission yet, default to NOTHING.
+                    The th:selected above handles it when currentMap has the key.
+                    When currentMap does NOT have the key, no option is pre-selected,
+                    so the browser picks the first one (NOTHING — because AccessType.values()
+                    starts with NOTHING). This is correct fail-safe behaviour.
+                  -->
+                </select>
+
+                <!-- Visual indicator of saved value -->
+                <div class="mt-2" th:with="saved=${currentMap[screen.id]}">
+                  <!-- No saved value -->
+                  <span th:if="${saved == null}"
+                        class="badge saved-badge bg-secondary">Not set</span>
+                  <!-- NOTHING -->
+                  <span th:if="${saved != null and saved.name() == 'NOTHING'}"
+                        class="badge saved-badge bg-secondary"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                  <!-- ALL -->
+                  <span th:if="${saved != null and saved.name() == 'ALL'}"
+                        class="badge saved-badge bg-success"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                  <!-- VIEW -->
+                  <span th:if="${saved != null and saved.name() == 'VIEW'}"
+                        class="badge saved-badge bg-info text-dark"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                  <!-- CREATE -->
+                  <span th:if="${saved != null and saved.name() == 'CREATE'}"
+                        class="badge saved-badge bg-primary"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                  <!-- EDIT -->
+                  <span th:if="${saved != null and saved.name() == 'EDIT'}"
+                        class="badge saved-badge bg-warning text-dark"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                  <!-- DELETE -->
+                  <span th:if="${saved != null and saved.name() == 'DELETE'}"
+                        class="badge saved-badge bg-danger"
+                        th:text="'Saved: ' + ${saved.name()}"></span>
+                </div>
+
+              </div><!-- /card-body -->
+            </div><!-- /card -->
+          </div><!-- /col -->
+        </div><!-- /row -->
+
+      </div><!-- /module section -->
+
+      <!-- ── Bottom save bar (sticky) ── -->
+      <div class="d-flex gap-2 justify-content-end mt-4 mb-5">
+        <button type="button" class="btn btn-success btn-lg" id="saveBtnBottom" onclick="savePermissions()">
+          <i class="bi bi-shield-check me-1"></i>Save All Permissions
+        </button>
+        <a th:href="@{/admin/permissions}" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-arrow-left-circle me-1"></i>Back
+        </a>
+      </div>
+
+    </div><!-- /mt-2 -->
+  </div><!-- /container-fluid -->
+
+  <!-- ── Scripts ── -->
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    let dirty = false;  // tracks unsaved changes
+
+    /* Mark a select as changed (highlights it) */
+    function markDirty(sel) {
+      dirty = true;
+      sel.closest('.card').classList.add('border-warning');
+    }
+
+    /* Quick-set helper — sets every select on the page to the given value */
+    function setAll(accessType) {
+      document.querySelectorAll('.perm-select').forEach(sel => {
+        sel.value = accessType;
+        markDirty(sel);
+      });
+    }
+
+    /* Main save function — collects all selects and POSTs to /admin/permissions/save */
+    function savePermissions() {
+      const userId = parseInt(document.getElementById('userId').value);
+      const permissions = {};
+
+      document.querySelectorAll('.perm-select').forEach(sel => {
+        permissions[sel.dataset.screenId] = sel.value;
+      });
+
+      // Disable both save buttons while in flight
+      document.querySelectorAll('#saveBtn, #saveBtnBottom').forEach(b => {
+        b.disabled = true;
+        b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+      });
+
+      fetch(contextPath + 'admin/permissions/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ userId, permissions })
+      })
+              .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+              })
+              .then(data => {
+                if (data.status === 'saved') {
+                  showMsg('success', 'Permissions saved for ' + data.updated + ' screens.', 'Saved');
+                  dirty = false;
+                  // Remove warning borders, update saved-badge labels
+                  document.querySelectorAll('.perm-select').forEach(sel => {
+                    sel.closest('.card').classList.remove('border-warning');
+                    const badge = sel.closest('.card-body').querySelector('.saved-badge');
+                    if (badge) {
+                      const v = sel.value;
+                      badge.textContent = 'Saved: ' + v;
+                      badge.className = 'badge saved-badge ' + badgeClass(v);
+                    }
+                  });
+                } else {
+                  showMsg('error', data.message || 'Save failed.', 'Error');
+                }
+              })
+              .catch(err => {
+                showMsg('error', 'Network error: ' + err.message, 'Error');
+              })
+              .finally(() => {
+                document.querySelectorAll('#saveBtn, #saveBtnBottom').forEach(b => {
+                  b.disabled = false;
+                  b.innerHTML = '<i class="bi bi-shield-check me-1"></i>Save All Permissions';
+                });
+              });
+    }
+
+    /* Returns Bootstrap badge class for an AccessType string */
+    function badgeClass(v) {
+      switch(v) {
+        case 'ALL':     return 'bg-success';
+        case 'VIEW':    return 'bg-info text-dark';
+        case 'CREATE':  return 'bg-primary';
+        case 'EDIT':    return 'bg-warning text-dark';
+        case 'DELETE':  return 'bg-danger';
+        default:        return 'bg-secondary';
+      }
+    }
+
+    /* Warn before navigating away with unsaved changes */
+    window.addEventListener('beforeunload', function(e) {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    /* Init toastr from flash messages if any */
+    $(document).ready(function () {
+      const successMessage = [[${success}]];
+      const errorMessage   = [[${error}]];
+      if (successMessage) showMsg("success", successMessage, "Success");
+      if (errorMessage)   showMsg("error",   errorMessage,   "Error");
+    });
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+      toastr[msgType](msg,headerValue);
+    }
+  </script>
+
+</section>
+</body>
+</html>

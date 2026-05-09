@@ -16,6 +16,7 @@ import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.universal.DiscountService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -26,6 +27,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/student")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
 public class StudentDiscountController extends BaseController {
 
     private final StudentDiscountService studentDiscountService;

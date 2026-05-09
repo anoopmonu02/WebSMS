@@ -21,6 +21,7 @@ import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ import java.time.ZoneId;
 import java.util.*;
 
 @RestController
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
 public class FeeSubmissionRestController extends BaseController {
 
     private final StudentService studentService;
@@ -797,6 +799,7 @@ public class FeeSubmissionRestController extends BaseController {
 
 
     @PostMapping("/cancelFeeForStudent")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     public ResponseEntity<?> cancelFeeForStudent(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
         try{

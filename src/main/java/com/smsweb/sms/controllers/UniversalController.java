@@ -6,6 +6,7 @@ import com.smsweb.sms.services.universal.*;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/universal")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class UniversalController {
 
     private final MediumService mediumService;

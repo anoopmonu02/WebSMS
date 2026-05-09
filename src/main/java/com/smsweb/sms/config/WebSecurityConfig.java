@@ -38,31 +38,50 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                //.csrf().disable()
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/images/**", "/css/**", "/js/**","/fonts/**","/images/students/**","/images/employees/**").permitAll()
-                        .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll() // Fixed duplicate matchers
-                        .requestMatchers("/login").permitAll()
-                        .requestMatchers("/admin/**", "/").hasAnyRole("ADMIN","SUPERADMIN")
-                        .requestMatchers("/student/**", "/").hasAnyRole("ACCOUNTENT","SUPERADMIN","ADMIN")
+                .authorizeHttpRequests(requests -> requests
+                        // Public assets
+                        .requestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**",
+                                "/images/students/**", "/images/employees/**").permitAll()
+                        .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll()
+                        .requestMatchers("/login", "/register").permitAll()
                         .requestMatchers("/error", "/error/**").permitAll()
+
+                        // Student-only portal (blocked from employee areas)
+                        .requestMatchers("/student-portal/**").hasRole("STUDENT")
+
+                        // Admin-only paths
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
+
+                        // Employee paths — all non-student staff
+                        .requestMatchers("/employee/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
+                        .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
+                        .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
+                        .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
+                        .requestMatchers("/universal/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                        .requestMatchers("/message/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
+
+                        // Dashboard accessible to all authenticated non-student users
+                        .requestMatchers("/dashboard").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
+
                         .anyRequest().authenticated()
                 )
-                .formLogin((form) -> form
+                .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler(customAuthenticationSuccessHandler())
-                        .failureUrl("/login?error=true")
                         .failureHandler(customAuthenticationFailureHandler())
                         .permitAll()
                 )
-                .logout((logout) -> logout
+                .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .logoutSuccessUrl("/login?logout=true")
                         .permitAll()
                 )
-                .userDetailsService(userDetailsService()); // Make sure this line is present
-                 // Disable CSRF if needed for testing
+                .exceptionHandling(ex -> ex
+                        // When a logged-in user hits a URL they're not allowed — redirect to /access-denied
+                        .accessDeniedPage("/access-denied")
+                )
+                .userDetailsService(userDetailsService());
 
         return http.build();
     }

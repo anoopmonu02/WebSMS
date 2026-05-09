@@ -103,7 +103,13 @@ sidebarDropdowns.forEach(function (dropdown) {
    Works with the new base.html sidebar (id="sidebar",
    toggle button id="sidebarToggle", collapsed class = "collapsed")
    ============================================================= */
-
+$(document).ajaxError(function(event, xhr) {
+    if (xhr.status === 403) {
+        toastr.error('You do not have permission to perform this action.');
+    } else if (xhr.status === 401) {
+        window.location.href = '/sms/login';
+    }
+});
 (function () {
     'use strict';
 

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>User Permission Management</title>
+</head>
+<body>
+<section>
+  <div class="container">
+    <div class="mt-2 gy-5 mb-5">
+
+      <!-- ── Header ── -->
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="card-header fs-3">
+          <i class="bi bi-shield-lock me-2"></i>User Permission Management
+        </div>
+      </div>
+      <hr/>
+
+      <!-- ── Info banner ── -->
+      <div class="alert alert-info d-flex align-items-start gap-2 py-2" role="alert">
+        <i class="bi bi-info-circle-fill mt-1"></i>
+        <div>
+          Select a user below to manage their screen-level access.
+          <strong>SUPERADMIN</strong> and <strong>ADMIN</strong> always have full access regardless of settings here.
+        </div>
+      </div>
+
+      <!-- ── User list table ── -->
+      <div th:if="${hasUsers}">
+        <table class="table table-bordered table-striped table-hover table-sm" id="perm-user-table">
+          <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Username</th>
+            <th>Display Name</th>
+            <th>Roles</th>
+            <th class="text-center">Manage Permissions</th>
+          </tr>
+          </thead>
+          <tbody class="table-group-divider">
+          <tr th:each="user, iter : ${users}">
+            <td th:text="${iter.index + 1}"></td>
+            <td>
+              <i class="bi bi-person-circle me-1 text-secondary"></i>
+              <span th:text="${user.username}"></span>
+            </td>
+            <td th:text="${user.displayName}"></td>
+            <td>
+                <span th:each="role : ${user.roles}"
+                      class="badge me-1"
+                      th:classappend="${role.name == 'ROLE_SUPERADMIN'} ? 'bg-danger' :
+                                      (${role.name == 'ROLE_ADMIN'} ? 'bg-warning text-dark' : 'bg-primary')"
+                      th:text="${role.name.replace('ROLE_','')}">
+                </span>
+            </td>
+            <td class="text-center">
+              <!-- SUPERADMIN/ADMIN rows — no fine-grained permissions needed -->
+              <span th:if="${#lists.contains(user.roles.![name], 'ROLE_SUPERADMIN') or
+                               #lists.contains(user.roles.![name], 'ROLE_ADMIN')}"
+                    class="badge bg-success">
+                  <i class="bi bi-shield-check"></i> Full Access (by role)
+                </span>
+              <!-- Other roles — show manage button -->
+              <a th:unless="${#lists.contains(user.roles.![name], 'ROLE_SUPERADMIN') or
+                                #lists.contains(user.roles.![name], 'ROLE_ADMIN')}"
+                 th:href="@{/admin/permissions/user/{id}(id=${user.id})}"
+                 class="btn btn-sm btn-primary">
+                <i class="bi bi-pencil-square"></i> Set Permissions
+              </a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div th:unless="${hasUsers}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>No users found.
+      </div>
+
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/dtbl/jquery.dataTables.min.js}"></script>
+  <script th:src="@{/dtbl/dataTables.bootstrap5.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    const successMessage = [[${success}]];
+    const errorMessage   = [[${error}]];
+    $(document).ready(function () {
+      $('#perm-user-table').DataTable({ pageLength: 25 });
+      if (successMessage) showMsg("success", successMessage, "Success");
+      if (errorMessage)   showMsg("error",   errorMessage,   "Error");
+    });
+  </script>
+</section>
+</body>
+</html>

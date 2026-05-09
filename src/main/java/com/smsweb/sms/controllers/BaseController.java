@@ -42,6 +42,11 @@ public abstract class BaseController {
 
     @ModelAttribute("school")
     public School setSchoolInModel(HttpSession session) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // Block students and anonymous users entirely
+        boolean isStudent = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"));
+        if (isStudent || !auth.isAuthenticated()) return null;
         School school = (School) session.getAttribute("school");
         if (school == null) {
             school = schoolService.getAllSchoolByName("United Avadh Inter College").get(0);
@@ -53,8 +58,8 @@ public abstract class BaseController {
     private boolean isSuperAdminLoggedIn(){
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
         }catch(Exception e){

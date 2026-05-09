@@ -22,6 +22,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 @Controller
 @RequestMapping("/employee")
 public class EmployeeController extends BaseController {
@@ -75,13 +77,32 @@ public class EmployeeController extends BaseController {
 
     @GetMapping("/employee-add")
     public String getAddEmployeeForm(Model model) {
-        // Create a new Employee object and initialize its UserEntity
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         Employee employee = new Employee();
-        employee.setUserEntity(new UserEntity()); // Assuming UserEntity is now part of Employee
+        employee.setUserEntity(new UserEntity());
+        model.addAttribute("employee", employee);
+        if (isSuperAdmin) {
+            model.addAttribute("superUserLogin", true);
+            model.addAttribute("schools", schoolService.getAllSchools());
+        }
+        if (isAdmin) {
+            School school = (School) model.getAttribute("school");
+            model.addAttribute("empschool", school);
+            employee.setSchool(school);
+            model.addAttribute("adminLogin", true);
+        }
+
+        // Create a new Employee object and initialize its UserEntity
+        //Employee employee = new Employee();
+        //employee.setUserEntity(new UserEntity()); // Assuming UserEntity is now part of Employee
 
         // Add the Employee object to the model
-        model.addAttribute("employee", employee);
-        try{
+        //model.addAttribute("employee", employee);
+        /*try{
             if(isSuperAdminLoggedIn()){
                 model.addAttribute("superUserLogin", true);
                 model.addAttribute("schools", schoolService.getAllSchools());
@@ -95,7 +116,7 @@ public class EmployeeController extends BaseController {
             //TODO - if admin logged in then get the value of school
         }catch(Exception e){
             e.printStackTrace();
-        }
+        }*/
 
         return "employee/add-employee";
     }
@@ -104,7 +125,8 @@ public class EmployeeController extends BaseController {
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName(); // Get logged-in username
-            if(username.equalsIgnoreCase("super_admin")){
+            if(authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))){
                 return true;
             }
         }catch(Exception e){
