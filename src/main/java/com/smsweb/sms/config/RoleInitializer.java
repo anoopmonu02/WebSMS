@@ -4,6 +4,7 @@ import com.smsweb.sms.models.Users.Roles;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.permission.AppScreen;
 import com.smsweb.sms.repositories.permission.AppScreenRepository;
+import com.smsweb.sms.repositories.permission.UserPermissionRepository;
 import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -66,8 +67,18 @@ public class RoleInitializer {
     // ── 2. Screen seed ───────────────────────────────────────────────────────
 
     @Bean
-    public CommandLineRunner seedScreens(AppScreenRepository screenRepo) {
+    public CommandLineRunner seedScreens(AppScreenRepository screenRepo,
+                                         UserPermissionRepository permRepo) {
         return args -> {
+
+            // ── Migrate: consolidate 4 legacy Employee screens → 1 EMPLOYEE screen ──
+            // Remove old split screens so the permission matrix shows a single row.
+            for (String oldKey : new String[]{"EMPLOYEE_LIST", "EMPLOYEE_ADD", "EMPLOYEE_EDIT", "EMPLOYEE_DELETE"}) {
+                screenRepo.findByScreenKey(oldKey).ifPresent(old -> {
+                    permRepo.deleteByScreenId(old.getId());   // FK-safe: remove permission rows first
+                    screenRepo.delete(old);
+                });
+            }
 
             // ════════════════════════════════════════════════════════════════
             // MODULE: STUDENT
@@ -258,21 +269,10 @@ public class RoleInitializer {
             // MODULE: EMPLOYEE
             // ════════════════════════════════════════════════════════════════
 
-            seed(screenRepo, "Employee", "Employee List",
-                    "EMPLOYEE_LIST",
-                    "View list of all employees");
-
-            seed(screenRepo, "Employee", "Add Employee",
-                    "EMPLOYEE_ADD",
-                    "Add a new employee record");
-
-            seed(screenRepo, "Employee", "Edit Employee",
-                    "EMPLOYEE_EDIT",
-                    "Edit employee details");
-
-            seed(screenRepo, "Employee", "Delete Employee",
-                    "EMPLOYEE_DELETE",
-                    "Delete an employee record");
+            // Unified Employee screen — VIEW / CREATE / EDIT / DELETE are the four AccessTypes
+            seed(screenRepo, "Employee", "Employee Management",
+                    "EMPLOYEE",
+                    "View, add, edit, delete employee records");
 
             // ════════════════════════════════════════════════════════════════
             // MODULE: ADMIN — Global Settings (Universal master data)

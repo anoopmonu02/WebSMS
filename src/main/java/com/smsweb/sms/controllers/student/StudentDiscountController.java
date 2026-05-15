@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
@@ -46,6 +48,7 @@ public class StudentDiscountController extends BaseController {
         this.academicStudentService = academicStudentService;
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)
     @GetMapping("/stu-discount-list")
     public String discountpage(Model model){
         School school = getSchool(model);
@@ -57,6 +60,7 @@ public class StudentDiscountController extends BaseController {
         return "student/assigneddiscount";
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @GetMapping("/assign-discount/add")
     public String addDiscountPage(Model model){
         List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
@@ -65,6 +69,7 @@ public class StudentDiscountController extends BaseController {
         return "student/discountassign";
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @PostMapping("/assign-discount")
     public String saveStudentDiscount(@Valid @ModelAttribute("studentDiscount")StudentDiscount studentDiscount, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -109,6 +114,7 @@ public class StudentDiscountController extends BaseController {
         return "redirect:/student/stu-discount-list";
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_DELETE", type = AccessType.DELETE)
     @GetMapping("/assign-discount/delete/{id}")
     public String deleteDiscount(@PathVariable("id")Long id, RedirectAttributes model){
         try{
@@ -124,6 +130,7 @@ public class StudentDiscountController extends BaseController {
         return "redirect:/student/stu-discount-list";
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_REPORT", type = AccessType.VIEW)
     @GetMapping("/stu-discount-list-session-wise")
     public String discountsessionpage(Model model){
         School school = getSchool(model);

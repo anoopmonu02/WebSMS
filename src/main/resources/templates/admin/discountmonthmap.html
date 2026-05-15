@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - School</title>
@@ -36,10 +37,10 @@
             <td th:text="${dmmap.description}"></td>
 
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/discount-month/edit/{id}(id=${dmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a sms:access="ADMIN_DISCOUNT_MONTH:EDIT" class="btn btn-primary" th:href="@{/admin/discount-month/edit/{id}(id=${dmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${dmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <button sms:access="ADMIN_DISCOUNT_MONTH:DELETE" class="btn btn-danger delete-btn" th:attr="data-item-id=${dmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
@@ -48,7 +49,7 @@
           <p class="text-center">No Discount-Month Mapping found.</p>
         </div>
         <div class="pt-5 mb-5">
-          <a class="btn btn-success" th:href="@{/admin/discount-month/add}"><i class="bi bi-node-plus-fill"></i> Add Discount-Month Mapping</a>
+          <a sms:access="ADMIN_DISCOUNT_MONTH:CREATE" class="btn btn-success" th:href="@{/admin/discount-month/add}"><i class="bi bi-node-plus-fill"></i> Add Discount-Month Mapping</a>
         </div>
       </div>
     </div>

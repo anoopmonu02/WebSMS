@@ -1,6 +1,8 @@
 package com.smsweb.sms.controllers.admin;
 
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
@@ -47,6 +49,7 @@ public class SchoolController {
         this.userService = userService;
     }
 
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school")
     public String getSchools(Model model){
         List<School> schools = schoolService.getAllSchools();
@@ -55,6 +58,7 @@ public class SchoolController {
         return "/admin/school";
     }
 
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.CREATE)
     @GetMapping("/school/add")
     public String addSchoolForm(Model model){
         model.addAttribute("school", new School());
@@ -64,11 +68,13 @@ public class SchoolController {
     }
 
     @ResponseBody
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
         return schoolService.getAllCitiesByProvince(provinceId);
     }
 
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.CREATE)
     @PostMapping("/school")
     public String saveSchool(@Valid @ModelAttribute("school")School school, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                              Model model, RedirectAttributes redirectAttribute){
@@ -114,6 +120,7 @@ public class SchoolController {
         }
     }
 
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.EDIT)
     @GetMapping("/school/edit/{id}")
     public String getEditPage(@PathVariable("id") Long id, Model model){
         School school = schoolService.getSchoolById(id)
@@ -124,6 +131,7 @@ public class SchoolController {
         return "/admin/edit-school";
     }
 
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.EDIT)
     @PostMapping("/school/{id}")
     public String updateSchool(@PathVariable("id") Long id, @Valid @ModelAttribute("school")School school, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                                Model model, RedirectAttributes redirectAttribute){
@@ -169,6 +177,7 @@ public class SchoolController {
             return "/admin/edit-school";
         }
     }
+    @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school/show/{id}")
     public String showSchoolForm(@PathVariable("id")Long id, Model model){
         Optional<School> school = schoolService.getSchoolById(id);

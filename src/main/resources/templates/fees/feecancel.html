@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
@@ -76,7 +77,7 @@
             <!--<a class="btn btn-info" href="/student/student"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>-->
           </div>
           <div class="col-md-6 mb-5">
-            <button onclick="checkMonths()" class="btn btn-danger" id="feeSubmitBtn"><i class="bi bi-journal-x"></i> Cancel Fee</button>
+            <button sms:access="FEE_CANCEL:DELETE" onclick="checkMonths()" class="btn btn-danger" id="feeSubmitBtn"><i class="bi bi-journal-x"></i> Cancel Fee</button>
           </div>
         </div>
 

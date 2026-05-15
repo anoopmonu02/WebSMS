@@ -2,805 +2,652 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
 <head>
     <meta charset="UTF-8">
-    <title>United Avadh Inter College</title>
+    <title>Dashboard</title>
 </head>
 <body>
+<section>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     DASHBOARD STYLES — inside <section> so Thymeleaf layout includes them
+══════════════════════════════════════════════════════════════════ -->
+<style>
 
-    <section>
+    /* ── Page chrome ─────────────────────────────────────────────── */
+    .dash-wrap { padding: 8px 0 60px; }
 
-        <div class="container" th:if="${!isSuperAdmin}">
-            <!--Cards for summary details-->
-            <div class="row row-cols-1 row-cols-md-4 g-4 mb-4">
-                <!--<div class="col-md-4 col-lg-3 mb-4">
-                    <div class="card text-bg-primary text-center">
-                        &lt;!&ndash;<div class="card-header">Students</div>&ndash;&gt;
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-4 text-lg-start">
-                                    <h3 class="card-title"><i class="bi bi-collection-fill"></i></h3>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title" th:text="${totalFeeSubmittedToday}">200</h5>
-                                    <p class="card-text">Today's Fee Collection</p>
-                                </div>
-                            </div>
+    .dash-section-hd {
+        font-size: 11px; font-weight: 700; color: #64748b;
+        text-transform: uppercase; letter-spacing: .08em;
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 14px;
+    }
+    .dash-section-hd::after {
+        content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+    .dash-section-hd i { font-size: 14px; }
 
-                        </div>
-                    </div>
-                </div>-->
-                <div class="col">
-                    <div class="card text-bg-primary text-center h-100">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-lg-start">
-                                    <h3 class="card-title">
-                                        <i class="bi bi-collection-fill"></i>
-                                    </h3>
-                                </div>
+    /* ── Style 2 stat tile: white card + ghost icon ──────────────── */
+    .stat-tile {
+        position: relative; overflow: hidden;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px 20px 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.05), 0 0 0 0 transparent;
+        transition: box-shadow .2s, border-color .2s;
+        height: 100%;
+    }
+    .stat-tile:hover {
+        box-shadow: 0 4px 18px rgba(0,0,0,.09);
+        border-color: #cbd5e1;
+    }
 
-                                <div class="col-8 mb-1">
-                                    <!-- Amount + toggle inline -->
-                                    <div class="d-flex align-items-center justify-content-center gap-3">
-                                        <h5 class="card-title fee-amount "
-                                            th:attr="data-actual=${totalFeeSubmittedToday}">
-                                            ******
-                                        </h5>
+    /* Ghost — large semi-transparent icon floating top-right */
+    .stat-tile-ghost {
+        position: absolute;
+        right: -12px; top: -12px;
+        font-size: 88px;
+        opacity: .065;
+        pointer-events: none;
+        user-select: none;
+        line-height: 1;
+    }
 
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input toggle-fee-amount" type="checkbox">
+    /* Small coloured badge icon top-left */
+    .stat-badge {
+        width: 40px; height: 40px; border-radius: 11px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; margin-bottom: 14px; flex-shrink: 0;
+    }
 
-                                        </div>
-                                    </div>
+    .stat-label {
+        font-size: 11.5px; font-weight: 600; color: #64748b;
+        margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .stat-value {
+        font-size: 32px; font-weight: 700; line-height: 1;
+        letter-spacing: -1px; margin-bottom: 4px;
+    }
+    .stat-sub {
+        font-size: 11.5px; color: #94a3b8;
+    }
 
-                                    <p class="card-text mt-1">Today's Fee Collection</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    /* ── Fee toggle switch ───────────────────────────────────────── */
+    .fee-reveal-row {
+        display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .fee-sw {
+        position: relative; display: inline-block;
+        width: 40px; height: 22px; flex-shrink: 0;
+    }
+    .fee-sw input { opacity: 0; width: 0; height: 0; }
+    .fee-sw-track {
+        position: absolute; inset: 0;
+        background: #cbd5e1; border-radius: 22px;
+        cursor: pointer; transition: background .25s;
+    }
+    .fee-sw-track::before {
+        content: ''; position: absolute;
+        width: 16px; height: 16px; left: 3px; top: 3px;
+        background: #fff; border-radius: 50%;
+        transition: transform .25s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .fee-sw input:checked + .fee-sw-track { background: #f59e0b; }
+    .fee-sw input:checked + .fee-sw-track::before { transform: translateX(18px); }
+    .fee-sw-label { font-size: 11px; color: #94a3b8; transition: color .2s; }
+    .fee-sw input:checked ~ .fee-sw-label { color: #d97706; }
+
+    /* ── Action cards ────────────────────────────────────────────── */
+    .action-card {
+        display: flex; align-items: center; gap: 14px;
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        padding: 15px 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        text-decoration: none; color: inherit;
+        transition: box-shadow .2s, border-color .2s, transform .15s;
+        height: 100%;
+    }
+    .action-card:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,.09);
+        border-color: #bfdbfe; transform: translateY(-1px);
+        color: inherit; text-decoration: none;
+    }
+    .action-icon {
+        width: 46px; height: 46px; border-radius: 13px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px; flex-shrink: 0;
+    }
+    .action-title {
+        font-size: 13.5px; font-weight: 700; color: #0f172a;
+        margin-bottom: 2px;
+    }
+    .action-sub { font-size: 11.5px; color: #64748b; line-height: 1.4; }
+    .action-arrow {
+        margin-left: auto; color: #94a3b8; font-size: 18px;
+        flex-shrink: 0; transition: color .2s, transform .2s;
+    }
+    .action-card:hover .action-arrow {
+        color: #6366f1; transform: translateX(2px);
+    }
+
+    /* ── Chart cards ─────────────────────────────────────────────── */
+    .chart-card {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.04); height: 100%;
+    }
+    .chart-card-title {
+        font-size: 11px; font-weight: 700; color: #475569;
+        text-transform: uppercase; letter-spacing: .07em;
+        margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
+    .chart-legend {
+        display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+    }
+    .legend-item {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 11px; color: #64748b;
+    }
+    .legend-dot {
+        width: 8px; height: 8px; border-radius: 2px;
+        display: inline-block; flex-shrink: 0;
+    }
+
+    /* ── Info panels (holidays / birthdays / absent) ─────────────── */
+    .info-panel {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: hidden; height: 100%;
+    }
+    .info-panel-hd {
+        display: flex; align-items: center; gap: 7px;
+        padding: 12px 18px; border-bottom: 1px solid #f1f5f9;
+        font-size: 11px; font-weight: 700; color: #475569;
+        text-transform: uppercase; letter-spacing: .07em;
+    }
+    .info-panel-body { padding: 4px 0; }
+    .info-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 9px 18px; border-bottom: 1px solid #f8fafc;
+        font-size: 13px;
+    }
+    .info-row:last-child { border-bottom: 0; }
+    .info-name { font-weight: 600; color: #1e293b; }
+    .info-date { font-size: 11.5px; color: #94a3b8; white-space: nowrap; }
+    .info-empty { padding: 18px; font-size: 12.5px; color: #94a3b8; text-align: center; }
+
+    /* ── Grade-wise absent badge grid ────────────────────────────── */
+    .absent-grid {
+        display: flex; flex-wrap: wrap; gap: 7px; padding: 14px 18px;
+    }
+    .absent-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        border-radius: 20px; padding: 4px 13px;
+        font-size: 12px; font-weight: 700;
+        border: 1px solid;
+    }
+    .absent-badge-red  { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+    .absent-badge-green{ background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+
+</style>
+
+<div class="dash-wrap container-fluid" th:if="${!isSuperAdmin}">
+
+    <!-- Hidden actual fee value for JS -->
+    <input type="hidden" id="feeActual" th:value="${totalFeeSubmittedToday}"/>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 1 — STAT TILES
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="row g-3 mb-4">
+
+        <!-- ── Today's Fee Collection ── -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+                <i class="bi bi-coin stat-tile-ghost" style="color:#f59e0b;" aria-hidden="true"></i>
+                <div class="stat-badge" style="background:#fef3c7; color:#d97706;">
+                    <i class="bi bi-coin" aria-hidden="true"></i>
                 </div>
-
-                <div class="col">
-                    <div class="card text-bg-danger text-center h-100">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-4 text-lg-start">
-                                    <h3 class="card-title"><i class="bi bi-people-fill"></i></h3>
-                                </div>
-                                <div class="col-8 mb-3">
-                                    <h5 class="card-title" th:text="${totalAbsent}">200</h5>
-                                    <p class="card-text">Today's Absent Student</p>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Repeat more .col-md-4 blocks for more cards -->
-                <div class="col">
-                    <div class="card text-bg-success text-center h-100">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-6 text-lg-start">
-                                    <!--<h3 class="card-title"><i class="bi bi-person-circle"></i></h3>-->
-                                    <h3 class="card-title"><img th:src="@{/images/Aadhar_logo-hindi1.png}" alt="" class="img-fluid"/></h3>
-                                </div>
-                                <div class="col-6 mb-3">
-                                    <h5 class="card-title" th:text="${totalAadhaar + '/' + totalStudents}">50</h5>
-                                    <p class="card-text">Aadhaar</p>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="card text-bg-warning text-center h-100">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-6 text-lg-start">
-                                    <!--<h3 class="card-title"><i class="bi bi-mortarboard-fill"></i></h3>-->
-                                    <h3 class="card-title"><img th:src="@{/images/commerce (1).png}" alt=""/></h3>
-                                </div>
-                                <div class="col-6 mb-3">
-                                    <h5 class="card-title" th:text="${totalSR + '/' + totalStudents}">200</h5>
-                                    <p class="card-text">SR</p>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!--Second row for links-->
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <!--<img class="card-title"><img th:src="@{/images/user.png}" alt="Student Registration" class="img-fluid"/>-->
-                                    <img class="card-title"><img th:src="@{/images/student.gif}" alt="Student Registration" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title mb-1">Student Registration</h5>
-                                    <p class="card-text text-muted">Record academic and personal info for admission</p>
-                                    <a th:href="@{'/student/student'}" class="btn btn-outline-primary btn-sm">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <img class="card-title"><img th:src="@{/images/receipt.gif}" alt="Fee Submission" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title mb-1">Fee Submission</h5>
-                                    <p class="card-text text-muted">Record and track student fee transactions</p>
-                                    <a th:href="@{'/fees/fee-submit-form'}" class="btn btn-outline-primary btn-sm">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <img class="card-title"><img th:src="@{/images/forum.gif}" alt="Send Message" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title mb-1">Send Message</h5>
-                                    <p class="card-text text-muted ">Send alerts, updates, and notifications quickly</p>
-                                    <a th:href="@{'/message/sendMessage'}" class="btn btn-outline-primary btn-sm">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <img class="card-title"><img th:src="@{/images/target.gif}" alt="Search Student" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title mb-1">Search Student</h5>
-                                    <p class="card-text text-muted ">Access student information by searching key details</p>
-                                    <a th:href="@{'/student/look-up-student'}" class="btn btn-outline-primary btn-sm">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <!--<div class="card-header">Students</div>-->
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <!--<img class="card-title"><img th:src="@{/images/user-collection.png}" alt="User-wise Collection" class="img-fluid"/>-->
-                                    <img class="card-title"><img th:src="@{/images/data-collection.gif}" alt="User-wise Collection" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title mb-1">User-wise Collection</h5>
-                                    <p class="card-text text-muted ">Analyze fee payment history per user</p>
-                                    <a th:href="@{'/fees/fees-user-wise-collection'}" class="btn btn-outline-primary btn-sm">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!--<div class="col-md-4 mb-4">
-                    <div class="card text-center">
-                        &lt;!&ndash;<div class="card-header">Students</div>&ndash;&gt;
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-4 text-lg-start">
-                                    <h3 class="card-title"><img th:src="@{/images/family.png}" alt="Sibling List"></h3>
-                                </div>
-                                <div class="col-8">
-                                    <h5 class="card-title">Sibling Student List</h5>
-                                    <p class="card-text">Grouped view of students from the same household</p>
-                                    <a th:href="@{'/student/look-up-student'}" class="btn btn-primary">Click Here <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>-->
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-lg rounded-4 border-0 h-100 hover-shadow transition">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-4 text-center">
-                                    <!--<img th:src="@{/images/family.png}" alt="Sibling List" class="img-fluid" >-->
-                                    <img class="card-title"><img th:src="@{/images/connect.gif}" alt="Sibling List" class="img-fluid"/>
-                                </div>
-                                <div class="col-8">
-                                    <!--<h5 class="card-title fw-bold mb-1">Sibling Student List</h5>-->
-                                    <h5 class="card-title mb-1">Sibling Student List</h5>
-                                    <p class="card-text text-muted ">Grouped view of students from the same household</p>
-                                    <a th:href="@{'/student/look-up-student'}" class="btn btn-outline-primary btn-sm">
-                                        Click Here <i class="bi bi-arrow-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!--Pie & Doughnut Charts-->
-            <div class="row mb-4">
-                <div class="col-md-2">
-                    <div class="card text-bg-light">
-                        <!--<div class="card-header text-start">Aadhaar</div>-->
-                        <div class="card-body">
-                            <div class="card-title">Aadhaar</div>
-                            <div class="students_b_g_chart1">
-                                <div id="aadhar_chart-area" >
-                                    <canvas id="aadharChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="card text-bg-light">
-                        <!--<div class="card-header text-start">Students</div>-->
-                        <div class="card-body">
-                            <div class="card-title">Attendance</div>
-                            <div class="students_b_g_chart2">
-                                <div id="chart-area" >
-                                    <canvas id="attendanceChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="card text-bg-light">
-                        <!--<div class="card-header text-start">Students</div>-->
-                        <div class="card-body">
-                            <div class="card-title">Absent Gender-wise</div>
-                            <div class="students_b_g_chart3">
-                                <div id="attendace-gender-chart-area" >
-                                    <canvas id="attendanceGenderChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="card text-bg-light">
-                        <!--<div class="card-header text-start">Students</div>-->
-                        <div class="card-body">
-                            <div class="card-title">SR</div>
-                            <div class="students_b_g_chart4">
-                                <div id="sr-chart-area" >
-                                    <canvas id="srChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card text-center mb-4">
-                        <div class="card-header">Upcoming Events/Holidays</div>
-                        <div class="card-body">
-                            <ul class="list-group list-group-flush text-start" th:each="holiday, iter : ${holidays}" th:if="${isHoliDays}">
-                                <li class="list-group-item small" th:text="${holiday.holidayName + ' - ' + #dates.format(holiday.holidayStartDate, 'dd/MMM/yyyy')}"></li>
-                            </ul>
-
-                            <div th:if="${!isHoliDays}">
-                                <p class="text-center"><strong>No data found</strong></p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="stat-label">Today's Collection</div>
+                <div class="stat-value" id="feeDisplay" style="color:#d97706;">₹ ••••••</div>
+                <div class="fee-reveal-row">
+                    <label class="fee-sw" aria-label="Reveal fee amount">
+                        <input type="checkbox" id="feeToggle" onchange="toggleFee(this)">
+                        <span class="fee-sw-track"></span>
+                    </label>
+                    <span class="fee-sw-label" id="feeSwitchLabel">Tap to reveal</span>
                 </div>
             </div>
-
-            <!--Events & Holidays-->
-            <div class="row">
-
-
-                <div class="col-md-3">
-                    <div class="card text-center mb-4">
-                        <div class="card-header">Birthdays</div>
-                        <div class="card-body">
-                            <ul class="list-group list-group-flush text-start small" th:each="holiday, iter : ${studentsDobUpcoming}" th:if="${isStudentsDobUpcoming}">
-                                <li class="list-group-item small" th:text="${holiday[0] + ' - ' + holiday[1]}"></li>
-                            </ul>
-
-                            <div th:if="${!isStudentsDobUpcoming}">
-                                <p class="text-center"><strong>No upcoming birthday found</strong></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-9">
-                    <div class="card text-center mb-4">
-                        <div class="card-header">Today's Absent Students(Grade-wise)</div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col" th:each="chunk:${chunks}">
-                                    <ul>
-                                        <li th:each="attendance : ${chunk}">
-                                            <span th:text="${attendance.gradeNameSummary}"></span>
-                                            <span class="badge text-bg-danger rounded-pill"
-                                                  th:text="${attendance.absentSummaryCount}"></span>
-                                        </li>
-                                    </ul>
-
-                                </div>
-                            </div>
-
-                            <!--<ul class="list-group list-group-flush text-start"
-                                th:if="${isAttendance}">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center" th:each="attendance : ${attendances}">
-                                        <span th:text="${attendance.gradeNameSummary}"></span>
-                                        <span class="badge text-bg-danger rounded-pill"
-                                              th:text="${attendance.absentSummaryCount}"></span>
-                                    </li>
-                            </ul>-->
-                            <div th:if="${!isAttendance}">
-                                <p class="text-center"><strong>No attendance data found for today</strong></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
         </div>
 
+        <!-- ── Absent Today ── -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+                <i class="bi bi-person-x-fill stat-tile-ghost" style="color:#f43f5e;" aria-hidden="true"></i>
+                <div class="stat-badge" style="background:#fff1f2; color:#f43f5e;">
+                    <i class="bi bi-person-x-fill" aria-hidden="true"></i>
+                </div>
+                <div class="stat-label">Absent Today</div>
+                <div class="stat-value" style="color:#e11d48;" th:text="${totalAbsent}">0</div>
+                <div class="stat-sub">
+                    of <span th:text="${totalStudents}">0</span> enrolled
+                    &nbsp;·&nbsp;
+                    <span style="color:#10b981; font-weight:700;" th:text="${totalPresent}">0</span> present
+                </div>
+            </div>
+        </div>
 
-    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
-    <script th:src="@{/js/toastr.min.js}"></script>
-    <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
-    <script th:src="@{/js/flatpickr.js}"></script>
-    <script th:src="@{/js/chart.js}"></script>
+        <!-- ── Aadhaar Linked ── -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+                <i class="bi bi-card-text stat-tile-ghost" style="color:#10b981;" aria-hidden="true"></i>
+                <div class="stat-badge" style="background:#d1fae5; color:#059669;">
+                    <i class="bi bi-card-text" aria-hidden="true"></i>
+                </div>
+                <div class="stat-label">Aadhaar Linked</div>
+                <div class="stat-value" style="color:#059669;">
+                    <span th:text="${totalAadhaar}">0</span><span style="font-size:18px; font-weight:400; color:#94a3b8;">&nbsp;/ <span th:text="${totalStudents}">0</span></span>
+                </div>
+                <div class="stat-sub">
+                    <span th:text="${totalStudents > 0 ? (totalAadhaar * 100 / totalStudents) : 0}">0</span>% students linked
+                </div>
+            </div>
+        </div>
 
-    <script type="text/javascript" th:inline="javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("====================================");
-            /*let studentChart;
-            let ctx = document.getElementById('studentChart').getContext('2d');
-            studentChart = new Chart(ctx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Male', 'Female'],
-                    datasets: [{
-                        label: 'Collection Amount',
-                        data: [990, 112],
-                        backgroundColor: [
-                            'rgb(255, 99, 132)',
-                            'rgb(54, 162, 235)'
-                        ],
-                        //borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });*/
+        <!-- ── SR Assigned ── -->
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+                <i class="bi bi-file-earmark-text-fill stat-tile-ghost" style="color:#6366f1;" aria-hidden="true"></i>
+                <div class="stat-badge" style="background:#ede9fe; color:#6366f1;">
+                    <i class="bi bi-file-earmark-text-fill" aria-hidden="true"></i>
+                </div>
+                <div class="stat-label">SR Assigned</div>
+                <div class="stat-value" style="color:#6366f1;">
+                    <span th:text="${totalSR}">0</span><span style="font-size:18px; font-weight:400; color:#94a3b8;">&nbsp;/ <span th:text="${totalStudents}">0</span></span>
+                </div>
+                <div class="stat-sub">
+                    <span th:text="${totalStudents > 0 ? (totalSR * 100 / totalStudents) : 0}">0</span>% assigned
+                </div>
+            </div>
+        </div>
+    </div>
 
-            generateAadhaarChart();
-            generateAbsentChart();
-            generateGenderwiseAttendanceChart();
-            generateSRChart();
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 2 — QUICK ACTIONS
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="dash-section-hd">
+        <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;" aria-hidden="true"></i>
+        Quick Actions
+    </div>
+    <div class="row g-3 mb-4">
 
-            /*let studentAttendanceChart;
-            const labels = ['06 Jul', '07 Jul', '08 Jul', '09 Jul', '10 Jul', '11 Jul', '12 Jul'];
-            const data = {
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/student/student}" class="action-card">
+                <div class="action-icon" style="background:#eef2ff; color:#4f46e5;">
+                    <i class="bi bi-people-fill" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Student Registration</div>
+                    <div class="action-sub">Add &amp; manage student records</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/fees/fee-submit-form}" class="action-card">
+                <div class="action-icon" style="background:#fef3c7; color:#d97706;">
+                    <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Fee Submission</div>
+                    <div class="action-sub">Collect &amp; track student fees</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/message/sendMessage}" class="action-card">
+                <div class="action-icon" style="background:#f0fdf4; color:#16a34a;">
+                    <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Send Message</div>
+                    <div class="action-sub">Alerts &amp; notifications to students</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/student/look-up-student}" class="action-card">
+                <div class="action-icon" style="background:#fff1f2; color:#e11d48;">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Search Student</div>
+                    <div class="action-sub">Look up by name, roll, or Aadhaar</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/fees/fees-user-wise-collection}" class="action-card">
+                <div class="action-icon" style="background:#f5f3ff; color:#7c3aed;">
+                    <i class="bi bi-bar-chart-fill" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Collection Report</div>
+                    <div class="action-sub">User-wise fee summary &amp; analysis</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <a th:href="@{/student/sibling-list}" class="action-card">
+                <div class="action-icon" style="background:#fff7ed; color:#ea580c;">
+                    <i class="bi bi-diagram-3-fill" aria-hidden="true"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="action-title">Sibling Groups</div>
+                    <div class="action-sub">View household student groupings</div>
+                </div>
+                <i class="bi bi-arrow-right-circle action-arrow" aria-hidden="true"></i>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 3 — INSIGHTS (4 doughnut charts)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="dash-section-hd">
+        <i class="bi bi-graph-up" style="color:#6366f1;" aria-hidden="true"></i>
+        Insights
+    </div>
+    <div class="row g-3 mb-4">
+
+        <!-- Aadhaar chart -->
+        <div class="col-xl-3 col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="bi bi-card-text" style="color:#059669;" aria-hidden="true"></i>
+                    Aadhaar Coverage
+                </div>
+                <div style="position:relative; height:150px;">
+                    <canvas id="aadharChart" role="img"
+                            aria-label="Doughnut chart showing Aadhaar linkage percentage for students"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#10b981;"></span> Linked
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#e2e8f0;"></span> Not linked
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance chart -->
+        <div class="col-xl-3 col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="bi bi-person-check-fill" style="color:#6366f1;" aria-hidden="true"></i>
+                    Today's Attendance
+                </div>
+                <div style="position:relative; height:150px;">
+                    <canvas id="attendanceChart" role="img"
+                            aria-label="Doughnut chart showing present vs absent students today"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#6366f1;"></span> Present
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#fca5a5;"></span> Absent
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absent gender-wise chart -->
+        <div class="col-xl-3 col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="bi bi-gender-ambiguous" style="color:#d97706;" aria-hidden="true"></i>
+                    Absent by Gender
+                </div>
+                <div style="position:relative; height:150px;">
+                    <canvas id="attendanceGenderChart" role="img"
+                            aria-label="Doughnut chart showing today's absent students split by gender"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#3b82f6;"></span> Boys
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#ec4899;"></span> Girls
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#94a3b8;"></span> NP
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SR Number chart -->
+        <div class="col-xl-3 col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="bi bi-file-earmark-check-fill" style="color:#7c3aed;" aria-hidden="true"></i>
+                    SR Number Status
+                </div>
+                <div style="position:relative; height:150px;">
+                    <canvas id="srChart" role="img"
+                            aria-label="Doughnut chart showing SR number assignment completion"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#8b5cf6;"></span> Assigned
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot" style="background:#ede9fe;"></span> Pending
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 4 — EVENTS / BIRTHDAYS / GRADE-WISE ABSENT
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="row g-3">
+
+        <!-- Upcoming holidays / events -->
+        <div class="col-md-4">
+            <div class="info-panel">
+                <div class="info-panel-hd">
+                    <i class="bi bi-calendar-event-fill" style="color:#f59e0b;" aria-hidden="true"></i>
+                    Upcoming Events
+                </div>
+                <div class="info-panel-body">
+                    <div th:each="holiday : ${holidays}" th:if="${isHoliDays}" class="info-row">
+                        <span class="info-name" th:text="${holiday.holidayName}">Holiday</span>
+                        <span class="info-date" th:text="${#dates.format(holiday.holidayStartDate, 'dd MMM yyyy')}">01 Jan</span>
+                    </div>
+                    <div th:if="${!isHoliDays}" class="info-empty">
+                        <i class="bi bi-calendar-x" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>
+                        No upcoming events
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming birthdays -->
+        <div class="col-md-4">
+            <div class="info-panel">
+                <div class="info-panel-hd">
+                    <i class="bi bi-balloon-heart-fill" style="color:#ec4899;" aria-hidden="true"></i>
+                    Upcoming Birthdays
+                </div>
+                <div class="info-panel-body">
+                    <div th:each="dob : ${studentsDobUpcoming}" th:if="${isStudentsDobUpcoming}" class="info-row">
+                        <span class="info-name" th:text="${dob[0]}">Name</span>
+                        <span class="info-date" th:text="${dob[1]}">Date</span>
+                    </div>
+                    <div th:if="${!isStudentsDobUpcoming}" class="info-empty">
+                        <i class="bi bi-emoji-smile" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>
+                        No upcoming birthdays
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade-wise absent badge grid -->
+        <div class="col-md-4">
+            <div class="info-panel">
+                <div class="info-panel-hd">
+                    <i class="bi bi-person-dash-fill" style="color:#f43f5e;" aria-hidden="true"></i>
+                    Absent by Grade
+                </div>
+                <div class="absent-grid" th:if="${isAttendance}">
+                    <span th:each="a : ${attendances}"
+                          th:class="${a.absentSummaryCount == 0} ? 'absent-badge absent-badge-green' : 'absent-badge absent-badge-red'">
+                        <span th:text="${a.gradeNameSummary}">Grade</span>
+                        <strong th:text="${a.absentSummaryCount}">0</strong>
+                    </span>
+                </div>
+                <div th:if="${!isAttendance}" class="info-empty">
+                    <i class="bi bi-clock" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>
+                    No attendance data for today
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══ SCRIPTS ════════════════════════════════════════════════════ -->
+<script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+<script th:src="@{/js/toastr.min.js}"></script>
+<script th:src="@{/js/chart.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+
+    /* ── Fee reveal toggle ──────────────────────────────────────── */
+    const feeRaw = /*[[${totalFeeSubmittedToday}]]*/ '0';
+
+    function toggleFee(cb) {
+        const display = document.getElementById('feeDisplay');
+        const label   = document.getElementById('feeSwitchLabel');
+        if (cb.checked) {
+            const formatted = '₹ ' + Number(feeRaw).toLocaleString('en-IN');
+            display.textContent = formatted;
+            label.textContent   = 'Tap to hide';
+            label.style.color   = '#d97706';
+        } else {
+            display.textContent = '₹ ••••••';
+            label.textContent   = 'Tap to reveal';
+            label.style.color   = '#94a3b8';
+        }
+    }
+
+    /* ── Chart data from Thymeleaf ──────────────────────────────── */
+    const totalStudents  = /*[[${totalStudents}]]*/ 0;
+    const totalAadhaar   = /*[[${totalAadhaar}]]*/ 0;
+    const totalSR        = /*[[${totalSR}]]*/ 0;
+    const totalPresent   = /*[[${totalPresent}]]*/ 0;
+    const totalAbsent    = /*[[${totalAbsent}]]*/ 0;
+    const boysAbsent     = /*[[${totalBoysAbsentCount}]]*/ 0;
+    const girlsAbsent    = /*[[${totalGirlsAbsentCount}]]*/ 0;
+    const npAbsent       = /*[[${totalNPAbsentCount}]]*/ 0;
+
+    /* ── Chart helpers ──────────────────────────────────────────── */
+    function pct(n, total) {
+        if (!total || total === 0) return 0;
+        return Math.round(n / total * 100);
+    }
+
+    function makeDonut(canvasId, labels, data, colors) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
                 labels: labels,
                 datasets: [{
-                    label: 'My First Dataset',
-                    data: [65, 59, 80, 81, 56, 55, 40],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(255, 159, 64, 0.2)',
-                        'rgba(255, 205, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(201, 203, 207, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgb(255, 99, 132)',
-                        'rgb(255, 159, 64)',
-                        'rgb(255, 205, 86)',
-                        'rgb(75, 192, 192)',
-                        'rgb(54, 162, 235)',
-                        'rgb(153, 102, 255)',
-                        'rgb(201, 203, 207)'
-                    ],
-                    borderWidth: 1
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 5
                 }]
-            };
-            console.log("data "+data);
-            studentAttendanceChart1 = document.getElementById('studentAttendanceChart').getContext('2d');
-            studentAttendanceChart = new Chart(studentAttendanceChart1, {
-                type: 'bar',
-                data: data,
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return '  ' + ctx.label + ': ' + ctx.parsed + '%';
+                            }
                         }
                     }
                 }
-            });*/
-
-        });
-        function generateRandomColors(count) {
-            const colors = [];
-
-            for (let i = 0; i < count; i++) {
-                const color = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-                colors.push(color);
             }
+        });
+    }
 
-            return colors;
-        }
+    /* ── Render charts on DOM ready ─────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', function () {
 
-        /*function generateAadhaarChart(){
-            let aadharChart;
-            const aadhaarChartColors = generateRandomColors(2);
-            const aadhaarBorderColors = generateRandomColors(2);
-            const totalAadhaar = /!*[[${totalAadhaar}]]*!/ 0;
-            const totalStudents = /!*[[${totalStudents}]]*!/ 0;
-            let assignedPercent = ((totalAadhaar / totalStudents) * 100).toFixed(2);
-            let missingPercent = (((totalStudents - totalAadhaar) / totalStudents) * 100).toFixed(2);
-            let aadharData = [assignedPercent, missingPercent];
-            let aadharctx = document.getElementById('aadharChart').getContext('2d');
-            aadharChart = new Chart(aadharctx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Yes', 'No'],
-                    datasets: [{
-                        label: 'Aadhaar in %',
-                        data: aadharData,
-                        backgroundColor: [
-                            aadhaarChartColors[0],
-                            aadhaarChartColors[1]
-                        ],
-                        borderColor: aadhaarBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
-        function generateAbsentChart(){
-            let attendanceChart;
-            const absentChartColors = generateRandomColors(2);
-            const absentBorderColors = generateRandomColors(2);
-            const totalPresent = /!*[[${totalPresent}]]*!/ 0;
-            const totalAbsent = /!*[[${totalAbsent}]]*!/ 0;
-            const totalStudents = /!*[[${totalStudents}]]*!/ 0;
-            let presentPercent = ((totalPresent / totalStudents) * 100).toFixed(2);
-            let absentPercent = ((totalAbsent / totalStudents) * 100).toFixed(2);
-            let attendanceData = [presentPercent, absentPercent];
-            let attendancectx = document.getElementById('attendanceChart').getContext('2d');
-            attendanceChart = new Chart(attendancectx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Presnt', 'Absent'],
-                    datasets: [{
-                        label: 'Attendance in %',
-                        data: attendanceData,
-                        backgroundColor: [
-                            absentChartColors[0],
-                            absentChartColors[1]
-                        ],
-                        borderColor: absentBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
+        /* Aadhaar */
+        makeDonut(
+            'aadharChart',
+            ['Linked', 'Not linked'],
+            [pct(totalAadhaar, totalStudents), pct(totalStudents - totalAadhaar, totalStudents)],
+            ['#10b981', '#e2e8f0']
+        );
 
-        function generateGenderwiseAttendanceChart(){
-            let attendanceChart;
-            const absentChartColors = generateRandomColors(3);
-            const absentBorderColors = generateRandomColors(3);
-            const totalBoysAbsent = /!*[[${totalBoysAbsentCount}]]*!/ 0;
-            const totalGirlsAbsent = /!*[[${totalGirlsAbsentCount}]]*!/ 0;
-            const totalNPAbsent = /!*[[${totalNPAbsentCount}]]*!/ 0;
-            const totalStudents = /!*[[${totalStudents}]]*!/ 0;
-            const boysAbsentPercent = ((totalBoysAbsent / totalStudents) * 100).toFixed(2);
-            const girlsAbsentPercent = ((totalGirlsAbsent / totalStudents) * 100).toFixed(2);
-            const npAbsentPercent = ((totalNPAbsent / totalStudents) * 100).toFixed(2);
-            let attendanceData = [boysAbsentPercent, girlsAbsentPercent, npAbsentPercent];
-            let attendancectx = document.getElementById('attendanceGenderChart').getContext('2d');
-            attendanceChart = new Chart(attendancectx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Boy', 'Girl','No Pref'],
-                    datasets: [{
-                        label: 'Attendance in %',
-                        data: attendanceData,
-                        backgroundColor: absentChartColors,
-                        borderColor: absentBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
+        /* Attendance */
+        makeDonut(
+            'attendanceChart',
+            ['Present', 'Absent'],
+            [pct(totalPresent, totalStudents), pct(totalAbsent, totalStudents)],
+            ['#6366f1', '#fca5a5']
+        );
 
-        function generateSRChart(){
-            let srChart;
-            const aadhaarChartColors = generateRandomColors(2);
-            const aadhaarBorderColors = generateRandomColors(2);
-            const totalSr = /!*[[${totalSR}]]*!/ 0;
-            const totalStudents = /!*[[${totalStudents}]]*!/ 0;
-            let assignedPercent = ((totalSr / totalStudents) * 100).toFixed(2);
-            let missingPercent = (((totalStudents - totalSr) / totalStudents) * 100).toFixed(2);
-            let aadharData = [assignedPercent, missingPercent];
-            let aadharctx = document.getElementById('srChart').getContext('2d');
-            srChart = new Chart(aadharctx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Yes', 'No'],
-                    datasets: [{
-                        label: 'SR in %',
-                        data: aadharData,
-                        backgroundColor: aadhaarChartColors,
-                        borderColor: aadhaarBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }*/
+        /* Absent gender-wise */
+        const totalGA = boysAbsent + girlsAbsent + npAbsent || 1;
+        makeDonut(
+            'attendanceGenderChart',
+            ['Boys', 'Girls', 'No preference'],
+            [
+                Math.round(boysAbsent  / totalGA * 100),
+                Math.round(girlsAbsent / totalGA * 100),
+                Math.round(npAbsent    / totalGA * 100)
+            ],
+            ['#3b82f6', '#ec4899', '#94a3b8']
+        );
 
+        /* SR Number */
+        makeDonut(
+            'srChart',
+            ['Assigned', 'Pending'],
+            [pct(totalSR, totalStudents), pct(totalStudents - totalSR, totalStudents)],
+            ['#8b5cf6', '#ede9fe']
+        );
 
-        function generateAadhaarChart(){
-            let aadharChart;
-            const aadhaarChartColors = generateRandomColors(2);
-            const aadhaarBorderColors = generateRandomColors(2);
-            const totalAadhaar = /*[[${totalAadhaar}]]*/ 0;
-            const totalStudents = /*[[${totalStudents}]]*/ 0;
-            let assignedPercent = ((totalAadhaar / totalStudents) * 100).toFixed(2);
-            let missingPercent = (((totalStudents - totalAadhaar) / totalStudents) * 100).toFixed(2);
-            let aadharData = [assignedPercent, missingPercent];
-            let aadharctx = document.getElementById('aadharChart').getContext('2d');
-            aadharChart = new Chart(aadharctx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Yes', 'No'],
-                    datasets: [{
-                        label: 'Aadhaar in %',
-                        data: aadharData,
-                        backgroundColor: [
-                            aadhaarChartColors[0],
-                            aadhaarChartColors[1]
-                        ],
-                        borderColor: aadhaarBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
-        function generateAbsentChart(){
-            let attendanceChart;
-            const absentChartColors = generateRandomColors(2);
-            const absentBorderColors = generateRandomColors(2);
-            const totalPresent = /*[[${totalPresent}]]*/ 0;
-            const totalAbsent = /*[[${totalAbsent}]]*/ 0;
-            const totalStudents = /*[[${totalStudents}]]*/ 0;
-            let presentPercent = ((totalPresent / totalStudents) * 100).toFixed(2);
-            let absentPercent = ((totalAbsent / totalStudents) * 100).toFixed(2);
-            let attendanceData = [presentPercent, absentPercent];
-            let attendancectx = document.getElementById('attendanceChart').getContext('2d');
-            attendanceChart = new Chart(attendancectx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Presnt', 'Absent'],
-                    datasets: [{
-                        label: 'Attendance in %',
-                        data: attendanceData,
-                        backgroundColor: [
-                            absentChartColors[0],
-                            absentChartColors[1]
-                        ],
-                        borderColor: absentBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
+    });
 
-        function generateGenderwiseAttendanceChart(){
-            let attendanceChart;
-            const absentChartColors = generateRandomColors(3);
-            const absentBorderColors = generateRandomColors(3);
-            const totalBoysAbsent = /*[[${totalBoysAbsentCount}]]*/ 0;
-            const totalGirlsAbsent = /*[[${totalGirlsAbsentCount}]]*/ 0;
-            const totalNPAbsent = /*[[${totalNPAbsentCount}]]*/ 0;
-            const totalStudents = /*[[${totalStudents}]]*/ 0;
-            const boysAbsentPercent = ((totalBoysAbsent / totalStudents) * 100).toFixed(2);
-            const girlsAbsentPercent = ((totalGirlsAbsent / totalStudents) * 100).toFixed(2);
-            const npAbsentPercent = ((totalNPAbsent / totalStudents) * 100).toFixed(2);
-            let attendanceData = [boysAbsentPercent, girlsAbsentPercent, npAbsentPercent];
-            let attendancectx = document.getElementById('attendanceGenderChart').getContext('2d');
-            attendanceChart = new Chart(attendancectx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Boy', 'Girl','No Pref'],
-                    datasets: [{
-                        label: 'Attendance in %',
-                        data: attendanceData,
-                        backgroundColor: absentChartColors,
-                        borderColor: absentBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
+</script>
 
-        function generateSRChart(){
-            let srChart;
-            const aadhaarChartColors = generateRandomColors(2);
-            const aadhaarBorderColors = generateRandomColors(2);
-            const totalSr = /*[[${totalSR}]]*/ 0;
-            const totalStudents = /*[[${totalStudents}]]*/ 0;
-            let assignedPercent = ((totalSr / totalStudents) * 100).toFixed(2);
-            let missingPercent = (((totalStudents - totalSr) / totalStudents) * 100).toFixed(2);
-            let aadharData = [assignedPercent, missingPercent];
-            let aadharctx = document.getElementById('srChart').getContext('2d');
-            srChart = new Chart(aadharctx, {
-                type: 'doughnut', // Change to 'pie' for a pie chart
-                data: {
-                    labels: ['Yes', 'No'],
-                    datasets: [{
-                        label: 'SR in %',
-                        data: aadharData,
-                        backgroundColor: aadhaarChartColors,
-                        borderColor: aadhaarBorderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
-
-        function generateDoughnutChart({
-                                           elementId,
-                                           labels,
-                                           dataValues,
-                                           chartLabel,
-                                           colorCount = 2
-                                       }) {
-            const colors = generateRandomColors(colorCount);
-            const borders = generateRandomColors(colorCount);
-            const ctx = document.getElementById(elementId).getContext('2d');
-
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: chartLabel,
-                        data: dataValues,
-                        backgroundColor: colors,
-                        borderColor: borders,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
-
-    </script>
 </section>
 </body>
 </html>

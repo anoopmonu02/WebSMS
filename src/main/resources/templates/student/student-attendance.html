@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
     <meta charset="UTF-8">
     <title>UAIC - Student</title>
@@ -19,7 +20,7 @@
                         <strong>Date: </strong><span th:text="${todayDate}"></span>
                     </div>
                     <div class="col-md-6 text-end">
-                        <a class="btn btn-success" th:href="@{/student/student-submit-attendance}"><i class="bi bi-person-bounding-box"></i> Submit Attendance</a>
+                        <a sms:access="STUDENT_ATTENDANCE_MARK:CREATE" class="btn btn-success" th:href="@{/student/student-submit-attendance}"><i class="bi bi-person-bounding-box"></i> Submit Attendance</a>
                         <a class="btn btn-outline-success" th:href="@{/student/student-show-attendance}"><i class="bi bi-person-lines-fill"></i> Show Attendance</a>
                     </div>
                 </div>

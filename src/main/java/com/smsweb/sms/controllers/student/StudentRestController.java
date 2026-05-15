@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
@@ -40,6 +42,7 @@ public class StudentRestController extends BaseController {
         this.studentDiscountService = studentDiscountService;
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @PostMapping("/downloadSRSampleFile")
     public ResponseEntity<?> downloadSRSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
         String fileName = "Academic_Students_SR_Sample_File.xlsx";
@@ -80,6 +83,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @GetMapping("/fetchStudentForSR")
     public ResponseEntity<?> fetchStudentForSR(@RequestBody Map<String, String> requestBody, Model model){
         try{
@@ -97,6 +101,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(null);
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/upload-sr-file")
     public ResponseEntity<?> validateExcelDataForSR(@RequestParam("file") MultipartFile file){
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateSRData(file);
@@ -142,6 +147,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(dataMap);
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/upload-sr-data")
     public ResponseEntity<?> uploadSRData(@RequestBody List<Map<String, String>> tableData, Model model){
         String responseMsg = "";
@@ -156,6 +162,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(responseMsg);
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @PostMapping("/getStudentsForSR")
     public ResponseEntity<?> getStudentsForSR(@RequestBody Map<String, String> requestBody, Model model){
         try{
@@ -183,6 +190,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/saveStudentSRFromTable")
     public ResponseEntity<?> saveStudentSRFromTable(@RequestBody Map<String, String> studentData, Model model){
         try{
@@ -206,6 +214,7 @@ public class StudentRestController extends BaseController {
         }
     }
     //getStudentDetail
+    @CheckAccess(screen = "STUDENT_VIEW", type = AccessType.VIEW)
     @GetMapping("/getStudentDetail/{uuid}")
     public ResponseEntity<?> getStudentDetail(@PathVariable("uuid") String uuid, Model model){
         School school = (School)model.getAttribute("school");
@@ -214,6 +223,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(students);
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_GRADE", type = AccessType.EDIT)
     @PostMapping("/updateStudentGradeSection")
     public ResponseEntity<?> updateStudentGradeOrSection(@RequestBody Map<String, String> studentData, Model model){
         try{
@@ -229,6 +239,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.VIEW)
     @PostMapping("/getStudentsForAttendance")
     public ResponseEntity<?> getStudentsForAttendance(@RequestBody Map<String, String> requestBody, Model model){
         try{
@@ -269,6 +280,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.CREATE)
     @PostMapping("/saveStudentAttendance")
     public ResponseEntity<?> saveStudentsAttendance(@RequestBody List<Map<String, Object>> studentData, Model model){
         try{
@@ -286,6 +298,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_REPORT", type = AccessType.VIEW)
     @PostMapping("/getStudentsMonthlyAttendance")
     public ResponseEntity<?> getStudentsMonthlyAttendance(@RequestBody Map<String, String> requestBody, Model model){
         try{
@@ -320,6 +333,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.VIEW)
     @PostMapping("/downloadAadharSampleFile")
     public ResponseEntity<?> downloadAadharSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
         String fileName = "Academic_Students_Aadhar_Sample_File.xlsx";
@@ -360,6 +374,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/upload-aadhar-file")
     public ResponseEntity<?> validateExcelDataForAadhar(@RequestParam("file") MultipartFile file){
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateAadharData(file);
@@ -388,6 +403,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(dataMap);
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/upload-aadhar-data")
     public ResponseEntity<?> uploadAadharData(@RequestBody List<Map<String, String>> tableData, Model model){
         String responseMsg = "";
@@ -402,6 +418,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(responseMsg);
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/saveStudentAadharFromTable")
     public ResponseEntity<?> saveStudentAadharFromTable(@RequestBody Map<String, String> studentData, Model model){
         try{
@@ -425,6 +442,7 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_SESSION", type = AccessType.VIEW)
     @PostMapping("/getTotalStudentDetails")
     public ResponseEntity<?> getTotalStudentDetails(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -444,6 +462,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_GRADE", type = AccessType.VIEW)
     @PostMapping("/getTotalStudentDetailsByGrade")
     public ResponseEntity<?> getTotalStudentDetailsByGrade(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -463,6 +482,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @PostMapping("/downloadSampleFileToEnterExamResult")
     public ResponseEntity<?> downloadSampleFileToEnterExamResult(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
         String fileName = "Academic_Students_Exam_Result_Sample_File.xlsx";
@@ -503,6 +523,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-file")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
@@ -531,6 +552,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(dataMap);
     }
 
+    @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-data")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
@@ -546,6 +568,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(responseMsg);
     }
 
+    @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @PostMapping("/getStudentsExamResults")
     public ResponseEntity<?> getSelectedGradeStudentsExamResult(@RequestBody Map<String, String> tableData, Model model){
         String responseMsg = "";
@@ -579,6 +602,7 @@ public class StudentRestController extends BaseController {
     }
 
     //searchStudentData
+    @CheckAccess(screen = "STUDENT_SEARCH", type = AccessType.VIEW)
     @PostMapping("/searchStudentData")
     public ResponseEntity<?> searchStudentData(@RequestBody Map<String, String> requestBody, Model model){
         School school = (School)model.getAttribute("school");
@@ -599,6 +623,7 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(studentDataList);
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)
     @PostMapping("/getStudentsDiscountList")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     @ResponseBody

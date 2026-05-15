@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - School</title>
@@ -41,10 +42,10 @@
             <td th:text="${fine.maxCalculated}"></td>
             <td th:text="${fine.description}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/fine/edit/{id}(id=${fine.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a sms:access="ADMIN_FINE:EDIT" class="btn btn-primary" th:href="@{/admin/fine/edit/{id}(id=${fine.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <button sms:access="ADMIN_FINE:DELETE" class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>
               <!--<button class="btn btn-danger" onclick="deleteFine([[${fine.id}]])"><i class="bi bi-trash3-fill"></i> </button>-->
             </td>
           </tr>
@@ -54,7 +55,7 @@
           <p class="text-center">No Fine found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" th:href="@{/admin/fine/add}"><i class="bi bi-node-plus-fill"></i> Add Fine</a>
+          <a sms:access="ADMIN_FINE:CREATE" class="btn btn-success" th:href="@{/admin/fine/add}"><i class="bi bi-node-plus-fill"></i> Add Fine</a>
         </div>
       </div>
     </div>

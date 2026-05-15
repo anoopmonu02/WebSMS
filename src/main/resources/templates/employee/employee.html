@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
@@ -34,9 +35,9 @@
                             <td th:text="${employee.getUserEntity().getEmail()}"></td>
                             <td th:text="${employee.address}"></td>
                             <td style="white-space: nowrap" class="text-center">
-                                <a class="btn btn-primary" th:href="@{/employee/employee-edit/{uuid}(uuid=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                                <a sms:access="EMPLOYEE_EDIT:EDIT" class="btn btn-primary" th:href="@{/employee/employee-edit/{uuid}(uuid=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                                     <i class="bi bi-pencil-square"></i> </a>
-                                <a class="btn btn-danger" th:href="@{/employee/employee-delete/{id}(id=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                                <a sms:access="EMPLOYEE_DELETE:DELETE" class="btn btn-danger" th:href="@{/employee/employee-delete/{id}(id=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                                     <i class="bi bi-trash3-fill"></i> </a>
                             </td>
                         </tr>
@@ -46,7 +47,7 @@
                     <p class="text-center">No Employee found.</p>
                 </div>
                 <div class="pt-5 mb-5">
-                    <a class="btn btn-success" th:href="@{/employee/employee-add}"><i class="bi bi-node-plus-fill"></i> Add Employee</a>
+                    <a sms:access="EMPLOYEE_ADD:CREATE" class="btn btn-success" th:href="@{/employee/employee-add}"><i class="bi bi-node-plus-fill"></i> Add Employee</a>
                 </div>
             </div>
         </div>

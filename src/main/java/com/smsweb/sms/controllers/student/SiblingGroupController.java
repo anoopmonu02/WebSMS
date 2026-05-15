@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
@@ -33,6 +35,7 @@ public class SiblingGroupController extends BaseController {
         this.siblingGroupService = siblingGroupService;
     }
 
+    @CheckAccess(screen = "SIBLING_LIST", type = AccessType.VIEW)
     @GetMapping("/sibling-group")
     public String getSiblingGroupListForm(Model model){
         School school = (School)model.getAttribute("school");
@@ -43,11 +46,13 @@ public class SiblingGroupController extends BaseController {
         return "student/siblinggrouplist";
     }
 
+    @CheckAccess(screen = "SIBLING_ADD", type = AccessType.CREATE)
     @GetMapping("/sibling-group/add")
     public String getAddSiblingForm(Model model){
         return "student/add-siblinggroup";
     }
 
+    @CheckAccess(screen = "SIBLING_ADD", type = AccessType.CREATE)
     @PostMapping("/savesiblinggroup")
     public String saveSiblingGroup(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{
@@ -82,6 +87,7 @@ public class SiblingGroupController extends BaseController {
         return "redirect:/sibling/sibling-group";
     }
 
+    @CheckAccess(screen = "SIBLING_VIEW", type = AccessType.VIEW)
     @GetMapping("/sibling-group/show/{id}")
     public String showgroupdetail(@PathVariable("id")Long id, Model model, RedirectAttributes redirectAttributes){
         SiblingGroup group = siblingGroupService.getSiblingGroupDetail(id).orElse(null);
@@ -94,6 +100,7 @@ public class SiblingGroupController extends BaseController {
         return "student/show-siblinggroup";
     }
 
+    @CheckAccess(screen = "SIBLING_DELETE", type = AccessType.DELETE)
     @GetMapping("/sibling-group/delete/{id}")
     public String deletegroup(@PathVariable("id")String id, Model model, RedirectAttributes redirectAttributes){
         String msg = siblingGroupService.deleteSiblingGroup(Long.valueOf(id));

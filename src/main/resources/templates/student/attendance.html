@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
@@ -58,7 +59,7 @@
 
                     </div>
                     <div class="col-md-6 mb-5 pt-5">
-                        <button type="button" class="btn btn-primary" id="save-sr-from-table" onclick="saveAttendance()"><i class="bi bi-save2-fill"></i> Save </button>
+                        <button sms:access="STUDENT_ATTENDANCE_MARK:CREATE" type="button" class="btn btn-primary" id="save-sr-from-table" onclick="saveAttendance()"><i class="bi bi-save2-fill"></i> Save </button>
                     </div>
                 </div>
 

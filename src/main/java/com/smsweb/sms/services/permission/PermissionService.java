@@ -1,19 +1,17 @@
 package com.smsweb.sms.services.permission;
 
 import com.smsweb.sms.models.permission.AccessType;
-import com.smsweb.sms.models.permission.AppScreen;
 import com.smsweb.sms.models.permission.UserPermission;
 import com.smsweb.sms.repositories.permission.UserPermissionRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 @Service
 public class PermissionService {
@@ -24,46 +22,80 @@ public class PermissionService {
     @Autowired private UserRepository userRepo;
     @Autowired private HttpSession session;
 
-    /** Primary check — call this from controllers or AOP */
+    // ── Primary access check ─────────────────────────────────────────────────
+
+    /**
+     * Returns true if the current user has the required AccessType on the given screen.
+     * Super-admin and admin roles bypass all checks and always return true.
+     */
     public boolean hasAccess(String screenKey, AccessType requiredType) {
         if (isSuperOrAdmin()) return true;
-        Map<String, AccessType> perms = getPermissionsForCurrentUser();
-        AccessType granted = perms.getOrDefault(screenKey, AccessType.NOTHING);
+        Set<AccessType> granted = getGrantedTypes(screenKey);
         return switch (requiredType) {
-            case VIEW   -> granted.canView();
-            case CREATE -> granted.canCreate();
-            case EDIT   -> granted.canEdit();
-            case DELETE -> granted.canDelete();
-            case ALL    -> granted == AccessType.ALL;
+            case VIEW   -> granted.contains(AccessType.VIEW);
+            case CREATE -> granted.contains(AccessType.CREATE);
+            case EDIT   -> granted.contains(AccessType.EDIT);
+            case DELETE -> granted.contains(AccessType.DELETE);
+            case ALL    -> granted.containsAll(EnumSet.of(
+                                AccessType.VIEW, AccessType.CREATE,
+                                AccessType.EDIT, AccessType.DELETE));
             default     -> false;
         };
     }
 
+    /**
+     * Returns the effective "summary" AccessType for a screen.
+     * Useful for single-value comparisons in templates or legacy code.
+     *   empty set → NOTHING
+     *   all four  → ALL
+     *   otherwise → highest individual type present (VIEW < CREATE < EDIT < DELETE)
+     */
     public AccessType getAccessType(String screenKey) {
         if (isSuperOrAdmin()) return AccessType.ALL;
-        return getPermissionsForCurrentUser().getOrDefault(screenKey, AccessType.NOTHING);
+        Set<AccessType> granted = getGrantedTypes(screenKey);
+        if (granted.isEmpty()) return AccessType.NOTHING;
+        if (granted.containsAll(EnumSet.of(
+                AccessType.VIEW, AccessType.CREATE, AccessType.EDIT, AccessType.DELETE))) {
+            return AccessType.ALL;
+        }
+        // Return whichever single type is most prominent (priority order)
+        for (AccessType t : new AccessType[]{
+                AccessType.DELETE, AccessType.EDIT, AccessType.CREATE, AccessType.VIEW}) {
+            if (granted.contains(t)) return t;
+        }
+        return AccessType.NOTHING;
     }
 
-    /** Call this after admin saves permissions to clear stale cache */
+    /**
+     * Returns the raw set of AccessTypes granted to the current user for a screen.
+     * Returns an empty set when no permission record exists.
+     */
+    public Set<AccessType> getGrantedTypes(String screenKey) {
+        return getPermissionsForCurrentUser()
+                .getOrDefault(screenKey, Collections.emptySet());
+    }
+
+    /** Evict the cached permissions for this session after an admin saves changes. */
     public void evictCache(Long userId) {
-        // In a real multi-session setup you'd store by userId.
-        // For simplicity, clear this session's cache if it's the same user.
         session.removeAttribute(SESSION_KEY);
     }
 
+    // ── Internal cache ───────────────────────────────────────────────────────
+
     @SuppressWarnings("unchecked")
-    private Map<String, AccessType> getPermissionsForCurrentUser() {
-        Map<String, AccessType> cached = (Map<String, AccessType>) session.getAttribute(SESSION_KEY);
+    private Map<String, Set<AccessType>> getPermissionsForCurrentUser() {
+        Map<String, Set<AccessType>> cached =
+                (Map<String, Set<AccessType>>) session.getAttribute(SESSION_KEY);
         if (cached != null) return cached;
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        Long userId = userRepo.findByUsername(username).getId();
+        Long userId = userRepo.findByUsername(auth.getName()).getId();
 
         List<UserPermission> perms = permissionRepo.findAllByUserId(userId);
-        Map<String, AccessType> map = new HashMap<>();
+        Map<String, Set<AccessType>> map = new HashMap<>();
         for (UserPermission p : perms) {
-            map.put(p.getScreen().getScreenKey(), p.getAccessType());
+            // Defensive copy so the cached set is independent of the JPA entity
+            map.put(p.getScreen().getScreenKey(), new HashSet<>(p.getAccessTypes()));
         }
         session.setAttribute(SESSION_KEY, map);
         return map;

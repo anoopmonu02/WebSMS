@@ -74,8 +74,8 @@ public class StudentController extends BaseController {
         this.examinationRepository = examinationRepository;
     }
 
-    @GetMapping("/student")
     @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
+    @GetMapping("/student")
     public String studentData(Model model){
         log.debug("inside student list");
 
@@ -109,6 +109,7 @@ public class StudentController extends BaseController {
         return false;
     }
 
+    @CheckAccess(screen = "STUDENT_ADD", type = AccessType.CREATE)
     @GetMapping("/student/add")
     public String addStudentData(Model model){
         Student student = new Student();
@@ -137,6 +138,7 @@ public class StudentController extends BaseController {
     }
 
     @ResponseBody
+    @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
     @GetMapping("/student/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
         return dropdownService.getCities(provinceId);
@@ -152,6 +154,7 @@ public class StudentController extends BaseController {
         return false;
     }
 
+    @CheckAccess(screen = "STUDENT_ADD", type = AccessType.CREATE)
     @PostMapping("/student")
     public String saveStudent(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
                              Model model, RedirectAttributes redirectAttribute,  HttpSession session) {
@@ -222,6 +225,7 @@ public class StudentController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")
     public Resource getImage(@PathVariable("filename") String filename) {
         try {
@@ -235,6 +239,7 @@ public class StudentController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_VIEW", type = AccessType.VIEW)
     @GetMapping("/student/show/{uuid}")
     public String showSchoolForm(@PathVariable("uuid")UUID uuid, Model model){
         School school = (School)model.getAttribute("school");
@@ -245,6 +250,7 @@ public class StudentController extends BaseController {
         return "student/show-student";
     }
 
+    @CheckAccess(screen = "STUDENT_INACTIVE_LIST", type = AccessType.VIEW)
     @GetMapping("/student/showdeleted/{uuid}")
     public String showSchoolDeletedStudents(@PathVariable("uuid")UUID uuid, Model model){
         School school = (School)model.getAttribute("school");
@@ -255,6 +261,7 @@ public class StudentController extends BaseController {
         return "student/show-student";
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT", type = AccessType.EDIT)
     @GetMapping("/student/edit/{uuid}")
     public String editStudentForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes){
         School school = (School)model.getAttribute("school");
@@ -272,6 +279,7 @@ public class StudentController extends BaseController {
         return "student/edit-student";
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT", type = AccessType.EDIT)
     @PostMapping("/edit-details")
     public String editStudentDetails(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
                                      Model model, RedirectAttributes redirectAttribute){
@@ -312,6 +320,7 @@ public class StudentController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @GetMapping("/assign-sr")
     public String assignSRForm(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -320,6 +329,7 @@ public class StudentController extends BaseController {
         return "student/assign-srno";
     }
 
+    @CheckAccess(screen = "STUDENT_INACTIVE_LIST", type = AccessType.VIEW)
     @GetMapping("/stu-deleted-list")
     public String deletedStudentList(Model model){
         School school = (School)model.getAttribute("school");
@@ -330,6 +340,7 @@ public class StudentController extends BaseController {
 
         return "student/inactive-students";
     }
+    @CheckAccess(screen = "STUDENT_DELETE", type = AccessType.DELETE)
     @GetMapping("/delete-student/{deleteId}")
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         String msg = studentService.deleteStudent(Long.valueOf(id));
@@ -346,6 +357,7 @@ public class StudentController extends BaseController {
         return "redirect:/student/student";
     }
 
+    @CheckAccess(screen = "STUDENT_ACTIVATE", type = AccessType.CREATE)
     @GetMapping("/activate-student/{studentIdForUpdate}")
     public String activateStudent(@PathVariable("studentIdForUpdate")String id, Model model, RedirectAttributes redirectAttributes){
         String msg = studentService.activateStudent(Long.valueOf(id));
@@ -362,6 +374,7 @@ public class StudentController extends BaseController {
         return "redirect:/student/student";
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_GRADE", type = AccessType.EDIT)
     @GetMapping("/edit-grade-section")
     public String modifyGradeAndSectionForm(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -370,6 +383,7 @@ public class StudentController extends BaseController {
         return "student/edit-grade-section";
     }
 
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_VIEW", type = AccessType.VIEW)
     @GetMapping("/student-attendance")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String studentAttendanceForm(Model model){
@@ -387,6 +401,7 @@ public class StudentController extends BaseController {
         model.addAttribute("page", "datatable");
         return "student/student-attendance";
     }
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.CREATE)
     @GetMapping("/student-submit-attendance")
     public String studentAttendanceSave(Model model){
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
@@ -402,6 +417,7 @@ public class StudentController extends BaseController {
         return "student/attendance";
     }
 
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_REPORT", type = AccessType.VIEW)
     @GetMapping("/student-show-attendance")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String studentShowAttendance(Model model){
@@ -412,6 +428,7 @@ public class StudentController extends BaseController {
         return "student/show-attendance";
     }
 
+    @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @GetMapping("/edit-aadhar-detail")
     public String updateAadharPage(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -420,6 +437,7 @@ public class StudentController extends BaseController {
         return "student/update-aadhar";
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_SESSION", type = AccessType.VIEW)
     @GetMapping("/sessions-total-students-detail")
     public String totalFeeSubmissionDetail(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -427,6 +445,7 @@ public class StudentController extends BaseController {
         return "student/all_students_session";
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_GRADE", type = AccessType.VIEW)
     @GetMapping("/grade-total-students-detail")
     public String totalFeeSubmissionDetailByGrade(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -436,6 +455,7 @@ public class StudentController extends BaseController {
         return "student/all_students_grade";
     }
 
+    @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @GetMapping("/stu-exam-result")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String examResultForm(Model model){
@@ -447,6 +467,7 @@ public class StudentController extends BaseController {
         return "student/stu_exam";
     }
 
+    @CheckAccess(screen = "STUDENT_SEARCH", type = AccessType.VIEW)
     @GetMapping("/look-up-student")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
     public String searchStudent(Model model){

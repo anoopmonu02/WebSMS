@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.student;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.DiscountClassMap;
@@ -47,6 +49,7 @@ public class SiblingDiscountController extends BaseController {
         this.studentDiscountService = studentDiscountService;
     }
 
+    @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @GetMapping("/assign-sibling-discount")
     public String getSiblingDiscount(Model model){
         School school = (School)model.getAttribute("school");
@@ -58,6 +61,7 @@ public class SiblingDiscountController extends BaseController {
     }
 
     @ResponseBody
+    @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/groups/by-group/{groupId}")
     public List<SiblingGroupStudent> getStudentsByGroup(@PathVariable Long groupId) {
         System.out.println("INside controller "+groupId);
@@ -98,6 +102,7 @@ public class SiblingDiscountController extends BaseController {
 
         return responseMap;
     }*/
+    @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/validate-student/{academicStudentId}")
     @ResponseBody
     public Map<String, String> getStudentDetail(@PathVariable Long academicStudentId, Model model) {
@@ -143,6 +148,7 @@ public class SiblingDiscountController extends BaseController {
         return responseMap;
     }
 
+    @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @PostMapping("/savesiblinggroupdiscount")
     public String saveStudentSiblingDiscount(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{

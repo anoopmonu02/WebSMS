@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.employee;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
@@ -59,6 +61,7 @@ public class EmployeeController extends BaseController {
         this.userService = userService;
     }
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/employee-list")
     public String getEmployeeList(Model model){
         List<Employee> employees = null;
@@ -75,6 +78,7 @@ public class EmployeeController extends BaseController {
         return "employee/employee";
     }
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.CREATE)
     @GetMapping("/employee-add")
     public String getAddEmployeeForm(Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -149,6 +153,7 @@ public class EmployeeController extends BaseController {
         return false;
     }
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.CREATE)
     @PostMapping("/employee-save")
     public String saveEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
                                @RequestParam("customerPic") MultipartFile customerPic){
@@ -207,6 +212,7 @@ public class EmployeeController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.EDIT)
     @GetMapping("/employee-edit/{uuid}")
     public String editEmployeeForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes) {
         try {
@@ -233,6 +239,7 @@ public class EmployeeController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")
     public Resource getImage(@PathVariable("filename") String filename) {
         try {
@@ -246,6 +253,7 @@ public class EmployeeController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "EMPLOYEE", type = AccessType.DELETE)
     @PostMapping("/employee-delete")
     public String deleteEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
                                  @RequestParam("customerPic") MultipartFile customerPic){

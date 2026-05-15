@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
@@ -42,7 +43,7 @@
                                                 <i class="bi bi-list"></i> </a>
                                             <!--<a class="btn btn-danger" th:href="@{/sibling/sibling-group/delete/{id}(id=${sibgrp.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                                                 <i class="bi bi-trash3-fill"></i> </a>-->
-                                            <a class="btn btn-danger" th:data-id="${sibgrp.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
+                                            <a sms:access="SIBLING_DELETE:DELETE" class="btn btn-danger" th:data-id="${sibgrp.id}" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-bs-title="Default tooltip">
                                                 <i class="bi bi-trash3-fill"></i>
                                             </a>
                                         </div>
@@ -54,7 +55,7 @@
                             <p class="text-center">No Sibling-Group found.</p>
                         </div>
                         <div class="pt-5">
-                            <a class="btn btn-success" th:href="@{/sibling/sibling-group/add}"><i class="bi bi-node-plus-fill"></i> Add Sibling-Group</a>
+                            <a sms:access="SIBLING_ADD:CREATE" class="btn btn-success" th:href="@{/sibling/sibling-group/add}"><i class="bi bi-node-plus-fill"></i> Add Sibling-Group</a>
                         </div>
                     </div>
                 </div>

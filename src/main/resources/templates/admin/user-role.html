@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}" th:inline="javascript">
 <head>
   <meta charset="UTF-8">
   <title>Edit School</title>
@@ -38,7 +39,7 @@
                 <p class="text-center">No User-Role found.</p>
             </div>
             <div class="pt-5">
-                <a class="btn btn-success" th:href="@{/admin/add-user-to-role}"><i class="bi bi-node-plus-fill"></i> Assign Role to User</a>
+                <a sms:access="ADMIN_USERROLE:CREATE" class="btn btn-success" th:href="@{/admin/add-user-to-role}"><i class="bi bi-node-plus-fill"></i> Assign Role to User</a>
             </div>
         </div>
     </div>

@@ -5,286 +5,709 @@
       th:replace="~{base::Layout(~{::section})}"
       th:inline="javascript">
 <head>
-  <meta charset="UTF-8">
-  <title>Set User Permissions</title>
+    <meta charset="UTF-8">
+    <title>User Permissions</title>
 </head>
 <body>
 <section>
-  <div class="container-fluid">
-    <div class="mt-2 mb-5">
 
-      <!-- ── Header ── -->
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div class="card-header fs-3">
-          <i class="bi bi-shield-lock me-2"></i>
-          Permissions —
-          <span class="text-primary fw-bold" th:text="${user.username}"></span>
-          <span class="fs-6 text-muted ms-2" th:text="|( ${user.displayName} )|"></span>
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-success" id="saveBtn" onclick="savePermissions()">
-            <i class="bi bi-shield-check me-1"></i>Save All Permissions
-          </button>
-          <a th:href="@{/admin/permissions}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left-circle me-1"></i>Back to Users
-          </a>
-        </div>
-      </div>
-      <hr/>
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE STYLES — inside <section> so Thymeleaf layout includes them.
+══════════════════════════════════════════════════════════════════ -->
+<style>
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .perm-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0c4a6e 100%);
+        border-radius: 16px; padding: 24px 28px; margin-bottom: 20px;
+        position: relative; overflow: hidden;
+        border: 1px solid rgba(255,255,255,.06);
+    }
+    .perm-hero::after {
+        content: ''; position: absolute; top: -70px; right: -70px;
+        width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(99,102,241,.28) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .perm-hero-content { position: relative; z-index: 1; }
+    .perm-avatar {
+        width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; font-weight: 800; color: #fff;
+        box-shadow: 0 4px 18px rgba(99,102,241,.45);
+    }
+    .perm-page-title { font-size: 21px; font-weight: 700; color: #f8fafc; }
+    .perm-page-sub   { font-size: 12.5px; color: #94a3b8; margin-top: 2px; }
+    .perm-user-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(99,102,241,.18); border: 1px solid rgba(99,102,241,.35);
+        border-radius: 20px; padding: 5px 14px;
+        font-size: 12px; color: #a5b4fc; font-weight: 600; margin-top: 10px;
+    }
+    .hero-save-btn {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff; border: none; border-radius: 10px;
+        padding: 10px 22px; font-size: 13.5px; font-weight: 700;
+        cursor: pointer; white-space: nowrap;
+        box-shadow: 0 4px 14px rgba(16,185,129,.4);
+        transition: all .2s; display: flex; align-items: center; gap: 7px;
+    }
+    .hero-save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,.5); }
+    .hero-back-btn {
+        color: #94a3b8; border: 1px solid rgba(255,255,255,.12);
+        border-radius: 10px; padding: 10px 18px; font-size: 13px;
+        background: rgba(255,255,255,.06); font-weight: 600;
+        text-decoration: none; transition: all .2s; white-space: nowrap;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .hero-back-btn:hover { background: rgba(255,255,255,.14); color: #e2e8f0; }
 
-      <!-- ── Quick-set toolbar ── -->
-      <div class="card bg-light border-0 mb-4 p-3">
-        <div class="d-flex flex-wrap align-items-center gap-3">
-          <span class="fw-semibold text-muted small">Quick-set all screens:</span>
-          <button type="button" class="btn btn-sm btn-outline-success"  onclick="setAll('ALL')">
-            <i class="bi bi-check-all"></i> All Access
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-primary"  onclick="setAll('VIEW')">
-            <i class="bi bi-eye"></i> View Only
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-warning"  onclick="setAll('CREATE')">
-            <i class="bi bi-plus-circle"></i> Create Only
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-danger"   onclick="setAll('NOTHING')">
-            <i class="bi bi-slash-circle"></i> Revoke All
-          </button>
-          <span class="vr"></span>
-          <span class="small text-muted">
-            <i class="bi bi-info-circle me-1"></i>
-            Changes are saved only when you click <strong>Save All Permissions</strong>.
-          </span>
-        </div>
-      </div>
+    /* ── Stats ─────────────────────────────────────────────────── */
+    .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+    .stat-card {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+    .stat-icon { font-size: 20px; margin-bottom: 8px; }
+    .stat-num  { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; }
+    .stat-lbl  { font-size: 12px; color: #64748b; margin-top: 4px; }
 
-      <!-- ── Permission matrix — one section per module ── -->
-      <input type="hidden" id="userId" th:value="${user.id}"/>
+    /* ── Toolbar ────────────────────────────────────────────────── */
+    .perm-toolbar {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 10px 16px; margin-bottom: 14px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        position: sticky; top: 0; z-index: 90;
+    }
+    .global-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        border: 1.5px solid; border-radius: 8px; padding: 5px 14px;
+        font-size: 12.5px; font-weight: 600; cursor: pointer;
+        transition: all .18s; background: transparent;
+    }
+    .global-btn-all  { border-color: #8b5cf6; color: #8b5cf6; }
+    .global-btn-all:hover  { background: #8b5cf6; color: #fff; }
+    .global-btn-view { border-color: #0ea5e9; color: #0ea5e9; }
+    .global-btn-view:hover { background: #0ea5e9; color: #fff; }
+    .global-btn-none { border-color: #f43f5e; color: #f43f5e; }
+    .global-btn-none:hover { background: #f43f5e; color: #fff; }
+    .dirty-counter {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff; border-radius: 20px; padding: 4px 12px;
+        font-size: 12px; font-weight: 700;
+        box-shadow: 0 2px 8px rgba(245,158,11,.35);
+    }
 
-      <div th:each="module : ${screens}" class="mb-5">
+    /* ── Search ─────────────────────────────────────────────────── */
+    .search-wrap { position: relative; margin-bottom: 14px; }
+    .search-wrap .search-icon {
+        position: absolute; left: 13px; top: 50%;
+        transform: translateY(-50%); color: #94a3b8; pointer-events: none;
+    }
+    .perm-search {
+        width: 100%; padding: 9px 16px 9px 38px;
+        border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;
+        outline: none; transition: border-color .2s, box-shadow .2s; background: #fff;
+    }
+    .perm-search:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
 
-        <!-- Module heading -->
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <span class="badge bg-dark fs-6 px-3 py-2"
-                th:text="${module.key}"></span>
-          <hr class="flex-grow-1 m-0"/>
-        </div>
+    /* ── Module Card ─────────────────────────────────────────────── */
+    .mod-card {
+        border: 1px solid #e2e8f0; border-radius: 14px;
+        background: #fff; overflow: hidden; margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.04); transition: box-shadow .2s;
+    }
+    .mod-card:hover { box-shadow: 0 4px 22px rgba(0,0,0,.09); }
+    .mod-header {
+        display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+        cursor: pointer; user-select: none;
+    }
+    .mod-icon {
+        width: 36px; height: 36px; border-radius: 9px;
+        background: rgba(255,255,255,.1);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; color: #e2e8f0; flex-shrink: 0;
+    }
+    .mod-title { font-weight: 700; font-size: 14px; color: #f1f5f9; }
+    .mod-sub   { font-size: 11px; color: #64748b; margin-top: 1px; }
+    .mod-count {
+        margin-left: auto; background: rgba(255,255,255,.1);
+        border-radius: 20px; padding: 3px 11px;
+        font-size: 11px; color: #94a3b8; white-space: nowrap; flex-shrink: 0;
+    }
+    .mod-collapse-icon { color: #475569; transition: transform .25s; font-size: 11px; flex-shrink: 0; }
+    .mod-card.collapsed .mod-collapse-icon { transform: rotate(-90deg); }
+    .mod-qs { display: flex; gap: 4px; flex-shrink: 0; }
+    .mod-qs-btn {
+        border: 1px solid rgba(255,255,255,.2); border-radius: 6px;
+        padding: 3px 10px; font-size: 10.5px; font-weight: 600;
+        cursor: pointer; color: #cbd5e1; background: transparent;
+        transition: all .18s; white-space: nowrap;
+    }
+    .mod-qs-btn.qs-all:hover  { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+    .mod-qs-btn.qs-view:hover { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+    .mod-qs-btn.qs-none:hover { background: #f43f5e; border-color: #f43f5e; color: #fff; }
 
-        <!-- Screen cards grid -->
-        <div class="row g-3">
-          <div class="col-sm-6 col-md-4 col-xl-3"
-               th:each="screen : ${module.value}">
-            <div class="card h-100 shadow-sm border-0">
-              <div class="card-body p-3">
+    /* ── Permission Table ────────────────────────────────────────── */
+    .perm-table { width: 100%; border-collapse: collapse; }
+    .perm-table thead th {
+        font-size: 10px; font-weight: 700; color: #94a3b8;
+        text-transform: uppercase; letter-spacing: .07em;
+        padding: 9px 20px; background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+    }
+    .perm-table tbody td {
+        padding: 12px 20px; border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+    }
+    .perm-table tbody tr:last-child td { border-bottom: 0; }
+    .perm-table tbody tr.dirty { background: #fffbeb !important; box-shadow: inset 3px 0 0 #f59e0b; }
+    .perm-table tbody tr:hover:not(.dirty) { background: #f9fafb; }
+    .screen-name { font-weight: 600; font-size: 13.5px; color: #0f172a; }
+    .screen-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .screen-key  {
+        display: inline-flex; align-items: center; gap: 3px;
+        font-family: 'Courier New', monospace; font-size: 10.5px; color: #6366f1;
+        background: #ede9fe; border-radius: 5px; padding: 1px 7px; margin-top: 4px;
+    }
 
-                <!-- Screen name + module badge -->
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                  <span class="fw-semibold small" th:text="${screen.screenName}"></span>
-                  <span class="badge bg-secondary ms-1 text-nowrap"
-                        th:text="${screen.module}"></span>
+    /* ── Checkbox Pill Group ─────────────────────────────────────── */
+    .pill-group { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+
+    /* Hide actual checkbox inputs — labels act as the visible buttons */
+    .pill-group input[type="checkbox"].perm-check {
+        position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;
+    }
+
+    .perm-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 5px 13px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
+        cursor: pointer; transition: all .18s; border: 1.5px solid; user-select: none;
+    }
+
+    /* Unselected — light tint */
+    .pill-VIEW   { color: #0ea5e9; border-color: #bae6fd; background: #f0f9ff; }
+    .pill-CREATE { color: #10b981; border-color: #a7f3d0; background: #f0fdf4; }
+    .pill-EDIT   { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+    .pill-DELETE { color: #f43f5e; border-color: #fecdd3; background: #fff1f2; }
+
+    /* Hover */
+    .pill-VIEW:hover   { background: #bae6fd; }
+    .pill-CREATE:hover { background: #a7f3d0; }
+    .pill-EDIT:hover   { background: #fde68a; }
+    .pill-DELETE:hover { background: #fecdd3; }
+
+    /* Selected — solid fill via :checked + adjacent label */
+    input.perm-check:checked + label.pill-VIEW   { background:#0ea5e9; color:#fff; border-color:#0ea5e9; box-shadow:0 2px 8px rgba(14,165,233,.4); }
+    input.perm-check:checked + label.pill-CREATE { background:#10b981; color:#fff; border-color:#10b981; box-shadow:0 2px 8px rgba(16,185,129,.4); }
+    input.perm-check:checked + label.pill-EDIT   { background:#f59e0b; color:#fff; border-color:#f59e0b; box-shadow:0 2px 8px rgba(245,158,11,.4); }
+    input.perm-check:checked + label.pill-DELETE { background:#f43f5e; color:#fff; border-color:#f43f5e; box-shadow:0 2px 8px rgba(244,63,94,.4); }
+
+    /* Row quick-set (All / None) */
+    .row-qs-sep { width: 1px; height: 22px; background: #e2e8f0; margin: 0 3px; }
+    .row-qs-btn {
+        display: inline-flex; align-items: center; gap: 3px;
+        border: 1px solid #e2e8f0; border-radius: 6px; padding: 3px 9px;
+        font-size: 10.5px; font-weight: 600; cursor: pointer;
+        background: #f8fafc; color: #64748b; transition: all .15s;
+    }
+    .row-qs-btn.rqs-all:hover  { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+    .row-qs-btn.rqs-none:hover { background: #f43f5e; border-color: #f43f5e; color: #fff; }
+
+    /* ── Saved Badge Column ──────────────────────────────────────── */
+    .saved-badges { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-width: 80px; }
+    .sbadge {
+        display: inline-flex; align-items: center; padding: 2px 7px;
+        border-radius: 10px; font-size: 10px; font-weight: 800; letter-spacing: .03em;
+    }
+    .sbadge-V  { background: #e0f2fe; color: #0369a1; }
+    .sbadge-C  { background: #dcfce7; color: #166534; }
+    .sbadge-E  { background: #fef3c7; color: #92400e; }
+    .sbadge-D  { background: #ffe4e6; color: #9f1239; }
+    .sbadge-none { background: #f1f5f9; color: #94a3b8; font-weight: 600; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+
+    /* ── Floating Save Bar ───────────────────────────────────────── */
+    .perm-float-bar {
+        position: fixed; bottom: 24px; right: 24px;
+        background: #0f172a; border-radius: 14px; padding: 12px 18px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.28);
+        display: flex; align-items: center; gap: 12px; z-index: 500;
+        border: 1px solid rgba(255,255,255,.08);
+    }
+    .float-bar-text { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+    .float-bar-text strong { color: #e2e8f0; }
+    .float-save-btn {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff; border: none; border-radius: 9px;
+        padding: 9px 20px; font-size: 13px; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; gap: 6px;
+        box-shadow: 0 4px 12px rgba(16,185,129,.4); transition: all .2s; white-space: nowrap;
+    }
+    .float-save-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16,185,129,.5); }
+
+    /* ── Search hidden rows ──────────────────────────────────────── */
+    .perm-row.row-hidden { display: none; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 600px) {
+        .stat-grid { grid-template-columns: 1fr 1fr; }
+        .perm-float-bar { right: 12px; bottom: 12px; left: 12px; }
+        .perm-hero { padding: 18px; }
+    }
+</style>
+
+<div class="container-fluid pb-5">
+<div class="mt-2 mb-5">
+
+    <input type="hidden" id="userId" th:value="${user.id}"/>
+
+    <!-- ══ HERO ══════════════════════════════════════════════════ -->
+    <div class="perm-hero mb-4">
+        <div class="perm-hero-content d-flex align-items-center gap-4 flex-wrap">
+            <div class="perm-avatar" th:text="${#strings.length(user.displayName) > 0 ? #strings.substring(user.displayName,0,1) : 'U'}">U</div>
+            <div class="flex-grow-1">
+                <div class="perm-page-title">
+                    <i class="bi bi-shield-lock-fill me-2" style="color:#a5b4fc"></i>User Permissions
                 </div>
-
-                <!-- Description -->
-                <small class="text-muted d-block mb-2"
-                       th:text="${screen.description}"></small>
-
-                <!-- Access-type select -->
-                <select class="form-select form-select-sm perm-select access-select"
-                        th:data-screen-id="${screen.id}"
-                        th:data-screen-key="${screen.screenKey}"
-                        onchange="markDirty(this)">
-
-                  <option th:each="type : ${accessTypes}"
-                          th:value="${type}"
-                          th:text="${type}"
-                          th:selected="${currentMap[screen.id] == type}">
-                  </option>
-
-                  <!--
-                    If this screen has no saved permission yet, default to NOTHING.
-                    The th:selected above handles it when currentMap has the key.
-                    When currentMap does NOT have the key, no option is pre-selected,
-                    so the browser picks the first one (NOTHING — because AccessType.values()
-                    starts with NOTHING). This is correct fail-safe behaviour.
-                  -->
-                </select>
-
-                <!-- Visual indicator of saved value -->
-                <div class="mt-2" th:with="saved=${currentMap[screen.id]}">
-                  <!-- No saved value -->
-                  <span th:if="${saved == null}"
-                        class="badge saved-badge bg-secondary">Not set</span>
-                  <!-- NOTHING -->
-                  <span th:if="${saved != null and saved.name() == 'NOTHING'}"
-                        class="badge saved-badge bg-secondary"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
-                  <!-- ALL -->
-                  <span th:if="${saved != null and saved.name() == 'ALL'}"
-                        class="badge saved-badge bg-success"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
-                  <!-- VIEW -->
-                  <span th:if="${saved != null and saved.name() == 'VIEW'}"
-                        class="badge saved-badge bg-info text-dark"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
-                  <!-- CREATE -->
-                  <span th:if="${saved != null and saved.name() == 'CREATE'}"
-                        class="badge saved-badge bg-primary"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
-                  <!-- EDIT -->
-                  <span th:if="${saved != null and saved.name() == 'EDIT'}"
-                        class="badge saved-badge bg-warning text-dark"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
-                  <!-- DELETE -->
-                  <span th:if="${saved != null and saved.name() == 'DELETE'}"
-                        class="badge saved-badge bg-danger"
-                        th:text="'Saved: ' + ${saved.name()}"></span>
+                <div class="perm-page-sub">Configure screen-level access — select one or more actions per screen</div>
+                <div class="perm-user-chip">
+                    <i class="bi bi-person-badge-fill"></i>
+                    <span th:text="${user.username}">username</span>
+                    <span style="color:#374151;margin:0 4px">·</span>
+                    <span th:text="${user.displayName}">Display Name</span>
                 </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="hero-save-btn" id="saveBtn" onclick="savePermissions()">
+                    <i class="bi bi-shield-check"></i> Save All Permissions
+                </button>
+                <a th:href="@{/admin/permissions}" class="hero-back-btn">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
 
-              </div><!-- /card-body -->
-            </div><!-- /card -->
-          </div><!-- /col -->
-        </div><!-- /row -->
+    <!-- ══ STATS ══════════════════════════════════════════════════ -->
+    <div class="stat-grid mb-4">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-num" id="statModules">—</div>
+            <div class="stat-lbl">Total Modules</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🖥️</div>
+            <div class="stat-num" id="statScreens">—</div>
+            <div class="stat-lbl">Total Screens</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-num" id="statGranted" style="color:#10b981">—</div>
+            <div class="stat-lbl">Screens With Access</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🚫</div>
+            <div class="stat-num" id="statRevoked" style="color:#f43f5e">—</div>
+            <div class="stat-lbl">No Access</div>
+        </div>
+    </div>
 
-      </div><!-- /module section -->
-
-      <!-- ── Bottom save bar (sticky) ── -->
-      <div class="d-flex gap-2 justify-content-end mt-4 mb-5">
-        <button type="button" class="btn btn-success btn-lg" id="saveBtnBottom" onclick="savePermissions()">
-          <i class="bi bi-shield-check me-1"></i>Save All Permissions
+    <!-- ══ TOOLBAR ════════════════════════════════════════════════ -->
+    <div class="perm-toolbar d-flex flex-wrap align-items-center gap-2">
+        <span class="fw-semibold text-muted me-1" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em">
+            <i class="bi bi-lightning-fill text-warning me-1"></i>Apply to ALL screens:
+        </span>
+        <button type="button" class="global-btn global-btn-all"  onclick="setAll('ALL')">
+            <i class="bi bi-unlock-fill"></i> Full Access
         </button>
-        <a th:href="@{/admin/permissions}" class="btn btn-outline-secondary btn-lg">
-          <i class="bi bi-arrow-left-circle me-1"></i>Back
+        <button type="button" class="global-btn global-btn-view" onclick="setAll('VIEW')">
+            <i class="bi bi-eye"></i> View Only
+        </button>
+        <button type="button" class="global-btn global-btn-none" onclick="setAll('NONE')">
+            <i class="bi bi-slash-circle"></i> Revoke All
+        </button>
+        <span class="vr mx-1 d-none d-md-inline"></span>
+        <span class="text-muted d-none d-md-inline flex-grow-1" style="font-size:11.5px">
+            <i class="bi bi-info-circle me-1"></i>
+            Select any combination — <b>V</b>iew &nbsp;·&nbsp; <b>C</b>reate &nbsp;·&nbsp; <b>E</b>dit &nbsp;·&nbsp; <b>D</b>elete
+        </span>
+        <span id="dirtyCounter" class="dirty-counter d-none">
+            <i class="bi bi-pencil-fill"></i> <span id="dirtyCount">0</span> unsaved
+        </span>
+    </div>
+
+    <!-- ══ SEARCH ═════════════════════════════════════════════════ -->
+    <div class="search-wrap">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" class="perm-search" id="screenSearch"
+               placeholder="Search screens by name, description or key…"
+               oninput="filterScreens(this.value)"/>
+    </div>
+
+    <!-- ══ MODULE CARDS ═══════════════════════════════════════════ -->
+    <div th:each="module : ${screens}" class="mod-card" th:attr="data-module=${module.key}">
+
+        <!-- Module header (click to collapse/expand) -->
+        <div class="mod-header" th:attr="data-module=${module.key}" onclick="toggleModule(this)">
+            <div class="mod-icon"><i class="bi bi-layers-fill"></i></div>
+            <div>
+                <div class="mod-title" th:text="${module.key}">Module</div>
+                <div class="mod-sub">
+                    <span th:text="${#lists.size(module.value)}">0</span> screens
+                </div>
+            </div>
+            <div class="mod-count">
+                <span th:text="${#lists.size(module.value)}">0</span> screens
+            </div>
+            <!-- Quick-set buttons — stopPropagation so they don't toggle collapse -->
+            <div class="mod-qs" onclick="event.stopPropagation()">
+                <button type="button" class="mod-qs-btn qs-all"
+                        th:data-module="${module.key}"
+                        onclick="setModule(this.dataset.module,'ALL')" title="Grant Full Access">All</button>
+                <button type="button" class="mod-qs-btn qs-view"
+                        th:data-module="${module.key}"
+                        onclick="setModule(this.dataset.module,'VIEW')" title="View only">View</button>
+                <button type="button" class="mod-qs-btn qs-none"
+                        th:data-module="${module.key}"
+                        onclick="setModule(this.dataset.module,'NONE')" title="Revoke all">None</button>
+            </div>
+            <i class="bi bi-chevron-down mod-collapse-icon ms-2"></i>
+        </div>
+
+        <!-- Screen permission table -->
+        <div class="mod-body">
+            <div class="table-responsive">
+                <table class="perm-table">
+                    <thead>
+                    <tr>
+                        <th style="min-width:220px">Screen</th>
+                        <th>Access Level — select one or more</th>
+                        <th style="min-width:100px;text-align:center">Saved</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="screen : ${module.value}"
+                        th:attr="data-screen-id=${screen.id},data-module=${screen.module}"
+                        class="perm-row">
+
+                        <!-- Screen info -->
+                        <td>
+                            <div class="screen-name" th:text="${screen.screenName}">Screen Name</div>
+                            <div class="screen-desc" th:text="${screen.description}">Description</div>
+                            <span class="screen-key">
+                                <i class="bi bi-key-fill"></i>
+                                <span th:text="${screen.screenKey}">KEY</span>
+                            </span>
+                        </td>
+
+                        <!-- Multi-select permission checkboxes
+                             Each input MUST immediately precede its label so
+                             CSS  input:checked + label  selector works.        -->
+                        <td>
+                            <div class="pill-group">
+
+                                <input type="checkbox" class="perm-check" value="VIEW"
+                                       th:id="|perm_${screen.id}_VIEW|"
+                                       th:checked="${currentMap[screen.id] != null and currentMap[screen.id].contains('VIEW')}"
+                                       th:data-screen-id="${screen.id}" th:data-screen-key="${screen.screenKey}" th:data-module="${screen.module}"
+                                       onchange="markDirty(this)"/>
+                                <label th:for="|perm_${screen.id}_VIEW|" class="perm-pill pill-VIEW">
+                                    <i class="bi bi-eye"></i> View
+                                </label>
+
+                                <input type="checkbox" class="perm-check" value="CREATE"
+                                       th:id="|perm_${screen.id}_CREATE|"
+                                       th:checked="${currentMap[screen.id] != null and currentMap[screen.id].contains('CREATE')}"
+                                       th:data-screen-id="${screen.id}" th:data-screen-key="${screen.screenKey}" th:data-module="${screen.module}"
+                                       onchange="markDirty(this)"/>
+                                <label th:for="|perm_${screen.id}_CREATE|" class="perm-pill pill-CREATE">
+                                    <i class="bi bi-plus-circle"></i> Create
+                                </label>
+
+                                <input type="checkbox" class="perm-check" value="EDIT"
+                                       th:id="|perm_${screen.id}_EDIT|"
+                                       th:checked="${currentMap[screen.id] != null and currentMap[screen.id].contains('EDIT')}"
+                                       th:data-screen-id="${screen.id}" th:data-screen-key="${screen.screenKey}" th:data-module="${screen.module}"
+                                       onchange="markDirty(this)"/>
+                                <label th:for="|perm_${screen.id}_EDIT|" class="perm-pill pill-EDIT">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </label>
+
+                                <input type="checkbox" class="perm-check" value="DELETE"
+                                       th:id="|perm_${screen.id}_DELETE|"
+                                       th:checked="${currentMap[screen.id] != null and currentMap[screen.id].contains('DELETE')}"
+                                       th:data-screen-id="${screen.id}" th:data-screen-key="${screen.screenKey}" th:data-module="${screen.module}"
+                                       onchange="markDirty(this)"/>
+                                <label th:for="|perm_${screen.id}_DELETE|" class="perm-pill pill-DELETE">
+                                    <i class="bi bi-trash"></i> Delete
+                                </label>
+
+                                <!-- Row-level quick shortcuts -->
+                                <div class="row-qs-sep"></div>
+                                <button type="button" class="row-qs-btn rqs-all"
+                                        th:data-screen-id="${screen.id}"
+                                        onclick="setRow(this.dataset.screenId,'ALL')" title="Grant all for this screen">
+                                    <i class="bi bi-check2-all"></i> All
+                                </button>
+                                <button type="button" class="row-qs-btn rqs-none"
+                                        th:data-screen-id="${screen.id}"
+                                        onclick="setRow(this.dataset.screenId,'NONE')" title="Revoke all for this screen">
+                                    <i class="bi bi-x"></i> None
+                                </button>
+                            </div>
+                        </td>
+
+                        <!-- Saved badges — one badge per granted type -->
+                        <td style="text-align:center">
+                            <div class="saved-badges" th:with="saved=${currentMap[screen.id]}">
+                                <span th:if="${saved == null or saved.isEmpty()}" class="sbadge-none">—</span>
+                                <span th:if="${saved != null and saved.contains('VIEW')}"   class="sbadge sbadge-V">V</span>
+                                <span th:if="${saved != null and saved.contains('CREATE')}" class="sbadge sbadge-C">C</span>
+                                <span th:if="${saved != null and saved.contains('EDIT')}"   class="sbadge sbadge-E">E</span>
+                                <span th:if="${saved != null and saved.contains('DELETE')}" class="sbadge sbadge-D">D</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><!-- /mod-card -->
+
+    <!-- ══ BOTTOM SAVE BAR ════════════════════════════════════════ -->
+    <div class="d-flex gap-2 justify-content-end mt-4 mb-5">
+        <button type="button" class="btn btn-success btn-lg px-5" id="saveBtnBottom"
+                onclick="savePermissions()" style="border-radius:12px;font-weight:700">
+            <i class="bi bi-shield-check me-1"></i>Save All Permissions
+        </button>
+        <a th:href="@{/admin/permissions}" class="btn btn-outline-secondary btn-lg" style="border-radius:12px">
+            <i class="bi bi-arrow-left me-1"></i>Back
         </a>
-      </div>
+    </div>
 
-    </div><!-- /mt-2 -->
-  </div><!-- /container-fluid -->
+</div>
+</div>
 
-  <!-- ── Scripts ── -->
-  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
-  <script th:src="@{/js/toastr.min.js}"></script>
+<!-- ══ FLOATING SAVE BAR ══════════════════════════════════════════ -->
+<div class="perm-float-bar d-none" id="floatBar">
+    <div class="float-bar-text">
+        <strong id="floatDirtyCount">0</strong> unsaved changes
+    </div>
+    <button type="button" class="float-save-btn" onclick="savePermissions()">
+        <i class="bi bi-shield-check"></i> Save Now
+    </button>
+</div>
 
-  <script type="text/javascript" th:inline="javascript">
+<!-- ══ SCRIPTS ════════════════════════════════════════════════════ -->
+<script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+<script th:src="@{/js/toastr.min.js}"></script>
+<script type="text/javascript" th:inline="javascript">
     const contextPath = /*[[@{/}]]*/ '/';
-    let dirty = false;  // tracks unsaved changes
+    let dirtyRows = new Set();
 
-    /* Mark a select as changed (highlights it) */
-    function markDirty(sel) {
-      dirty = true;
-      sel.closest('.card').classList.add('border-warning');
+    /* ── Stats init ──────────────────────────────────────────── */
+    function initStats() {
+        const modules = document.querySelectorAll('.mod-card').length;
+        const rows    = document.querySelectorAll('.perm-row');
+        let granted = 0, revoked = 0;
+        rows.forEach(row => {
+            const anyChecked = row.querySelector('input.perm-check:checked') !== null;
+            if (anyChecked) granted++; else revoked++;
+        });
+        document.getElementById('statModules').textContent = modules;
+        document.getElementById('statScreens').textContent = rows.length;
+        document.getElementById('statGranted').textContent = granted;
+        document.getElementById('statRevoked').textContent = revoked;
     }
 
-    /* Quick-set helper — sets every select on the page to the given value */
-    function setAll(accessType) {
-      document.querySelectorAll('.perm-select').forEach(sel => {
-        sel.value = accessType;
-        markDirty(sel);
-      });
+    /* ── Collapse / Expand module ────────────────────────────── */
+    function toggleModule(header) {
+        const card = header.closest('.mod-card');
+        const body = card.querySelector('.mod-body');
+        if (card.classList.contains('collapsed')) {
+            body.style.display = '';
+            card.classList.remove('collapsed');
+        } else {
+            body.style.display = 'none';
+            card.classList.add('collapsed');
+        }
     }
 
-    /* Main save function — collects all selects and POSTs to /admin/permissions/save */
+    /* ── Dirty tracking ──────────────────────────────────────── */
+    function markDirty(input) {
+        const row = input.closest('tr');
+        row.classList.add('dirty');
+        dirtyRows.add(input.dataset.screenId);
+        updateDirtyCounter();
+    }
+    function updateDirtyCounter() {
+        const c = dirtyRows.size;
+        document.getElementById('dirtyCount').textContent      = c;
+        document.getElementById('floatDirtyCount').textContent = c;
+        document.getElementById('dirtyCounter').classList.toggle('d-none', c === 0);
+        document.getElementById('floatBar').classList.toggle('d-none', c === 0);
+    }
+
+    /* ── Row quick-set ───────────────────────────────────────── */
+    function setRow(screenId, mode) {
+        const row = document.querySelector('.perm-row[data-screen-id="' + screenId + '"]');
+        if (!row) return;
+        const checks = row.querySelectorAll('input.perm-check');
+        const ALL_TYPES = ['VIEW','CREATE','EDIT','DELETE'];
+        checks.forEach(cb => {
+            const newState = (mode === 'ALL') || (mode === 'VIEW' && cb.value === 'VIEW');
+            if (cb.checked !== newState) { cb.checked = newState; markDirty(cb); }
+        });
+    }
+
+    /* ── Global quick-set ────────────────────────────────────── */
+    function setAll(mode) {
+        document.querySelectorAll('.perm-row').forEach(row => {
+            const checks = row.querySelectorAll('input.perm-check');
+            checks.forEach(cb => {
+                let newState;
+                if (mode === 'ALL')  newState = true;
+                else if (mode === 'NONE') newState = false;
+                else if (mode === 'VIEW') newState = (cb.value === 'VIEW');
+                else newState = false;
+                if (cb.checked !== newState) { cb.checked = newState; markDirty(cb); }
+            });
+        });
+    }
+
+    /* ── Module quick-set ────────────────────────────────────── */
+    function setModule(moduleName, mode) {
+        document.querySelectorAll('.mod-card[data-module="' + moduleName + '"] .perm-row').forEach(row => {
+            const checks = row.querySelectorAll('input.perm-check');
+            checks.forEach(cb => {
+                let newState;
+                if (mode === 'ALL')  newState = true;
+                else if (mode === 'NONE') newState = false;
+                else if (mode === 'VIEW') newState = (cb.value === 'VIEW');
+                else newState = false;
+                if (cb.checked !== newState) { cb.checked = newState; markDirty(cb); }
+            });
+        });
+    }
+
+    /* ── Search / filter ─────────────────────────────────────── */
+    function filterScreens(query) {
+        const q = query.toLowerCase().trim();
+        document.querySelectorAll('.mod-card').forEach(card => {
+            let anyVisible = false;
+            card.querySelectorAll('.perm-row').forEach(row => {
+                const match = !q || row.textContent.toLowerCase().includes(q);
+                row.classList.toggle('row-hidden', !match);
+                if (match) anyVisible = true;
+            });
+            if (q && anyVisible) {
+                card.querySelector('.mod-body').style.display = '';
+                card.classList.remove('collapsed');
+            }
+            card.style.display = (!q || anyVisible) ? '' : 'none';
+        });
+    }
+
+    /* ── Save ────────────────────────────────────────────────── */
     function savePermissions() {
-      const userId = parseInt(document.getElementById('userId').value);
-      const permissions = {};
+        const userId = parseInt(document.getElementById('userId').value);
 
-      document.querySelectorAll('.perm-select').forEach(sel => {
-        permissions[sel.dataset.screenId] = sel.value;
-      });
+        // Build Map<screenId, string[]>  — empty array = no access (revoke)
+        const permissions = {};
+        document.querySelectorAll('.perm-row').forEach(row => {
+            const screenId = row.dataset.screenId;
+            const checked  = [];
+            row.querySelectorAll('input.perm-check:checked').forEach(cb => checked.push(cb.value));
+            permissions[screenId] = checked;
+        });
 
-      // Disable both save buttons while in flight
-      document.querySelectorAll('#saveBtn, #saveBtnBottom').forEach(b => {
-        b.disabled = true;
-        b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
-      });
+        if (Object.keys(permissions).length === 0) {
+            showMsg('error', 'No screens found to save.', 'Error'); return;
+        }
 
-      fetch(contextPath + 'admin/permissions/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ userId, permissions })
-      })
-              .then(r => {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-              })
-              .then(data => {
-                if (data.status === 'saved') {
-                  showMsg('success', 'Permissions saved for ' + data.updated + ' screens.', 'Saved');
-                  dirty = false;
-                  // Remove warning borders, update saved-badge labels
-                  document.querySelectorAll('.perm-select').forEach(sel => {
-                    sel.closest('.card').classList.remove('border-warning');
-                    const badge = sel.closest('.card-body').querySelector('.saved-badge');
-                    if (badge) {
-                      const v = sel.value;
-                      badge.textContent = 'Saved: ' + v;
-                      badge.className = 'badge saved-badge ' + badgeClass(v);
+        const loadHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+        document.querySelectorAll('#saveBtn,#saveBtnBottom').forEach(b => { b.disabled = true; b.innerHTML = loadHTML; });
+        const floatBtn = document.querySelector('.float-save-btn');
+        if (floatBtn) { floatBtn.disabled = true; floatBtn.innerHTML = loadHTML; }
+
+        fetch(contextPath + 'admin/permissions/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ userId, permissions })
+        })
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(data => {
+            if (data.status === 'saved') {
+                showMsg('success', 'Saved permissions for ' + data.updated + ' screens.', 'Saved ✓');
+                dirtyRows.clear();
+                updateDirtyCounter();
+
+                // Update saved-badge column & dirty highlight for every row
+                document.querySelectorAll('.perm-row').forEach(row => {
+                    row.classList.remove('dirty');
+                    const badgeWrap = row.querySelector('.saved-badges');
+                    if (!badgeWrap) return;
+
+                    const checked = [];
+                    row.querySelectorAll('input.perm-check:checked').forEach(cb => checked.push(cb.value));
+
+                    if (checked.length === 0) {
+                        badgeWrap.innerHTML = '<span class="sbadge-none">—</span>';
+                    } else {
+                        const MAP = {VIEW:'V',CREATE:'C',EDIT:'E',DELETE:'D'};
+                        const CLS = {VIEW:'sbadge-V',CREATE:'sbadge-C',EDIT:'sbadge-E',DELETE:'sbadge-D'};
+                        badgeWrap.innerHTML = ['VIEW','CREATE','EDIT','DELETE']
+                            .filter(t => checked.includes(t))
+                            .map(t => '<span class="sbadge ' + CLS[t] + '">' + MAP[t] + '</span>')
+                            .join('');
                     }
-                  });
-                } else {
-                  showMsg('error', data.message || 'Save failed.', 'Error');
-                }
-              })
-              .catch(err => {
-                showMsg('error', 'Network error: ' + err.message, 'Error');
-              })
-              .finally(() => {
-                document.querySelectorAll('#saveBtn, #saveBtnBottom').forEach(b => {
-                  b.disabled = false;
-                  b.innerHTML = '<i class="bi bi-shield-check me-1"></i>Save All Permissions';
                 });
-              });
+                initStats();
+            } else {
+                showMsg('error', data.message || 'Save failed.', 'Error');
+            }
+        })
+        .catch(err => showMsg('error', 'Network error: ' + err.message, 'Error'))
+        .finally(() => {
+            document.querySelectorAll('#saveBtn,#saveBtnBottom').forEach(b => {
+                b.disabled = false;
+                b.innerHTML = '<i class="bi bi-shield-check"></i> Save All Permissions';
+            });
+            if (floatBtn) {
+                floatBtn.disabled = false;
+                floatBtn.innerHTML = '<i class="bi bi-shield-check"></i> Save Now';
+            }
+        });
     }
 
-    /* Returns Bootstrap badge class for an AccessType string */
-    function badgeClass(v) {
-      switch(v) {
-        case 'ALL':     return 'bg-success';
-        case 'VIEW':    return 'bg-info text-dark';
-        case 'CREATE':  return 'bg-primary';
-        case 'EDIT':    return 'bg-warning text-dark';
-        case 'DELETE':  return 'bg-danger';
-        default:        return 'bg-secondary';
-      }
-    }
-
-    /* Warn before navigating away with unsaved changes */
+    /* ── Unsaved-changes warning ─────────────────────────────── */
     window.addEventListener('beforeunload', function(e) {
-      if (dirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+        if (dirtyRows.size > 0) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    /* Init toastr from flash messages if any */
+    /* ── Init ────────────────────────────────────────────────── */
     $(document).ready(function () {
-      const successMessage = [[${success}]];
-      const errorMessage   = [[${error}]];
-      if (successMessage) showMsg("success", successMessage, "Success");
-      if (errorMessage)   showMsg("error",   errorMessage,   "Error");
+        initStats();
+        const successMessage = [[${success}]];
+        const errorMessage   = [[${error}]];
+        if (successMessage) showMsg('success', successMessage, 'Success');
+        if (errorMessage)   showMsg('error',   errorMessage,   'Error');
     });
 
-    function showMsg(msgType, msg, headerValue){
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "600",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
-      toastr[msgType](msg,headerValue);
+    function showMsg(msgType, msg, headerValue) {
+        toastr.options = {
+            closeButton: true, newestOnTop: false, progressBar: true,
+            positionClass: 'toast-top-right', preventDuplicates: false,
+            showDuration: '300', hideDuration: '800',
+            timeOut: '4000', extendedTimeOut: '1000',
+            showEasing: 'swing', hideEasing: 'linear',
+            showMethod: 'slideDown', hideMethod: 'slideUp'
+        };
+        toastr[msgType](msg, headerValue);
     }
-  </script>
+</script>
 
 </section>
 </body>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
 
     <meta charset="UTF-8">
@@ -154,7 +155,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="sendNewMessage"  class="btn btn-primary mt-3"><i class="bi bi-send-plus-fill"></i> Send New Message</button>
+                    <button sms:access="MESSAGE_SEND:CREATE" type="submit" id="sendNewMessage"  class="btn btn-primary mt-3"><i class="bi bi-send-plus-fill"></i> Send New Message</button>
                 </form>
             </div>
         </div>

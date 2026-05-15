@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.fees;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.MonthMapping;
@@ -57,6 +59,7 @@ public class FeeSubmissionController extends BaseController {
         this.academicyearService = academicyearService;
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/fee-submit-form")
     public String getFeeSubmissionForm(Model model){
         School school = (School)model.getAttribute("school");
@@ -69,6 +72,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/feesubmitform";
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.CREATE)
     @PostMapping("/feesubmit")
     public String saveFeeSubmission(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
         try{
@@ -110,6 +114,7 @@ public class FeeSubmissionController extends BaseController {
         return "redirect:/fees/fee-submit-form";
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/receipt")
     public String getFeeReceiptPage(Model model){
         /*try{
@@ -133,6 +138,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/fee-receipt";
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/receipt-print/{id}")
     public String getFeeReceipt(@PathVariable("id")Long id, Model model){
         /*try{
@@ -200,6 +206,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/receipt";
     }
 
+    @CheckAccess(screen = "FEE_REMINDER", type = AccessType.VIEW)
     @GetMapping("fee-reminder")
     public String reminderpage(Model model){
         School school = (School)model.getAttribute("school");
@@ -212,12 +219,14 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("mediums", mediumService.getAllMediums());
         return "fees/feereminder";
     }
+    @CheckAccess(screen = "FEE_CANCEL", type = AccessType.VIEW)
     @GetMapping("/fee-cancel")
     public String cancelFeePage(Model model){
         return "fees/feecancel";
 
     }
 
+    @CheckAccess(screen = "FEE_REPORT_USER_WISE", type = AccessType.VIEW)
     @GetMapping("/fees-user-wise-collection")
     public String userwiseCollection(Model model){
         try{
@@ -233,6 +242,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/fees_user_collection";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_HEAD_WISE", type = AccessType.VIEW)
     @GetMapping("/fees-head-wise-collection-summary")
     public String headwiseCollectionSummary(Model model){
         try{
@@ -257,6 +267,7 @@ public class FeeSubmissionController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_REPORT_CANCELLED", type = AccessType.VIEW)
     @GetMapping("/fees-drop-off-collection")
     public String feesCancellation(Model model){
         model.addAttribute("page", "datatable");
@@ -264,6 +275,7 @@ public class FeeSubmissionController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_REPORT_TOTAL_SUBMITTED", type = AccessType.VIEW)
     @GetMapping("/fees-submitted-total-detail")
     public String totalFeeSubmissionDetail(Model model){
         model.addAttribute("mediums", mediumService.getAllMediums());
@@ -271,6 +283,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/total_fee_submitted_details";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_GRADE_WISE", type = AccessType.VIEW)
     @GetMapping("fees-submitted-total-detail-grade-wise")
     public String totalFeeSubmittedGradeWise(Model model){
         model.addAttribute("grades",gradeService.getAllGrades());
@@ -280,6 +293,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/total_fee_submitted_details_grade";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_PENDING", type = AccessType.VIEW)
     @GetMapping("fees-pending-total-report")
     public String totalFeePending(Model model){
         School school = (School)model.getAttribute("school");
@@ -294,6 +308,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/pending-fee-report";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_DEPOSITED", type = AccessType.VIEW)
     @GetMapping("fees-total-deposited-report")
     public String totalDepositedFee(Model model){
         School school = (School)model.getAttribute("school");
@@ -307,6 +322,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/total_deposited_fees";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_PENDING", type = AccessType.VIEW)
     @GetMapping("fees-pending-report")
     public String feePendingReport(Model model){
         School school = (School)model.getAttribute("school");
@@ -321,6 +337,7 @@ public class FeeSubmissionController extends BaseController {
         return "fees/pending-fee-report";
     }
 
+    @CheckAccess(screen = "FEE_REPORT_GRADEWISE_INCOME", type = AccessType.VIEW)
     @GetMapping("/fees-total-gradewise-income-report")
     public String gradeWiseFeeIncomeDetail(Model model){
         School school = (School)model.getAttribute("school");

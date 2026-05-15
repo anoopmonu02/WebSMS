@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - School</title>
@@ -36,10 +37,10 @@
             <td th:text="${fmmap.description}"></td>
 
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/fee-month/edit/{id}(id=${fmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a sms:access="ADMIN_FEE_MONTH:EDIT" class="btn btn-primary" th:href="@{/admin/fee-month/edit/{id}(id=${fmmap.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
 
-              <button class="btn btn-danger delete-btn" th:attr="data-item-id=${fmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
+              <button sms:access="ADMIN_FEE_MONTH:DELETE" class="btn btn-danger delete-btn" th:attr="data-item-id=${fmmap.id}"><i class="bi bi-trash3-fill"></i> </button>
             </td>
           </tr>
           </tbody>
@@ -48,7 +49,7 @@
           <p class="text-center">No Fee-Month Mapping found.</p>
         </div>
         <div class="pt-5 mb-5">
-          <a class="btn btn-success" th:href="@{/admin/fee-month/add}"><i class="bi bi-node-plus-fill"></i> Add Fee-Month Mapping</a>
+          <a sms:access="ADMIN_FEE_MONTH:CREATE" class="btn btn-success" th:href="@{/admin/fee-month/add}"><i class="bi bi-node-plus-fill"></i> Add Fee-Month Mapping</a>
         </div>
       </div>
     </div>

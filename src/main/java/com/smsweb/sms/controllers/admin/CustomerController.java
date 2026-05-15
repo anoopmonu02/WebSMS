@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.helper.FileHandleHelper;
@@ -45,6 +47,7 @@ public class CustomerController {
         this.fileHandleHelper = fileHandleHelper;
     }
 
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.VIEW)
     @GetMapping("/customer")
     public String getCustomers(Model model){
         List<Customer> customers = customerService.getAllCustomers();
@@ -52,6 +55,7 @@ public class CustomerController {
         model.addAttribute("hasCustomerData", !customers.isEmpty());
         return "admin/customer";
     }
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.CREATE)
     @GetMapping("/customer/add")
     public String addCustomerForm(Model model){
         model.addAttribute("customer", new Customer());
@@ -60,11 +64,13 @@ public class CustomerController {
     }
 
     @ResponseBody
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.VIEW)
     @GetMapping("/customer/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
         return customerService.getAllCitiesByProvince(provinceId);
     }
 
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.CREATE)
     @PostMapping("/customer")
     public String saveCustomer(@Valid @ModelAttribute("customer")Customer customer, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                                Model model, RedirectAttributes ra){
@@ -127,6 +133,7 @@ public class CustomerController {
         return "redirect:/admin/customer";
     }
 
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.EDIT)
     @GetMapping("/customer/edit/{id}")
     public String getEditPage(@PathVariable("id") Long id, Model model){
         Customer customer = customerService.getCustomerById(id)
@@ -136,6 +143,7 @@ public class CustomerController {
         return "admin/edit-customer";
     }
 
+    @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.EDIT)
     @PostMapping("/customer/{id}")
     public String updateCustomer(@PathVariable("id") Long id, @Valid @ModelAttribute("customer") Customer customer,
                                  @RequestParam("customerPic")MultipartFile customerPic, BindingResult result, Model model, RedirectAttributes ra){

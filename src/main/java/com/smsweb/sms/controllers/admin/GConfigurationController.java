@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.helper.FieldUtils;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.services.admin.GConfigurationService;
@@ -23,6 +25,7 @@ public class GConfigurationController {
         this.configurationService = configurationService;
     }
 
+    @CheckAccess(screen = "ADMIN_REPORT_SETTINGS", type = AccessType.VIEW)
     @GetMapping("/select-columns")
     public String getColumns(Model model) {
         // Use reflection utility to get field names and labels

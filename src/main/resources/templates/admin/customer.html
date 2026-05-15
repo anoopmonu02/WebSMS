@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Customer</title>
@@ -38,9 +39,9 @@
             <!--<td th:text="${customer.address}"></td>-->
             <td th:text="${customer.status}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+              <a sms:access="ADMIN_CUSTOMER:EDIT" class="btn btn-primary" th:href="@{/admin/customer/edit/{id}(id=${customer.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>
-              <a class="btn btn-danger" th:href="@{/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
+              <a sms:access="ADMIN_CUSTOMER:DELETE" class="btn btn-danger" th:href="@{/admin/customer/delete/{id}(id=${customer.id})}" onclick="return confirm('Are you sure? its not recoverable.')" data-bs-toggle="tooltip" data-bs-placement="top"
                  data-bs-custom-class="custom-tooltip"
                  data-bs-title="Delete the customer record">
                 <i class="bi bi-trash3-fill"></i> </a>
@@ -52,7 +53,7 @@
           <p class="text-center">No Customer found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" th:href="@{/admin/customer/add}"><i class="bi bi-node-plus-fill"></i> Add Customer</a>
+          <a sms:access="ADMIN_CUSTOMER:CREATE" class="btn btn-success" th:href="@{/admin/customer/add}"><i class="bi bi-node-plus-fill"></i> Add Customer</a>
         </div>
       </div>
     </div>

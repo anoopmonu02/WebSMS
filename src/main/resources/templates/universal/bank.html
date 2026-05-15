@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Bank</title>
@@ -26,11 +28,11 @@
             <td th:text="${iter.index+1}"></td>
             <td th:text="${bank.bankName}"></td>
             <td>
-              <a class="btn btn-primary" th:href="@{/universal/bank/edit/{id}(id=${bank.id})}">
+              <a sms:access="GLOBAL_BANK:EDIT" class="btn btn-primary" th:href="@{/universal/bank/edit/{id}(id=${bank.id})}">
                 <i class="bi bi-pencil-square"></i> </a>
               <!--<a class="btn btn-danger" th:href="@{/universal/bank/delete/{id}(id=${bank.id})}" onclick="return confirm('Are you sure? its not recoverable.')">
                 <i class="bi bi-trash3-fill"></i> </a>-->
-              <form th:action="@{/universal/bank/delete/{id}(id=${bank.id})}" method="post" style="display:inline;">
+              <form sms:access="GLOBAL_BANK:DELETE" th:action="@{/universal/bank/delete/{id}(id=${bank.id})}" method="post" style="display:inline;">
                 <!--<input type="hidden" name="_method" value="DELETE"> -->
                 <input type="hidden" name="id" th:value="${bank.id}">
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? its not recoverable.')"> <i class="bi bi-trash3-fill"></i> </button>
@@ -43,7 +45,7 @@
           <p class="text-center">No Bank found.</p>
         </div>
         <div class="pt-5">
-          <a class="btn btn-success" th:href="@{/universal/bank/add}"><i class="bi bi-node-plus-fill"></i> Add Bank</a>
+          <a sms:access="GLOBAL_BANK:CREATE" class="btn btn-success" th:href="@{/universal/bank/add}"><i class="bi bi-node-plus-fill"></i> Add Bank</a>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.config.AcademicYearHolder;
 import com.smsweb.sms.config.SchoolHolder;
 import com.smsweb.sms.controllers.BaseController;
@@ -98,6 +100,7 @@ public class GlobalController extends BaseController {
 
     /********************************   Academic year Code starts here   ************************************/
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.VIEW)
     @GetMapping("/academicyear")
     public String academciyear(Model model){
         //Get data of school when loggedin
@@ -116,6 +119,7 @@ public class GlobalController extends BaseController {
         return "admin/academicyear";
     }
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.CREATE)
     @GetMapping("/academicyear/add")
     public String addAcademicyearForm(Model model){
         model.addAttribute("academicyear", new AcademicYear());
@@ -130,6 +134,7 @@ public class GlobalController extends BaseController {
         return "admin/add-academicyear";
     }
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.CREATE)
     @PostMapping("/academicyear")
     public String saveAcademicYear(@Valid @ModelAttribute("academicyear") AcademicYear academicYear,
                                    BindingResult result, Model model, RedirectAttributes ra) {
@@ -166,6 +171,7 @@ public class GlobalController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.EDIT)
     @GetMapping("/academicyear/edit/{id}")
     public String editAcademicYearPage(@PathVariable("id")Long id, Model model){
         AcademicYear academicYear = academicyearService.getAcademicyearById(id)
@@ -182,6 +188,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-academicyear";
     }
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.EDIT)
     @PostMapping("/academicyear/{id}")
     public String updateAcademicYear(@PathVariable("id") Long id, @Valid @ModelAttribute("academicyear") AcademicYear academicYear,
                                  BindingResult result, Model model, RedirectAttributes ra){
@@ -217,6 +224,7 @@ public class GlobalController extends BaseController {
 
     /********************************   Month-Mapping Code starts here   ************************************/
 
+    @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.VIEW)
     @GetMapping("/month-mapping")
     public String getMonthmappings(Model model){
         //Get data of school and academicyear when loggedin
@@ -228,6 +236,7 @@ public class GlobalController extends BaseController {
         return "admin/monthmapping";
     }
 
+    @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.CREATE)
     @GetMapping("/month-mapping/add")
     public String getAddMonthMappingForm(Model model){
         List<MonthMaster> months = monthMasterService.getAllMonths();
@@ -240,6 +249,7 @@ public class GlobalController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.CREATE)
     @PostMapping("/month-mapping")
     public String saveMonthMapping(@RequestParam("monthMaster") Long monthMaster, RedirectAttributes redirectAttributes, Model model){
         System.out.println("id----"+monthMaster);
@@ -280,6 +290,7 @@ public class GlobalController extends BaseController {
 
     /********************************   Fee Date Code starts here   ************************************/
 
+    @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.VIEW)
     @GetMapping("/feedate")
     public String getFeeDate(Model model){
         //Get data of school and academicyear when loggedin
@@ -291,6 +302,7 @@ public class GlobalController extends BaseController {
         return "admin/feedate";
     }
 
+    @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.CREATE)
     @GetMapping("/feedate/add")
     public String getAddFeeDateForm(Model model){
         model.addAttribute("feedate", new FeeDate());
@@ -298,6 +310,7 @@ public class GlobalController extends BaseController {
         return "admin/add-feedate";
     }
 
+    @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.CREATE)
     @PostMapping("/feedate")
     public String save(@Valid @ModelAttribute("feedate")FeeDate feedate, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
@@ -333,6 +346,7 @@ public class GlobalController extends BaseController {
     }
 
     //@DeleteMapping("/feedate/delete/{id}")
+    @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.DELETE)
     @PostMapping("/feedate/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeDate(@PathVariable("id")Long id){
@@ -355,6 +369,7 @@ public class GlobalController extends BaseController {
 
     /*********************************************  Fine Code Block starts here  *****************************************/
 
+    @CheckAccess(screen = "ADMIN_FINE", type = AccessType.VIEW)
     @GetMapping("/fine")
     public String getFineForm(Model model){
         School school = (School)model.getAttribute("school");
@@ -365,6 +380,7 @@ public class GlobalController extends BaseController {
         return "admin/fine";
     }
 
+    @CheckAccess(screen = "ADMIN_FINE", type = AccessType.CREATE)
     @GetMapping("/fine/add")
     public String getFineAddForm(Model model){
         model.addAttribute("fine", new Fine());
@@ -372,6 +388,7 @@ public class GlobalController extends BaseController {
         return "admin/add-fine";
     }
 
+    @CheckAccess(screen = "ADMIN_FINE", type = AccessType.CREATE)
     @PostMapping("/fine")
     public String saveFineData(@Valid @ModelAttribute("fine")Fine fine, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
@@ -408,6 +425,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/fine";
     }
 
+    @CheckAccess(screen = "ADMIN_FINE", type = AccessType.EDIT)
     @GetMapping("/fine/edit/{id}")
     public String editFineForm(@PathVariable("id")Long id, Model model){
         Fine fine = fineService.getFineById(id)
@@ -417,6 +435,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-fine";
     }
 
+    @CheckAccess(screen = "ADMIN_FINE", type = AccessType.DELETE)
     @PostMapping("/fine/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFineDate(@PathVariable("id")Long id){
@@ -439,6 +458,7 @@ public class GlobalController extends BaseController {
 
     /****************************  Fee Mapping Code Starts Here  ******************************/
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.VIEW)
     @GetMapping("/fee-class")
     public String getFeeClassDetails(Model model){
         School school = (School)model.getAttribute("school");
@@ -450,6 +470,7 @@ public class GlobalController extends BaseController {
         return "admin/feeclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.CREATE)
     @GetMapping("/fee-class/add")
     public String getAddFeeClassMappingForm(Model model){
         //model.addAttribute("feeheads", feeheadService.getAllFeeheads());
@@ -459,6 +480,7 @@ public class GlobalController extends BaseController {
         return "admin/add-feeclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.VIEW)
     @PostMapping("/fee-class/getAllFeeData/{classId}")
     @ResponseBody
     public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId, HttpSession session, Model model){
@@ -507,6 +529,7 @@ public class GlobalController extends BaseController {
         return responseMap;
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.CREATE)
     @PostMapping("/fee-class")
     public String saveFeeClassMappings(@ModelAttribute FeeClassMapWrapper feeClassMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         List<FeeClassMap> feeClassMaps = feeClassMapWrapper.getFeeClassMaps();
@@ -542,6 +565,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/fee-class";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.EDIT)
     @GetMapping("/fee-class/edit/{id}")
     public String editFeeClassForm(@PathVariable("id")Long id, Model model){
         FeeClassMap feeClassMap = feeclassmapService.getFeeClassMapById(id)
@@ -551,6 +575,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-feeclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.EDIT)
     @PostMapping("/edit-fee-class")
     public String updateFeeClassMap(@Valid @ModelAttribute("feeclassmap")FeeClassMap feeClassMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -568,6 +593,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/fee-class";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.DELETE)
     @PostMapping("/fee-class/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeClassMap(@PathVariable("id")Long id){
@@ -593,6 +619,7 @@ public class GlobalController extends BaseController {
 
     /*****************************  Fee-Month Mapping Code starts here  ********************************/
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.VIEW)
     @GetMapping("/fee-month")
     public String getFeeMonthDetails(Model model){
         School school = (School)model.getAttribute("school");
@@ -604,6 +631,7 @@ public class GlobalController extends BaseController {
         return "admin/feemonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.CREATE)
     @GetMapping("/fee-month/add")
     public String getAddFeeMonthMappingForm(Model model){
         model.addAttribute("fees", feeheadService.getAllFeeheads());
@@ -612,6 +640,7 @@ public class GlobalController extends BaseController {
         return "admin/add-feemonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.VIEW)
     @PostMapping("/fee-month/getAllFeeMonthData/{feeId}")
     @ResponseBody
     public Map<String, Map<String, Boolean>> getAllFeeMonthData(@PathVariable("feeId")Long feeId, Model model){
@@ -663,6 +692,7 @@ public class GlobalController extends BaseController {
         return responseMap;
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.CREATE)
     @PostMapping("/fee-month")
     public String saveFeeMonthMappings(@ModelAttribute FeeMonthMapWrapper feeMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         List<FeeMonthMap> feeMonthMaps = feeMonthMapWrapper.getFeeMonthMaps();
@@ -698,6 +728,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/fee-month";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.EDIT)
     @GetMapping("/fee-month/edit/{id}")
     public String editFeeMonthForm(@PathVariable("id")Long id, Model model){
         FeeMonthMap feeMonthMap = feemonthmapService.getFeeMonthMapById(id)
@@ -707,6 +738,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-feemonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.EDIT)
     @PostMapping("/edit-fee-month")
     public String updateFeeMonthMap(@Valid @ModelAttribute("feemonthmap")FeeMonthMap feeMonthMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -724,6 +756,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/fee-month";
     }
 
+    @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.DELETE)
     @PostMapping("/fee-month/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeMonthMap(@PathVariable("id")Long id){
@@ -750,6 +783,7 @@ public class GlobalController extends BaseController {
 
     /****************************  Discount Mapping Code Starts Here  ******************************/
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.VIEW)
     @GetMapping("/discount-class")
     public String getDiscountClassDetails(Model model){
         School school = (School)model.getAttribute("school");
@@ -761,6 +795,7 @@ public class GlobalController extends BaseController {
         return "admin/discountclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.CREATE)
     @GetMapping("/discount-class/add")
     public String getAddDiscountClassMappingForm(Model model){
         model.addAttribute("grades", gradeService.getAllGrades());
@@ -769,6 +804,7 @@ public class GlobalController extends BaseController {
         return "admin/add-discountclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.VIEW)
     @PostMapping("/discount-class/getAllDiscountData/{classId}")
     @ResponseBody
     public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId, Model model){
@@ -812,6 +848,7 @@ public class GlobalController extends BaseController {
         return responseMap;
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.CREATE)
     @PostMapping("/discount-class")
     public String saveDiscountClassMappings(@ModelAttribute DiscountClassMapWrapper discountClassMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         List<DiscountClassMap> discountClassMaps = discountClassMapWrapper.getDiscountClassMaps();
@@ -847,6 +884,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/discount-class";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.EDIT)
     @GetMapping("/discount-class/edit/{id}")
     public String editDiscountClassForm(@PathVariable("id")Long id, Model model){
         DiscountClassMap discountClassMap = discountclassmapService.getDiscountClassMapById(id)
@@ -856,6 +894,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-discountclassmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.EDIT)
     @PostMapping("/edit-discount-class")
     public String updateDiscountClassMap(@Valid @ModelAttribute("discountclassmap")DiscountClassMap discountClassMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -873,6 +912,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/discount-class";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.DELETE)
     @PostMapping("/discount-class/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteDiscountClassMap(@PathVariable("id")Long id){
@@ -898,6 +938,7 @@ public class GlobalController extends BaseController {
 
     /*****************************  Discount-Month Mapping Code starts here  ********************************/
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.VIEW)
     @GetMapping("/discount-month")
     public String getDiscountMonthDetails(Model model){
         School school = (School)model.getAttribute("school");
@@ -909,6 +950,7 @@ public class GlobalController extends BaseController {
         return "admin/discountmonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.CREATE)
     @GetMapping("/discount-month/add")
     public String getAddDiscountMonthMappingForm(Model model){
         model.addAttribute("discounts", discountService.getAllDiscountheads());
@@ -917,6 +959,7 @@ public class GlobalController extends BaseController {
         return "admin/add-discountmonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.VIEW)
     @PostMapping("/discount-month/getAllDiscountMonthData/{feeId}")
     @ResponseBody
     public Map<String, Map<String, Boolean>> getAllDiscountMonthData(@PathVariable("feeId")Long feeId, Model model){
@@ -968,6 +1011,7 @@ public class GlobalController extends BaseController {
         return responseMap;
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.CREATE)
     @PostMapping("/discount-month")
     public String saveDiscountMonthMappings(@ModelAttribute DiscountMonthMapWrapper discountMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         List<DiscountMonthMap> discountMonthMaps = discountMonthMapWrapper.getDiscountMonthMaps();
@@ -1003,6 +1047,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/discount-month";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.EDIT)
     @GetMapping("/discount-month/edit/{id}")
     public String editDiscountMonthForm(@PathVariable("id")Long id, Model model){
         DiscountMonthMap discountMonthMap = discountmonthmapService.getDiscountMonthMapById(id)
@@ -1012,6 +1057,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-discountmonthmap";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.EDIT)
     @PostMapping("/edit-discount-month")
     public String updateDiscountMonthMap(@Valid @ModelAttribute("discountmonthmap")DiscountMonthMap discountMonthMap, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -1029,6 +1075,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/discount-month";
     }
 
+    @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.DELETE)
     @PostMapping("/discount-month/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteDiscountMonthMap(@PathVariable("id")Long id){
@@ -1055,6 +1102,7 @@ public class GlobalController extends BaseController {
 
     /*****************************  Full payment discount Code starts here  ********************************/
 
+    @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.VIEW)
     @GetMapping("/full-payment-discount")
     public String getFullPaymentDetails(Model model){
         School school = (School)model.getAttribute("school");
@@ -1065,6 +1113,7 @@ public class GlobalController extends BaseController {
         return "admin/fullpayment";
     }
 
+    @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.CREATE)
     @GetMapping("/full-payment-discount/add")
     public String getAddFullPaymentForm(Model model){
         model.addAttribute("grades", gradeService.getAllGrades());
@@ -1072,6 +1121,7 @@ public class GlobalController extends BaseController {
         return "admin/add-fullpayment";
     }
 
+    @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.CREATE)
     @PostMapping("/full-payment-discount")
     public String saveFullPayment(@Valid @ModelAttribute("fullpayment") FullPayment fullPayment, BindingResult result, Model model, RedirectAttributes ra){
         if(result.hasErrors()){
@@ -1104,6 +1154,7 @@ public class GlobalController extends BaseController {
         }
         return "redirect:/admin/full-payment-discount";
     }
+    @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.EDIT)
     @GetMapping("/full-payment-discount/edit/{id}")
     public String editFullPayment(@PathVariable("id")Long id, Model model){
         FullPayment fullPayment = fullpaymentService.getFullPaymentById(id)
@@ -1112,6 +1163,7 @@ public class GlobalController extends BaseController {
         return "admin/edit-fullpayment";
     }
 
+    @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.DELETE)
     @PostMapping("/full-payment-discount/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFullPaymentMap(@PathVariable("id")Long id){
@@ -1136,6 +1188,7 @@ public class GlobalController extends BaseController {
     }
 
     /*************************** User-Role *************************/
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.VIEW)
     @GetMapping("/user-role-list")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String getUserRoleList(Model model){
@@ -1167,6 +1220,7 @@ public class GlobalController extends BaseController {
         return "admin/user-role";
     }
 
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.CREATE)
     @GetMapping("/add-user-to-role")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String addUserRole(Model model){
@@ -1197,6 +1251,7 @@ public class GlobalController extends BaseController {
         return "admin/add-user-role-map";
     }
 
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.CREATE)
     @PostMapping("/api/user-role/save")
     public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload){
         try {
@@ -1248,6 +1303,7 @@ public class GlobalController extends BaseController {
 
     /********************************   Holiday Code starts here   ************************************/
 
+    @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.VIEW)
     @GetMapping("/holidays")
     public String getHoliday(Model model){
         //Get data of school and academicyear when loggedin
@@ -1259,12 +1315,14 @@ public class GlobalController extends BaseController {
         return "admin/holiday";
     }
 
+    @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.CREATE)
     @GetMapping("/holiday/add")
     public String getAddHolidayForm(Model model){
         model.addAttribute("holiday", new Holiday());
         return "admin/add-holiday";
     }
 
+    @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.CREATE)
     @PostMapping("/holiday")
     public String save(@Valid @ModelAttribute("holiday")Holiday holiday, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
@@ -1295,6 +1353,7 @@ public class GlobalController extends BaseController {
         }
         return "redirect:/admin/holidays";
     }
+    @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.DELETE)
     @PostMapping("/holiday/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteHoliday(@PathVariable("id")Long id){
@@ -1316,6 +1375,7 @@ public class GlobalController extends BaseController {
     }
 
     /******************************* Examination Code Starts Here *******************************/
+    @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.VIEW)
     @GetMapping("/examinations")
     public String getExaminations(Model model){
         List<Examination> examinationList = examinationService.getAllExamination();
@@ -1324,12 +1384,14 @@ public class GlobalController extends BaseController {
         return "admin/examination";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.CREATE)
     @GetMapping("/examination/add")
     public String getAddExaminationForm(Model model){
         model.addAttribute("examination", new Examination());
         return "admin/add-examination";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.DELETE)
     @PostMapping("/examination/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteExamination(@PathVariable("id")String uuid){
@@ -1350,6 +1412,7 @@ public class GlobalController extends BaseController {
         return response;
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.CREATE)
     @PostMapping("/examination")
     public String save(@Valid @ModelAttribute("examination")Examination examination, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         if(result.hasErrors()){
@@ -1377,6 +1440,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/examinations";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.VIEW)
     @GetMapping("/examinations-date")
     public String getExaminationsDate(Model model){
         School school = (School)model.getAttribute("school");
@@ -1387,6 +1451,7 @@ public class GlobalController extends BaseController {
         return "admin/examination_date";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.CREATE)
     @GetMapping("/examination-details/add")
     public String getAddExaminationDateForm(Model model){
         model.addAttribute("examDetails", new ExamDetails());
@@ -1394,6 +1459,7 @@ public class GlobalController extends BaseController {
         return "admin/add-examination-details";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.CREATE)
     @PostMapping("/examination-details")
     public String save(@Valid @ModelAttribute("examDetails")ExamDetails examDetails, BindingResult result, Model model, RedirectAttributes redirectAttributes){
         model.addAttribute("examinations", examinationService.getAllExamination());
@@ -1428,6 +1494,7 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/examinations-date";
     }
 
+    @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.DELETE)
     @PostMapping("/examinations-detail/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteExaminationDetail(@PathVariable("id")String uuid){

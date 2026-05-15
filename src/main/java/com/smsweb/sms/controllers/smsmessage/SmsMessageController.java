@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.smsmessage;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.School;
@@ -57,6 +59,7 @@ public class SmsMessageController {
     }
 
     // Endpoint for sending a message (only for employees)
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/send")
     @PreAuthorize("hasRole('EMPLOYEE')") // Ensure only employees can send messages
     public ResponseEntity<String> sendMessage(
@@ -67,6 +70,7 @@ public class SmsMessageController {
         //messageService.sendMessage(senderId, recipientId, content);
         return ResponseEntity.ok("Message sent successfully!");
     }
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.VIEW)
     @GetMapping("/sendMessage")
     public String sendMessage(Model model){
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
@@ -82,12 +86,14 @@ public class SmsMessageController {
         return "message/messageSender";
     }
 
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getSmsMessagesByStudent/{studentId}")
     public ResponseEntity<List<SmsMessage>> getSmsMessagesByStudent(@PathVariable Long studentId) {
         List<SmsMessage> messages = smsMessageService.getMessagesByStudentId(studentId);
         return ResponseEntity.ok(messages);
     }
 
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getSmsConversationsByMessage/{messageId}")
     public ResponseEntity<Map<String, Object>> getSmsConversationsByMessage(@PathVariable Long messageId) {
         Optional<SmsMessage> smsMessageOpt = smsMessageService.findById(messageId);
@@ -134,6 +140,7 @@ public class SmsMessageController {
 
 
 
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/sendSmsConversation")
     public ResponseEntity<Map<String, Object>> sendSmsConversation(
             @RequestBody Map<String, Object> payload) {
@@ -176,6 +183,7 @@ public class SmsMessageController {
         return ResponseEntity.ok(response);
     }
 
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/sendNewMessage")
     public ResponseEntity<Map<String, Object>> sendNewMessage(@RequestBody Map<String, Object> payload) {
         Map<String, Object> response = new HashMap<>();
@@ -234,6 +242,7 @@ public class SmsMessageController {
         }
     }
 
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.EDIT)
     @PostMapping("/resolveSmsMessage/{id}")
     public ResponseEntity<Map<String, Object>> resolveSmsMessage(@PathVariable Long id) {
         String updatedBy = userService.getLoggedInUser().getUsername();
@@ -249,6 +258,7 @@ public class SmsMessageController {
         }
     }
 
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/sendNewNotification")
     public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> payload) {
         try {
@@ -340,6 +350,7 @@ public class SmsMessageController {
 
 
 
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/viewNotification")
     public String viewStudentNotifications(Model model) {
         model.addAttribute("page", "datatable");
@@ -350,6 +361,7 @@ public class SmsMessageController {
         return "message/studentNotifications";
     }
 
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/notifications")
     public ResponseEntity<List<SmsNotificationDto>> getStudentNotifications(@RequestParam(required = false) Long studentId) {
         List<SmsNotificationDto> notifications = new ArrayList<>();

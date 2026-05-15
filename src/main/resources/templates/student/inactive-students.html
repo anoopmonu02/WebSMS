@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
@@ -50,7 +51,7 @@
             <td th:text="${academicStudent.student.status}"></td>
             <td th:text="${#dates.format(academicStudent.student.lastUpdated, 'dd/MMM/yyyy')}"></td>
             <td style="white-space: nowrap" class="text-center">
-              <a class="btn btn-success activateBtn" id="activateBtnLink" th:data-id="${academicStudent.id}" data-bs-toggle="modal" data-bs-target="#activateConfirmationModal" data-bs-title="Default tooltip" th:data-name="${academicStudent.student.studentName}">
+              <a sms:access="STUDENT_ACTIVATE:CREATE" class="btn btn-success activateBtn" id="activateBtnLink" th:data-id="${academicStudent.id}" data-bs-toggle="modal" data-bs-target="#activateConfirmationModal" data-bs-title="Default tooltip" th:data-name="${academicStudent.student.studentName}">
                 <i class="bi bi-person-fill-check"></i>
               </a>
             </td>

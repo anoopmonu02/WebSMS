@@ -1,5 +1,7 @@
 package com.smsweb.sms.controllers.fees;
 
+import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.fees.FeeSubmission;
@@ -70,6 +72,7 @@ public class FeeSubmissionRestController extends BaseController {
         this.mmService = mmService;
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/searchStudentForFeePage/{query}")
     public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query, Model model){
         School school = (School)model.getAttribute("school");
@@ -78,6 +81,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(students);
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchStudentForOtherPage/{query}")
     public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query, Model model){
         School school = (School)model.getAttribute("school");
@@ -159,6 +163,7 @@ public class FeeSubmissionRestController extends BaseController {
     }*/
 
     @Transactional
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailForFee/{id}")
     public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id, Model model) {
         Map<String, Object> result = new HashMap<>();
@@ -275,6 +280,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailsForSibling/{id}")
     public ResponseEntity<?> getStudentDetailsForSibling(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
@@ -300,6 +306,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchStudentIndividual/{id}")
     public ResponseEntity<?> getStudentDetail(@PathVariable("id")Long id, Model model){
         Map result = new HashMap<>();
@@ -319,6 +326,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailForDiscount/{id}")
     public ResponseEntity<?> getStudentDetailForDiscount(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
@@ -347,6 +355,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.EDIT)
     @PostMapping("/updateContact")
     public ResponseEntity<?> updateContact(@RequestBody Map<String, String> requestBody){
         Map result = new HashMap<>();
@@ -369,6 +378,7 @@ public class FeeSubmissionRestController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFeeDetailsBasedOnMonth")
     public ResponseEntity<?> getFeeDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
@@ -399,6 +409,7 @@ public class FeeSubmissionRestController extends BaseController {
     }
 
     //getDiscountDetailsBasedOnMonth
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getDiscountDetailsBasedOnMonth")
     public ResponseEntity<?> getDiscountDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
@@ -427,6 +438,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFineDetailsBasedOnMonth")
     public ResponseEntity<?> getFineDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
@@ -456,6 +468,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(fineMap);
     }
 
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFineDetailsBasedOnMonth_Old_Request")
     public ResponseEntity<?> getFineDetailsBasedOnMonth_Old(@RequestBody Map<String, String> requestBody, Model model){
         System.out.println("-=-=-=-=--=-== "+requestBody);
@@ -568,6 +581,7 @@ public class FeeSubmissionRestController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_REMINDER", type = AccessType.VIEW)
     @PostMapping("/getFeeReminderDetails")
     public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody, Model model){
         Map result = new HashMap<>();
@@ -586,6 +600,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/getStudentFeeDetails/{id}")
     public ResponseEntity<?> getStudentFeeDetails(@PathVariable("id") Long id, Model model){
         Map result = new HashMap<>();
@@ -616,6 +631,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(result);
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/student-receipt-print/{id}")
     public ResponseEntity<?> getFeeReceipt(@PathVariable("id")Long id, Model model){
         //Map result = new HashMap<>();
@@ -686,6 +702,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchReceiptForFeePage/{query}")
     public ResponseEntity<?> searchReceiptForFeePage(@PathVariable("query") String query, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -700,6 +717,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_USER_WISE", type = AccessType.VIEW)
     @PostMapping("/getFeeCollectionDetailsUserwise")
     public ResponseEntity<?> getFeeCollectionDetailsUserwise(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -721,6 +739,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_CANCELLED", type = AccessType.VIEW)
     @PostMapping("/getFeeCancelledDetails")
     public ResponseEntity<?> getFeeCancelledDetails(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -740,6 +759,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_TOTAL_SUBMITTED", type = AccessType.VIEW)
     @PostMapping("/getTotalFeeSubmittedDetails")
     public ResponseEntity<?> getTotalFeeSubmittedDetails(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -759,6 +779,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_GRADE_WISE", type = AccessType.VIEW)
     @PostMapping("/getTotalFeeSubmittedDetailsForGrades")
     public ResponseEntity<?> getTotalFeeSubmittedDetailsForGrades(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -778,6 +799,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_DEPOSITED", type = AccessType.VIEW)
     @PostMapping("/getTotalDepositedFeeSubmittedDetailsForGrades")
     public ResponseEntity<?> getTotalDepositedFeeSubmittedDetailsForGrades(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
@@ -798,6 +820,7 @@ public class FeeSubmissionRestController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_CANCEL", type = AccessType.DELETE)
     @PostMapping("/cancelFeeForStudent")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     public ResponseEntity<?> cancelFeeForStudent(@RequestBody Map<String, String> requestBody, Model model){
@@ -820,6 +843,7 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "FEE_REPORT_HEAD_WISE", type = AccessType.VIEW)
     @PostMapping("/getFeeCollectionDetailsHeadwise")
     public ResponseEntity<?> getFeeCollectionDetailsHeadwise(@RequestBody Map<String, String> requestBody, Model model){
         Map<String, Object> receiptData = new HashMap<>();
