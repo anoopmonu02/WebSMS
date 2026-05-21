@@ -151,6 +151,28 @@ public class EmployeeService {
         return employeeRepository.findByUuidAndStatus(uuid, "Active");
     }
 
+    public List<String> getExistingRoleNames(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
+        if (employee == null) return new ArrayList<>();
+        List<String> roleNames = new ArrayList<>();
+        for (Roles role : employee.getUserEntity().getRoles()) {
+            String name = role.getName();
+            // Map to friendly labels
+            String label;
+            switch (name) {
+                case "ROLE_SUPERADMIN": label = "Super Admin (Developer)"; break;
+                case "ROLE_ADMIN":      label = "Super Admin (School)"; break;
+                case "ROLE_STAFF":      label = "Admin"; break;
+                case "ROLE_TEACHER":    label = "Teacher"; break;
+                case "ROLE_ACCOUNTENT": label = "Accountant"; break;
+                case "ROLE_STUDENT":    label = "Student"; break;
+                default: label = name.replace("ROLE_", ""); break;
+            }
+            roleNames.add(label);
+        }
+        return roleNames;
+    }
+
     public boolean saveRoleUserMapping(Long userId, Long roleId){
         try{
             Employee employee = employeeRepository.findById(userId).orElse(null);

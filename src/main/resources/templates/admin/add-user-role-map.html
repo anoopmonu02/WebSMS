@@ -31,7 +31,16 @@
                                       <input type="hidden" th:id="emp_+${emp.id}" th:value="${emp.id}">
                                       <select th:id="role_+${emp.id}" class="form-select" name="role">
                                           <option value="">Select Role</option>
-                                          <option th:each="role : ${roles}" th:value="${role.id}" th:text="${role.name}">Role</option>
+                                          <option th:each="role : ${roles}"
+                                                  th:value="${role.id}"
+                                                  th:text="${role.name == 'ROLE_SUPERADMIN' ? 'Super Admin (Developer)' :
+                                                            (role.name == 'ROLE_ADMIN'      ? 'Super Admin (School)' :
+                                                            (role.name == 'ROLE_STAFF'      ? 'Admin' :
+                                                            (role.name == 'ROLE_TEACHER'    ? 'Teacher' :
+                                                            (role.name == 'ROLE_ACCOUNTENT' ? 'Accountant' :
+                                                            (role.name == 'ROLE_STUDENT'    ? 'Student' :
+                                                             #strings.replace(role.name,'ROLE_',''))))))}"
+                                          >Role</option>
                                       </select>
                                   </td>
                                   <td class="text-center">
@@ -50,81 +59,164 @@
                   </div>
                 </div>
       </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmRoleModal" tabindex="-1" aria-labelledby="confirmRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:460px;">
+      <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
+
+        <!-- Gradient header -->
+        <div style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);padding:22px 24px 18px;">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:44px;height:44px;background:rgba(255,255,255,0.22);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-shield-exclamation" style="font-size:22px;color:#fff;"></i>
+            </div>
+            <div>
+              <h5 class="mb-0 fw-bold" style="color:#fff;font-size:1.05rem;">Role Already Assigned</h5>
+              <p class="mb-0" style="color:rgba(255,255,255,0.82);font-size:0.78rem;margin-top:2px;">Review before adding a new role</p>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="modal-body px-4 pt-4 pb-3">
+          <p class="text-muted mb-3" style="font-size:0.85rem;">
+            <i class="bi bi-info-circle me-1 text-primary"></i>
+            This user currently holds the following role(s):
+          </p>
+          <div id="existingRolesList" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px 16px;">
+            <p id="assignNewRoleMsg" class="mb-0" style="font-size:0.88rem;color:#0369a1;"></p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer border-0 px-4 pb-4 pt-1 gap-2">
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal"
+                  style="border-radius:8px;font-size:0.85rem;padding:8px 20px;">
+            <i class="bi bi-x-lg me-1"></i>Cancel
+          </button>
+          <button type="button" class="btn" id="confirmAssignBtn"
+                  style="background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;border:none;border-radius:8px;font-size:0.85rem;padding:8px 22px;font-weight:600;">
+            <i class="bi bi-check2-circle me-1"></i>Yes, Assign Role
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
       const contextPath = /*[[@{/}]]*/ '/';
+
     const successMessage = [[${success}]];
-    if (successMessage) {
-      showMsg("success", successMessage, "Success");
-    }
-
+    if (successMessage) { showMsg("success", successMessage, "Success"); }
     const infoMessage = [[${info}]];
-    if (infoMessage) {
-      showMsg("info", infoMessage, "Info");
-    }
-
+    if (infoMessage) { showMsg("info", infoMessage, "Info"); }
     const errorMessage = [[${error}]];
-    if (errorMessage) {
-      showMsg("error", errorMessage, "Error");
+    if (errorMessage) { showMsg("error", errorMessage, "Error"); }
+
+    // Role id→label map built from the select options (used for duplicate label display)
+    const roleLabelMap = {};
+    $('select[name="role"] option').each(function() {
+        const val = $(this).val();
+        if (val) roleLabelMap[val] = $(this).text();
+    });
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false,
+        "progressBar": false, "positionClass": "toast-top-right",
+        "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+        "extendedTimeOut": "1000", "showEasing": "swing",
+        "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
     }
 
-    function showMsg(msgType, msg, headerValue){
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "600",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-      }
-      toastr[msgType](msg,headerValue);
+    // Executes the actual save AJAX call
+    function doSaveUserRole(employeeId, roleId) {
+      const data = { employeeId: employeeId, roleId: roleId };
+      $.ajax({
+        url: `${contextPath}admin/api/user-role/save`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+          if (response.startsWith("Either")) {
+            showMsg("info", response, "Message");
+          } else {
+            showMsg("success", response, "Success");
+          }
+        },
+        error: function(xhr, status, error) {
+          showMsg("error", "Error saving role: " + error, "Error");
+        }
+      });
     }
 
     function saveUserRole(employeeId) {
-        // Get the selected role from the dropdown
-        const roleId = $('#role_' + employeeId).val();
+      const roleId = $('#role_' + employeeId).val();
 
-        if (!roleId) {
-            showMsg("error","Please select a Role","Missing")
+      if (!roleId) {
+        showMsg("error", "Please select a Role", "Missing");
+        return;
+      }
+
+      const selectedRoleLabel = roleLabelMap[roleId] || roleId;
+
+      // Step 1: fetch existing roles for this employee
+      $.ajax({
+        url: `${contextPath}admin/api/user-role/existing-roles/${employeeId}`,
+        type: 'GET',
+        success: function(existingRoles) {
+          // Step 2: duplicate check — does the selected label already appear?
+          if (existingRoles && existingRoles.includes(selectedRoleLabel)) {
+            showMsg("error",
+              `"${selectedRoleLabel}" is already assigned to this user. Duplicate roles are not allowed.`,
+              "Duplicate Role");
             return;
+          }
+
+          // Step 3: if user has other roles, ask for confirmation
+          if (existingRoles && existingRoles.length > 0) {
+            // Populate modal with badge pills
+            const $list = $('#existingRolesList').empty();
+            existingRoles.forEach(function(r) {
+              $list.append(
+                `<span style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1px solid #cbd5e1;
+                              border-radius:20px;padding:5px 14px;font-size:0.82rem;font-weight:600;color:#334155;">
+                  <i class="bi bi-person-badge-fill" style="color:#64748b;font-size:0.85rem;"></i>${r}
+                </span>`
+              );
+            });
+            $('#assignNewRoleMsg').html(
+              `Do you also want to assign <span style="background:#dbeafe;color:#1d4ed8;border-radius:6px;padding:2px 10px;font-weight:700;font-size:0.85rem;">${selectedRoleLabel}</span> to this user as well?`
+            );
+
+            // Wire confirm button (remove old listener first to avoid double-fire)
+            $('#confirmAssignBtn').off('click').on('click', function() {
+              $('#confirmRoleModal').modal('hide');
+              doSaveUserRole(employeeId, roleId);
+            });
+
+            $('#confirmRoleModal').modal('show');
+          } else {
+            // No existing roles — save directly
+            doSaveUserRole(employeeId, roleId);
+          }
+        },
+        error: function() {
+          // If the check call fails, proceed and let the save API handle it
+          doSaveUserRole(employeeId, roleId);
         }
-
-        // Create the data object to send
-        const data = {
-            employeeId: employeeId,
-            roleId: roleId
-        };
-
-        // AJAX call to save the employee-role mapping
-        $.ajax({
-            url: `${contextPath}admin/api/user-role/save`,
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function(response) {
-                console.log("response----------"+response);
-                if(response.startsWith("Either")){
-                    showMsg("info", response, "Message");
-                } else{
-                    showMsg("success", response, "Success");
-                }
-
-            },
-            error: function(xhr, status, error) {
-                showMsg("error", "Error saving role: " + error,"Error")
-            }
-        });
+      });
     }
 
   </script>

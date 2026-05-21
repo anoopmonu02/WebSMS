@@ -3,169 +3,425 @@
 <head>
     <title>United Avadh - Shiksha Portal Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style th:inline="css">
+        *, *::before, *::after { box-sizing: border-box; }
+
         body, html {
             height: 100%;
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            /*background: url('/images/back1.jpg') no-repeat center center/cover;*/
-            background: url([[@{/images/back1.jpg}]]) no-repeat center center/cover;
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
         }
 
-        /* Blurred background layer */
-        .blur-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5); /* Optional dark overlay */
-            backdrop-filter: blur(8px); /* Blur effect */
-            z-index: 1;
-        }
-
-        /* Main container */
-        .login-container {
+        /* Full-page background: real photo + blue-tinted blur overlay */
+        .page-bg {
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh;
+            justify-content: center;
+            padding: 20px;
             position: relative;
-            z-index: 2; /* Above the blur */
+            background: url([[@{/images/back1.jpg}]]) no-repeat center center / cover;
         }
 
-        /* Login panel styles */
-        .login-panel {
+        /* Dark navy tint + blur sitting between the photo and the card */
+        .page-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(12, 74, 110, 0.68);
+            backdrop-filter: blur(7px);
+            -webkit-backdrop-filter: blur(7px);
+            z-index: 0;
+        }
+
+        /* ── Main card ── */
+        .login-card {
             display: flex;
             width: 900px;
-            background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background for better visibility */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
+            max-width: 100%;
+            min-height: 560px;
+            position: relative;
+            z-index: 1;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        /* ── Left panel ── */
+        .left-panel {
+            width: 48%;
+            background: linear-gradient(160deg, #0c4a6e 0%, #0369a1 55%, #0284c7 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 30px;
+            position: relative;
             overflow: hidden;
         }
 
-        .login-panel .left-panel {
-            background-color: #f8f9fa;
-            width: 50%;
+        /* Decorative rings */
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            top: -90px; left: -90px;
+        }
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            bottom: -60px; right: -60px;
+        }
+
+        .left-brand {
+            text-align: center;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .illus-wrap {
+            margin: 0 0 22px;
+        }
+
+        .portal-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
+        }
+
+        .portal-tagline {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.72);
+            margin-bottom: 20px;
+        }
+
+        .powered-pill {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            font-size: 11px;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+
+        /* ── Right panel ── */
+        .right-panel {
+            width: 52%;
+            background: #ffffff;
+            padding: 48px 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Logo ring */
+        .logo-ring {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #bae6fd;
+            box-shadow: 0 4px 16px rgba(2, 132, 199, 0.20);
+            margin: 0 auto 20px;
+            background: #f0f9ff;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .login-panel .left-panel img {
+        .logo-ring img {
             width: 100%;
             height: 100%;
-            display: block; /* Ensure the image is not hidden */
-        }
-        .login-panel .right-panel img {
-            width: 20%;
-            height: 20%;
-            display: block; /* Ensure the image is not hidden */
+            object-fit: cover;
         }
 
-        .login-panel .right-panel {
-            width: 50%;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            background-color: #ffffff;
+        .welcome-heading {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 4px;
         }
 
-        .login-panel .right-panel h3 {
-            margin-bottom: 30px;
-            font-weight: bold;
+        .welcome-sub {
+            text-align: center;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .input-group-text {
+            background: #f9fafb;
+            border: 1.5px solid #d1d5db;
+            border-right: none;
+            border-radius: 8px 0 0 8px;
+            color: #6b7280;
+        }
+
+        .form-control {
+            border: 1.5px solid #d1d5db;
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            padding: 11px 14px;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+            outline: none;
+            z-index: 0;
+        }
+
+        /* Ensure the input-group border syncs on focus */
+        .input-group:focus-within .input-group-text {
+            border-color: #0284c7;
+        }
+
+        /* Sign-in button — always visible, no hover-only appearance */
+        .btn-signin {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            color: #ffffff !important;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: filter 0.2s, transform 0.1s;
             text-align: center;
         }
 
-        .login-panel .form-control {
-            margin-bottom: 20px;
-            padding: 15px;
-            font-size: 16px;
+        .btn-signin:hover {
+            filter: brightness(1.08);
+            transform: translateY(-1px);
         }
 
-        .login-panel .btn-primary {
-            padding: 10px;
-            font-size: 18px;
+        .btn-signin:active {
+            transform: translateY(0);
+            filter: brightness(0.96);
+        }
+
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 12.5px;
+            color: #0284c7;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+
+        .forgot-link:hover { text-decoration: underline; }
+
+        /* Alert boxes */
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-logout {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Footer */
+        .panel-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 28px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .version-badge {
+            background: #e0f2fe;
+            color: #0284c7;
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            padding: 2px 10px;
+            font-size: 10.5px;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 650px) {
+            .login-card { flex-direction: column; }
+            .left-panel  { width: 100%; padding: 28px 20px; min-height: auto; }
+            .right-panel { width: 100%; padding: 32px 24px; }
         }
     </style>
 </head>
-
 <body>
-<div class="blur-overlay"></div>
-<div class="login-container">
-    <div class="login-panel">
-        <!-- Left Panel with Image -->
+
+<div class="page-bg">
+    <div class="login-card">
+
+        <!-- ══════════════ LEFT PANEL ══════════════ -->
         <div class="left-panel">
-            <img th:src="@{/images/loginimage.png}" alt="Login Illustration" class="img-fluid" />
+            <div class="left-brand">
+
+                <!-- School-themed SVG illustration: open book + pencil + apple -->
+                <div class="illus-wrap">
+                    <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+                        <!-- Open book (left page) -->
+                        <rect x="18" y="84" width="76" height="52" rx="5" fill="rgba(255,255,255,0.18)"/>
+                        <!-- Open book (right page) -->
+                        <rect x="106" y="84" width="76" height="52" rx="5" fill="rgba(255,255,255,0.18)"/>
+                        <!-- Spine -->
+                        <rect x="95" y="82" width="10" height="56" rx="3" fill="rgba(255,255,255,0.35)"/>
+                        <!-- Left page lines -->
+                        <line x1="30" y1="99"  x2="81" y2="99"  stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="30" y1="109" x2="81" y2="109" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="30" y1="119" x2="65" y2="119" stroke="rgba(255,255,255,0.40)" stroke-width="2" stroke-linecap="round"/>
+                        <!-- Right page lines -->
+                        <line x1="119" y1="99"  x2="170" y2="99"  stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="119" y1="109" x2="170" y2="109" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="119" y1="119" x2="154" y2="119" stroke="rgba(255,255,255,0.40)" stroke-width="2" stroke-linecap="round"/>
+                        <!-- Book shadow -->
+                        <ellipse cx="100" cy="138" rx="74" ry="6" fill="rgba(0,0,0,0.15)"/>
+
+                        <!-- Pencil (rotated, upper-right area) -->
+                        <g transform="translate(152,10) rotate(30)">
+                            <rect x="-5" y="0" width="10" height="54" rx="2" fill="rgba(255,255,255,0.82)"/>
+                            <polygon points="-5,54 5,54 0,66" fill="#fcd34d"/>
+                            <rect x="-5" y="0"  width="10" height="9" rx="2" fill="rgba(200,200,200,0.6)"/>
+                            <line x1="-5" y1="9" x2="5" y2="9" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+                        </g>
+
+                        <!-- Apple (upper-left area) -->
+                        <g transform="translate(22, 14)">
+                            <!-- Body -->
+                            <ellipse cx="18" cy="27" rx="16" ry="18" fill="#ef4444" opacity="0.88"/>
+                            <!-- Shine -->
+                            <ellipse cx="12" cy="21" rx="5" ry="7" fill="rgba(255,255,255,0.22)" transform="rotate(-15 12 21)"/>
+                            <!-- Stem -->
+                            <path d="M18 9 Q21 3 26 5" stroke="rgba(255,255,255,0.65)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                            <!-- Leaf -->
+                            <ellipse cx="27" cy="4" rx="4" ry="5" fill="rgba(255,255,255,0.28)" transform="rotate(-20 27 4)"/>
+                        </g>
+
+                        <!-- Sparkles -->
+                        <circle cx="172" cy="72" r="2.5" fill="rgba(255,255,255,0.55)"/>
+                        <circle cx="162" cy="14" r="1.8" fill="rgba(255,255,255,0.40)"/>
+                        <circle cx="185" cy="42" r="1.4" fill="rgba(255,255,255,0.35)"/>
+                        <circle cx="26"  cy="10" r="2"   fill="rgba(255,255,255,0.45)"/>
+                        <circle cx="10"  cy="60" r="1.5" fill="rgba(255,255,255,0.30)"/>
+                    </svg>
+                </div>
+
+                <div class="portal-title">E-Siksha Portal</div>
+                <div class="portal-tagline">Empowering Education, Digitally</div>
+                <span class="powered-pill">⚡ Powered by Code Gyan</span>
+            </div>
         </div>
 
-        <!-- Right Panel with Login Form -->
+        <!-- ══════════════ RIGHT PANEL ══════════════ -->
         <div class="right-panel">
-            <!--<h3>Login</h3>-->
-            <img th:src="@{/images/logoimg.jpg}" class="rounded mx-auto d-block img-thumbnail"/>
-            <div class="row">&nbsp;</div>
+
+            <!-- School logo -->
+            <div class="logo-ring">
+                <img th:src="@{/images/logoimg.jpg}" alt="School Logo"/>
+            </div>
+
+            <div class="welcome-heading">Welcome Back</div>
+            <div class="welcome-sub">Sign in to your school portal account</div>
+
+            <!-- Error message -->
+            <div th:if="${param.error}" class="alert-error">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                Invalid username or password. Please try again.
+            </div>
+
+            <!-- Logout message -->
+            <div th:if="${param.logout}" class="alert-logout">
+                <i class="bi bi-check-circle-fill"></i>
+                You have been logged out successfully.
+            </div>
+
+            <!-- Login form -->
             <form th:action="@{/login}" method="post">
                 <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" id="username" name="username"
+                               placeholder="Enter your username" autocomplete="username">
+                    </div>
                 </div>
-                <div class="mb-3">
+                <div class="mb-1">
                     <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" name="password" id="password" placeholder="Enter your password">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password"
+                               placeholder="Enter your password" autocomplete="current-password">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Login</button>
+
+                <a th:href="@{/auth/forgot-password}" class="forgot-link">Forgot Password?</a>
+
+                <button type="submit" class="btn-signin">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                </button>
             </form>
-            <div th:if="${param.error}" style="color: red;">
-                <p>Invalid username or password. Please try again.</p>
-            </div>
-            <div th:if="${param.logout}" style="color: green;">
-                <p>You have been logged out successfully.</p>
-            </div>
-            <div class="row">
 
-                    <a th:href="@{/auth/forgot-password}" class="text-primary">Forgot Password?</a>
+            <!-- Footer -->
+            <div class="panel-footer">
+                <span>&copy; <span class="yr"></span> Code Gyan. All rights reserved.</span>
+                <span class="version-badge">v1.0.0</span>
+            </div>
 
-                <!--<a href="#" class="link-success">Forgot Password?</a>-->
-            </div>
-            <div class="row justify-content-center mt-5">
-                <span class="justify-content-center" style="font-size: 10px;">Copyright &copy; Pronoc Technologies Pvt. Ltd. - 2024</span>
-            </div>
         </div>
+        <!-- end right-panel -->
+
     </div>
+    <!-- end login-card -->
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Dynamic year — fills every .yr span automatically
+    document.querySelectorAll('.yr').forEach(function(el) {
+        el.textContent = new Date().getFullYear();
+    });
+</script>
 </body>
 </html>
-
-<!--</head>
-<body>
-<h1>Login</h1>
-<form th:action="@{/login}" method="post">
-    <div>
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" />
-    </div>
-    <div>
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" />
-    </div>
-    <div>
-        <button type="submit">Login</button>
-    </div>
-</form>
-<div th:if="${successMessage}" style="color: green;">
-    <p th:text="${successMessage}"></p>
-</div>
-<div th:if="${errorMessage}" style="color: red;">
-    <p th:text="${errorMessage}"></p>
-</div>
-
-
-<div th:if="${param.logout}">
-    <p style="color: green;">You have been logged out</p>
-</div>
-<a th:href="@{/register}">Register</a>
-</body>
-</html>-->

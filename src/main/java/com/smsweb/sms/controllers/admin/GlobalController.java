@@ -1251,6 +1251,18 @@ public class GlobalController extends BaseController {
         return "admin/add-user-role-map";
     }
 
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.VIEW)
+    @GetMapping("/api/user-role/existing-roles/{employeeId}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
+    public ResponseEntity<?> getExistingRoles(@PathVariable("employeeId") Long employeeId) {
+        try {
+            List<String> roleNames = employeeService.getExistingRoleNames(employeeId);
+            return ResponseEntity.ok(roleNames);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching roles: " + e.getMessage());
+        }
+    }
+
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.CREATE)
     @PostMapping("/api/user-role/save")
     public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload){

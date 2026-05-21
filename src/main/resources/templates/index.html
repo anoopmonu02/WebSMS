@@ -175,18 +175,43 @@
     .info-date { font-size: 11.5px; color: #94a3b8; white-space: nowrap; }
     .info-empty { padding: 18px; font-size: 12.5px; color: #94a3b8; text-align: center; }
 
-    /* ── Grade-wise absent badge grid ────────────────────────────── */
-    .absent-grid {
-        display: flex; flex-wrap: wrap; gap: 7px; padding: 14px 18px;
+    /* ── Grade-wise absent list ──────────────────────────────────── */
+    .absent-list {
+        padding: 8px 14px 10px;
+        max-height: 210px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #e2e8f0 transparent;
     }
-    .absent-badge {
-        display: inline-flex; align-items: center; gap: 5px;
-        border-radius: 20px; padding: 4px 13px;
-        font-size: 12px; font-weight: 700;
-        border: 1px solid;
+    .absent-list::-webkit-scrollbar { width: 4px; }
+    .absent-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .absent-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 5px 10px; border-radius: 7px; margin-bottom: 3px;
+        font-size: 12.5px;
     }
-    .absent-badge-red  { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
-    .absent-badge-green{ background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .absent-row-red   { background: #fff1f2; color: #be123c; }
+    .absent-row-green { background: #f0fdf4; color: #15803d; }
+    .absent-row-grade { font-weight: 600; }
+    .absent-row-count {
+        display: flex; align-items: center; gap: 4px;
+        font-weight: 700; font-size: 13px;
+    }
+
+    /* Visual separator between chunks of 5 */
+    .absent-chunk-sep {
+        display: flex; align-items: center; gap: 8px;
+        margin: 7px 0 6px;
+    }
+    .absent-chunk-sep::before,
+    .absent-chunk-sep::after {
+        content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+    .absent-chunk-sep span {
+        font-size: 9.5px; color: #94a3b8; white-space: nowrap;
+        text-transform: uppercase; letter-spacing: .06em;
+    }
 
 </style>
 
@@ -514,12 +539,22 @@
                     <i class="bi bi-person-dash-fill" style="color:#f43f5e;" aria-hidden="true"></i>
                     Absent by Grade
                 </div>
-                <div class="absent-grid" th:if="${isAttendance}">
-                    <span th:each="a : ${attendances}"
-                          th:class="${a.absentSummaryCount == 0} ? 'absent-badge absent-badge-green' : 'absent-badge absent-badge-red'">
-                        <span th:text="${a.gradeNameSummary}">Grade</span>
-                        <strong th:text="${a.absentSummaryCount}">0</strong>
-                    </span>
+                <div class="absent-list" th:if="${isAttendance}">
+                    <div th:each="chunk, chunkIter : ${chunks}">
+                        <!-- Separator between groups, labelled with group number -->
+                        <div th:if="${!chunkIter.first}" class="absent-chunk-sep">
+                            <span th:text="'Group ' + ${chunkIter.index + 1}">Group</span>
+                        </div>
+                        <!-- Rows within this chunk -->
+                        <div th:each="a : ${chunk}"
+                             th:class="${a.absentSummaryCount == 0} ? 'absent-row absent-row-green' : 'absent-row absent-row-red'">
+                            <span class="absent-row-grade" th:text="${a.gradeNameSummary}">Grade</span>
+                            <span class="absent-row-count">
+                                <i th:class="${a.absentSummaryCount == 0} ? 'bi bi-person-check-fill' : 'bi bi-person-dash-fill'"></i>
+                                <span th:text="${a.absentSummaryCount}">0</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div th:if="${!isAttendance}" class="info-empty">
                     <i class="bi bi-clock" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>

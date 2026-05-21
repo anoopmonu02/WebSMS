@@ -3,18 +3,25 @@ package com.smsweb.sms.controllers.admin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.permission.AppScreen;
 import com.smsweb.sms.models.permission.UserPermission;
+import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.repositories.permission.AppScreenRepository;
 import com.smsweb.sms.repositories.permission.UserPermissionRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.permission.PermissionService;
 
 import java.util.*;
@@ -24,9 +31,14 @@ import java.util.stream.Collectors;
  * Admin controller for managing fine-grained user permissions.
  *
  * URL structure:
- *   GET  /admin/permissions              → list all users
+ *   GET  /admin/permissions              → list users (scoped to school for ROLE_ADMIN)
  *   GET  /admin/permissions/user/{id}    → permission matrix for one user
  *   POST /admin/permissions/save         → AJAX multi-select save
+ *
+ * School scoping:
+ *   - ROLE_SUPERADMIN sees all users across all schools.
+ *   - ROLE_ADMIN sees only users belonging to their own school, and can only
+ *     modify permissions for those same users (prevents cross-school tampering).
  */
 @Controller
 @RequestMapping("/admin/permissions")
@@ -37,12 +49,29 @@ public class PermissionAdminController extends BaseController {
     @Autowired private UserPermissionRepository permRepo;
     @Autowired private UserRepository userRepo;
     @Autowired private PermissionService permissionService;
+    @Autowired private EmployeeService employeeService;
+    @Autowired private EmployeeRepository employeeRepository;
 
     // ── List users ────────────────────────────────────────────────────────────
 
+    /**
+     * SUPERADMIN → sees every user in the system.
+     * ADMIN      → sees only users whose employee record belongs to their school.
+     */
     @GetMapping
     public String listUsers(Model model) {
-        List<UserEntity> users = userRepo.findAllWithRoles();
+        List<UserEntity> users;
+        if (isSuperAdmin()) {
+            users = userRepo.findAllWithRoles();
+        } else {
+            // School-scoped view: only show users from the admin's school
+            School adminSchool = getAdminSchool();
+            if (adminSchool == null) {
+                users = Collections.emptyList();
+            } else {
+                users = userRepo.findAllBySchoolIdWithRoles(adminSchool.getId());
+            }
+        }
         model.addAttribute("users", users);
         model.addAttribute("hasUsers", !users.isEmpty());
         return "admin/permission";
@@ -63,6 +92,11 @@ public class PermissionAdminController extends BaseController {
     public String userPermissions(@PathVariable Long userId, Model model) {
         UserEntity user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        // School isolation: ADMIN cannot open the permission matrix for users outside their school
+        if (!isSuperAdmin() && !userBelongsToAdminSchool(user)) {
+            return "redirect:/access-denied";
+        }
 
         Map<String, List<AppScreen>> screensByModule = screenRepo.findAll()
                 .stream()
@@ -118,6 +152,11 @@ public class PermissionAdminController extends BaseController {
         UserEntity user = userRepo.findById(request.getUserId()).orElse(null);
         if (user == null)
             return badRequest("No user found with id: " + request.getUserId());
+
+        // School isolation guard: ADMIN cannot modify permissions for users outside their school
+        if (!isSuperAdmin() && !userBelongsToAdminSchool(user)) {
+            return badRequest("Access denied: cannot modify permissions for users outside your school");
+        }
 
         int updatedCount = 0;
         for (Map.Entry<Long, List<String>> entry : request.getPermissions().entrySet()) {
@@ -180,7 +219,37 @@ public class PermissionAdminController extends BaseController {
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /** True when the currently logged-in user has ROLE_SUPERADMIN. */
+    private boolean isSuperAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SUPERADMIN"));
+    }
+
+    /**
+     * Returns the School the logged-in ADMIN belongs to (via their Employee record).
+     * Returns null if the admin has no employee record (shouldn't happen in practice).
+     */
+    private School getAdminSchool() {
+        try {
+            return employeeService.getLoggedInEmployeeSchool();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns true if the given user's employee record belongs to the same school
+     * as the currently logged-in ADMIN. Prevents cross-school permission tampering.
+     */
+    private boolean userBelongsToAdminSchool(UserEntity user) {
+        School adminSchool = getAdminSchool();
+        if (adminSchool == null) return false;
+        Employee emp = employeeRepository.findByUserEntity(user);
+        return emp != null && emp.getSchool() != null
+                && emp.getSchool().getId().equals(adminSchool.getId());
+    }
 
     private ResponseEntity<Map<String, Object>> badRequest(String message) {
         Map<String, Object> error = new HashMap<>();

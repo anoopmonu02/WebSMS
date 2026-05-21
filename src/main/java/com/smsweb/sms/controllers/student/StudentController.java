@@ -44,7 +44,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/student")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class StudentController extends BaseController {
     Logger log = LoggerFactory.getLogger(EmployeeController.class);
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -385,7 +385,7 @@ public class StudentController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_ATTENDANCE_VIEW", type = AccessType.VIEW)
     @GetMapping("/student-attendance")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String studentAttendanceForm(Model model){
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
@@ -419,7 +419,7 @@ public class StudentController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_ATTENDANCE_REPORT", type = AccessType.VIEW)
     @GetMapping("/student-show-attendance")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String studentShowAttendance(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -457,7 +457,7 @@ public class StudentController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @GetMapping("/stu-exam-result")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String examResultForm(Model model){
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -469,7 +469,7 @@ public class StudentController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_SEARCH", type = AccessType.VIEW)
     @GetMapping("/look-up-student")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String searchStudent(Model model){
         School school = (School)model.getAttribute("school");
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());

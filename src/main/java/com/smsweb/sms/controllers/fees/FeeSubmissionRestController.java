@@ -38,7 +38,7 @@ import java.time.ZoneId;
 import java.util.*;
 
 @RestController
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class FeeSubmissionRestController extends BaseController {
 
     private final StudentService studentService;

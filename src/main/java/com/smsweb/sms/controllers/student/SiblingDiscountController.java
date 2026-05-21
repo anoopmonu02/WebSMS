@@ -30,7 +30,7 @@ import java.util.Optional;
 
 @Controller
 @RequestMapping("/sibling")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class SiblingDiscountController extends BaseController {
 
     private SiblingDiscountService siblingDiscountService;

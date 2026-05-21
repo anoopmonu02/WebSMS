@@ -26,7 +26,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/sibling")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class SiblingGroupController extends BaseController {
     private SiblingGroupService siblingGroupService;
 

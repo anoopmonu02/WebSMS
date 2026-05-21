@@ -19,7 +19,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/universal")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 public class UniversalController {
 
     private final MediumService mediumService;

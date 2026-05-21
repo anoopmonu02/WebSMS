@@ -28,7 +28,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class StudentRestController extends BaseController {
     private final ExcelService excelService;
     private final StudentService studentService;
@@ -525,7 +525,7 @@ public class StudentRestController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-file")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateExamResultData(file);
         Map<String, List<String[]>> dataMap = new HashMap<>();
@@ -554,7 +554,7 @@ public class StudentRestController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-data")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
         String responseMsg = "";
         try{
@@ -625,7 +625,7 @@ public class StudentRestController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)
     @PostMapping("/getStudentsDiscountList")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     @ResponseBody
     public ResponseEntity<?> getStudentsDiscountList(@RequestBody Map<String, String> requestBody, Model model){
         School school = (School)model.getAttribute("school");

@@ -50,19 +50,21 @@ public class WebSecurityConfig {
                         // Student-only portal (blocked from employee areas)
                         .requestMatchers("/student-portal/**").hasRole("STUDENT")
 
-                        // Admin-only paths
+                        // Admin-only paths — STAFF excluded intentionally (no school config access)
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
 
-                        // Employee paths — all non-student staff
-                        .requestMatchers("/employee/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
-                        .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
-                        .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
-                        .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT")
-                        .requestMatchers("/universal/**").hasAnyRole("ADMIN", "SUPERADMIN")
-                        .requestMatchers("/message/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
+                        // Employee paths — all non-student staff including STAFF (sub-admin)
+                        // Route-level gate is intentionally wide; @CheckAccess annotations on each
+                        // controller method enforce fine-grained permission control for STAFF users.
+                        .requestMatchers("/employee/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/universal/**").hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
+                        .requestMatchers("/message/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
 
                         // Dashboard accessible to all authenticated non-student users
-                        .requestMatchers("/dashboard").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT")
+                        .requestMatchers("/dashboard").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
 
                         .anyRequest().authenticated()
                 )

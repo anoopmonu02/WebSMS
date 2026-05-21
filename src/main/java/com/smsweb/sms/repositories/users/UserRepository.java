@@ -24,4 +24,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.roles WHERE u.username = :username")
     Optional<UserEntity> findByUsernameWithRoles(@Param("username") String username);
+
+    /**
+     * Returns all users who are employees of a given school, with roles eagerly fetched.
+     * Used by PermissionAdminController to scope the user list when ROLE_ADMIN is logged in,
+     * so the admin only sees and manages users belonging to their own school.
+     */
+    @Query("SELECT DISTINCT u FROM UserEntity u JOIN FETCH u.roles JOIN u.employee e WHERE e.school.id = :schoolId")
+    List<UserEntity> findAllBySchoolIdWithRoles(@Param("schoolId") Long schoolId);
 }

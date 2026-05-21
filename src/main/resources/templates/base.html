@@ -772,8 +772,13 @@
                         </li>
                         <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>User</span></a></li>
                         <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>Role</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_USERROLE:VIEW" th:href="@{'/admin/user-role-list'}"><i class="bi bi-dot"></i><span>Role-User Mapping</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                        <!-- SUPERADMIN (developer) + ADMIN (school owner) ONLY — STAFF/TEACHER/ACCOUNTENT never see these -->
+                        <li sec:authorize="hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" sms:access="ADMIN_USERROLE:VIEW" th:href="@{'/admin/user-role-list'}">
+                                <i class="bi bi-dot"></i><span>Role-User Mapping</span>
+                            </a>
+                        </li>
+                        <li sec:authorize="hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')" class="sidebar-item">
                             <a class="sidebar-link" sms:access="ADMIN_USER_PERMISSIONS:VIEW" th:href="@{/admin/permissions}">
                                 <i class="bi bi-shield-lock"></i><span>User Permissions</span>
                             </a>
@@ -939,12 +944,12 @@
                          th:text="${#authentication.name != null ? #authentication.name : 'Guest User'}">
                         User Name
                     </div>
-                    <div class="sidebar-user-role">Online</div>
+                    <div class="sidebar-user-role" th:text="${userRoleLabel}">Online</div>
                 </div>
             </div>
 
             <!-- Footer Action Links -->
-            <a th:href="@{'/fees/fee-submit-form'}" class="sidebar-link" data-tip="Change Password">
+            <a th:href="@{#}" class="sidebar-link" data-tip="Change Password">
                 <i class="bi bi-key-fill"></i>
                 <span>Change Password</span>
             </a>
@@ -1005,7 +1010,7 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" th:href="@{'/fees/fee-submit-form'}">
+                            <a class="dropdown-item" th:href="@{#}">
                                 <i class="bi bi-key me-2 text-warning"></i>Change Password
                             </a>
                         </li>

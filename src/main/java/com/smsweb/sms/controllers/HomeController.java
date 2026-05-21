@@ -54,7 +54,7 @@ public class HomeController {
     }
 
     @GetMapping("/dashboard")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String index(HttpSession session, Model model){
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isSuperAdmin = auth.getAuthorities().stream()

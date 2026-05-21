@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 @Controller
 @RequestMapping("/employee")
 public class EmployeeController extends BaseController {

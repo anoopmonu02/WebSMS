@@ -29,7 +29,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/student")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class StudentDiscountController extends BaseController {
 
     private final StudentDiscountService studentDiscountService;

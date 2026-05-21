@@ -55,6 +55,34 @@ public abstract class BaseController {
         return school;
     }
 
+    /**
+     * Puts a friendly role label into every model so base.html sidebar can display it.
+     *
+     * What the user sees vs the actual DB role:
+     *   ROLE_SUPERADMIN → "Super Admin"  (developer / platform owner)
+     *   ROLE_ADMIN      → "Super Admin"  (school owner — they consider themselves the top)
+     *   ROLE_STAFF      → "Admin"        (sub-admin created by the school owner)
+     *   ROLE_TEACHER    → "Teacher"
+     *   ROLE_ACCOUNTENT → "Accountant"
+     *   ROLE_STUDENT    → "Student"
+     */
+    @ModelAttribute("userRoleLabel")
+    public String setUserRoleLabelInModel() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) return "Online";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"))) return "Super Admin";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")))      return "Super Admin";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STAFF")))      return "Admin";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER")))    return "Teacher";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ACCOUNTENT"))) return "Accountant";
+            if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT")))    return "Student";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "Online";
+    }
+
     private boolean isSuperAdminLoggedIn(){
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

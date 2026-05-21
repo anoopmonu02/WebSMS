@@ -30,7 +30,21 @@
                         <td th:text="${emp.key.mobile1}"></td>
                         <td>
                             <span th:if="${emp.value == null}">No Roles</span>
-                            <span th:each="role : ${emp.value}" th:text="${role.name + ', '}"></span>
+                            <span th:each="role : ${emp.value}"
+                                  class="badge me-1"
+                                  th:classappend="${role.name == 'ROLE_SUPERADMIN' ? 'bg-danger' :
+                                                  (role.name == 'ROLE_ADMIN'      ? 'bg-danger' :
+                                                  (role.name == 'ROLE_STAFF'      ? 'bg-warning text-dark' :
+                                                  (role.name == 'ROLE_TEACHER'    ? 'bg-success' :
+                                                  (role.name == 'ROLE_ACCOUNTENT' ? 'bg-primary' : 'bg-secondary'))))}"
+                                  th:text="${role.name == 'ROLE_SUPERADMIN' ? 'Super Admin' :
+                                            (role.name == 'ROLE_ADMIN'      ? 'Super Admin' :
+                                            (role.name == 'ROLE_STAFF'      ? 'Admin' :
+                                            (role.name == 'ROLE_TEACHER'    ? 'Teacher' :
+                                            (role.name == 'ROLE_ACCOUNTENT' ? 'Accountant' :
+                                            (role.name == 'ROLE_STUDENT'    ? 'Student' :
+                                             #strings.replace(role.name,'ROLE_',''))))))}">
+                            </span>
                         </td>
                     </tr>
                 </tbody>
