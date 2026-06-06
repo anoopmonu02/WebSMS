@@ -17,8 +17,11 @@ import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.student.ExamResultSummaryRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.models.Users.Roles;
+import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.ExaminationService;
+import com.smsweb.sms.services.mobile.FamilyAccountService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -55,9 +58,11 @@ public class StudentService {
     private final ExaminationService examinationService;
     private final ExamResultSummaryRepository examResultSummaryRepository;
     private final UserRepository userRepository;
+    private final FamilyAccountService familyAccountService;
+    private final RoleRepository roleRepository;
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -67,6 +72,8 @@ public class StudentService {
         this.examinationService = examinationService;
         this.examResultSummaryRepository = examResultSummaryRepository;
         this.userRepository = userRepository;
+        this.familyAccountService = familyAccountService;
+        this.roleRepository = roleRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -127,6 +134,11 @@ public class StudentService {
                 userEntity.setPassword(passwordEncoder.encode(password));
                 userEntity.setEmail(student.getUserEntity().getEmail());
                 userEntity.setEnabled(true);
+                // Assign ROLE_STUDENT so the mobile API JWT filter can authenticate them
+                Roles studentRole = roleRepository.findByName("ROLE_STUDENT");
+                if (studentRole != null) {
+                    userEntity.getRoles().add(studentRole);
+                }
                 UserEntity savedUser = userRepository.save(userEntity);
                 student.setUserEntity(savedUser);
 
@@ -174,6 +186,10 @@ public class StudentService {
             }
             if(proceedFlag){
                 savedStudent = repository.save(student);
+            }
+            // Create or ensure FamilyAccount exists for this mobile number
+            if(savedStudent != null && savedStudent.getMobile1() != null && !savedStudent.getMobile1().isBlank()) {
+                familyAccountService.createIfAbsent(savedStudent.getMobile1());
             }
             return savedStudent;
         }catch(Exception e){
@@ -277,6 +293,10 @@ public class StudentService {
                 existingStudent.setStudentType(student.getStudentType());
                 existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
+                // Ensure FamilyAccount exists (creates one if mobile changed or new)
+                if (existingStudent.getMobile1() != null && !existingStudent.getMobile1().isBlank()) {
+                    familyAccountService.createIfAbsent(existingStudent.getMobile1());
+                }
                 return existingStudent;
             }
 
@@ -453,10 +473,27 @@ public class StudentService {
         List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
         Map<String, List> academicAttendanceMap = new HashMap<>();
         if(academicStudents!=null && !academicStudents.isEmpty()){
-            academicAttendanceMap.put("academicStudents", academicStudents);
+            List<Map<String, Object>> leanStudents = new ArrayList<>();
+            for (AcademicStudent as : academicStudents) {
+                leanStudents.add(toLeanAcademicStudentMap(as));
+            }
+            academicAttendanceMap.put("academicStudents", leanStudents);
         }
         if(attendanceList!=null && !attendanceList.isEmpty()){
-            academicAttendanceMap.put("attendances", attendanceList);
+            List<Map<String, Object>> leanAttendances = new ArrayList<>();
+            for (com.smsweb.sms.models.student.Attendance att : attendanceList) {
+                Map<String, Object> attMap = new HashMap<>();
+                attMap.put("id", att.getId());
+                attMap.put("uuid", att.getUuid());
+                attMap.put("isPresent", att.isPresent());
+                attMap.put("attendanceDate", att.getAttendanceDate());
+                attMap.put("remark", att.getRemark() != null ? att.getRemark() : "");
+                if (att.getAcademicStudent() != null) {
+                    attMap.put("academicStudent", Map.of("id", att.getAcademicStudent().getId()));
+                }
+                leanAttendances.add(attMap);
+            }
+            academicAttendanceMap.put("attendances", leanAttendances);
         }
         return academicAttendanceMap;
     }
@@ -562,7 +599,7 @@ public class StudentService {
                 // Add student details
                 studentAttendance.put("studentId", student.getUuid().toString());
                 studentAttendance.put("studentName", student.getStudent().getStudentName());
-                studentAttendance.put("studentObj", student);
+                studentAttendance.put("studentObj", toLeanAcademicStudentMap(student));
 
                 // Initialize all dates as "A" (Absent) except Sundays
                 for (int i = 1; i <= lastDay.getDayOfMonth(); i++) {
@@ -733,8 +770,14 @@ public class StudentService {
                 System.out.println("paramsMap:: "+paramsMap);
                 String medium = paramsMap.get("medium");
 
-                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllStudentsDetailsBySession(school.getId(), academicYear.getId(), Long.parseLong(medium));
-                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No students details found for Medium": totalStudentCollectionDetails);
+                List<AcademicStudent> rawList = academicStudentRepository.findAllStudentsDetailsBySession(school.getId(), academicYear.getId(), Long.parseLong(medium));
+                if (CollectionUtils.isEmpty(rawList)) {
+                    finalDataMap.put("totalStudentCollectionDetails", "No students details found for Medium");
+                } else {
+                    List<Map<String, Object>> leanList = new ArrayList<>();
+                    for (AcademicStudent as : rawList) leanList.add(toLeanAcademicStudentMap(as));
+                    finalDataMap.put("totalStudentCollectionDetails", leanList);
+                }
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -754,9 +797,15 @@ public class StudentService {
                 String section = paramsMap.get("section");
                 String grade = paramsMap.get("grade");
 
-                List<AcademicStudent> totalStudentCollectionDetails = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(),
+                List<AcademicStudent> rawList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(),
                         Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
-                finalDataMap.put("totalStudentCollectionDetails", (CollectionUtils.isEmpty(totalStudentCollectionDetails))? "No students details found for selected Grade": totalStudentCollectionDetails);
+                if (CollectionUtils.isEmpty(rawList)) {
+                    finalDataMap.put("totalStudentCollectionDetails", "No students details found for selected Grade");
+                } else {
+                    List<Map<String, Object>> leanList = new ArrayList<>();
+                    for (AcademicStudent as : rawList) leanList.add(toLeanAcademicStudentMap(as));
+                    finalDataMap.put("totalStudentCollectionDetails", leanList);
+                }
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -961,6 +1010,33 @@ public class StudentService {
         return new ArrayList<>();
     }
 
+    // ── Mobile API ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns all attendance records for a single student within a date range.
+     * Used by the mobile monthly calendar view.
+     */
+    public List<Attendance> getStudentAttendanceForMonth(Long academicStudentId, Date startDate, Date endDate) {
+        return attendanceRepository.findByAcademicStudentIdBetweenDates(academicStudentId, startDate, endDate);
+    }
+
+    /**
+     * Returns all attendance records for a single student for the full academic year.
+     * Used by the mobile yearly bar-chart view.
+     */
+    public List<Attendance> getStudentAttendanceForYear(Long academicStudentId, Long academicYearId) {
+        return attendanceRepository.findByAcademicStudentIdAndAcademicYearId(academicStudentId, academicYearId);
+    }
+
+    /**
+     * Returns all exam results for a single student in the current academic year.
+     * Used by the mobile Results screen.
+     */
+    public List<ExamResultSummary> getStudentExamResults(Long academicStudentId, Long schoolId, Long academicYearId) {
+        return examResultSummaryRepository.findByAcademicStudentIdAndSchoolIdAndAcademicYearId(
+                academicStudentId, schoolId, academicYearId);
+    }
+
     public List getAbsentSummaryGradewise(Long school, Long academic){
         try{
             boolean hasAny = attendanceRepository.existsAnyAttendanceForToday(school, academic)>0;
@@ -990,4 +1066,60 @@ public class StudentService {
         }
         return new ArrayList<>();
     }
+
+    public Map<String, Object> toLeanAcademicStudentMap(AcademicStudent as) {
+        Map<String, Object> aMap = new HashMap<>();
+        if (as == null) return aMap;
+        aMap.put("id", as.getId());
+        aMap.put("uuid", as.getUuid());
+        aMap.put("classSrNo", as.getClassSrNo());
+        aMap.put("migrationDate", as.getMigrationDate());
+        aMap.put("status", as.getStatus() != null ? as.getStatus() : "");
+        if (as.getSchool() != null) {
+            aMap.put("school", Map.of("id", as.getSchool().getId(), "schoolName", as.getSchool().getSchoolName() != null ? as.getSchool().getSchoolName() : ""));
+        }
+        if (as.getGrade() != null) {
+            aMap.put("grade", Map.of("id", as.getGrade().getId(), "gradeName", as.getGrade().getGradeName() != null ? as.getGrade().getGradeName() : ""));
+        }
+        if (as.getSection() != null) {
+            aMap.put("section", Map.of("id", as.getSection().getId(), "sectionName", as.getSection().getSectionName() != null ? as.getSection().getSectionName() : ""));
+        }
+        if (as.getMedium() != null) {
+            aMap.put("medium", Map.of("id", as.getMedium().getId(), "mediumName", as.getMedium().getMediumName() != null ? as.getMedium().getMediumName() : ""));
+        }
+        if (as.getStudent() != null) {
+            Student s = as.getStudent();
+            Map<String, Object> stuMap = new HashMap<>();
+            stuMap.put("id",                   s.getId());
+            stuMap.put("studentName",          s.getStudentName()          != null ? s.getStudentName()          : "");
+            stuMap.put("fatherName",            s.getFatherName()            != null ? s.getFatherName()            : "");
+            stuMap.put("motherName",            s.getMotherName()            != null ? s.getMotherName()            : "");
+            stuMap.put("dob",                   s.getDob());
+            stuMap.put("gender",                s.getGender()                != null ? s.getGender()                : "");
+            stuMap.put("mobile1",               s.getMobile1()               != null ? s.getMobile1()               : "");
+            stuMap.put("mobile2",               s.getMobile2()               != null ? s.getMobile2()               : "");
+            stuMap.put("religion",              s.getReligion()              != null ? s.getReligion()              : "");
+            stuMap.put("address",               s.getAddress()               != null ? s.getAddress()               : "");
+            stuMap.put("landmark",              s.getLandmark()              != null ? s.getLandmark()              : "");
+            stuMap.put("distanceFromSchool",    s.getDistanceFromSchool());
+            stuMap.put("aadharNo",              s.getAadharNo()              != null ? s.getAadharNo()              : "");
+            stuMap.put("apaarNo",               s.getApaarId()               != null ? s.getApaarId()               : "");
+            stuMap.put("penNo",                 s.getPenNo()                 != null ? s.getPenNo()                 : "");
+            stuMap.put("bloodGroup",            s.getBloodGroup()            != null ? s.getBloodGroup()            : "");
+            stuMap.put("height",                s.getHeight());
+            stuMap.put("weight",                s.getWeight());
+            stuMap.put("fatherQualification",   s.getFatherQualification()   != null ? s.getFatherQualification()   : "");
+            stuMap.put("motherQualification",   s.getMotherQualification()   != null ? s.getMotherQualification()   : "");
+            stuMap.put("accountNo",             s.getAccountNo()             != null ? s.getAccountNo()             : "");
+            stuMap.put("ifscCode",              s.getIfscCode()              != null ? s.getIfscCode()              : "");
+            stuMap.put("branchName",            s.getBranchName()            != null ? s.getBranchName()            : "");
+            stuMap.put("status",                s.getStatus()                != null ? s.getStatus()                : "");
+            if (s.getCast() != null)     stuMap.put("cast",     Map.of("castName",     s.getCast().getCastName()     != null ? s.getCast().getCastName()     : ""));
+            if (s.getCategory() != null) stuMap.put("category", Map.of("categoryName", s.getCategory().getCategoryName() != null ? s.getCategory().getCategoryName() : ""));
+            if (s.getBank() != null)     stuMap.put("bank",     Map.of("bankName",     s.getBank().getBankName()     != null ? s.getBank().getBankName()     : ""));
+            aMap.put("student", stuMap);
+        }
+        return aMap;
+    }
+
 }

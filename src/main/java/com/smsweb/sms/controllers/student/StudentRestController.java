@@ -179,7 +179,11 @@ public class StudentRestController extends BaseController {
                 if(academicStudents == null || academicStudents.isEmpty()){
                     return ResponseEntity.ok("No students found for the given criteria.");
                 }
-                return ResponseEntity.ok(academicStudents);
+                List<Map<String, Object>> leanList = new java.util.ArrayList<>();
+                for (AcademicStudent as : academicStudents) {
+                    leanList.add(studentService.toLeanAcademicStudentMap(as));
+                }
+                return ResponseEntity.ok(leanList);
             } else{
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Request body is missing or invalid.");
@@ -220,7 +224,10 @@ public class StudentRestController extends BaseController {
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         AcademicStudent students = academicStudentService.getStudentDetailByUuid(UUID.fromString(uuid), academicYear.getId(), school.getId()).orElse(null);
-        return ResponseEntity.ok(students);
+        if (students == null) {
+            return ResponseEntity.ok(java.util.Map.of("noAcademicStudent", "Student not found."));
+        }
+        return ResponseEntity.ok(studentService.toLeanAcademicStudentMap(students));
     }
 
     @CheckAccess(screen = "STUDENT_EDIT_GRADE", type = AccessType.EDIT)
@@ -587,9 +594,33 @@ public class StudentRestController extends BaseController {
                 AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
                 List<ExamResultSummary> examResultSummaries = studentService.getExamResultsForStudents(mediumId, gradeId, sectionId,exam, academicYear.getId(), school.getId());
                 if(examResultSummaries == null || examResultSummaries.isEmpty()){
-                    return ResponseEntity.ok("No result found for the given criteria.");
+                    return ResponseEntity.ok(java.util.Map.of("empty", true, "message", "No result found for the given criteria."));
                 }
-                return ResponseEntity.ok(examResultSummaries);
+                List<Map<String, Object>> leanResults = new java.util.ArrayList<>();
+                for (ExamResultSummary ers : examResultSummaries) {
+                    Map<String, Object> ersMap = new java.util.HashMap<>();
+                    ersMap.put("id", ers.getId());
+                    ersMap.put("examResultDate", ers.getExamResultDate());
+                    ersMap.put("totalMarks", ers.getTotalMarks());
+                    ersMap.put("obtainedMarks", ers.getObtainedMarks());
+                    ersMap.put("percentageMarks", ers.getPercentageMarks());
+                    ersMap.put("division", ers.getDivision() != null ? ers.getDivision() : "");
+                    ersMap.put("result", ers.getResult() != null ? ers.getResult() : "");
+                    ersMap.put("remarks", ers.getRemarks() != null ? ers.getRemarks() : "");
+                    if (ers.getAcademicStudent() != null) {
+                        ersMap.put("academicStudent", studentService.toLeanAcademicStudentMap(ers.getAcademicStudent()));
+                    }
+                    if (ers.getExamDetails() != null && ers.getExamDetails().getExamination() != null) {
+                        ersMap.put("examDetails", java.util.Map.of(
+                            "id", ers.getExamDetails().getId(),
+                            "examination", java.util.Map.of(
+                                "examinationName", ers.getExamDetails().getExamination().getExaminationName() != null ? ers.getExamDetails().getExamination().getExaminationName() : ""
+                            )
+                        ));
+                    }
+                    leanResults.add(ersMap);
+                }
+                return ResponseEntity.ok(leanResults);
             } else{
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Request body is missing or invalid.");
@@ -597,8 +628,9 @@ public class StudentRestController extends BaseController {
 
         }catch(Exception e){
             e.printStackTrace();
+            return ResponseEntity.ok(java.util.Map.of("empty", true, "message", "An error occurred: " + e.getMessage()));
         }
-        return ResponseEntity.ok(responseMsg);
+        //return ResponseEntity.ok(java.util.Map.of("empty", true, "message", "No result found for the given criteria."));
     }
 
     //searchStudentData
@@ -606,13 +638,15 @@ public class StudentRestController extends BaseController {
     @PostMapping("/searchStudentData")
     public ResponseEntity<?> searchStudentData(@RequestBody Map<String, String> requestBody, Model model){
         School school = (School)model.getAttribute("school");
-        //AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        List<AcademicStudent> studentDataList = new ArrayList();
+        List<Map<String, Object>> leanList = new ArrayList<>();
         try{
             if(requestBody!=null){
                 String academicId = requestBody.getOrDefault("academic_year","0");
                 String query = requestBody.getOrDefault("query","No Data");
-                studentDataList = academicStudentService.searchStudentsAll(query, academicId, school.getId());
+                List<AcademicStudent> rawList = academicStudentService.searchStudentsAll(query, academicId, school.getId());
+                if (rawList != null) {
+                    for (AcademicStudent as : rawList) leanList.add(studentService.toLeanAcademicStudentMap(as));
+                }
             } else{
                 throw new IllegalArgumentException("request is not valid");
             }
@@ -620,7 +654,7 @@ public class StudentRestController extends BaseController {
             System.out.println("Error: "+e.getLocalizedMessage());
             e.printStackTrace();
         }
-        return ResponseEntity.ok(studentDataList);
+        return ResponseEntity.ok(leanList);
     }
 
     @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)

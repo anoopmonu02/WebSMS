@@ -63,7 +63,7 @@ public class StudentDiscountService {
     }
 
     public List<Map<String, String>> getAllStudentDiscountsBySession(Long school_id, Long academic_id){
-        List<StudentDiscount> stuList = studentDiscountRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
+        List<StudentDiscount> stuList = studentDiscountRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_id, "Active");
         List<Map<String, String>> stuDiscList = new ArrayList<>();
         //Form map which data should show
         if(stuList!=null && !stuList.isEmpty()){
@@ -77,6 +77,11 @@ public class StudentDiscountService {
                 stuDisMap.put("motherName", studentDiscount.getAcademicStudent().getStudent().getMotherName());
                 stuDisMap.put("discount", studentDiscount.getDiscounthead().getDiscountName());
                 stuDisMap.put("description", studentDiscount.getDescription());
+                String assignedBy = "";
+                if (studentDiscount.getCreatedBy() != null) {
+                    assignedBy = studentDiscount.getCreatedBy().getDisplayName();
+                }
+                stuDisMap.put("assignedBy", assignedBy);
                 stuDiscList.add(stuDisMap);
             }
         }

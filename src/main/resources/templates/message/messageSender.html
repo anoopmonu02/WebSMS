@@ -31,7 +31,7 @@
 </head>
 <body>
 <section>
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="row mt-3">
             <div class="col-md-12">
                 <div class="card-header fs-3">Send Message</div>
@@ -45,6 +45,7 @@
                                 <option value="">Select Message Type</option>
                                 <option value="complaint">Complaint</option>
                                 <option value="notification">Notification</option>
+                                <option value="activities">Activities</option>
                             </select>
                         </div>
                     </div>
@@ -137,6 +138,58 @@
 
                     </div>
 
+
+                    <!-- Activities Section -->
+                    <div id="activitiesSection" style="display: none;" class="mt-3">
+                        <hr class="my-2"/>
+
+                        <!-- Placeholder shown until a student is selected -->
+                        <div id="activitiesPlaceholder" class="text-center py-4 text-muted">
+                            <i class="bi bi-person-bounding-box fs-2 d-block mb-2"></i>
+                            Search and select a student above to add or view activities.
+                        </div>
+
+                        <!-- Panels: hidden until student selected -->
+                        <div id="activitiesContent" style="display:none;" class="row g-3">
+                            <!-- Left: Entry Form -->
+                            <div class="col-md-4">
+                                <div class="card shadow-sm border-0" style="border-left: 4px solid #0d6efd !important;">
+                                    <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-2 px-3" style="border-left: 4px solid #0d6efd;">
+                                        <i class="bi bi-pencil-square text-primary"></i>
+                                        <span class="fw-semibold text-primary small text-uppercase ls-1">Add Activity</span>
+                                    </div>
+                                    <div class="card-body px-3 py-3">
+                                        <div class="mb-2">
+                                            <label for="activityTitle" class="form-label form-label-sm mb-1">Title <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control form-control-sm" id="activityTitle" placeholder="Enter activity title" maxlength="200">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="activityDescription" class="form-label form-label-sm mb-1">Description <span class="text-danger">*</span></label>
+                                            <textarea class="form-control form-control-sm" id="activityDescription" rows="4" placeholder="Enter activity description"></textarea>
+                                        </div>
+                                        <div class="text-danger small mb-2 d-none" id="activityFormError"></div>
+                                        <button type="button" class="btn btn-primary btn-sm px-3" onclick="saveActivity()">
+                                            <i class="bi bi-save2-fill me-1"></i>Save Activity
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right: Activities Table -->
+                            <div class="col-md-8">
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-2 px-3">
+                                        <i class="bi bi-list-ul text-secondary"></i>
+                                        <span class="fw-semibold text-secondary small text-uppercase">Activity History</span>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div id="activitiesTableContainer">
+                                            <p class="text-muted text-center small py-3">No activities found for this student.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div id="classSectionSelector" class="row mb-3" style="display: none;">
                         <div class="col-md-3">
@@ -305,11 +358,17 @@
                 $('#recipientTypeDiv').hide();
                 $('#studentSelector').hide();
                 $('#classSectionSelector').hide();
+                $('#activitiesSection').hide();
+                $('#sendNewMessage').show();
 
                 if (messageType === 'complaint') {
                     $('#studentSelector').show();
                 } else if (messageType === 'notification') {
                     $('#recipientTypeDiv').show();
+                } else if (messageType === 'activities') {
+                    $('#studentSelector').show();
+                    $('#activitiesSection').show();
+                    $('#sendNewMessage').hide();
                 }
             });
 
@@ -376,7 +435,7 @@
                     }
                     else{
                         selectedStudent = data.student
-                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName}`);
                         $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
                         $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
                         $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);
@@ -385,7 +444,7 @@
                         $(".cgrade").html(`<strong>Class: </strong> ${data.student.grade.gradeName}`);
                         $(".csection").html(`<strong>Section: </strong> ${data.student.section.sectionName}`);
                         $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
-                        // ✅ Set the accordion title
+                        // Set the accordion title
                         let name = data.student.student.studentName;
                         let grade = data.student.grade.gradeName;
                         let section = data.student.section.sectionName;
@@ -393,10 +452,12 @@
                     }
                     let messageType = $("#messageType").val();
 
-                    if (messageType==="complaint" ) {
+                    if (messageType === "complaint") {
                         loadSmsMessagesForStudent(id);
                         $("#conversationTimeline").html("");
-                        $("#smsSubject").html("")
+                        $("#smsSubject").html("");
+                    } else if (messageType === "activities") {
+                        loadActivitiesForStudent(id);
                     }
 
                 });
@@ -427,46 +488,49 @@
         const loadSmsMessagesForStudent = (studentId) => {
             let url = `${contextPath}message/getSmsMessagesByStudent/${studentId}`;
             fetch(url)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Server error: ' + res.status);
+                    return res.json();
+                })
                 .then(messages => {
                     $('#smsSection').show();
                     let tbody = $('#smsMessagesTable tbody');
                     tbody.empty();
-                    console.log("messages.length--->"+messages.length);
-                    $('#conversationArea').val('');
                     if (!Array.isArray(messages) || messages.length === 0) {
-                        console.log("inside 0 rows");
-                        let row = '<tr><td colspan="3" class="text-center text-muted">No messages found</td></tr>';
-                        tbody.append(row);
+                        tbody.append('<tr><td colspan="4" class="text-center text-muted">No messages found</td></tr>');
                         return;
                     }
-                    let counter = 1
+                    let counter = 1;
                     messages.forEach(msg => {
                         let dt = msg.sentAt
-                            ? new Date(msg.sentAt).toISOString().split('T')[0] // Extracts "2025-01-22"
+                            ? new Date(msg.sentAt).toISOString().split('T')[0]
                             : '';
-
                         if (dt) {
                             let dateObj = new Date(dt);
                             dt = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                            dt = dt.replaceAll(" ","/");
+                            dt = dt.replaceAll(" ", "/");
                         }
-                        let resolveBtn = msg.resolution === 'RESOLVED'
+                        let isResolved = msg.resolution === 'RESOLVED' || msg.resolution === 'RESLOVED';
+                        let resolveBtn = isResolved
                             ? '<span class="text-success fw-bold">RESOLVED</span>'
                             : `<button class="btn btn-sm btn-primary me-1" onclick="resolveSmsMessage(${msg.id}, this)">Resolve</button>`;
-                        console.log("msg.status--->"+msg.resolution);
-                        let convoBtn = msg.resolution != 'RESOLVED'?`<button class="btn btn-sm btn-warning text-white" onclick="openAddConversationModal(${msg.id},'${msg.smsHeading}')">Add Conversation</button>`:``;
-
+                        let convoBtn = !isResolved
+                            ? `<button class="btn btn-sm btn-warning text-white" onclick="openAddConversationModal(${msg.id},'${msg.smsHeading}')">Add Conversation</button>`
+                            : '';
                         let row = `<tr onclick="loadSmsConversations(${msg.id})" style="cursor:pointer">
                             <td>${counter}</td>
                             <td>${msg.smsHeading}</td>
                             <td>${dt}</td>
                             <td>${resolveBtn}${convoBtn}</td>
                         </tr>`;
-                        console.log("row-->"+row);
                         tbody.append(row);
                         counter++;
                     });
+                })
+                .catch(err => {
+                    console.error("Failed to load messages:", err);
+                    $('#smsSection').show();
+                    $('#smsMessagesTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading messages. Please try again.</td></tr>');
                 });
         };
 
@@ -619,6 +683,27 @@
             $('#smsSection').hide();
             $('#smsMessagesTable tbody').empty();
             $('#conversationTimeline').val('');
+            // Reset activities (null-safe)
+            $('#activitiesSection').hide();
+            try {
+                const _t = document.getElementById("activityTitle");
+                if (_t) _t.value = "";
+                const _d = document.getElementById("activityDescription");
+                if (_d) _d.value = "";
+                const _e = document.getElementById("activityFormError");
+                if (_e) _e.classList.add("d-none");
+                if (typeof activitiesDataTable !== 'undefined' && activitiesDataTable) {
+                    activitiesDataTable.destroy();
+                    activitiesDataTable = null;
+                }
+                const _c = document.getElementById("activitiesTableContainer");
+                if (_c) _c.innerHTML = '<p class="text-muted text-center small py-3">No activities found for this student.</p>';
+                // Hide panels, show placeholder
+                const _ph = document.getElementById("activitiesPlaceholder");
+                if (_ph) _ph.style.display = "";
+                const _ac = document.getElementById("activitiesContent");
+                if (_ac) _ac.style.display = "none";
+            } catch (ex) { console.warn("resetActivities:", ex); }
 
             // Optionally reset message input and status
             $('#messageInput').val('');
@@ -769,19 +854,14 @@
                 .then(response => {
                     if (response.ok) {
                         loadSmsMessagesForStudent(studentId);
-                        console.log("Server response:", response);
-
                     } else {
-                        console.error("Error sending message:", error);
                         alert("Failed to send message.");
                     }
                 })
                 .catch(error => {
-                    console.error("Error sending conversation:", error);
-                    alert("Error sending conversation.");
+                    console.error("Error sending message:", error);
+                    alert("Error sending message: " + error.message);
                 });
-
-
         }
 
 
@@ -974,6 +1054,151 @@
                     alert("Failed to fetch messages.");
                 });
         }
+
+        // === Activities ===
+        let activitiesDataTable = null;
+
+        function loadActivitiesForStudent(studentId) {
+            // Reveal panels, hide placeholder
+            document.getElementById("activitiesPlaceholder").style.display = "none";
+            document.getElementById("activitiesContent").style.display = "";
+
+            const url = `${contextPath}message/getActivitiesByStudent/${studentId}`;
+            fetch(url)
+                .then(res => { if (!res.ok) throw new Error('Server error'); return res.json(); })
+                .then(activities => {
+                    renderActivitiesTable(activities);
+                })
+                .catch(err => {
+                    console.error("Failed to load activities:", err);
+                    document.getElementById("activitiesTableContainer").innerHTML =
+                        '<p class="text-danger text-center small py-3">Error loading activities. Please try again.</p>';
+                });
+        }
+
+        function renderActivitiesTable(activities) {
+            const container = document.getElementById("activitiesTableContainer");
+
+            // Destroy old DataTable if present
+            if (activitiesDataTable) {
+                activitiesDataTable.destroy();
+                activitiesDataTable = null;
+            }
+
+            let tableHtml = `<table id="activitiesTable" class="table table-bordered table-striped table-hover table-sm" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            if (!activities || activities.length === 0) {
+                tableHtml += `<tr><td colspan="4" class="text-center text-muted">No activities found for this student.</td></tr>`;
+            } else {
+                activities.forEach((act, idx) => {
+                    let dt = '';
+                    if (act.createdAt) {
+                        let d = new Date(act.createdAt);
+                        dt = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replaceAll(' ', '/');
+                    }
+                    tableHtml += `<tr>
+                        <td>${idx + 1}</td>
+                        <td>${act.title || ''}</td>
+                        <td>${act.description || ''}</td>
+                        <td>${dt}</td>
+                    </tr>`;
+                });
+            }
+            tableHtml += `</tbody></table>`;
+            container.innerHTML = tableHtml;
+
+            activitiesDataTable = $('#activitiesTable').DataTable({
+                scrollX: true,
+                autoWidth: false,
+                scrollCollapse: true,
+                paging: true,
+                layout: {
+                    bottomEnd: { paging: { firstLast: false } },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Student Activities',
+                                exportOptions: { columns: [0,1,2,3] }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Student Activities'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Student Activities',
+                                exportOptions: { columns: [0,1,2,3] }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [ [5, 10, 25, 50, -1], [5, 10, 25, 50, 'All'] ],
+                pageLength: 10,
+                columnDefs: [{ orderable: false, targets: [0] }],
+                order: []
+            });
+
+            // Remove Bootstrap secondary styling from export buttons
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").removeClass("btn-secondary");
+        }
+
+        function saveActivity() {
+            const title = document.getElementById("activityTitle").value.trim();
+            const description = document.getElementById("activityDescription").value.trim();
+            const errDiv = document.getElementById("activityFormError");
+
+            errDiv.classList.add("d-none");
+            errDiv.innerText = "";
+
+            if (!title) { errDiv.innerText = "Title is required."; errDiv.classList.remove("d-none"); return; }
+            if (!description) { errDiv.innerText = "Description is required."; errDiv.classList.remove("d-none"); return; }
+            if (!selectedStudent) { errDiv.innerText = "Please select a student first."; errDiv.classList.remove("d-none"); return; }
+
+            const url = `${contextPath}message/saveActivity`;
+            const payload = { title, description, studentId: selectedStudent.id };
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        errDiv.innerText = data.error;
+                        errDiv.classList.remove("d-none");
+                        return;
+                    }
+                    // Clear form
+                    document.getElementById("activityTitle").value = "";
+                    document.getElementById("activityDescription").value = "";
+                    // Reload table
+                    loadActivitiesForStudent(selectedStudent.id);
+                    showWarningMsg("success", "Activity saved successfully.", "Success");
+                })
+                .catch(err => {
+                    errDiv.innerText = "Error saving activity: " + err.message;
+                    errDiv.classList.remove("d-none");
+                });
+        }
+        // === end Activities ===
 
         function clearNotificationModalFields() {
             document.getElementById("notificationHeading").value = "";

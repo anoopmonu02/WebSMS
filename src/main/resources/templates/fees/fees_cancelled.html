@@ -7,7 +7,7 @@
 <body>
 <section>
 
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="row ">
             <div class="card-header fs-3">Cancelled Fee List</div>
             <hr/>
@@ -93,12 +93,26 @@
             toastr[msgType](msg,headerValue);
         }
 
+        function escHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         const validateAndSubmit=()=>{
             let startDate = $("#startDate").val();
             let endDate = $("#endDate").val();
             if(startDate==='' || endDate===''){
                 showMsg("error","Start Date/End Date both are mandatory","Error");
                 return;
+            }
+
+            if ($.fn.DataTable.isDataTable('#feeCollectionTable')) {
+                $('#feeCollectionTable').DataTable().destroy();
             }
             let requestBody = {};
             requestBody = {
@@ -181,13 +195,13 @@
                     }
                     tblData += `<tr>
                             <td>${counter}</td>
-                            <td>${grd}</td>
-                            <td>${srno}</td>
-                            <td>${feeSubmission.academicStudent.student.studentName}</td>
-                            <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                            <td>${month_names}</td>
-                            <td>${dt}</td>
-                            <td>${feeSubmission.receiptNo}</td>
+                            <td>${escHtml(grd)}</td>
+                            <td>${escHtml(srno)}</td>
+                            <td>${escHtml(feeSubmission.academicStudent.student.studentName)}</td>
+                            <td>${escHtml(feeSubmission.academicStudent.student.fatherName)}</td>
+                            <td>${escHtml(month_names)}</td>
+                            <td>${escHtml(dt)}</td>
+                            <td>${escHtml(feeSubmission.receiptNo)}</td>
                             <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                             <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>

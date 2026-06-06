@@ -77,8 +77,12 @@ public class FeeSubmissionRestController extends BaseController {
     public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query, Model model){
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        List<AcademicStudent> students = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
-        return ResponseEntity.ok(students);
+        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        if (raw != null) {
+            for (AcademicStudent as : raw) leanList.add(studentService.toLeanAcademicStudentMap(as));
+        }
+        return ResponseEntity.ok(leanList);
     }
 
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
@@ -86,8 +90,12 @@ public class FeeSubmissionRestController extends BaseController {
     public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query, Model model){
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        List<AcademicStudent> students = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
-        return ResponseEntity.ok(students);
+        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        if (raw != null) {
+            for (AcademicStudent as : raw) leanList.add(studentService.toLeanAcademicStudentMap(as));
+        }
+        return ResponseEntity.ok(leanList);
     }
 
     /*@Transactional
@@ -291,8 +299,12 @@ public class FeeSubmissionRestController extends BaseController {
             if(academicStudent!=null){
                 List<AcademicStudent> allSiblingsList = academicStudentService.searchSiblings(academicYear.getId(), academicStudent);
                 if(allSiblingsList!=null && !allSiblingsList.isEmpty()){
-                    result.put("siblingList", allSiblingsList);
-                    result.put("hasSiblings", !allSiblingsList.isEmpty());
+                    List<Map<String, Object>> leanSiblings = new java.util.ArrayList<>();
+                    for (AcademicStudent sib : allSiblingsList) {
+                        leanSiblings.add(studentService.toLeanAcademicStudentMap(sib));
+                    }
+                    result.put("siblingList", leanSiblings);
+                    result.put("hasSiblings", !leanSiblings.isEmpty());
                 } else{
                     result.put("noSibling", "No Sibling(s) found");
                 }
@@ -315,9 +327,9 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
-                result.put("academicStudent", academicStudent);
+                result.put("academicStudent", studentService.toLeanAcademicStudentMap(academicStudent));
             } else{
-                result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+                result.put("noAcademicStudent", "Student not found.");
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -335,17 +347,23 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
-                Student student = academicStudent.getStudent();
-                //AcademicYear academicYear = academicyearService.getAcademicyearById(14L).get();
-                result.put("student",academicStudent);
-                //result.put("academicYear", academicYear);
+                result.put("student", studentService.toLeanAcademicStudentMap(academicStudent));
                 //collect discount details if any?
                 StudentDiscount studentDiscount = studentDiscountService.getStudentDiscountForStudent(school.getId(), academicYear.getId(), id).orElse(null);
                 if(studentDiscount!=null){
-                    result.put("assignedDiscount", studentDiscount);
+                    Map<String, Object> discountMap = new HashMap<>();
+                    discountMap.put("id", studentDiscount.getId());
+                    discountMap.put("status", studentDiscount.getStatus() != null ? studentDiscount.getStatus() : "");
+                    if (studentDiscount.getDiscounthead() != null) {
+                        discountMap.put("discounthead", Map.of(
+                            "id", studentDiscount.getDiscounthead().getId(),
+                            "discountName", studentDiscount.getDiscounthead().getDiscountName() != null ? studentDiscount.getDiscounthead().getDiscountName() : ""
+                        ));
+                    }
+                    result.put("assignedDiscount", discountMap);
                 }
             } else{
-                result.put("noAcademicStudent", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+                result.put("noAcademicStudent", "Student not found.");
             }
 
         }catch(Exception e){
@@ -609,19 +627,30 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicStudent academicStudent = academicStudentService.searchStudentById(id, academicYear.getId(), school.getId());
         try{
             if(academicStudent!=null){
-                Student student = academicStudent.getStudent();
-                result.put("student",academicStudent);
+                result.put("student", studentService.toLeanAcademicStudentMap(academicStudent));
                 //collect student fee details if any?
-
                 List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllFeeSubmissionByAcademicStudent(id);
                 if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
-                    result.put("feeSubmissions", feeSubmissionList);
+                    List<Map<String, Object>> leanFees = new java.util.ArrayList<>();
+                    for (FeeSubmission fs : feeSubmissionList) {
+                        Map<String, Object> fsMap = new HashMap<>();
+                        fsMap.put("id", fs.getId());
+                        fsMap.put("feeSubmissionDate", fs.getFeeSubmissionDate());
+                        fsMap.put("receiptNo", fs.getReceiptNo() != null ? fs.getReceiptNo() : "");
+                        fsMap.put("totalAmount", fs.getTotalAmount());
+                        fsMap.put("paidAmount", fs.getPaidAmount());
+                        fsMap.put("balanceAmount", fs.getBalanceAmount());
+                        fsMap.put("paymentType", fs.getPaymentType() != null ? fs.getPaymentType() : "");
+                        fsMap.put("status", fs.getStatus() != null ? fs.getStatus() : "");
+                        leanFees.add(fsMap);
+                    }
+                    result.put("feeSubmissions", leanFees);
                 }
                 else{
                     result.put("feeSubmissionError", "Fees not found for: "+academicStudent.getStudent().getStudentName()+"!");
                 }
             } else{
-                result.put("studentError", "Student:"+ academicStudent.getStudent().getStudentName() +" not found.");
+                result.put("studentError", "Student not found.");
             }
 
         }catch(Exception e){
@@ -710,7 +739,21 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         FeeSubmission feeSubmission = feeSubmissionService.getFeeDetailsForReceipt(query, school, academicYear);
         if(feeSubmission!=null){
-            receiptData.put("feeSubmission",feeSubmission);
+            Map<String, Object> fsMap = new HashMap<>();
+            fsMap.put("id", feeSubmission.getId());
+            fsMap.put("receiptNo", feeSubmission.getReceiptNo() != null ? feeSubmission.getReceiptNo() : "");
+            fsMap.put("totalAmount", feeSubmission.getTotalAmount());
+            fsMap.put("paidAmount", feeSubmission.getPaidAmount());
+            fsMap.put("balanceAmount", feeSubmission.getBalanceAmount());
+            fsMap.put("fineAmount", feeSubmission.getFineAmount());
+            fsMap.put("discountAmount", feeSubmission.getDiscountAmount());
+            fsMap.put("feeSubmissionDate", feeSubmission.getFeeSubmissionDate());
+            fsMap.put("paymentType", feeSubmission.getPaymentType() != null ? feeSubmission.getPaymentType() : "");
+            fsMap.put("status", feeSubmission.getStatus() != null ? feeSubmission.getStatus() : "");
+            if (feeSubmission.getAcademicStudent() != null) {
+                fsMap.put("academicStudent", studentService.toLeanAcademicStudentMap(feeSubmission.getAcademicStudent()));
+            }
+            receiptData.put("feeSubmission", fsMap);
         } else{
             receiptData.put("error","Fee detail not found.");
         }

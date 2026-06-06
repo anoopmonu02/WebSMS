@@ -22,4 +22,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     public List<Student> findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(String name, Long school_id, String status);
 
     public List<Student> findAllByStatus(String status);
+
+    /** Used by FamilyAccountService to link siblings via mobile1. */
+    List<Student> findAllByMobile1(String mobile1);
 }

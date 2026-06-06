@@ -9,7 +9,7 @@
 <section>
 
 
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="offset-1 mt-2 gy-5 mb-5">
             <div class="card-header fs-3">Student Detail</div>
             <hr/>
@@ -325,7 +325,7 @@
                 if (state) {
                     $.ajax({
                         type: 'GET',
-                        url: '/admin/customer/cities',
+                        url: `${contextPath}student/student/cities`,
                         data: { provinceId: state },
                         success: function(cities) {
                             console.log("cities: "+cities);

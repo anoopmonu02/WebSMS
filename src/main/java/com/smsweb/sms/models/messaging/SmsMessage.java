@@ -28,13 +28,17 @@ public class SmsMessage {
 
     public static final String MESSAGE_TYPE_COMPLAINT = "complaint";
     public static final String MESSAGE_TYPE_NOTIFICATION = "notification";
+    public static final String MESSAGE_TYPE_ACTIVITIES = "activities";
 
     public static final String RECIPIENT_TYPE_ALL = "ALL";
     public static final String RECIPIENT_TYPE_CLASS = "CLASS";
     public static final String RECIPIENT_TYPE_STUDENT  = "STUDENT";
 
-    public static final String RESOLUTION_TYPE_RESOLVED = "RESLOVED";
+    public static final String RESOLUTION_TYPE_RESOLVED   = "RESOLVED";
     public static final String RESOLUTION_TYPE_UNRESOLVED = "UNRESOLVED";
+    /** Kept for backward-compat: old DB rows may have the misspelled value. */
+    @Deprecated
+    public static final String RESOLUTION_TYPE_RESOLVED_LEGACY = "RESLOVED";
 
     @ManyToMany
     @JoinTable(

@@ -6,7 +6,7 @@
 </head>
 <body>
 <section>
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="row mt-2 ">
             <div class="col-md-12 ">
                 <div class="card-header fs-3">Examination Result</div>
@@ -415,18 +415,21 @@
                         return response.json();
                     })
                     .then(data => {
-                        if (data === "No result found for the given criteria.") {
-                            //alert('No students found.');
-                            showMsg("warning", data, "Message");
+                        if (Array.isArray(data)) {
+                            if (data.length === 0) {
+                                showMsg("warning", "No result found for the given criteria.", "Message");
+                            } else {
+                                renderStudentData(data);
+                            }
+                        } else if (data && data.empty) {
+                            showMsg("warning", data.message || "No result found for the given criteria.", "Message");
                         } else {
-                            // Assuming data is the student list, render it in the table
-                            //.alert('Data fetched successfully!');
-                            renderStudentData(data); // Call function to display student data
+                            renderStudentData(data);
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        toastr["error"]("An error occurred while fetching the student(s) examination result", "Error");
+                        showMsg("error", "An error occurred while fetching the examination result.", "Error");
                     });
             }
         };

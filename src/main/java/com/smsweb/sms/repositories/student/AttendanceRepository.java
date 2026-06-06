@@ -103,5 +103,31 @@ public interface AttendanceRepository extends JpaRepository<Attendance,Long> {
     int existsAnyAttendanceForToday(@Param("schoolId") Long schoolId,
                                         @Param("academicYearId") Long academicYearId);
 
+    // ── Mobile API queries ────────────────────────────────────────────────────
+
+    /**
+     * Returns attendance records for a student within a date range.
+     * Used by the monthly calendar view in the mobile app.
+     */
+    @Query("SELECT a FROM Attendance a " +
+           "WHERE a.academicStudent.id = :academicStudentId " +
+           "AND a.attendanceDate >= :startDate AND a.attendanceDate < :endDate " +
+           "ORDER BY a.attendanceDate ASC")
+    List<Attendance> findByAcademicStudentIdBetweenDates(
+            @Param("academicStudentId") Long academicStudentId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate);
+
+    /**
+     * Returns all attendance records for a student in a given academic year.
+     * Used by the yearly summary / bar chart view in the mobile app.
+     */
+    @Query("SELECT a FROM Attendance a " +
+           "WHERE a.academicStudent.id = :academicStudentId " +
+           "AND a.academicYear.id = :academicYearId " +
+           "ORDER BY a.attendanceDate ASC")
+    List<Attendance> findByAcademicStudentIdAndAcademicYearId(
+            @Param("academicStudentId") Long academicStudentId,
+            @Param("academicYearId") Long academicYearId);
 
 }

@@ -77,6 +77,10 @@ public class SmsMessageService {
         return smsMessageRepository.findByRecipientId(studentId);
     }
 
+    public List<SmsMessage> getActivitiesByStudentId(Long studentId) {
+        return smsMessageRepository.findByRecipients_IdAndMessageType(studentId, SmsMessage.MESSAGE_TYPE_ACTIVITIES);
+    }
+
     /*public List<SmsMessage> getNotificationsByGradeAndSection(Long gradeId, Long sectionId) {
         return smsMessageRepository.findByGradeIdAndSectionIdAndMessageType(gradeId, sectionId, "NOTIFICATION");
     }*/

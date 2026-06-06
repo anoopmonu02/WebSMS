@@ -5,7 +5,10 @@ import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.globalaccess.EmailService;
 import com.smsweb.sms.services.users.PasswordResetTokenService;
 import com.smsweb.sms.services.users.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +19,8 @@ import java.util.Optional;
 @RequestMapping("/auth")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     private UserService userService;
 
@@ -24,6 +29,9 @@ public class AuthController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/forgot-password")
     public String showForgotPasswordPage() {
@@ -47,9 +55,15 @@ public class AuthController {
         // Create a new token for the user
         PasswordResetToken newToken = passwordResetTokenService.createToken(user);
         String resetLink = "http://localhost:9090/auth/reset-password?token=" + newToken.getToken();
-        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
-
-        model.addAttribute("message", "Password reset link has been sent to your email address.");
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+            model.addAttribute("message", "Password reset link has been sent to your email address.");
+        } catch (Exception e) {
+            // Token was created — delete it so the user can try again cleanly
+            passwordResetTokenService.delete(newToken);
+            log.error("Password reset email failed for {}: {}", email, e.getMessage(), e);
+            model.addAttribute("error", "Could not send reset email: " + e.getMessage());
+        }
         return "forgot-password";
     }
 
@@ -95,5 +109,46 @@ public class AuthController {
         return "successResetPassword"; // Adjust as needed for your success page
     }
 
+    // ── Change Password (for logged-in users) ─────────────────────────────────
+
+    @GetMapping("/change-password")
+    public String showChangePasswordPage() {
+        return "change-password";
+    }
+
+    @PostMapping("/change-password")
+    public String changePassword(
+            @RequestParam("currentPassword") String currentPassword,
+            @RequestParam("newPassword") String newPassword,
+            @RequestParam("confirmPassword") String confirmPassword,
+            Model model) {
+
+        UserEntity user = userService.getLoggedInUser();
+        if (user == null) {
+            return "redirect:/login";
+        }
+
+        // Validate current password
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            model.addAttribute("error", "Current password is incorrect.");
+            return "change-password";
+        }
+
+        // Validate new and confirm passwords match
+        if (!newPassword.equals(confirmPassword)) {
+            model.addAttribute("error", "New password and confirm password do not match.");
+            return "change-password";
+        }
+
+        // Validate minimum length
+        if (newPassword.length() < 6) {
+            model.addAttribute("error", "New password must be at least 6 characters.");
+            return "change-password";
+        }
+
+        userService.updatePassword(user, newPassword);
+        model.addAttribute("success", "Password changed successfully.");
+        return "change-password";
+    }
 
 }

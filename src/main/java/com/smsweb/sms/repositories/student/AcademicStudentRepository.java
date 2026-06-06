@@ -1,6 +1,7 @@
 package com.smsweb.sms.repositories.student;
 
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.models.student.Student;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -135,5 +136,86 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<Object[]> getGradesAndSectionList(@Param("schoolId") Long schoolId,
                                  @Param("academicYearId") Long academicYearId,
                                  @Param("status") String status);
+
+    // ── Mobile API queries ────────────────────────────────────────────────────
+
+    /**
+     * Finds an active AcademicStudent by SR Number (classSrNo) for mobile login.
+     * FETCH joins ensure student + userEntity are loaded in a single query
+     * (avoids LazyInitializationException outside a transaction).
+     */
+    @Query("SELECT a FROM AcademicStudent a " +
+           "JOIN FETCH a.student s " +
+           "JOIN FETCH s.userEntity u " +
+           "JOIN FETCH a.school sc " +
+           "JOIN FETCH a.academicYear ay " +
+           "JOIN FETCH a.grade g " +
+           "JOIN FETCH a.section sec " +
+           "JOIN FETCH a.medium m " +
+           "WHERE a.classSrNo = :classSrNo AND a.status = 'Active' AND s.status = 'ACTIVE'")
+    Optional<AcademicStudent> findActiveByClassSrNo(@Param("classSrNo") String classSrNo);
+
+
+    /**
+     * Finds all active AcademicStudents whose parent mobile1 matches.
+     * Used by mobile login to support families with multiple children.
+     */
+    @Query("SELECT a FROM AcademicStudent a " +
+           "JOIN FETCH a.student s " +
+           "JOIN FETCH s.userEntity u " +
+           "JOIN FETCH a.school sc " +
+           "JOIN FETCH a.academicYear ay " +
+           "JOIN FETCH a.grade g " +
+           "JOIN FETCH a.section sec " +
+           "JOIN FETCH a.medium m " +
+           "WHERE s.mobile1 = :mobile AND a.status = 'Active' AND s.status = 'ACTIVE'")
+    List<AcademicStudent> findActiveByMobile(@Param("mobile") String mobile);
+
+
+    /**
+     * Finds all active AcademicStudents linked to a FamilyAccount (via student FK).
+     * Used at login time — replaces the fragile mobile1 string match.
+     */
+    @Query("SELECT a FROM AcademicStudent a " +
+           "JOIN FETCH a.student s " +
+           "JOIN FETCH s.userEntity u " +
+           "JOIN FETCH a.school sc " +
+           "JOIN FETCH a.academicYear ay " +
+           "JOIN FETCH a.grade g " +
+           "JOIN FETCH a.section sec " +
+           "JOIN FETCH a.medium m " +
+           "WHERE s.familyAccount = :familyAccount AND a.status = 'Active' AND s.status = 'ACTIVE'")
+    List<AcademicStudent> findActiveByFamilyAccount(@Param("familyAccount") FamilyAccount familyAccount);
+
+
+    /**
+     * PRIMARY child lookup at mobile login — via SiblingGroup.
+     *
+     * Finds all active AcademicStudents that belong to the same SiblingGroup
+     * as any student whose parent mobile1 matches the login mobile.
+     *
+     * Logic:
+     *   1. Find any active AcademicStudent where student.mobile1 = :mobile
+     *   2. Get their SiblingGroup (via SiblingGroupStudent)
+     *   3. Return ALL active AcademicStudents in that same SiblingGroup
+     *
+     * Returns empty list if no SiblingGroup is found → caller falls back to mobile1/FK.
+     */
+    @Query("SELECT DISTINCT a FROM AcademicStudent a " +
+           "JOIN FETCH a.student s " +
+           "JOIN FETCH s.userEntity u " +
+           "JOIN FETCH a.school sc " +
+           "JOIN FETCH a.academicYear ay " +
+           "JOIN FETCH a.grade g " +
+           "JOIN FETCH a.section sec " +
+           "JOIN FETCH a.medium m " +
+           "JOIN SiblingGroupStudent sgs ON sgs.academicStudent = a " +
+           "WHERE sgs.siblingGroup IN (" +
+           "  SELECT DISTINCT sgs2.siblingGroup FROM SiblingGroupStudent sgs2 " +
+           "  WHERE sgs2.academicStudent.student.mobile1 = :mobile " +
+           "  AND sgs2.academicStudent.status = 'Active' " +
+           "  AND sgs2.siblingGroup.status = 'Active'" +
+           ") AND a.status = 'Active' AND s.status = 'ACTIVE'")
+    List<AcademicStudent> findSiblingsByMobile(@Param("mobile") String mobile);
 
 }

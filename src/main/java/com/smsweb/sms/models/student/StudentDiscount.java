@@ -1,5 +1,7 @@
 package com.smsweb.sms.models.student;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.Discounthead;
@@ -55,5 +57,9 @@ public class StudentDiscount {
 
     @UpdateTimestamp
     private Date lastUpdated;
-    //TODO-will add 2 more attributes - createdBy, updatedBy
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "created_by", updatable = false)
+    @JsonIgnore
+    private UserEntity createdBy;
 }

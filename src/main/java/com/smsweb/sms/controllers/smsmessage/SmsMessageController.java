@@ -75,6 +75,7 @@ public class SmsMessageController {
     public String sendMessage(Model model){
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
+        model.addAttribute("page", "datatable");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
@@ -88,9 +89,20 @@ public class SmsMessageController {
 
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getSmsMessagesByStudent/{studentId}")
-    public ResponseEntity<List<SmsMessage>> getSmsMessagesByStudent(@PathVariable Long studentId) {
+    public ResponseEntity<List<Map<String, Object>>> getSmsMessagesByStudent(@PathVariable Long studentId) {
         List<SmsMessage> messages = smsMessageService.getMessagesByStudentId(studentId);
-        return ResponseEntity.ok(messages);
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        for (SmsMessage msg : messages) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", msg.getId());
+            m.put("smsHeading", msg.getSmsHeading() != null ? msg.getSmsHeading() : "");
+            m.put("sentAt", msg.getCreatedAt()); // JS accesses msg.sentAt
+            m.put("createdAt", msg.getCreatedAt());
+            m.put("resolution", msg.getResolution() != null ? msg.getResolution() : "");
+            m.put("messageType", msg.getMessageType() != null ? msg.getMessageType() : "");
+            leanList.add(m);
+        }
+        return ResponseEntity.ok(leanList);
     }
 
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
@@ -349,6 +361,84 @@ public class SmsMessageController {
     }
 
 
+
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
+    @GetMapping("/getActivitiesByStudent/{studentId}")
+    public ResponseEntity<List<Map<String, Object>>> getActivitiesByStudent(@PathVariable Long studentId) {
+        List<SmsMessage> activities = smsMessageService.getActivitiesByStudentId(studentId);
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        for (SmsMessage msg : activities) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", msg.getId());
+            m.put("title", msg.getSmsHeading() != null ? msg.getSmsHeading() : "");
+            m.put("createdAt", msg.getCreatedAt());
+            // Get description from first conversation
+            String description = "";
+            if (msg.getConversations() != null && !msg.getConversations().isEmpty()) {
+                description = msg.getConversations().get(0).getContent() != null
+                        ? msg.getConversations().get(0).getContent() : "";
+            }
+            m.put("description", description);
+            leanList.add(m);
+        }
+        return ResponseEntity.ok(leanList);
+    }
+
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
+    @PostMapping("/saveActivity")
+    public ResponseEntity<Map<String, Object>> saveActivity(@RequestBody Map<String, Object> payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String title = (String) payload.get("title");
+            String description = (String) payload.get("description");
+            Long studentId = Long.valueOf(payload.get("studentId").toString());
+
+            if (title == null || title.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Title is required"));
+            }
+            if (description == null || description.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Description is required"));
+            }
+
+            Optional<AcademicStudent> studentOpt = academicStudentService.findById(studentId);
+            if (studentOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid studentId"));
+            }
+            AcademicStudent student = studentOpt.get();
+
+            SmsConversation conversation = new SmsConversation();
+            conversation.setContent(description);
+            conversation.setInitiatedBy(SmsConversation.INITIATED_BY_SCHOOL);
+            conversation.setSeen(true);
+            conversation.setIsDeleted(false);
+            conversation.setHasAttachment(false);
+            conversation.setHaveDocAttachment(false);
+
+            SmsMessage smsMessage = new SmsMessage();
+            smsMessage.setSmsHeading(title);
+            smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_ACTIVITIES);
+            smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
+            smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
+            smsMessage.setSchool(student.getSchool());
+            smsMessage.setCreatedBy(userService.getLoggedInUser());
+            smsMessage.setCreatedAt(new java.util.Date());
+            smsMessage.setRecipients(Collections.singletonList(student));
+            smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
+
+            smsMessageService.saveSmsMessage(smsMessage);
+
+            response.put("success", true);
+            response.put("id", smsMessage.getId());
+            response.put("title", smsMessage.getSmsHeading());
+            response.put("description", description);
+            response.put("createdAt", smsMessage.getCreatedAt());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error saving activity: " + e.getMessage()));
+        }
+    }
 
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/viewNotification")

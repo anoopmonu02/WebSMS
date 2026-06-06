@@ -15,6 +15,7 @@ import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.SiblingDiscountService;
 import com.smsweb.sms.services.student.SiblingGroupService;
 import com.smsweb.sms.services.student.StudentDiscountService;
+import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,15 +39,17 @@ public class SiblingDiscountController extends BaseController {
     private SiblingGroupService siblingGroupService;
     private AcademicStudentService academicStudentService;
     private StudentDiscountService studentDiscountService;
+    private StudentService studentService;
 
     @Autowired
     public SiblingDiscountController(SiblingDiscountService siblingDiscountService, DiscountclassmapService discountclassmapService, SiblingGroupService siblingGroupService, AcademicStudentService academicStudentService,
-                                     StudentDiscountService studentDiscountService){
+                                     StudentDiscountService studentDiscountService, StudentService studentService){
         this.siblingDiscountService = siblingDiscountService;
         this.discountclassmapService = discountclassmapService;
         this.siblingGroupService = siblingGroupService;
         this.academicStudentService = academicStudentService;
         this.studentDiscountService = studentDiscountService;
+        this.studentService = studentService;
     }
 
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.CREATE)
@@ -63,12 +66,23 @@ public class SiblingDiscountController extends BaseController {
     @ResponseBody
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/groups/by-group/{groupId}")
-    public List<SiblingGroupStudent> getStudentsByGroup(@PathVariable Long groupId) {
+    public List<Map<String, Object>> getStudentsByGroup(@PathVariable Long groupId) {
         System.out.println("INside controller "+groupId);
         SiblingGroup group = siblingGroupService.getSiblingGroupDetail(groupId).orElse(null);
-        List<SiblingGroupStudent> students = group.getSiblingGroupStudents();
+        List<SiblingGroupStudent> students = group != null ? group.getSiblingGroupStudents() : new java.util.ArrayList<>();
         System.out.println("students: "+students);
-        return students;
+        List<Map<String, Object>> leanList = new java.util.ArrayList<>();
+        if (students != null) {
+            for (SiblingGroupStudent sgs : students) {
+                Map<String, Object> sgsMap = new HashMap<>();
+                sgsMap.put("id", sgs.getId());
+                if (sgs.getAcademicStudent() != null) {
+                    sgsMap.put("academicStudent", studentService.toLeanAcademicStudentMap(sgs.getAcademicStudent()));
+                }
+                leanList.add(sgsMap);
+            }
+        }
+        return leanList;
     }
 
     /*@GetMapping("/validate-student/{academic_student_id}")

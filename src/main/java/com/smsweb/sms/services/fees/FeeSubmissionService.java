@@ -5,6 +5,7 @@ import com.smsweb.sms.models.fees.*;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.student.StudentDiscount;
+import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.Grade;
@@ -57,6 +58,9 @@ public class FeeSubmissionService {
     private final UserService userService;
 
     @Autowired
+    private StudentService studentService;
+
+    @Autowired
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
                                 FullpaymentRepository fullpaymentRepository, FeemonthmapRepository feemonthmapRepository, FeeclassmapRepository feeclassmapRepository, DiscountclassmapRepository discountclassmapRepository,
                                 DiscountmonthmapRepository discountmonthmapRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, MonthMasterRepository monthMasterRepository,
@@ -107,6 +111,16 @@ public class FeeSubmissionService {
         return feeSubmissionRepository.findById(id);
     }
 
+
+    // ── Mobile API ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns all ACTIVE fee submissions for a student in the given academic year.
+     * Used by the mobile fees screen (grid + summary + pie chart).
+     */
+    public List<FeeSubmission> getActiveFeeSubmissionsForYear(Long schoolId, Long academicId, Long academicStudentId) {
+        return feeSubmissionRepository.findAllBySchoolIdAndAcademicIdAndAcademicStudentId(schoolId, academicId, academicStudentId);
+    }
 
     public Map getPaidMonths(Long school_id, Long academic_id, Long academic_student_id){
         Map paidMonths = new HashMap();
@@ -550,7 +564,7 @@ public class FeeSubmissionService {
                                     stuMap.put("fineAmount", 0);
                                     stuMap.put("monthsList", "");
                                     stuMap.put("headList", "");
-                                    stuMap.put("academicStudent", academicStudent);
+                                    stuMap.put("academicStudent", toLeanAcademicStudentForFee(academicStudent));
                                     finalDataMap.put(academicStudent.getId(), stuMap);
                                 } else{
                                     //Fetching months not submitted but selected
@@ -641,7 +655,7 @@ public class FeeSubmissionService {
                                     stuMap.put("fineAmount", fineAmount);
                                     stuMap.put("monthsList", montnNames);
                                     stuMap.put("headList", headNames);
-                                    stuMap.put("academicStudent", academicStudent);
+                                    stuMap.put("academicStudent", toLeanAcademicStudentForFee(academicStudent));
                                     finalDataMap.put(academicStudent.getId(), stuMap);
                                 }
                             }
@@ -737,7 +751,7 @@ public class FeeSubmissionService {
                                     stuMap.put("fineAmount", fineAmount);
                                     stuMap.put("monthsList", montnNames);
                                     stuMap.put("headList", headNames);
-                                    stuMap.put("academicStudent", academicStudent);
+                                    stuMap.put("academicStudent", toLeanAcademicStudentForFee(academicStudent));
                                     finalDataMap.put(academicStudent.getId(), stuMap);
                                 } else{
                                     //write logs
@@ -811,14 +825,40 @@ public class FeeSubmissionService {
                 return modelData;
             }
 
-            modelData.put("student", academicStudent);
-            modelData.put("school", academicStudent.getSchool());
+            modelData.put("student", studentService.toLeanAcademicStudentMap(academicStudent));
+            School feeSchool = academicStudent.getSchool();
+            if (feeSchool != null) {
+                Map<String, Object> schoolMap = new HashMap<>();
+                schoolMap.put("id", feeSchool.getId());
+                schoolMap.put("schoolName", feeSchool.getSchoolName() != null ? feeSchool.getSchoolName() : "");
+                schoolMap.put("address", feeSchool.getAddress() != null ? feeSchool.getAddress() : "");
+                schoolMap.put("mobile1", feeSchool.getMobile1() != null ? feeSchool.getMobile1() : "");
+                schoolMap.put("mobile2", feeSchool.getMobile2() != null ? feeSchool.getMobile2() : "");
+                schoolMap.put("email", feeSchool.getEmail() != null ? feeSchool.getEmail() : "");
+                modelData.put("school", schoolMap);
+            }
             modelData.put("academicYear", academicStudent.getAcademicYear().getSessionFormat());
             modelData.put("hasStudent", true);
 
             List<String> slipDateList = new ArrayList<>();
             if (feeSubmission != null) {
-                modelData.put("feeSubmission", feeSubmission);
+                Map<String, Object> fsMap = new HashMap<>();
+                fsMap.put("id", feeSubmission.getId());
+                fsMap.put("feeSubmissionDate", feeSubmission.getFeeSubmissionDate());
+                fsMap.put("receiptNo", feeSubmission.getReceiptNo() != null ? feeSubmission.getReceiptNo() : "");
+                fsMap.put("paymentType", feeSubmission.getPaymentType() != null ? feeSubmission.getPaymentType() : "");
+                fsMap.put("fineAmount", feeSubmission.getFineAmount());
+                fsMap.put("fineRemark", feeSubmission.getFineRemark() != null ? feeSubmission.getFineRemark() : "");
+                fsMap.put("discountAmount", feeSubmission.getDiscountAmount());
+                fsMap.put("totalAmount", feeSubmission.getTotalAmount());
+                fsMap.put("paidAmount", feeSubmission.getPaidAmount());
+                fsMap.put("balanceAmount", feeSubmission.getBalanceAmount());
+                fsMap.put("previousFeeBalanceRemark", feeSubmission.getPreviousFeeBalanceRemark() != null ? feeSubmission.getPreviousFeeBalanceRemark() : "");
+                fsMap.put("status", feeSubmission.getStatus() != null ? feeSubmission.getStatus() : "");
+                if (feeSubmission.getDiscounthead() != null) {
+                    fsMap.put("discounthead", Map.of("discountName", feeSubmission.getDiscounthead().getDiscountName() != null ? feeSubmission.getDiscounthead().getDiscountName() : ""));
+                }
+                modelData.put("feeSubmission", fsMap);
                 modelData.put("hasFeeSubmission", true);
 
                 HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
@@ -880,7 +920,13 @@ public class FeeSubmissionService {
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForCurrentDate(currentDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                         List<FeeSubmission> todayFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(), currentDate, null, null);
-                        finalDataMap.put("todayFeeCollectionDetails", (CollectionUtils.isEmpty(todayFeeCollectionDetails))? "No Fee details found for current date:" + currentDate: todayFeeCollectionDetails);
+                        if (CollectionUtils.isEmpty(todayFeeCollectionDetails)) {
+                            finalDataMap.put("todayFeeCollectionDetails", "No Fee details found for current date:" + currentDate);
+                        } else {
+                            List<Map<String, Object>> leanList = new ArrayList<>();
+                            for (FeeSubmission fs : todayFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                            finalDataMap.put("todayFeeCollectionDetails", leanList);
+                        }
                     } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
                         String startDate = paramsMap.get("startDate");
                         String endDate = paramsMap.get("endDate");
@@ -888,7 +934,13 @@ public class FeeSubmissionService {
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                         List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(),  null, startDate, endDate);
-                        finalDataMap.put("dateRangeFeeCollectionDetails", (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails))? "No Fee details found for dates:" + startDate + " and " + endDate: dateRangeFeeCollectionDetails);
+                        if (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails)) {
+                            finalDataMap.put("dateRangeFeeCollectionDetails", "No Fee details found for dates:" + startDate + " and " + endDate);
+                        } else {
+                            List<Map<String, Object>> leanList = new ArrayList<>();
+                            for (FeeSubmission fs : dateRangeFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                            finalDataMap.put("dateRangeFeeCollectionDetails", leanList);
+                        }
                     }
                 }
             }
@@ -909,7 +961,13 @@ public class FeeSubmissionService {
                 String startDate = paramsMap.get("startDate");
                 String endDate = paramsMap.get("endDate");
                 List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsBasedOnStatusAndInDateRange("Inactive", school.getId(), academicYear.getId(),  null, startDate, endDate);
-                finalDataMap.put("dateRangeFeeCollectionDetails", (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails))? "No Fee details found for dates between:" + startDate + " and " + endDate: dateRangeFeeCollectionDetails);
+                if (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails)) {
+                    finalDataMap.put("dateRangeFeeCollectionDetails", "No Fee details found for dates between:" + startDate + " and " + endDate);
+                } else {
+                    List<Map<String, Object>> leanList = new ArrayList<>();
+                    for (FeeSubmission fs : dateRangeFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                    finalDataMap.put("dateRangeFeeCollectionDetails", leanList);
+                }
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -928,7 +986,13 @@ public class FeeSubmissionService {
                 String medium = paramsMap.get("medium");
 
                 List<FeeSubmission> totalFeeCollectionDetails = feeSubmissionRepository.findAllFeeSubmittedDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
-                finalDataMap.put("totalFeeCollectionDetails", (CollectionUtils.isEmpty(totalFeeCollectionDetails))? "No Fee details found for medium": totalFeeCollectionDetails);
+                if (CollectionUtils.isEmpty(totalFeeCollectionDetails)) {
+                    finalDataMap.put("totalFeeCollectionDetails", "No Fee details found for medium");
+                } else {
+                    List<Map<String, Object>> leanList = new ArrayList<>();
+                    for (FeeSubmission fs : totalFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                    finalDataMap.put("totalFeeCollectionDetails", leanList);
+                }
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -949,7 +1013,13 @@ public class FeeSubmissionService {
                 String grade = paramsMap.get("grade");
 
                 List<FeeSubmission> totalFeeCollectionDetails = feeSubmissionRepository.findAllFeeSubmittedDetailsGradeWise(school.getId(), academicYear.getId(), Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section));
-                finalDataMap.put("totalFeeCollectionDetails", (CollectionUtils.isEmpty(totalFeeCollectionDetails))? "No Fee details found for selected Grade-Section": totalFeeCollectionDetails);
+                if (CollectionUtils.isEmpty(totalFeeCollectionDetails)) {
+                    finalDataMap.put("totalFeeCollectionDetails", "No Fee details found for selected Grade-Section");
+                } else {
+                    List<Map<String, Object>> leanList = new ArrayList<>();
+                    for (FeeSubmission fs : totalFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                    finalDataMap.put("totalFeeCollectionDetails", leanList);
+                }
             }
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
@@ -1062,7 +1132,7 @@ public class FeeSubmissionService {
                                         feeDetailMap.put("submitDate",sf.format(feeSubmission.getFeeSubmissionDate()));
                                         feeDetailMap.put("month_"+monthId.toString(),monthId.toString());
                                         feeDetailMap.put("fineAmount",fineAmount);
-                                        feeDetailMap.put("academicStudent", student);
+                                        feeDetailMap.put("academicStudent", toLeanAcademicStudentForFee(student));
                                         feeDetailMap.put("blankData",0);
                                         if(feeSubmissionMonthCounter==monthMasterIds.size()){
                                             feeDetailMap.put("balanceAmount", feeSubmissionBalance.getBalanceAmount());
@@ -1115,7 +1185,7 @@ public class FeeSubmissionService {
                 feeDetailMap.put("submitDate",null);
                 feeDetailMap.put("month_"+(k+1),(k+1));
                 feeDetailMap.put("fineAmount",BigDecimal.valueOf(0.0));
-                feeDetailMap.put("academicStudent", student);
+                feeDetailMap.put("academicStudent", toLeanAcademicStudentForFee(student));
                 feeDetailMap.put("blankData",1);
                 depositedFeeList.add(feeDetailMap);
             }
@@ -1166,7 +1236,7 @@ public class FeeSubmissionService {
                             .add(sectionName);
                     studentTotal.put(gradeName+"###"+sectionName, students);
                 }
-                List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFees(school, academic, gradeSectionMap.keySet().stream().toList(),"Tution Fee");
+                List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFees(school, academic, new ArrayList<>(gradeSectionMap.keySet()));
 
                 System.out.println("feeAmountDetails: "+feeAmountDetails);
                 for(Object[] objLst: feeAmountDetails){
@@ -1332,6 +1402,85 @@ public class FeeSubmissionService {
             responseMap.put("error", e.getLocalizedMessage());
         }
         return responseMap;
+    }
+
+    /**
+     * Converts a FeeSubmission entity to a lean Map containing only the fields
+     * required by the frontend reports. Prevents serializing the full JPA
+     * object graph (school, academicYear, etc.) which can produce MB-size responses.
+     */
+    private Map<String, Object> toLeanMap(FeeSubmission fs) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", fs.getId());
+        row.put("feeSubmissionDate", fs.getFeeSubmissionDate());
+        row.put("receiptNo", fs.getReceiptNo());
+        row.put("status", fs.getStatus());
+        row.put("totalAmount", fs.getTotalAmount());
+        row.put("paidAmount", fs.getPaidAmount());
+        row.put("balanceAmount", fs.getBalanceAmount());
+        row.put("fineAmount", fs.getFineAmount());
+        row.put("discountAmount", fs.getDiscountAmount());
+        row.put("paymentType", fs.getPaymentType());
+        row.put("createdByName", fs.getCreatedByName());
+
+        AcademicStudent as = fs.getAcademicStudent();
+        if (as != null) {
+            Map<String, Object> aMap = new HashMap<>();
+            aMap.put("classSrNo", as.getClassSrNo());
+            if (as.getGrade() != null) {
+                aMap.put("grade", Map.of("gradeName", as.getGrade().getGradeName()));
+            }
+            if (as.getSection() != null) {
+                aMap.put("section", Map.of("sectionName", as.getSection().getSectionName()));
+            }
+            if (as.getStudent() != null) {
+                aMap.put("student", Map.of(
+                    "studentName", as.getStudent().getStudentName() != null ? as.getStudent().getStudentName() : "",
+                    "fatherName",  as.getStudent().getFatherName()  != null ? as.getStudent().getFatherName()  : ""
+                ));
+            }
+            row.put("academicStudent", aMap);
+        }
+
+        List<Map<String, Object>> monthsList = new ArrayList<>();
+        if (fs.getFeeSubmissionMonths() != null) {
+            for (FeeSubmissionMonths fm : fs.getFeeSubmissionMonths()) {
+                if (fm.getMonthMaster() != null) {
+                    monthsList.add(Map.of("monthMaster", Map.of("monthName", fm.getMonthMaster().getMonthName())));
+                }
+            }
+        }
+        row.put("feeSubmissionMonths", monthsList);
+        return row;
+    }
+
+    private Map<String, Object> toLeanAcademicStudentForFee(AcademicStudent as) {
+        Map<String, Object> aMap = new HashMap<>();
+        if (as == null) return aMap;
+        aMap.put("id", as.getId());
+        aMap.put("classSrNo", as.getClassSrNo());
+        if (as.getGrade() != null) {
+            Map<String, Object> gradeMap = new HashMap<>();
+            gradeMap.put("id", as.getGrade().getId());
+            gradeMap.put("gradeName", as.getGrade().getGradeName() != null ? as.getGrade().getGradeName() : "");
+            aMap.put("grade", gradeMap);
+        }
+        if (as.getSection() != null) {
+            Map<String, Object> secMap = new HashMap<>();
+            secMap.put("id", as.getSection().getId());
+            secMap.put("sectionName", as.getSection().getSectionName() != null ? as.getSection().getSectionName() : "");
+            aMap.put("section", secMap);
+        }
+        if (as.getStudent() != null) {
+            Map<String, Object> stuMap = new HashMap<>();
+            stuMap.put("studentName", as.getStudent().getStudentName() != null ? as.getStudent().getStudentName() : "");
+            stuMap.put("fatherName",  as.getStudent().getFatherName()  != null ? as.getStudent().getFatherName()  : "");
+            stuMap.put("motherName",  as.getStudent().getMotherName()  != null ? as.getStudent().getMotherName()  : "");
+            stuMap.put("mobile1",     as.getStudent().getMobile1()     != null ? as.getStudent().getMobile1()     : "");
+            stuMap.put("status",      as.getStudent().getStatus()      != null ? as.getStudent().getStatus()      : "");
+            aMap.put("student", stuMap);
+        }
+        return aMap;
     }
 
 }

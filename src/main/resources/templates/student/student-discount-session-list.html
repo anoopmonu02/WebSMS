@@ -6,7 +6,7 @@
 </head>
 <body>
 <section>
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="row mt-2 ">
             <div class="col-md-12">
                 <div class="card-header fs-3">Students Eligible For Discount</div>
@@ -132,7 +132,8 @@
                                 <th>Student Name</th>
                                 <th>Father Name</th>
                                 <th>Discount Name</th>
-                                <th>Description</th>`;
+                                <th>Description</th>
+                                <th>Assigned By</th>`;
 
                         tblData+=`</tr></thead><tbody class="table-group-divider">`;
                         let counter = 1;
@@ -143,7 +144,7 @@
                             tblData += `<tr>
                                     <td>${counter}</td>
                                     <td>${studentData.grade}</td>
-                                    <td>${studentData.srNo}</td><td>${studentData.studentName}</td><td>${studentData.fatherName}</td><td>${studentData.discount}</td><td>${studentData.description}</td>`;
+                                    <td>${studentData.srNo}</td><td>${studentData.studentName}</td><td>${studentData.fatherName}</td><td>${studentData.discount}</td><td>${studentData.description}</td><td>${studentData.assignedBy || ''}</td>`;
 
                             tblData+=`</tr>`;
                             counter++;
@@ -151,7 +152,7 @@
                         tblData+=`</tbody></table>`;
                         //console.log("table last-"+tblData)
                         $("#student-collection-data").html(tblData);
-                        const exportColumns = [0,1,2,3,4,5,6];
+                        const exportColumns = [0,1,2,3,4,5,6,7];
                         const columnDefs = [{ "orderable": false, "targets": [0] }];
                         $("#studentTable").DataTable({
                             scrollX: true,

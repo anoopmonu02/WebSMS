@@ -41,4 +41,7 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Query("SELECT m FROM SmsMessage m WHERE m.grade.id = ?1 AND m.section.id = ?2 AND m.messageType = ?3")
     List<SmsMessage> findByGradeIdAndSectionIdAndMessageType(Long gradeId, Long sectionId, String messageType);
 
+    @Query("SELECT m FROM SmsMessage m JOIN m.recipients r WHERE r.id = :studentId AND m.messageType = :messageType ORDER BY m.createdAt DESC")
+    List<SmsMessage> findByRecipients_IdAndMessageType(@Param("studentId") Long studentId, @Param("messageType") String messageType);
+
 }

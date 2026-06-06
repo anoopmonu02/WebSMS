@@ -15,4 +15,22 @@ public interface ExamResultSummaryRepository extends JpaRepository<ExamResultSum
                                                      @Param("mediumId") Long mediumId,
                                                      @Param("gradeId") Long gradeId, @Param("sectionId") Long sectionId,
                                                      @Param("examResultsObj")ExamDetails examResultsObj);
+
+    // ── Mobile API queries ────────────────────────────────────────────────────
+
+    /**
+     * Returns all exam results for a student in a given school + academic year.
+     * Used by the Results screen in the mobile app.
+     * Results are ordered latest first.
+     */
+    @Query("SELECT r FROM ExamResultSummary r " +
+           "JOIN FETCH r.examDetails e " +
+           "WHERE r.academicStudent.id = :academicStudentId " +
+           "AND r.school.id = :schoolId " +
+           "AND r.academicYear.id = :academicYearId " +
+           "ORDER BY r.examResultDate DESC")
+    List<ExamResultSummary> findByAcademicStudentIdAndSchoolIdAndAcademicYearId(
+            @Param("academicStudentId") Long academicStudentId,
+            @Param("schoolId")         Long schoolId,
+            @Param("academicYearId")   Long academicYearId);
 }

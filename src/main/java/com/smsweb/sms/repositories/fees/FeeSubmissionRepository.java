@@ -73,13 +73,13 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("academicYearId") Long academicYearId);
 
     @Query(
-            value = "SELECT SUM(paid_amount) AS totalPaid, COUNT(id) AS totalCount, created_by as createdBy " +
-                    "FROM fee_submission " +
-                    "WHERE status = 'Active' " +
-                    "  AND DATE(fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') " +
-                    "  AND school_id = :schoolId " +
-                    "  AND academic_year_id = :academicYearId " +
-                    "GROUP BY created_by ",
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Active' " +
+                    "  AND DATE(fs.fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "GROUP BY fs.created_by ",
             nativeQuery = true)
     List<Object[]> findFeeSubmissionAggregatesForDateRange(
             @Param("startDate") String startDate,
@@ -144,9 +144,9 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     BigDecimal getTodayTotalFeeSubmission(@Param("school") Long school,
                                           @Param("academic") Long academic);
 
-    @Query("SELECT f.amount,f.grade.id, f.grade.gradeName FROM FeeClassMap f where f.school.id = :school AND f.academicYear.id = :academic AND f.grade.id in(:gradeIds) AND f.feehead.feeHeadName=:feeHeadName")
+    @Query("SELECT SUM(f.amount), f.grade.id, f.grade.gradeName FROM FeeClassMap f where f.school.id = :school AND f.academicYear.id = :academic AND f.grade.id in(:gradeIds) GROUP BY f.grade.id, f.grade.gradeName")
     List<Object[]> getGradewiseTutionFees(@Param("school") Long school,
-                                      @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds, @Param("feeHeadName") String feeHeadName);
+                                      @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds);
 
     /*@Query("""
     SELECT COUNT(s.academicStudent.id) AS studentCount,

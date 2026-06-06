@@ -8,7 +8,7 @@
 <body>
 <section>
 
-  <div class="container">
+  <div class="container-fluid px-3">
     <div class="row mt-2 ">
       <div class="col-md-12">
         <div class="card-header fs-3">Student Discount List</div>
@@ -25,6 +25,7 @@
             <th>Mother Name</th>
             <th>Contact#</th>
             <th>Description</th>
+            <th>Assigned By</th>
             <th>Actions</th>
           </tr>
           </thead>
@@ -40,6 +41,7 @@
             <td th:text="${student.academicStudent.student.motherName}"></td>
             <td th:text="${student.academicStudent.student.mobile1}"></td>
             <td th:text="${student.description}"></td>
+            <td th:text="${student.createdBy != null ? student.createdBy.displayName : ''}"></td>
             <td style="white-space: nowrap" class="text-center">
               <!--<a class="btn btn-primary" th:href="@{/student/assign-discount/edit/{id}(id=${student.id})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                 <i class="bi bi-pencil-square"></i> </a>-->
@@ -79,7 +81,7 @@
         ],
         pageLength: 10,
         columnDefs: [
-          { "orderable": false, "targets": [0,9] } // Disable sorting on the first and fourth columns
+          { "orderable": false, "targets": [0,10] } // Disable sorting on the first and last columns
         ]
       });
     });

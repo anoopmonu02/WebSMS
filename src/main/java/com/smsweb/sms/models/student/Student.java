@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.smsweb.sms.helper.DisplayLabel;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.universal.*;
@@ -147,6 +148,15 @@ public class Student { // Extend UserEntity
     @Column(length = 10)
     @DisplayLabel("Mobile-2")
     private String mobile2;
+
+    /**
+     * FK to FamilyAccount — set automatically when student is saved/updated with mobile1.
+     * All siblings with the same mobile1 share the same FamilyAccount.
+     * Nullable to support legacy students created before this feature.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_account_id", nullable = true)
+    private FamilyAccount familyAccount;
 
     @DisplayLabel("Distance From School")
     private Integer distanceFromSchool;

@@ -15,7 +15,9 @@ import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentDiscountService;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.universal.DiscountService;
+import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,15 +39,17 @@ public class StudentDiscountController extends BaseController {
     private final AcademicyearService academicyearService;
     private final SchoolService schoolService;
     private final AcademicStudentService academicStudentService;
+    private final UserService userService;
 
     @Autowired
     public StudentDiscountController(StudentDiscountService studentDiscountService, DiscountService discountService, AcademicyearService academicyearService, SchoolService schoolService,
-                                     AcademicStudentService academicStudentService){
+                                     AcademicStudentService academicStudentService, UserService userService){
         this.studentDiscountService = studentDiscountService;
         this.discountService = discountService;
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
         this.academicStudentService = academicStudentService;
+        this.userService = userService;
     }
 
     @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)
@@ -85,6 +89,10 @@ public class StudentDiscountController extends BaseController {
             studentDiscount.setAcademicYear(academicYear);
             studentDiscount.setSchool(school);
             studentDiscount.setAcademicStudent(student);
+            if (studentDiscount.getId() == null) {
+                UserEntity loggedInUser = userService.getLoggedInUser();
+                studentDiscount.setCreatedBy(loggedInUser);
+            }
             String returnMsg = "Discount assigned successfully to: "+studentDiscount.getAcademicStudent().getStudent().getStudentName();
             if(studentDiscount.getId()!=null){
                 if(!studentDiscount.getStatus().equalsIgnoreCase("Inactive")){

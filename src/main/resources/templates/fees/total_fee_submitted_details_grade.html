@@ -7,7 +7,7 @@
 <body>
 <section>
 
-    <div class="container">
+    <div class="container-fluid px-3">
         <div class="row ">
             <div class="card-header fs-3">Total Submitted Fee List(Grade-wise)</div>
             <hr/>
@@ -101,6 +101,17 @@
           toastr[msgType](msg,headerValue);
       }
 
+      // Escape HTML special chars so employee/student names never break the table
+      function escHtml(str) {
+          if (str == null) return '';
+          return String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#39;');
+      }
+
       const validateAndSubmit=()=>{
           let medium = $("#medium").val();
           let grade = $("#grade").val();
@@ -109,8 +120,13 @@
             showMsg("error","Medium/Grade/Section all are mandatory","Error");
             return;
           }
-          let requestBody = {};
-          requestBody = {
+
+          // Destroy existing DataTable instance before re-fetching
+          if ($.fn.DataTable.isDataTable('#feeCollectionTable')) {
+              $('#feeCollectionTable').DataTable().destroy();
+          }
+
+          let requestBody = {
               grade: grade,
               medium: medium,
               section: section
@@ -200,19 +216,19 @@
                       //.monthMaster.monthName
                       tblData += `<tr>
                                 <td>${counter}</td>
-                                <td>${grd}</td>
-                                <td>${srno}</td>
-                                <td>${feeSubmission.academicStudent.student.studentName}</td>
-                                <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                                <td>${month_names}</td>
-                                <td>${dt}</td>
-                                <td ${receiptStyle}>${receiptNo}</td>
+                                <td>${escHtml(grd)}</td>
+                                <td>${escHtml(srno)}</td>
+                                <td>${escHtml(feeSubmission.academicStudent.student.studentName)}</td>
+                                <td>${escHtml(feeSubmission.academicStudent.student.fatherName)}</td>
+                                <td>${escHtml(month_names)}</td>
+                                <td>${escHtml(dt)}</td>
+                                <td ${receiptStyle}>${escHtml(receiptNo)}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                                 <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
-                                <td>${feeSubmission.createdByName ?? ''}</td>
+                                <td>${escHtml(feeSubmission.createdByName)}</td>
 
                             </tr>`;
                       totalPaidAmount+=feeSubmission.paidAmount;

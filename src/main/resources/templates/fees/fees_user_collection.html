@@ -7,7 +7,7 @@
 <body>
 <section>
 
-  <div class="container">
+  <div class="container-fluid px-3">
     <div class="col-md-12 ">
       <div class="card-header fs-3">User(s) Collection</div>
       <hr/>
@@ -216,6 +216,16 @@
         return `rgba(${r}, ${g}, ${b}, 0.6)`; // Background with opacity
     }
     //let collectionChart;
+    function escHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     const validateAndSubmit=()=>{
       const selectedOption = $('input[name="dateOption"]:checked').val();
       let url = "";
@@ -370,20 +380,20 @@
                         console.log(feeSubmission.createdByName );
                         tblData += `<tr>
                                 <td>${counter}</td>
-                                <td>${feeSubmission.academicStudent.grade.gradeName} - ${feeSubmission.academicStudent.section.sectionName}</td>
-                                <td>${srno}</td>
-                                <td>${feeSubmission.academicStudent.student.studentName}</td>
-                                <td>${feeSubmission.academicStudent.student.fatherName}</td>
-                                <td>${month_names}</td>
-                                ${selectedOption === 'range' ? `<td>${dt}</td>` : ''}
-                                <td>${feeSubmission.receiptNo}</td>
+                                <td>${escHtml(feeSubmission.academicStudent.grade.gradeName)} - ${escHtml(feeSubmission.academicStudent.section.sectionName)}</td>
+                                <td>${escHtml(srno)}</td>
+                                <td>${escHtml(feeSubmission.academicStudent.student.studentName)}</td>
+                                <td>${escHtml(feeSubmission.academicStudent.student.fatherName)}</td>
+                                <td>${escHtml(month_names)}</td>
+                                ${selectedOption === 'range' ? `<td>${escHtml(dt)}</td>` : ''}
+                                <td>${escHtml(feeSubmission.receiptNo)}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.totalAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
-                                <td>${feeSubmission.paymentType!=null?feeSubmission.paymentType:'-'}</td>
+                                <td>${escHtml(feeSubmission.paymentType) || '-'}</td>
                                <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
-                                <td>${feeSubmission.createdByName ?? ''}</td>
+                                <td>${escHtml(feeSubmission.createdByName)}</td>
 
                             </tr>`;
                         console.log("feeSubmission.paymentType---"+feeSubmission.paymentType+"  receipt: "+feeSubmission.receiptNo);
