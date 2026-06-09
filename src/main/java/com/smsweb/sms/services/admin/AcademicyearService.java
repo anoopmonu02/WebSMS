@@ -59,6 +59,21 @@ public class AcademicyearService {
         return academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active",schoolid);
     }
 
+    public String delete(Long id) {
+        try {
+            if (!academicyearRepository.existsById(id)) {
+                return "Academic year not found: " + id;
+            }
+            academicyearRepository.deleteById(id);
+            return "success";
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return "Cannot delete: this academic year has linked data (students, fees, mappings, etc.). Remove all related data first.";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+    }
+
     public UserEntity getLoggedInUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {

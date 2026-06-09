@@ -1459,6 +1459,7 @@ public class FeeSubmissionService {
         if (as == null) return aMap;
         aMap.put("id", as.getId());
         aMap.put("classSrNo", as.getClassSrNo());
+        aMap.put("status", as.getStatus() != null ? as.getStatus() : "");
         if (as.getGrade() != null) {
             Map<String, Object> gradeMap = new HashMap<>();
             gradeMap.put("id", as.getGrade().getId());

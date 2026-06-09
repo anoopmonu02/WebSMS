@@ -23,8 +23,8 @@
                             <option th:each="school : ${schools}" th:value="${school.id}" th:text="${school.schoolName}"></option>
                         </select>
                     </div>
-                    <div th:else="${adminLogin}">
-                        <input type="hidden" id="school" name="school.id" class="form-control" th:field="*{school.id}" th:value="${school.id}">
+                    <div th:unless="${superUserLogin}">
+                        <input type="hidden" name="school.id" th:value="${school.id}">
                     </div>
                 </div>
                 <div class="col-md-4">

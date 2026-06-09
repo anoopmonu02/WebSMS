@@ -114,7 +114,7 @@
                             <tbody class="table-group-divider">`;
                         let counter = 1;
                         data.forEach((student) =>{
-                            let stuStatusClass = student.student.status==='Active'?'':'table-danger';
+                            let stuStatusClass = (student.student.status||'').toUpperCase()==='ACTIVE'?'':'table-danger';
                             //let classSRNoVal = student.classSrNo==null || student.classSrNo==''?'':student.classSrNo;
                             //console.log("SR: "+classSRNoVal);
                             text+=`<tr class="${stuStatusClass}"><td>${counter}</td><td>${student.student.studentName}</td><td>${student.classSrNo==null || student.classSrNo==''?'':student.classSrNo}</td><td>${student.grade.gradeName}-${student.section.sectionName}</td>

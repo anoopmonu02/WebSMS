@@ -197,7 +197,7 @@
                                 //let stuDetail = studentData[0].academicStudent.student.studentName + '</br>' + studentData[0].academicStudent.student.fatherName + '</br>' + studentData[0].academicStudent.student.motherName + '</br';
                                 let s = studentData[0].academicStudent.student;
                                 let stuDetail = `${s.studentName}<br>${s.fatherName}<br>${s.motherName}<br>`;
-                                let isActiveStudent = s.status==='Active'?true:false;
+                                let isActiveStudent = (studentData[0].academicStudent.status || '').toUpperCase() === 'ACTIVE';
                                 let stuId = studentData[0].academicStudent.id;
                                 console.log(" studentData[0].:"+studentData[0]);
                                 tblData += `<tr class="${isActiveStudent?'':'table-danger'}">

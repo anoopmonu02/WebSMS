@@ -128,16 +128,18 @@
                     return response.json();  // Parse response as JSON
                 })
                 .then(data => {
-                    //console.log(">>>>>>--------"+data.finalData.userWiseFeeCollection);
+                    if (!data.finalData) {
+                        showMsg("error", data.error || "Server error while fetching student list", "Error");
+                        return;
+                    }
                     let feeData = data.finalData.totalStudentCollectionDetails;
-                    //console.log("rowData:"+rowData);
                     if (!feeData || feeData.length === 0) {
                         $("#student-collection-data").empty();
                         $("#printable-div").hide();
-                        showMsg("error", "No matching data found", "No Data");
+                        showMsg("error", "No matching data found for the selected medium", "No Data");
                         return;
                     }
-                    // If userWiseFeeCollection is a string, show a message
+                    // If totalStudentCollectionDetails is a string, it's a server message
                     if (typeof feeData === 'string') {
                         $("#student-collection-data").empty();
                         $("#printable-div").hide();
@@ -232,7 +234,7 @@
                         } else if(academicStudent.student.aadharNo===''){
                             noAadharCounter++;
                         }
-                        let statusClass = academicStudent.student.status === 'Inactive' ? 'class="table-danger"' : '';
+                        let statusClass = (academicStudent.student.status||'').toUpperCase() === 'INACTIVE' ? 'class="table-danger"' : '';
                         tblData += `<tr ${statusClass}>
                             <td>${counter}</td>
                             <td>${grd}</td>

@@ -12,7 +12,7 @@
     <div class="row mt-2 ">
       <div class="col-md-12">
 
-        <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.getStudent().getStudentName()}]]</span></div>
+        <div class="card-header fs-3">Fee Receipt <span th:if="${studentError == null}"> - [[${student.student.studentName}]]</span></div>
         <div th:if="${studentError!=null}">
           <p class="text-center">No Student found.</p>
         </div>
@@ -35,10 +35,10 @@
                     <h5 class="card-header">Fee Receipt</h5>
                     <div class="card-body" id="contentToExport">
                         <input type="hidden" id="feeid" th:value="${feeSubmission.id}">
-                        <div class="text-center"><strong>[[${school.getSchoolName().toUpperCase()}]]</strong></div>
-                        <div class="text-center"><strong>[[${school.getAddress().toUpperCase()}]]</strong></div>
-                        <div class="text-center"><strong>CONTACT NO: (+91) [[${school.getMobile1()}]]<span th:if="${school.getMobile2() != null}">, [[${school.getMobile2()}]]</span></strong></div>
-                        <div class="text-center" th:if="${school.getEmail() != null}"><strong>Email: [[${school.getEmail()}]]</strong></div>
+                        <div class="text-center"><strong>[[${school.schoolName?.toUpperCase()}]]</strong></div>
+                        <div class="text-center"><strong>[[${school.address?.toUpperCase()}]]</strong></div>
+                        <div class="text-center"><strong>CONTACT NO: (+91) [[${school.mobile1}]]<span th:if="${school.mobile2 != null and school.mobile2 != ''}">, [[${school.mobile2}]]</span></strong></div>
+                        <div class="text-center" th:if="${school.email != null and school.email != ''}"><strong>Email: [[${school.email}]]</strong></div>
                         <hr/>
                         <div class="row">
                             <div class="col-md-6">
@@ -64,31 +64,31 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
-                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().studentName}"></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.student.studentName}"></label>
                             </div>
                             <div class="col-md-6">
                                 <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
-                                <label class="col-md-4 col-form-label" th:text="${student.getGrade().gradeName}+'-'+${student.getSection().sectionName}"></label>
+                                <label class="col-md-4 col-form-label" th:text="${student.grade.gradeName + '-' + student.section.sectionName}"></label>
                             </div>
                             <div class="col-md-6">
                                 <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
-                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().fatherName}"></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.student.fatherName}"></label>
                             </div>
                             <div class="col-md-6">
                                 <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
-                                <label class="col-md-4 col-form-label" th:text="${student.getClassSrNo()}"></label>
+                                <label class="col-md-4 col-form-label" th:text="${student.classSrNo}"></label>
                             </div>
                             <div class="col-md-6">
                                 <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
-                                <label class="col-md-5 col-form-label" th:text="${student.getStudent().motherName}"></label>
+                                <label class="col-md-5 col-form-label" th:text="${student.student.motherName}"></label>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="col-md-1"></label>
                                 <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
-                                <label class="col-md-5 col-form-label" th:text="'(+91) '+${student.getStudent().mobile1}"></label>
+                                <label class="col-md-5 col-form-label" th:text="'(+91) ' + ${student.student.mobile1}"></label>
                             </div>
 
                         </div>
@@ -135,22 +135,22 @@
                             <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.fineAmount}"></div>
                         </div>
                         <hr/>
-                        <th:block th:if="${feeSubmission.discounthead}">
-                            <div class="row" th:if="${feeSubmission.discounthead}">
+                        <th:block th:if="${feeSubmission['discounthead'] != null}">
+                            <div class="row">
                                 <div class="col-md-4"></div>
-                                <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission.discounthead.discountName}"></span></div>
+                                <div class="col-md-8"><strong>Discount Remark: </strong><span th:text="${feeSubmission['discounthead']['discountName']}"></span></div>
 
                                 <div class="col-md-4"></div>
                                 <div class="col-md-4"><strong>Discount Amount: </strong></div>
-                                <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.discountAmount}"></div>
+                                <div class="col-md-4 text-end" th:text="'&#8377; ' + ${feeSubmission['discountAmount']}"></div>
                             </div>
                             <hr/>
                         </th:block>
-                        <th:block th:if="${feeSubmission.previousFeeBalanceRemark!=null && feeSubmission.previousFeeBalanceRemark?.trim()!=''}">
-                            <div class="row" th:if="${feeSubmission.previousFeeBalanceRemark}">
+                        <th:block th:if="${feeSubmission['previousFeeBalanceRemark'] != null and feeSubmission['previousFeeBalanceRemark'].toString().trim() != '' and feeSubmission['previousFeeBalanceRemark'].toString().trim() != '0'}">
+                            <div class="row">
                                 <div class="col-md-4"></div>
                                 <div class="col-md-4"><strong>Previous Balance: </strong></div>
-                                <div class="col-md-4 text-end" th:text="'&#8377; '+${feeSubmission.previousFeeBalanceRemark}"></div>
+                                <div class="col-md-4 text-end" th:text="'&#8377; ' + ${feeSubmission['previousFeeBalanceRemark']}"></div>
                             </div>
                             <hr/>
                         </th:block>

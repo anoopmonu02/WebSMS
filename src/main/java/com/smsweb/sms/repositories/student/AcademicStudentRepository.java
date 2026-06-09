@@ -19,17 +19,17 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
 
     //Fetching student by ID
-    @Query("SELECT a FROM AcademicStudent a LEFT JOIN FETCH a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND a.id = :academicStudentId")
+    @Query("SELECT a FROM AcademicStudent a LEFT JOIN FETCH a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND a.id = :academicStudentId")
     AcademicStudent findByAcademicYearAndSchoolAndAcademicStudentId(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("academicStudentId") Long academic_stu_id);
 
     //Fetching All students by Name
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName% OR a.classSrNo LIKE :studentName)")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName% OR a.classSrNo LIKE :studentName)")
     Page<AcademicStudent> findAllByAcademicYearAndSchoolAndStudentName(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("studentName") String studentName, Pageable pageable);
 
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")
     Page<AcademicStudent> findAllByAcademicYearAndStudentName(@Param("acadecmicYear") Long acadecmicYear, @Param("studentName") String studentName, Pageable pageable);
 
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE s.status='Active' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.fatherName LIKE %:father_name% OR s.motherName LIKE %:mother_name%)")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.fatherName LIKE %:father_name% OR s.motherName LIKE %:mother_name%)")
     List<AcademicStudent> findAllByAcademicYear(@Param("acadecmicYear") Long acadecmicYear, @Param("father_name") String father_name, @Param("mother_name") String mother_name);
 
     int countByStudent(Student student);

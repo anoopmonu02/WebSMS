@@ -72,10 +72,10 @@
         <div class="feeblock">
           <form th:action="@{/student/assign-discount}" th:object="${studentDiscount}" method="post" >
             <div class="row g-3">
-                <input id="academicStudent" name="academicStudent" type="hidden" value="" th:field="*{academicStudent.id}"/>
-                <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
-                <input type="hidden" name="academicYear" id="academicYear" th:field="*{academicYear.id}" />
-                <input id="id" name="id" type="hidden" th:field="*{id}"/>
+                <input id="academicStudent" name="academicStudent.id" type="hidden" value=""/>
+                <input type="hidden" name="school.id" id="school_id" th:value="${school != null ? school.id : ''}"/>
+                <input type="hidden" name="academicYear.id" id="academicYear" th:value="${academicYear != null ? academicYear.id : ''}"/>
+                <input id="id" name="id" type="hidden" th:value="${studentDiscount.id}"/>
                 <div class="col-sm-6  monthlist">
                   <!--dropdown-->
                   <label for="discount" class="form-label">Select Discount</label>
@@ -251,7 +251,7 @@
               $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo==null?"":data.student.classSrNo}`);
 
               $('#academicStudent').val(`${data.student.id}`);
-              $('#id').val(`${data.assignedDiscount.id}`);
+              $('#id').val(data.assignedDiscount ? data.assignedDiscount.id : '');
 
           } else{
               $(".studname").html(`<strong>Student Name: </strong>`);

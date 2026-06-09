@@ -1101,7 +1101,7 @@ public class StudentService {
             stuMap.put("religion",              s.getReligion()              != null ? s.getReligion()              : "");
             stuMap.put("address",               s.getAddress()               != null ? s.getAddress()               : "");
             stuMap.put("landmark",              s.getLandmark()              != null ? s.getLandmark()              : "");
-            stuMap.put("distanceFromSchool",    s.getDistanceFromSchool());
+            stuMap.put("distanceFromSchool",    s.getDistanceFromSchool()!=null ? s.getDistanceFromSchool() : 0 );
             stuMap.put("aadharNo",              s.getAadharNo()              != null ? s.getAadharNo()              : "");
             stuMap.put("apaarNo",               s.getApaarId()               != null ? s.getApaarId()               : "");
             stuMap.put("penNo",                 s.getPenNo()                 != null ? s.getPenNo()                 : "");

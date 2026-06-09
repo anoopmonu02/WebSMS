@@ -222,6 +222,22 @@ public class GlobalController extends BaseController {
         return "redirect:/admin/academicyear";
     }
 
+    @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.DELETE)
+    @GetMapping("/academicyear/delete/{id}")
+    public String deleteAcademicYear(@PathVariable("id") Long id, RedirectAttributes ra) {
+        try {
+            String result = academicyearService.delete(id);
+            if ("success".equals(result)) {
+                ra.addFlashAttribute("success", "Academic year deleted successfully.");
+            } else {
+                ra.addFlashAttribute("error", "Failed to delete academic year: " + result);
+            }
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Error deleting academic year: " + e.getMessage());
+        }
+        return "redirect:/admin/academicyear";
+    }
+
     /********************************   Month-Mapping Code starts here   ************************************/
 
     @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.VIEW)
