@@ -11,7 +11,9 @@ import com.smsweb.sms.repositories.admin.SchoolRepository;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.SiblingDiscountRepository;
 import com.smsweb.sms.repositories.student.SiblingGroupStudentRepository;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.repositories.student.StudentDiscountRepository;
+import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,9 +31,10 @@ public class SiblingDiscountService {
     private final SiblingGroupStudentRepository siblingGroupStudentRepository;
     private final DiscountclassmapRepository discountclassmapRepository;
     private final StudentDiscountRepository studentDiscountRepository;
+    private final UserService userService;
 
     @Autowired
-    public SiblingDiscountService(SiblingDiscountRepository siblingDiscountRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, AcademicStudentRepository academicStudentRepository, SiblingGroupStudentRepository siblingGroupStudentRepository, DiscountclassmapRepository discountclassmapRepository, StudentDiscountRepository studentDiscountRepository){
+    public SiblingDiscountService(SiblingDiscountRepository siblingDiscountRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, AcademicStudentRepository academicStudentRepository, SiblingGroupStudentRepository siblingGroupStudentRepository, DiscountclassmapRepository discountclassmapRepository, StudentDiscountRepository studentDiscountRepository, UserService userService){
         this.siblingDiscountRepository = siblingDiscountRepository;
         this.academicyearRepository = academicyearRepository;
         this.schoolRepository = schoolRepository;
@@ -39,6 +42,7 @@ public class SiblingDiscountService {
         this.siblingGroupStudentRepository = siblingGroupStudentRepository;
         this.discountclassmapRepository = discountclassmapRepository;
         this.studentDiscountRepository = studentDiscountRepository;
+        this.userService = userService;
     }
 
     @Transactional
@@ -73,6 +77,8 @@ public class SiblingDiscountService {
                             studentDiscount.setAcademicYear(academicYear);
                             studentDiscount.setDiscounthead(discountClassMap.get().getDiscounthead());
                             studentDiscount.setDescription("Sibling Discount Mapped");
+                            UserEntity loggedInUser = userService.getLoggedInUser();
+                            studentDiscount.setCreatedBy(loggedInUser);
                             studentDiscountRepository.save(studentDiscount);
                             resultMap.put("DISCOUNT_SAVED", "Discount saved for Student: "+student.get().getStudent().getStudentName());
                         } else{

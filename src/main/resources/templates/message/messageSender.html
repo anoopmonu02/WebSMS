@@ -1096,9 +1096,7 @@
                 </thead>
                 <tbody>`;
 
-            if (!activities || activities.length === 0) {
-                tableHtml += `<tr><td colspan="4" class="text-center text-muted">No activities found for this student.</td></tr>`;
-            } else {
+            if (activities && activities.length > 0) {
                 activities.forEach((act, idx) => {
                     let dt = '';
                     if (act.createdAt) {
@@ -1117,6 +1115,7 @@
             container.innerHTML = tableHtml;
 
             activitiesDataTable = $('#activitiesTable').DataTable({
+                language: { emptyTable: "No activities found for this student." },
                 scrollX: true,
                 autoWidth: false,
                 scrollCollapse: true,

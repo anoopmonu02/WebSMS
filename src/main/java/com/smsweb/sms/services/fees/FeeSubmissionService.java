@@ -533,7 +533,7 @@ public class FeeSubmissionService {
                     monIdList.add(Long.valueOf(months.split("-")[i]));
                 }
                 Fine fine = fineRepository.findAllByAcademicYear_IdAndSchool_Id(academicYear.getId(), school.getId()).get(0);
-                List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(), mediumId, gradeId, secId, academicYear.getId(), "Active");
+                List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school.getId(), mediumId, gradeId, secId, academicYear.getId(), "Active");
                 //AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
                 if(academicStudentList!=null && !academicStudentList.isEmpty()){
                     System.out.println("Academic Students: "+academicStudentList.size());
@@ -1236,7 +1236,8 @@ public class FeeSubmissionService {
                             .add(sectionName);
                     studentTotal.put(gradeName+"###"+sectionName, students);
                 }
-                List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFees(school, academic, new ArrayList<>(gradeSectionMap.keySet()));
+                System.out.println("GRADES::::: "+gradeSectionMap.keySet());
+                List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFeesCurrentMonth(school, academic, new ArrayList<>(gradeSectionMap.keySet()));
 
                 System.out.println("feeAmountDetails: "+feeAmountDetails);
                 for(Object[] objLst: feeAmountDetails){
@@ -1256,7 +1257,9 @@ public class FeeSubmissionService {
                                 noOfStudents = 0L;
                             }
                             list.add(noOfStudents);
-                            list.add(objLst[0]);
+                            BigDecimal feeAmount = objLst[0] != null ? new BigDecimal(objLst[0].toString()) : BigDecimal.ZERO;
+                            BigDecimal totalFeesIncome = feeAmount.multiply(BigDecimal.valueOf(noOfStudents));
+                            list.add(totalFeesIncome);
                             //Add discount detail
                             System.out.println("class: school:"+school.getClass()+" academic: "+academic.getClass()+" grade: "+gradeName.getClass()+"-"+section.getClass());
                             List<Object[]> discountDetails = feeSubmissionRepository.getStudentDiscountSummary(academic, school, gradeName, section);
@@ -1272,8 +1275,6 @@ public class FeeSubmissionService {
                             }
                             list.add(studentCountForDiscount);
                             list.add(studentAmountSumForDiscount);
-                            BigDecimal feeAmount = (BigDecimal) objLst[0];
-                            BigDecimal totalFeesIncome = feeAmount.multiply(BigDecimal.valueOf(noOfStudents));
                             BigDecimal incomeAmount  = totalFeesIncome.subtract(studentAmountSumForDiscount);
                             list.add(incomeAmount);
                             System.out.println("discountDetails: "+discountDetails);

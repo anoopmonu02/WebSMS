@@ -52,11 +52,13 @@ public class AcademicyearService {
     }
 
     public AcademicYear getCurrentAcademicYear(){
-        return academicyearRepository.findTopByStatusOrderByIdDesc("active");
+        AcademicYear ay = academicyearRepository.findTopByStatusOrderByIdDesc("active");
+        if (ay == null) ay = academicyearRepository.findTopByStatusOrderByIdDesc("Active");
+        return ay;
     }
 
     public AcademicYear getCurrentAcademicYear(Long schoolid){
-        return academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active",schoolid);
+        return academicyearRepository.findActiveBySchoolId(schoolid);
     }
 
     public String delete(Long id) {

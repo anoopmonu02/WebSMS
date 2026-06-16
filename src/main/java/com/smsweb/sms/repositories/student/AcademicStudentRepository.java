@@ -34,7 +34,7 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
     int countByStudent(Student student);
 
-    List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(Long school, Long medium, Long grade, Long section, Long academic_year, String status);
+    List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(Long school, Long medium, Long grade, Long section, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_Id(Long school, Long medium, Long grade, Long section, Long academic_year);
     List<AcademicStudent> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndStatus(Long school, String status);

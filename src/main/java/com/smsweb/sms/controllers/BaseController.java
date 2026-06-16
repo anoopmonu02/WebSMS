@@ -1,7 +1,10 @@
 package com.smsweb.sms.controllers;
 
+import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.users.UserService;
@@ -16,21 +19,29 @@ public abstract class BaseController {
     private AcademicyearService academicyearService;
     @Autowired
     private SchoolService schoolService;
-
     @Autowired
     private UserService userService;
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     // This method will run before every request in the extending controllers
     @ModelAttribute("academicYear")
     public AcademicYear setAcademicYearInModel(HttpSession session) {
         AcademicYear academicYear = (AcademicYear) session.getAttribute("activeAcademicYear");
         if (academicYear == null) {
-            academicYear = academicyearService.getCurrentAcademicYear();
+            // Try to resolve via school in session first (school-scoped, case-insensitive)
+            School school = (School) session.getAttribute("school");
+            if (school != null) {
+                academicYear = academicyearService.getCurrentAcademicYear(school.getId());
+            }
+            // Fall back to the no-school query (superadmin or session without school)
+            if (academicYear == null) {
+                academicYear = academicyearService.getCurrentAcademicYear();
+            }
             if (academicYear != null) {
                 session.setAttribute("activeAcademicYear", academicYear);
             } else {
-                // Handle the case when there's no academic year available (return a default or log a warning)
-                if(isSuperAdminLoggedIn()){
+                if (isSuperAdminLoggedIn()) {
                     return null;
                 }
                 throw new IllegalStateException("No active academic year found.");
@@ -49,8 +60,21 @@ public abstract class BaseController {
         if (isStudent || !auth.isAuthenticated()) return null;
         School school = (School) session.getAttribute("school");
         if (school == null) {
-            school = schoolService.getAllSchoolByName("United Avadh Inter College").get(0);
-            session.setAttribute("school", school);
+            // Look up the school from the logged-in employee's profile
+            try {
+                UserEntity user = userService.getLoggedInUser();
+                if (user != null) {
+                    Employee employee = employeeRepository.findByUserEntity(user);
+                    if (employee != null) {
+                        school = employee.getSchool();
+                        if (school != null) {
+                            session.setAttribute("school", school);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return school;
     }

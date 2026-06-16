@@ -130,7 +130,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             session.setAttribute("school", school);
 
             if (school != null) {
-                AcademicYear academicYear = academicyearRepository.findTopByStatusOrderByIdDesc("active");
+                AcademicYear academicYear = academicyearRepository.findActiveBySchoolId(school.getId());
                 if (academicYear == null) {
                     academicYear = academicYearService.saveAcademicYearIfNotFound();
                 }

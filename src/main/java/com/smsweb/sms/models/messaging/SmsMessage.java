@@ -63,7 +63,7 @@ public class SmsMessage {
     @Column(nullable = true)
     private String resolution;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
     private String smsHeading;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

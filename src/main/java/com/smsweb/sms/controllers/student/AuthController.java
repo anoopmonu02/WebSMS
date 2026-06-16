@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Optional;
 
@@ -39,7 +40,7 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public String forgotPassword(@RequestParam("email") String email, Model model) {
+    public String forgotPassword(@RequestParam("email") String email, Model model, HttpServletRequest request) {
         UserEntity user = userService.findByEmail(email);
         if (user == null) {
             model.addAttribute("error", "No user associated with this email address.");
@@ -54,7 +55,11 @@ public class AuthController {
 
         // Create a new token for the user
         PasswordResetToken newToken = passwordResetTokenService.createToken(user);
-        String resetLink = "http://localhost:9090/auth/reset-password?token=" + newToken.getToken();
+        int port = request.getServerPort();
+        String baseUrl = request.getScheme() + "://" + request.getServerName()
+                + (port == 80 || port == 443 ? "" : ":" + port)
+                + request.getContextPath();
+        String resetLink = baseUrl + "/auth/reset-password?token=" + newToken.getToken();
         try {
             emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
             model.addAttribute("message", "Password reset link has been sent to your email address.");

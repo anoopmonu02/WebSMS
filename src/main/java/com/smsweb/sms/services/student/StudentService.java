@@ -308,7 +308,7 @@ public class StudentService {
     }
 
     public List<AcademicStudent> getAllStudentsByGrade(Long medium, Long grade, Long section, Long academic, Long school){
-        return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school, medium, grade, section, academic, "Active");
+        return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school, medium, grade, section, academic, "Active");
     }
 
     @Transactional
@@ -470,7 +470,7 @@ public class StudentService {
 
     public Map getAllStudentsAttendanceByGrade(Long medium, Long gradeId, Long sectionId, Long academicYearId, Long schoolId){
         List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId, medium);
-        List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
+        List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
         Map<String, List> academicAttendanceMap = new HashMap<>();
         if(academicStudents!=null && !academicStudents.isEmpty()){
             List<Map<String, Object>> leanStudents = new ArrayList<>();
@@ -580,7 +580,7 @@ public class StudentService {
                     sundays.add(date.getDayOfMonth());
                 }
             }
-            List<AcademicStudent> students = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(schoolId, mediumId, gradeId, sectionId, academicId, "Active");
+            List<AcademicStudent> students = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(schoolId, mediumId, gradeId, sectionId, academicId, "Active");
 
             List<Attendance> attendanceRecords = attendanceRepository.findByAcademicStudentInAndAttendanceDateBetween(
                     students, startDate, endDate
@@ -796,9 +796,10 @@ public class StudentService {
                 String medium = paramsMap.get("medium");
                 String section = paramsMap.get("section");
                 String grade = paramsMap.get("grade");
-
-                List<AcademicStudent> rawList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatus(school.getId(),
-                        Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicYear.getId(), "Active");
+                Long academicId = academicYear.getId();
+                System.out.println("Acadmeic ID:  "+academicId);
+                List<AcademicStudent> rawList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school.getId(),
+                        Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicId, "Active");
                 if (CollectionUtils.isEmpty(rawList)) {
                     finalDataMap.put("totalStudentCollectionDetails", "No students details found for selected Grade");
                 } else {

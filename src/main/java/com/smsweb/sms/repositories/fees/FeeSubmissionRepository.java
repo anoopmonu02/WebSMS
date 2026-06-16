@@ -148,6 +148,28 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     List<Object[]> getGradewiseTutionFees(@Param("school") Long school,
                                       @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds);
 
+    @Query(value = """
+            SELECT SUM(fcm.amount) AS monthlyFee, fcm.grade_id, g.grade_name
+            FROM fee_class_map fcm
+            JOIN fee_month_map fmm
+                ON fcm.feehead_id = fmm.feehead_id
+                AND fcm.school_id = fmm.school_id
+                AND fcm.academic_year_id = fmm.academic_year_id
+            JOIN month_master mm ON mm.id = fmm.month_master_id
+            JOIN grade g ON g.id = fcm.grade_id
+            JOIN feehead fh ON fh.id = fcm.feehead_id
+            WHERE fcm.school_id = :school
+                AND fcm.academic_year_id = :academic
+                AND fcm.grade_id IN (:gradeIds)
+                AND LOWER(mm.month_name) = LOWER(MONTHNAME(CURDATE()))
+                AND fmm.is_applicable = true
+                AND LOWER(fh.fee_head_name) = 'tuition fee'
+            GROUP BY fcm.grade_id, g.grade_name
+            """, nativeQuery = true)
+    List<Object[]> getGradewiseTutionFeesCurrentMonth(@Param("school") Long school,
+                                                      @Param("academic") Long academic,
+                                                      @Param("gradeIds") List<Long> gradeIds);
+
     /*@Query("""
     SELECT COUNT(s.academicStudent.id) AS studentCount,
            dc.amount AS amount,
