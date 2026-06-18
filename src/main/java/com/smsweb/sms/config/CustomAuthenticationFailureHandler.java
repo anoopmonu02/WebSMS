@@ -14,7 +14,7 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         request.getSession().setAttribute("errorMessage", exception.getMessage());
         System.out.println(exception.getMessage());
-        response.sendRedirect("/login?error=true");
+        response.sendRedirect(request.getContextPath() + "/login?error=true");
     }
 
 

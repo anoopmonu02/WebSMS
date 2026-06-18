@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -40,11 +38,17 @@ public class WebSecurityConfig {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    // Inject the @Service-annotated bean so DI is properly wired (userRepository, etc.)
+    @Autowired
+    private UserDetailsServiceImpl userDetailsServiceImpl;
+
     // ── Shared beans ──────────────────────────────────────────────────────────
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return new UserDetailsServiceImpl();
+        // Return the Spring-managed instance (NOT new UserDetailsServiceImpl())
+        // so that @Autowired fields like userRepository are properly injected.
+        return userDetailsServiceImpl;
     }
 
     @Bean
@@ -52,10 +56,10 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+    // NOTE: Do NOT expose AuthenticationManager as a @Bean here.
+    // Doing so causes a ProviderManager circular-parent StackOverflowError:
+    //   PM_chain.authenticate() → PM_global.authenticate() → PM_chain.authenticate() → ...
+    // Spring Boot auto-configures the AuthenticationManager from the UserDetailsService bean above.
 
     // ── Mobile API Security Chain (Order 1 — evaluated first) ────────────────
     //
@@ -146,7 +150,7 @@ public class WebSecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .successHandler(customAuthenticationSuccessHandler())
+                        .successHandler(customAuthenticationSuccessHandler)
                         .failureHandler(customAuthenticationFailureHandler())
                         .permitAll()
                 )
@@ -165,14 +169,13 @@ public class WebSecurityConfig {
     }
 
 
+    // Inject the @Component-managed instance so all @Autowired fields inside it are properly wired.
+    @Autowired
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+
     @Bean
     public CustomAuthenticationFailureHandler customAuthenticationFailureHandler() {
         return new CustomAuthenticationFailureHandler();
-    }
-
-    @Bean
-    public CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler(){
-        return new CustomAuthenticationSuccessHandler();
     }
 
 
