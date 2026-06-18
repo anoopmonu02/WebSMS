@@ -525,13 +525,16 @@ public class FeeSubmissionService {
                 System.out.println("Medium: "+mediumId);
                 System.out.println("Months: "+months);
                 System.out.println("Date: "+lastDate);
-                List<MonthMaster> selectedMonthsList = new ArrayList<>();
                 List<Long> monIdList = new ArrayList<>();
 
                 for(int i=0;i<months.split("-").length;i++){
-                    selectedMonthsList.add(monthMasterRepository.findById(Long.valueOf(months.split("-")[i])).orElse(null));
                     monIdList.add(Long.valueOf(months.split("-")[i]));
                 }
+                // Expand to ALL months from start of academic year up to selected month (by priority)
+                List<MonthMapping> allMonthsUpToSelected = monthmappingRepository.findMonthsByPriority(academicYear.getId(), school.getId(), monIdList);
+                List<MonthMaster> selectedMonthsList = allMonthsUpToSelected.stream()
+                        .map(MonthMapping::getMonthMaster)
+                        .collect(Collectors.toList());
                 Fine fine = fineRepository.findAllByAcademicYear_IdAndSchool_Id(academicYear.getId(), school.getId()).get(0);
                 List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school.getId(), mediumId, gradeId, secId, academicYear.getId(), "Active");
                 //AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
