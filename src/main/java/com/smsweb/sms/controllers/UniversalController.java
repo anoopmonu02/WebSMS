@@ -486,6 +486,7 @@ public class UniversalController {
         List<Cast> casts = castService.getAllCasts();
         model.addAttribute("casts", casts);
         model.addAttribute("hasCasts", !casts.isEmpty());
+        model.addAttribute("page", "datatable");
         return "universal/cast";
     }
 

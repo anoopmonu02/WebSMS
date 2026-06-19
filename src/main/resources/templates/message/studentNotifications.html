@@ -253,7 +253,7 @@
             if(id>0){
 
                 console.log("id::::"+id);
-                let url = `${contextPath}getStudentDetailForDiscount/${id}`;
+                let url = `${contextPath}message/getStudentDetailForMessage/${id}`;
                 fetch(url).then(response => {
                     return response.json();
                 }).then((data) => {
@@ -265,7 +265,7 @@
                     }
                     else{
                         selectedStudent = data.student
-                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                        $(".studname").html(`<strong>Student Name: </strong> ${data.student.student.studentName}`);
                         $(".fname").html(`<strong>Father Name: </strong> ${data.student.student.fatherName}`);
                         $(".mname").html(`<strong>Mother Name: </strong> ${data.student.student.motherName}`);
                         $(".contactno").html(`<strong>Contact No: </strong> ${data.student.student.mobile1}`);

@@ -606,26 +606,19 @@ public class FeeSubmissionService {
                                     }
                                     int cdiff = monthmappingRepository.currentFeeDateDifference(new SimpleDateFormat("dd/MMM/yyyy").format(feeDate.getFeeSubmissiondate()), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
                                     try {
-                                        if (monthDiff >= 3) {
+                                        // Fine multiplier = monthDiff (past months) + 1 if current month's fee date also passed.
+                                        // This mirrors calculateFine() which iterates per-month:
+                                        //   past month       → always +fine
+                                        //   current month    → +fine only if cdiff < 0 (due date passed)
+                                        //   future month     → no fine
+                                        int fineMultiplier = monthDiff + (cdiff < 0 ? 1 : 0);
+                                        if (fineMultiplier >= fine.getMaxCalculated()) {
                                             fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fine.getMaxCalculated()));
-                                        } else if (monthDiff == 2) {
-                                            if (cdiff<0) {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(2));
-                                            } else {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount());
-                                            }
-                                        } else if (monthDiff == 1) {
-                                            if (cdiff<0) {
-                                                fineAmount = BigDecimal.valueOf(fine.getFineAmount());
-                                            } else {
-                                                fineAmount = BigDecimal.ZERO;
-                                            }
                                         } else {
-                                            fineAmount = BigDecimal.ZERO;
+                                            fineAmount = BigDecimal.valueOf(fine.getFineAmount()).multiply(BigDecimal.valueOf(fineMultiplier));
                                         }
                                     } catch (Exception e) {
                                         e.printStackTrace();
-                                        //responseMap.put("FINE_ERROR", "Error in calculating fine: "+e.getLocalizedMessage());
                                         responseMap.put("error", "Error in calculating fine: "+e.getLocalizedMessage());
                                     }
                                     //Calculate Discount
@@ -749,7 +742,7 @@ public class FeeSubmissionService {
                                         montnNames+=monthMaster.getMonthName()+", ";
                                     }
                                     BigDecimal finalamt = balanceAmount.add(amt).add(fineAmount);
-                                    finalamt = finalamt.subtract(discountAmount);
+                                    finalamt = finalamt.subtract(discountAmt);
                                     stuMap.put("amount", finalamt);
                                     stuMap.put("fineAmount", fineAmount);
                                     stuMap.put("monthsList", montnNames);

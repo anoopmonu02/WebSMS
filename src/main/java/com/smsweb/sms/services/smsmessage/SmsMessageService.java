@@ -35,7 +35,7 @@ public class SmsMessageService {
     private EmployeeRepository employeeRepository;
 
     public List<SmsMessage> getMessagesByStudentId(Long studentId) {
-        return smsMessageRepository.findByRecipients_Id(studentId);
+        return smsMessageRepository.findByRecipients_IdAndMessageType(studentId, SmsMessage.MESSAGE_TYPE_COMPLAINT);
     }
 
     public Optional<SmsMessage> findById(Long id) {

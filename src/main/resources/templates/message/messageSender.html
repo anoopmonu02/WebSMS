@@ -423,7 +423,7 @@
             if(id>0){
 
                 console.log("id::::"+id);
-                let url = `${contextPath}getStudentDetailForDiscount/${id}`;
+                let url = `${contextPath}message/getStudentDetailForMessage/${id}`;
                 fetch(url).then(response => {
                     return response.json();
                 }).then((data) => {
@@ -458,6 +458,11 @@
                         $("#smsSubject").html("");
                     } else if (messageType === "activities") {
                         loadActivitiesForStudent(id);
+                    } else if (messageType === "notification") {
+                        let recipientType = $("#recipientType").val();
+                        if (recipientType === "STUDENT") {
+                            loadNotificationsForStudent(id);
+                        }
                     }
 
                 });
@@ -531,6 +536,47 @@
                     console.error("Failed to load messages:", err);
                     $('#smsSection').show();
                     $('#smsMessagesTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading messages. Please try again.</td></tr>');
+                });
+        };
+
+        const loadNotificationsForStudent = (studentId) => {
+            let url = `${contextPath}message/notifications?studentId=${studentId}`;
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error('Server error: ' + res.status);
+                    return res.json();
+                })
+                .then(notifications => {
+                    $('#smsSection').show();
+                    $('#conversationDiv').hide();
+                    let tbody = $('#smsMessagesTable tbody');
+                    tbody.empty();
+                    if (!Array.isArray(notifications) || notifications.length === 0) {
+                        tbody.append('<tr><td colspan="4" class="text-center text-muted">No notifications found</td></tr>');
+                        return;
+                    }
+                    let counter = 1;
+                    notifications.forEach(n => {
+                        let dt = n.smsDate
+                            ? new Date(n.smsDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replaceAll(' ', '/')
+                            : '';
+                        let recipientLabel = n.recipientType === 'CLASS'
+                            ? `Class: ${n.className || ''} - ${n.sectionName || ''}`
+                            : (n.recipientType === 'ALL' ? 'All Students' : 'Student');
+                        let row = `<tr>
+                            <td>${counter}</td>
+                            <td>${n.smsHeading || ''}</td>
+                            <td>${dt}</td>
+                            <td><span class="badge bg-info text-dark">${recipientLabel}</span></td>
+                        </tr>`;
+                        tbody.append(row);
+                        counter++;
+                    });
+                })
+                .catch(err => {
+                    console.error("Failed to load notifications:", err);
+                    $('#smsSection').show();
+                    $('#smsMessagesTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading notifications. Please try again.</td></tr>');
                 });
         };
 

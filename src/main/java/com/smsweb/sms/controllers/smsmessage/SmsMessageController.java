@@ -15,6 +15,7 @@ import com.smsweb.sms.services.globalaccess.DropdownService;
 //import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.SectionService;
 import com.smsweb.sms.services.users.UserService;
@@ -42,17 +43,19 @@ public class SmsMessageController {
     private final SmsMessageService smsMessageService;
     private final UserService userService;
     private final AcademicStudentService academicStudentService;
+    private final StudentService studentService;
     private final GradeService gradeService;
     private final SectionService sectionService;
     private final EmployeeService employeeService;
 
     //, SmsMessageService messageService
-    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService, GradeService gradeService, SectionService sectionService, EmployeeService employeeService) {
+    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService, StudentService studentService, GradeService gradeService, SectionService sectionService, EmployeeService employeeService) {
         this.dropdownService = dropdownService;
         //this.messageService = messageService;
         this.smsMessageService = smsMessageService;
         this.userService = userService;
         this.academicStudentService = academicStudentService;
+        this.studentService = studentService;
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.employeeService = employeeService;
@@ -459,6 +462,24 @@ public class SmsMessageController {
             notifications = smsMessageService.getNotificationDtosByStudentId(studentId);
         }
         return ResponseEntity.ok(notifications);
+    }
+
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.VIEW)
+    @GetMapping("/getStudentDetailForMessage/{id}")
+    public ResponseEntity<Map<String, Object>> getStudentDetailForMessage(@PathVariable("id") Long id) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Optional<AcademicStudent> studentOpt = academicStudentService.findById(id);
+            if (studentOpt.isPresent()) {
+                result.put("student", studentService.toLeanAcademicStudentMap(studentOpt.get()));
+            } else {
+                result.put("noAcademicStudent", "Student not found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("error", "Error: " + e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
     }
 
 

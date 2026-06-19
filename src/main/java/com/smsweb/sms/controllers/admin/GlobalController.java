@@ -1258,7 +1258,8 @@ public class GlobalController extends BaseController {
             }
         }*/
         List<Roles> roles = roleRepository.findAll().stream()
-                .filter(role -> !role.getName().equals("ROLE_SUPERADMIN"))
+                .filter(role -> !role.getName().equals("ROLE_SUPERADMIN")
+                             && !role.getName().equals("ROLE_STUDENT"))
                 .collect(Collectors.toList());
         model.addAttribute("employees", employees);
         model.addAttribute("hasEmployee", !employees.isEmpty());
