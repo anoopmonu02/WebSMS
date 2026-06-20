@@ -921,6 +921,12 @@
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Message History</span></a></li>
                     </ul>
                 </li>
+                <li class="sidebar-item">
+                    <a th:href="@{/universal/download-docs}" class="sidebar-link" data-tip="Download Documents">
+                        <i class="bi bi-file-earmark-arrow-down-fill"></i>
+                        <span>Download Documents</span>
+                    </a>
+                </li>
 
             </ul>
         </div><!-- end sidebar-nav-wrap -->

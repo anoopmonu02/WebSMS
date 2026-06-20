@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Download Documents</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-4">
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-1 flex-wrap gap-2">
+            <div>
+                <div class="card-header fs-3">
+                    <i class="bi bi-file-earmark-arrow-down-fill me-2 text-primary"></i>Download Documents
+                </div>
+                <p class="text-muted small mb-0 mt-1">PDF documents available for download</p>
+            </div>
+            <span class="badge bg-primary fs-6 px-3 py-2">
+                <i class="bi bi-files me-1"></i>
+                <span th:text="${files.size()}">0</span> document(s)
+            </span>
+        </div>
+        <hr class="mt-2"/>
+
+        <!-- Documents Table -->
+        <div th:if="${hasFiles}">
+            <table id="docsTable"
+                   class="table table-bordered table-striped table-hover table-sm align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th style="width:60px;">#</th>
+                    <th>Document Name</th>
+                    <th style="width:130px;">File Size</th>
+                    <th style="width:140px;" class="text-center">Download</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="file : ${files}">
+                    <td th:text="${file.index}"></td>
+                    <td>
+                        <i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>
+                        <span th:text="${file.displayName}"></span>
+                    </td>
+                    <td>
+                        <span class="text-muted" th:text="${file.size}"></span>
+                    </td>
+                    <td class="text-center">
+                        <a th:href="@{/universal/download-docs/file/{name}(name=${file.name})}"
+                           class="btn btn-sm btn-primary"
+                           title="Download">
+                            <i class="bi bi-download me-1"></i>Download
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div th:unless="${hasFiles}"
+             class="text-center py-5 mt-4">
+            <i class="bi bi-folder2-open display-1 text-muted"></i>
+            <p class="fs-5 text-muted mt-3">No documents available yet.</p>
+            <p class="text-muted small">
+                Place PDF files in the configured <code>download_docs</code> folder on the server.
+            </p>
+        </div>
+
+    </div>
+
+    <!-- DataTable init (two-script pattern to avoid Thymeleaf bracket conflict) -->
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ($('#docsTable').length) {
+                var sortOrder = [0, 'asc'];
+                $('#docsTable').DataTable({
+                    pageLength: 25,
+                    order: [sortOrder],
+                    columnDefs: [
+                        { orderable: false, targets: [3] }
+                    ],
+                    language: {
+                        search: "Search documents:",
+                        emptyTable: "No documents found.",
+                        zeroRecords: "No matching documents found."
+                    }
+                });
+            }
+        });
+    </script>
+    <script type="text/javascript" th:inline="javascript">
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            toastr.options = { closeButton: true, positionClass: "toast-top-right", timeOut: "5000" };
+            toastr["success"](successMessage, "Success");
+        }
+    </script>
+</section>
+</body>
+</html>

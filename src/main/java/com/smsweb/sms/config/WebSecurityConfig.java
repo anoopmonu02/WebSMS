@@ -140,6 +140,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/universal/download-docs/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/universal/**").hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
                         .requestMatchers("/message/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
 
