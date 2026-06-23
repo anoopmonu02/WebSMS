@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>Student Bulk Import</title></head>
+<body>
+<section>
+<style>
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2.5px dashed #6c757d;
+    border-radius: 16px;
+    padding: 60px 30px;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all .25s ease;
+    cursor: pointer;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: #0d6efd;
+    background: #e9f0ff;
+  }
+  .upload-zone .upload-icon { font-size: 3.5rem; color: #6c757d; transition: color .25s; }
+  .upload-zone:hover .upload-icon { color: #0d6efd; }
+
+  /* ── Step tracker ── */
+  .step-tracker { display: flex; align-items: center; gap: 0; margin-bottom: 1.5rem; }
+  .step-item { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .step-item:not(:last-child)::after {
+    content: ''; position: absolute; top: 18px; left: 60%; width: 80%;
+    height: 2px; background: #dee2e6; z-index: 0;
+  }
+  .step-item.done:not(:last-child)::after { background: #198754; }
+  .step-circle {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem; z-index: 1;
+    border: 2px solid #dee2e6; background: #fff; color: #6c757d;
+  }
+  .step-item.active .step-circle  { border-color: #0d6efd; background: #0d6efd; color: #fff; }
+  .step-item.done   .step-circle  { border-color: #198754; background: #198754; color: #fff; }
+  .step-label { font-size: .75rem; margin-top: 5px; color: #6c757d; font-weight: 500; }
+  .step-item.active .step-label { color: #0d6efd; font-weight: 700; }
+  .step-item.done   .step-label { color: #198754; }
+
+  /* ── Lookup cards ── */
+  .lookup-card { border-radius: 10px; border: 0; box-shadow: 0 1px 6px rgba(0,0,0,.08); margin-bottom: .85rem; }
+  .lookup-card .card-header { border-radius: 10px 10px 0 0 !important; padding: .5rem .75rem; font-size: .82rem; font-weight: 600; }
+  .lookup-card .card-body   { padding: .5rem .75rem; font-size: .78rem; max-height: 160px; overflow-y: auto; }
+  .lookup-item { padding: 1px 0; line-height: 1.5; }
+
+  /* ── Row status colouring ── */
+  .row-ready   { background: #f0fff4 !important; }
+  .row-warning { background: #fffbf0 !important; }
+  .row-error   { background: #fff5f5 !important; }
+
+  /* ── Stat counters ── */
+  .stat-pill { border-radius: 50px; padding: 6px 18px; font-size: .85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ── Import button ── */
+  .btn-import { font-size: 1rem; padding: 10px 28px; border-radius: 8px; font-weight: 600; }
+
+  /* ── Notes cell ── */
+  .notes-list { margin: 0; padding-left: 14px; font-size: .72rem; }
+  .notes-list li { margin-bottom: 1px; }
+
+  /* ── Result cards ── */
+  .result-stat-card { border-radius: 12px; border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.08); text-align: center; padding: 20px 10px; }
+  .result-stat-num  { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+
+  /* ── Quick-add buttons ── */
+  .btn-quick-add {
+    font-size: .65rem; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid currentColor; background: transparent;
+    cursor: pointer; line-height: 1.4; vertical-align: middle; margin-left: 4px;
+    transition: all .15s;
+  }
+  .btn-quick-add:hover:not(:disabled) { background: rgba(0,0,0,.08); }
+  .btn-quick-add.added {
+    color: #198754 !important; border-color: #198754 !important;
+    background: rgba(25,135,84,.1) !important; cursor: default;
+  }
+  .btn-quick-add.failed { color: #dc3545 !important; border-color: #dc3545 !important; }
+  .btn-add-all {
+    font-size: .65rem; padding: 1px 6px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.6); background: rgba(255,255,255,.15);
+    color: #fff; cursor: pointer; line-height: 1.4; float: right; margin-left: 4px;
+    transition: background .15s;
+  }
+  .btn-add-all:hover { background: rgba(255,255,255,.3); }
+  .btn-add-all.text-dark { color: #212529 !important; border-color: rgba(0,0,0,.4) !important; background: rgba(0,0,0,.08) !important; }
+  .btn-add-all.text-dark:hover { background: rgba(0,0,0,.18) !important; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <!-- Page header -->
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-file-earmark-arrow-up-fill text-primary me-2"></i>Student Bulk Import
+      </h4>
+      <p class="text-muted small mb-0">Import legacy student data from XLS — Root Admin only</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a th:href="@{/student/import/reset}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+      </a>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Flash alerts -->
+  <div th:if="${error}" class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${success}" class="alert alert-success alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- ── School selector (SUPERADMIN only — shown when no school in session) ── -->
+  <div th:if="${allSchools != null}" class="card border-0 shadow-sm mb-4" style="border-radius:14px; border-left:4px solid #0d6efd !important;">
+    <div class="card-body p-4">
+      <h6 class="fw-bold mb-1"><i class="bi bi-building me-2 text-primary"></i>Select School &amp; Academic Session</h6>
+      <p class="text-muted small mb-3">As Root Admin you are not bound to a school. Choose the school and session you want to import into.</p>
+      <form th:action="@{/student/import/select-school}" method="post" id="schoolSelectForm">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label fw-semibold small">School</label>
+            <select class="form-select" id="schoolSelect" name="schoolId" required onchange="loadAcademicYears(this.value)">
+              <option value="">— Select School —</option>
+              <option th:each="sch : ${allSchools}"
+                      th:value="${sch.id}"
+                      th:text="${sch.schoolName}"></option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Academic Session</label>
+            <select class="form-select" id="sessionSelect" name="sessionFormat" required disabled>
+              <option value="">— Select school first —</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-check-lg me-1"></i>Confirm &amp; Continue
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Selected school info banner ── -->
+  <div th:if="${selectedSchool != null}" class="alert alert-info d-flex align-items-center gap-3 py-2 mb-3">
+    <i class="bi bi-building-fill fs-5 flex-shrink-0"></i>
+    <div class="small">
+      Importing into <strong th:text="${selectedSchool.schoolName}"></strong>
+      <span th:if="${selectedAcademicYear != null}">
+        &nbsp;|&nbsp; Session: <strong th:text="${selectedAcademicYear.sessionFormat}"></strong>
+      </span>
+    </div>
+    <a th:href="@{/student/import/reset}" class="ms-auto btn btn-sm btn-outline-secondary">Change</a>
+  </div>
+
+  <!-- ── Step tracker ── -->
+  <div class="step-tracker px-2">
+    <div th:classappend="${preview==null and importDone==null}?'active':(${importDone!=null}?'done':'done')"
+         class="step-item">
+      <div class="step-circle"><i class="bi bi-upload"></i></div>
+      <span class="step-label">1. Upload File</span>
+    </div>
+    <div th:classappend="${preview!=null and importDone==null}?'active':(${importDone!=null}?'done':'')"
+         class="step-item">
+      <div class="step-circle"><i class="bi bi-search"></i></div>
+      <span class="step-label">2. Preview & Validate</span>
+    </div>
+    <div th:classappend="${importDone!=null}?'active':''"
+         class="step-item">
+      <div class="step-circle"><i class="bi bi-database-fill-up"></i></div>
+      <span class="step-label">3. Import Complete</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 1 — Upload
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${preview==null and importDone==null}">
+    <div class="row g-4">
+
+      <!-- Upload card -->
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+          <div class="card-body p-4">
+            <form th:action="@{/student/import/preview}" method="post"
+                  enctype="multipart/form-data" id="uploadForm">
+
+              <div class="upload-zone" id="uploadZone" onclick="document.getElementById('xlsFile').click()">
+                <div class="upload-icon mb-3"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                <h5 class="fw-semibold mb-1">Click or drag &amp; drop your XLS file</h5>
+                <p class="text-muted small mb-3">Supports .xls and .xlsx formats</p>
+                <input type="file" name="file" id="xlsFile" accept=".xls,.xlsx"
+                       class="d-none" required/>
+                <div id="fileInfo" class="d-none mt-2">
+                  <span class="badge bg-primary fs-6 px-3 py-2" id="fileName"></span>
+                </div>
+              </div>
+
+              <div class="alert alert-warning d-flex gap-2 align-items-start mt-4 py-3 small">
+                <i class="bi bi-exclamation-triangle-fill fs-5 mt-1 flex-shrink-0"></i>
+                <div>
+                  <strong>Before uploading, verify:</strong><br>
+                  All <strong>Grades</strong> (KG, NURSERY, 1–12 etc.) and <strong>Sections</strong>
+                  (A, B, A1… etc.) from the file must already exist in the database.
+                  Add any missing ones via <em>Configuration → Global Settings</em> first.
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-import w-100 mt-2" id="uploadBtn" disabled>
+                <span class="normal-state"><i class="bi bi-search me-2"></i>Parse &amp; Preview Data</span>
+                <span class="loading-state d-none">
+                  <span class="spinner-border spinner-border-sm me-2"></span>Parsing file, please wait…
+                </span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column guide -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+          <div class="card-header bg-dark text-white fw-semibold" style="border-radius:14px 14px 0 0;">
+            <i class="bi bi-table me-2"></i>Expected Column Order
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0 small">
+              <thead class="table-secondary">
+                <tr><th style="width:40px;">Col</th><th>Name</th><th>Behaviour</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="fw-bold">A</td><td>SNo.</td><td class="text-muted">Row index</td></tr>
+                <tr><td class="fw-bold">B</td><td>Student Name</td><td class="text-muted">Uppercased</td></tr>
+                <tr><td class="fw-bold">C</td><td>Father's Name</td><td class="text-muted">Uppercased</td></tr>
+                <tr><td class="fw-bold">D</td><td>Mother's Name</td><td class="text-muted">Uppercased</td></tr>
+                <tr><td class="fw-bold">E</td><td>SR No</td><td class="text-muted">→ classSrNo</td></tr>
+                <tr class="table-danger"><td class="fw-bold">F</td><td>Class</td><td><span class="badge bg-danger">Must exist in DB</span></td></tr>
+                <tr class="table-danger"><td class="fw-bold">G</td><td>Section</td><td><span class="badge bg-danger">Must exist in DB</span></td></tr>
+                <tr><td class="fw-bold">H</td><td>DOB</td><td class="text-muted">DD/MMM/YYYY or null</td></tr>
+                <tr><td class="fw-bold">I</td><td>Religion</td><td class="text-muted">HINDU/MUSLIM/SIKH/OTHER</td></tr>
+                <tr><td class="fw-bold">J</td><td>Cast</td><td><span class="badge bg-warning text-dark">Auto-created</span></td></tr>
+                <tr class="table-danger"><td class="fw-bold">K</td><td>Category</td><td><span class="badge bg-danger">Must exist in DB</span></td></tr>
+                <tr><td class="fw-bold">L</td><td>Gender</td><td class="text-muted">MALE / FEMALE</td></tr>
+                <tr><td class="fw-bold">M</td><td>Contact No</td><td class="text-muted">1 or 2 numbers</td></tr>
+                <tr><td class="fw-bold">N</td><td>Address</td><td class="text-muted">Street, City</td></tr>
+                <tr><td class="fw-bold">O</td><td>Aadhar No</td><td class="text-muted">12 digits</td></tr>
+                <tr><td class="fw-bold">P</td><td>Bank Name</td><td class="text-muted">Fallback: NO Bank</td></tr>
+                <tr><td class="fw-bold">Q</td><td>Branch Name</td><td class="text-muted"></td></tr>
+                <tr><td class="fw-bold">R</td><td>Account No</td><td class="text-muted"></td></tr>
+                <tr><td class="fw-bold">S</td><td>IFSC Code</td><td class="text-muted"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /step 1 -->
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 2 — Preview
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${preview!=null}">
+
+    <!-- Stat bar -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <span class="stat-pill bg-light border">
+        <i class="bi bi-people-fill text-secondary"></i>
+        Total <strong th:text="${preview.totalRows}">0</strong>
+      </span>
+      <span class="stat-pill bg-success bg-opacity-15 text-success border border-success">
+        <i class="bi bi-check-circle-fill"></i>
+        Ready <strong th:text="${preview.readyCount}">0</strong>
+      </span>
+      <span class="stat-pill bg-warning bg-opacity-15 text-warning border border-warning">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Warnings <strong th:text="${preview.warningCount}">0</strong>
+      </span>
+      <span class="stat-pill bg-danger bg-opacity-15 text-danger border border-danger">
+        <i class="bi bi-x-circle-fill"></i>
+        Errors <strong th:text="${preview.errorCount}">0</strong>
+      </span>
+      <div class="ms-auto d-flex gap-2">
+        <a th:href="@{/student/import}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Re-upload
+        </a>
+        <form th:action="@{/student/import/execute}" method="post"
+              th:if="${preview.importAllowed}">
+          <button type="submit" class="btn btn-success btn-import"
+                  onclick="return confirm('Insert all valid students into the database?\n\nThis cannot be undone.')">
+            <i class="bi bi-database-fill-up me-2"></i>Insert Into Database
+          </button>
+        </form>
+        <button class="btn btn-success btn-import" disabled title="Fix errors first"
+                th:unless="${preview.importAllowed}">
+          <i class="bi bi-database-fill-up me-2"></i>Insert Into Database
+        </button>
+      </div>
+    </div>
+
+    <!-- Blocked banner — only for missing categories now -->
+    <div th:unless="${preview.importAllowed}"
+         class="alert alert-danger d-flex gap-3 align-items-center mb-3 py-3">
+      <i class="bi bi-shield-x fs-2 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block">Import Blocked</strong>
+        One or more <strong>Categories</strong> are missing from the database.
+        Add them via Configuration → Global Settings, then re-upload the file.
+      </div>
+    </div>
+
+    <div class="row g-3">
+
+      <!-- ── LEFT: Lookup panel ── -->
+      <div class="col-xl-2 col-lg-3">
+
+        <!-- Grades -->
+        <div class="card lookup-card"
+             th:classappend="${!preview.gradesToCreate.isEmpty()} ? 'border-warning' : 'border-success'">
+          <div class="card-header d-flex align-items-center justify-content-between"
+               th:classappend="${!preview.gradesToCreate.isEmpty()} ? 'bg-warning text-dark' : 'bg-success text-white'">
+            <span><i class="bi bi-grid-3x3-gap me-1"></i>Grades</span>
+            <div class="d-flex align-items-center gap-1">
+              <span th:if="${!preview.gradesToCreate.isEmpty()}"
+                    class="badge bg-dark"
+                    th:text="${preview.gradesToCreate.size()} + ' new'"></span>
+              <button th:if="${!preview.gradesToCreate.isEmpty()}"
+                      class="btn-add-all text-dark"
+                      data-card="grades"
+                      onclick="addAllInCard(this)"
+                      title="Add all new grades to DB">+ Add All</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-success" th:each="g:${preview.gradesFound}">
+              <i class="bi bi-check2"></i> <span th:text="${g}"></span>
+            </div>
+            <div class="lookup-item text-warning fw-semibold" th:each="g:${preview.gradesToCreate}">
+              <i class="bi bi-plus-circle"></i> <span th:text="${g}"></span>
+              <button class="btn-quick-add"
+                      th:attr="data-name=${g}"
+                      data-type="grade"
+                      onclick="quickAdd(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sections -->
+        <div class="card lookup-card"
+             th:classappend="${!preview.sectionsToCreate.isEmpty()} ? 'border-warning' : 'border-success'">
+          <div class="card-header d-flex align-items-center justify-content-between"
+               th:classappend="${!preview.sectionsToCreate.isEmpty()} ? 'bg-warning text-dark' : 'bg-success text-white'">
+            <span><i class="bi bi-layout-split me-1"></i>Sections</span>
+            <div class="d-flex align-items-center gap-1">
+              <span th:if="${!preview.sectionsToCreate.isEmpty()}"
+                    class="badge bg-dark"
+                    th:text="${preview.sectionsToCreate.size()} + ' new'"></span>
+              <button th:if="${!preview.sectionsToCreate.isEmpty()}"
+                      class="btn-add-all text-dark"
+                      data-card="sections"
+                      onclick="addAllInCard(this)"
+                      title="Add all new sections to DB">+ Add All</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-success" th:each="s:${preview.sectionsFound}">
+              <i class="bi bi-check2"></i> <span th:text="${s}"></span>
+            </div>
+            <div class="lookup-item text-warning fw-semibold" th:each="s:${preview.sectionsToCreate}">
+              <i class="bi bi-plus-circle"></i> <span th:text="${s}"></span>
+              <button class="btn-quick-add"
+                      th:attr="data-name=${s}"
+                      data-type="section"
+                      onclick="quickAdd(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories — no quick-add (must be configured via admin, they affect fees etc.) -->
+        <div class="card lookup-card"
+             th:classappend="${!preview.categoriesMissing.isEmpty()} ? 'border-danger' : 'border-success'">
+          <div class="card-header"
+               th:classappend="${!preview.categoriesMissing.isEmpty()} ? 'bg-danger text-white' : 'bg-success text-white'">
+            <i class="bi bi-tags me-1"></i>Categories
+            <span th:if="${!preview.categoriesMissing.isEmpty()}"
+                  class="badge bg-light text-danger float-end" style="font-size:.65rem;">Admin → Config</span>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-success" th:each="c:${preview.categoriesFound}">
+              <i class="bi bi-check2"></i> <span th:text="${c}"></span>
+            </div>
+            <div class="lookup-item text-danger fw-bold" th:each="c:${preview.categoriesMissing}">
+              <i class="bi bi-x-lg"></i> <span th:text="${c}"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Castes -->
+        <div class="card lookup-card border-warning" th:if="${!preview.castesToCreate.isEmpty() or !preview.castesFound.isEmpty()}">
+          <div class="card-header bg-warning text-dark d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-person-badge me-1"></i>Castes</span>
+            <div class="d-flex align-items-center gap-1">
+              <span class="badge bg-dark"
+                    th:if="${!preview.castesToCreate.isEmpty()}"
+                    th:text="${preview.castesToCreate.size()} + ' new'"></span>
+              <button th:if="${!preview.castesToCreate.isEmpty()}"
+                      class="btn-add-all text-dark"
+                      data-card="castes"
+                      onclick="addAllInCard(this)"
+                      title="Add all new castes to DB">+ Add All</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-muted" th:each="c:${preview.castesFound}">
+              <i class="bi bi-check2 text-success"></i> <span th:text="${c}"></span>
+            </div>
+            <div class="lookup-item text-warning fw-semibold" th:each="c:${preview.castesToCreate}">
+              <i class="bi bi-plus-circle"></i> <span th:text="${c}"></span>
+              <button class="btn-quick-add text-warning"
+                      th:attr="data-name=${c}"
+                      data-type="cast"
+                      onclick="quickAdd(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cities -->
+        <div class="card lookup-card border-info" th:if="${!preview.citiesToCreate.isEmpty() or !preview.citiesFound.isEmpty()}">
+          <div class="card-header bg-info text-dark d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-geo-alt me-1"></i>Cities</span>
+            <div class="d-flex align-items-center gap-1">
+              <span class="badge bg-dark"
+                    th:if="${!preview.citiesToCreate.isEmpty()}"
+                    th:text="${preview.citiesToCreate.size()} + ' new'"></span>
+              <button th:if="${!preview.citiesToCreate.isEmpty()}"
+                      class="btn-add-all text-dark"
+                      data-card="cities"
+                      onclick="addAllInCard(this)"
+                      title="Add all new cities to DB">+ Add All</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-muted" th:each="c:${preview.citiesFound}">
+              <i class="bi bi-check2 text-success"></i> <span th:text="${c}"></span>
+            </div>
+            <div class="lookup-item text-info fw-semibold" th:each="c:${preview.citiesToCreate}">
+              <i class="bi bi-plus-circle"></i> <span th:text="${c}"></span>
+              <button class="btn-quick-add text-info"
+                      th:attr="data-name=${c}"
+                      data-type="city"
+                      onclick="quickAdd(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banks -->
+        <div class="card lookup-card border-secondary">
+          <div class="card-header bg-secondary text-white d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-bank me-1"></i>Banks</span>
+            <button th:if="${!preview.banksFallback.isEmpty()}"
+                    class="btn-add-all"
+                    data-card="banks"
+                    onclick="addAllInCard(this)"
+                    title="Add missing banks to DB">+ Add All</button>
+          </div>
+          <div class="card-body">
+            <div class="lookup-item text-success" th:each="b:${preview.banksFound}">
+              <i class="bi bi-check2"></i> <span th:text="${b}"></span>
+            </div>
+            <div class="lookup-item text-muted" th:each="b:${preview.banksFallback}">
+              <i class="bi bi-arrow-right"></i> <span th:text="${b}"></span>
+              <span class="badge bg-secondary" style="font-size:.65rem;">→ NO Bank</span>
+              <button class="btn-quick-add"
+                      th:attr="data-name=${b}"
+                      data-type="bank"
+                      onclick="quickAdd(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- ── RIGHT: DataTable ── -->
+      <div class="col-xl-10 col-lg-9">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+          <div class="card-body p-2">
+            <div class="table-responsive">
+              <table id="previewTable"
+                     class="table table-bordered table-hover align-middle mb-0"
+                     style="font-size:.78rem; width:100%;">
+                <thead class="table-dark">
+                  <tr>
+                    <th>#</th>
+                    <th>Status</th>
+                    <th>SR No</th>
+                    <th>Student Name</th>
+                    <th>Father</th>
+                    <th>Class</th>
+                    <th>Sec</th>
+                    <th>DOB</th>
+                    <th>Gender</th>
+                    <th>Religion</th>
+                    <th>Caste</th>
+                    <th>Category</th>
+                    <th>Mobile 1</th>
+                    <th>Mobile 2</th>
+                    <th>City</th>
+                    <th>Bank</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="row:${preview.rows}"
+                      th:class="${row.status=='ERROR'} ? 'row-error' :
+                                (${row.status=='WARNING'} ? 'row-warning' : 'row-ready')">
+                    <td th:text="${row.rowNum}" class="text-muted"></td>
+                    <td>
+                      <span th:if="${row.status=='READY'}"   class="badge bg-success">✓</span>
+                      <span th:if="${row.status=='WARNING'}" class="badge bg-warning text-dark">⚠</span>
+                      <span th:if="${row.status=='ERROR'}"   class="badge bg-danger">✗</span>
+                    </td>
+                    <td th:text="${row.classSrNo}" class="fw-semibold"></td>
+                    <td th:text="${row.studentName}"></td>
+                    <td th:text="${row.fatherName}"></td>
+                    <td>
+                      <span th:text="${row.rawClass}"></span>
+                      <i th:unless="${row.gradeFound}"   class="bi bi-x-circle-fill text-danger ms-1" title="Not in DB"></i>
+                      <i th:if="${row.gradeFound}"       class="bi bi-check-circle-fill text-success ms-1"></i>
+                    </td>
+                    <td>
+                      <span th:text="${row.rawSection}"></span>
+                      <i th:unless="${row.sectionFound}" class="bi bi-x-circle-fill text-danger ms-1" title="Not in DB"></i>
+                      <i th:if="${row.sectionFound}"     class="bi bi-check-circle-fill text-success ms-1"></i>
+                    </td>
+                    <td th:text="${row.dobStr!=null ? row.dobStr : '—'}"
+                        th:class="${row.dobIsNull} ? 'text-muted fst-italic' : ''"></td>
+                    <td th:text="${row.gender}"></td>
+                    <td th:text="${row.religion}"></td>
+                    <td>
+                      <span th:text="${row.casteCleaned}"></span>
+                      <span th:unless="${row.castExists}" class="badge bg-warning text-dark" style="font-size:.65rem;">new</span>
+                    </td>
+                    <td th:text="${row.categoryName}"></td>
+                    <td>
+                      <span th:text="${row.mobile1}"></span>
+                      <span th:if="${row.contactDummy}" class="badge bg-secondary" style="font-size:.65rem;">dummy</span>
+                    </td>
+                    <td th:text="${row.mobile2!=null ? row.mobile2 : '—'}"></td>
+                    <td>
+                      <span th:text="${row.cityName!=null ? row.cityName : '—'}"></span>
+                      <span th:if="${row.cityName!=null and !row.cityExists}" class="badge bg-info text-dark" style="font-size:.65rem;">new</span>
+                    </td>
+                    <td>
+                      <span th:text="${row.bankName.isBlank() ? '—' : row.bankName}"></span>
+                      <span th:unless="${row.bankFound}" class="badge bg-secondary" style="font-size:.65rem;">NO Bank</span>
+                    </td>
+                    <td>
+                      <ul class="notes-list" th:if="${!row.messages.isEmpty()}">
+                        <li th:each="msg:${row.messages}" th:text="${msg}"></li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div><!-- /right -->
+
+    </div><!-- /row -->
+  </div><!-- /step 2 -->
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 3 — Result
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${importDone!=null}">
+
+    <!-- Result headline -->
+    <div class="alert alert-success d-flex gap-3 align-items-center py-3 mb-4">
+      <i class="bi bi-check-circle-fill fs-2 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block fs-5">Import Complete!</strong>
+        Check the breakdown below. Rows that errored were skipped — no partial data was written for those rows.
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card bg-light">
+          <div class="result-stat-num text-primary" th:text="${result.totalRows}">0</div>
+          <div class="text-muted small mt-1">Total Processed</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#f0fff4;">
+          <div class="result-stat-num text-success" th:text="${result.readyCount}">0</div>
+          <div class="text-muted small mt-1">Successfully Saved</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#fffbf0;">
+          <div class="result-stat-num text-warning" th:text="${result.warningCount}">0</div>
+          <div class="text-muted small mt-1">Saved with Warnings</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#fff5f5;">
+          <div class="result-stat-num text-danger" th:text="${result.errorCount}">0</div>
+          <div class="text-muted small mt-1">Failed / Skipped</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result table -->
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table id="resultTable"
+                 class="table table-bordered table-hover align-middle mb-0"
+                 style="font-size:.8rem; width:100%;">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Status</th>
+                <th>SR No</th>
+                <th>Student Name</th>
+                <th>Father</th>
+                <th>Class</th>
+                <th>Section</th>
+                <th>Result / Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="row:${result.rows}"
+                  th:class="${row.status=='ERROR'} ? 'row-error' :
+                            (${row.status=='WARNING'} ? 'row-warning' : '')">
+                <td th:text="${row.rowNum}" class="text-muted"></td>
+                <td>
+                  <span th:if="${row.status=='READY'}"   class="badge bg-success">✓ Saved</span>
+                  <span th:if="${row.status=='WARNING'}" class="badge bg-warning text-dark">✓ Saved</span>
+                  <span th:if="${row.status=='ERROR'}"   class="badge bg-danger">✗ Failed</span>
+                </td>
+                <td th:text="${row.classSrNo}" class="fw-semibold"></td>
+                <td th:text="${row.studentName}"></td>
+                <td th:text="${row.fatherName}"></td>
+                <td th:text="${row.rawClass}"></td>
+                <td th:text="${row.rawSection}"></td>
+                <td>
+                  <ul class="notes-list" th:if="${!row.messages.isEmpty()}">
+                    <li th:each="msg:${row.messages}" th:text="${msg}"></li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+      <a th:href="@{/student/import}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-repeat me-1"></i>Import Another File
+      </a>
+      <a th:href="@{/student/student}" class="btn btn-primary">
+        <i class="bi bi-people me-1"></i>View Students
+      </a>
+    </div>
+
+  </div><!-- /step 3 -->
+
+</div><!-- /container -->
+
+<!-- Scripts -->
+<script th:src="@{/js/jquery-3.7.1.js}"></script>
+<script th:src="@{/js/toastr.min.js}"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+
+  /* ── Drag & drop ── */
+  var zone = document.getElementById('uploadZone');
+  if (zone) {
+    ['dragenter','dragover'].forEach(function(ev) {
+      zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(function(ev) {
+      zone.addEventListener(ev, function(e) { e.preventDefault(); zone.classList.remove('dragover'); });
+    });
+    zone.addEventListener('drop', function(e) {
+      var files = e.dataTransfer.files;
+      if (files.length > 0) { document.getElementById('xlsFile').files = files; onFileChosen(files[0]); }
+    });
+  }
+
+  /* ── File input change ── */
+  $('#xlsFile').on('change', function () {
+    if (this.files.length > 0) { onFileChosen(this.files[0]); }
+  });
+
+  function onFileChosen(file) {
+    document.getElementById('fileName').textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+    document.getElementById('fileInfo').classList.remove('d-none');
+    document.getElementById('uploadBtn').removeAttribute('disabled');
+  }
+
+  /* ── Upload spinner ── */
+  $('#uploadForm').on('submit', function () {
+    var btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.querySelector('.normal-state').classList.add('d-none');
+    btn.querySelector('.loading-state').classList.remove('d-none');
+  });
+
+  /* ── Preview DataTable ── */
+  if ($('#previewTable').length) {
+    var col0 = [0, 'asc'];
+    $('#previewTable').DataTable({
+      pageLength: 50,
+      lengthMenu: [25, 50, 100, 200],
+      order: [col0],
+      columnDefs: [{ orderable: false, targets: [16] }],
+      language: { search: 'Search:', lengthMenu: 'Show _MENU_' }
+    });
+  }
+
+  /* ── Result DataTable ── */
+  if ($('#resultTable').length) {
+    var col0r = [0, 'asc'];
+    $('#resultTable').DataTable({
+      pageLength: 50,
+      lengthMenu: [25, 50, 100, 200],
+      order: [col0r],
+      columnDefs: [{ orderable: false, targets: [7] }],
+      language: { search: 'Search:', lengthMenu: 'Show _MENU_' }
+    });
+  }
+});
+
+/* ── School picker: load academic years for selected school ── */
+function loadAcademicYears(schoolId) {
+  var sel = document.getElementById('sessionSelect');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  sel.disabled = true;
+  if (!schoolId) {
+    sel.innerHTML = '<option value="">— Select school first —</option>';
+    return;
+  }
+  $.getJSON(_acYearsBase + '?schoolId=' + schoolId, function(data) {
+    sel.innerHTML = '<option value="">— Select Session —</option>';
+    data.forEach(function(y) {
+      sel.innerHTML += '<option value="' + y.sessionFormat + '">' + y.sessionFormat + '</option>';
+    });
+    sel.disabled = false;
+    if (data.length === 0) {
+      sel.innerHTML = '<option value="">No sessions found</option>';
+    }
+  }).fail(function() {
+    sel.innerHTML = '<option value="">Error loading sessions</option>';
+  });
+}
+
+/* ── Quick-add single item ── */
+function quickAdd(btn) {
+  var name = btn.getAttribute('data-name');
+  var type = btn.getAttribute('data-type');
+  if (!name || btn.classList.contains('added')) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  $.ajax({
+    url: _quickAddBase + type,
+    method: 'POST',
+    data: { name: name },
+    success: function(res) {
+      if (res.status === 'created' || res.status === 'exists') {
+        btn.textContent = '✓';
+        btn.classList.add('added');
+        toastr.success(res.message, 'Quick Add');
+      } else {
+        btn.textContent = '✗';
+        btn.classList.add('failed');
+        btn.disabled = false;
+        toastr.error(res.message, 'Error');
+      }
+    },
+    error: function(xhr) {
+      btn.textContent = '✗';
+      btn.classList.add('failed');
+      btn.disabled = false;
+      var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Network error';
+      toastr.error(msg, 'Error');
+    }
+  });
+}
+
+/* ── Add all pending items in a card ── */
+function addAllInCard(addAllBtn) {
+  var card = addAllBtn.getAttribute('data-card');
+  /* find parent .card then all .btn-quick-add not yet added */
+  var cardEl = addAllBtn.closest('.card');
+  var btns = cardEl.querySelectorAll('.btn-quick-add:not(.added)');
+  if (btns.length === 0) {
+    toastr.info('Nothing new to add.', 'Info');
+    return;
+  }
+  addAllBtn.disabled = true;
+  /* fire sequentially with 120ms gap to avoid hammering server */
+  var idx = 0;
+  function next() {
+    if (idx >= btns.length) {
+      addAllBtn.textContent = '✓ Done';
+      return;
+    }
+    quickAdd(btns[idx]);
+    idx++;
+    setTimeout(next, 150);
+  }
+  next();
+}
+</script>
+<script type="text/javascript" th:inline="javascript">
+  var _err = [[${error}]];
+  var _ok  = [[${success}]];
+  /* Context-path-aware base URLs */
+  var _quickAddBase   = [[@{/student/import/quick-add/}]];
+  var _acYearsBase    = [[@{/student/import/academic-years}]];
+  if (_err) { toastr.options = {closeButton:true,positionClass:'toast-top-right',timeOut:'8000'}; toastr.error(_err, 'Error'); }
+  if (_ok)  { toastr.options = {closeButton:true,positionClass:'toast-top-right',timeOut:'5000'}; toastr.success(_ok, 'Success'); }
+</script>
+</section>
+</body>
+</html>
