@@ -13,4 +13,5 @@ public interface AcademicyearRepository extends JpaRepository<AcademicYear, Long
     AcademicYear findActiveBySchoolId(@org.springframework.data.repository.query.Param("schoolId") Long schoolId);
     List<AcademicYear> findAllBySchoolIdOrderByIdDesc(Long schoolid);
     List<AcademicYear> findAll();
+    java.util.Optional<AcademicYear> findBySessionFormatAndSchool_Id(String sessionFormat, Long schoolId);
 }

@@ -825,6 +825,12 @@
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item"><a class="sidebar-link" href="#"><i class="bi bi-dot"></i><span>Migrate Student</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_EDIT_GRADE:VIEW" th:href="@{'/student/edit-grade-section'}"><i class="bi bi-dot"></i><span>Edit Grade/Section</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_INACTIVE_LIST:VIEW" th:href="@{'/student/stu-deleted-list'}"><i class="bi bi-dot"></i><span>Remove Student</span></a></li>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{'/student/import'}">
+                                <i class="bi bi-file-earmark-arrow-up-fill text-warning"></i>
+                                <span>Bulk Import (Legacy)</span>
+                            </a>
+                        </li>
                         <li class="sidebar-item"><hr class="sidebar-divider"></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_EXAM_RESULT:VIEW" th:href="@{'/student/stu-exam-result'}"><i class="bi bi-dot"></i><span>Exam Result</span></a></li>
                     </ul>

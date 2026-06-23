@@ -137,6 +137,7 @@ public class WebSecurityConfig {
                         // Route-level gate is intentionally wide; @CheckAccess annotations on each
                         // controller method enforce fine-grained permission control for STAFF users.
                         .requestMatchers("/employee/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
+                        .requestMatchers("/student/import/**").hasRole("SUPERADMIN")
                         .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")

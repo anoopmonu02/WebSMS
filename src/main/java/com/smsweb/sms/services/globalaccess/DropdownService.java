@@ -86,7 +86,8 @@ public class DropdownService {
                 "AGNOSTICISM",
                 "HUMANISM",
                 "SECULARISM",
-                "NO PREFERENCE"
+                "NO PREFERENCE",
+                "OTHER"
         );
     }
 
