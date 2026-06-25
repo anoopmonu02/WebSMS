@@ -105,6 +105,24 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                                     @Param("academicYearId") Long academic,
                                                     @Param("status") String status);
 
+    /** Returns [dob, studentName, gradeName, sectionName] for students whose birthday is TODAY. */
+    @Query(value = "SELECT s.dob, s.student_name, g.grade_name, sec.section_name " +
+            "FROM academic_students a " +
+            "JOIN students s  ON s.id  = a.student_id " +
+            "JOIN grade g     ON g.id  = a.grade_id " +
+            "JOIN section sec ON sec.id = a.section_id " +
+            "WHERE a.school_id = :schoolId " +
+            "AND a.academic_year_id = :academicYearId " +
+            "AND a.status = :status " +
+            "AND s.status = :status " +
+            "AND s.dob IS NOT NULL " +
+            "AND DATE_FORMAT(s.dob, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') " +
+            "ORDER BY s.student_name",
+            nativeQuery = true)
+    List<Object[]> findTodaysBirthdays(@Param("schoolId") Long school,
+                                       @Param("academicYearId") Long academic,
+                                       @Param("status") String status);
+
     @Query("SELECT a FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status GROUP BY a")
     List<Object[]> fetchAllStudentsByGradewise(@Param("schoolId") Long school,
                                                @Param("academicYearId") Long academic,
@@ -131,6 +149,42 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<Object[]> getGradeWiseAttendanceSummary(@Param("schoolId") Long schoolId,
                                                  @Param("academicYearId") Long academicYearId);
 
+
+    /** Attendance trend last 7 days — returns [date, gender, present_count] */
+    @Query(value = """
+        SELECT DATE(att.attendance_date) AS att_date,
+               s.gender,
+               SUM(CASE WHEN att.is_present = TRUE THEN 1 ELSE 0 END) AS present_count
+        FROM attendance att
+        JOIN academic_students ast ON ast.id = att.academic_student_id
+        JOIN students s            ON s.id   = ast.student_id
+        WHERE ast.school_id         = :schoolId
+          AND ast.academic_year_id  = :academicYearId
+          AND ast.status            = 'Active'
+          AND UPPER(s.status)       = 'ACTIVE'
+          AND att.status            = 'Active'
+          AND DATE(att.attendance_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY DATE(att.attendance_date), s.gender
+        ORDER BY att_date, s.gender
+    """, nativeQuery = true)
+    List<Object[]> getAttendanceTrendLast7Days(@Param("schoolId") Long schoolId,
+                                               @Param("academicYearId") Long academicYearId);
+
+    /** Birthday count per calendar month — returns [month_number(1-12), count] */
+    @Query(value = """
+        SELECT MONTH(s.dob) AS birth_month, COUNT(*) AS student_count
+        FROM academic_students a
+        JOIN students s ON s.id = a.student_id
+        WHERE a.school_id        = :schoolId
+          AND a.academic_year_id = :academicYearId
+          AND a.status           = 'Active'
+          AND UPPER(s.status)    = 'ACTIVE'
+          AND s.dob IS NOT NULL
+        GROUP BY MONTH(s.dob)
+        ORDER BY birth_month
+    """, nativeQuery = true)
+    List<Object[]> getBirthdayDistributionByMonth(@Param("schoolId") Long schoolId,
+                                                  @Param("academicYearId") Long academicYearId);
 
     @Query(value = "SELECT a.grade.gradeName, a.section.sectionName, a.grade.id as gradeId, a.section.id as sectionId, count(a.student.id) as TotalStudents FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status group by a.grade, a.section")
     List<Object[]> getGradesAndSectionList(@Param("schoolId") Long schoolId,

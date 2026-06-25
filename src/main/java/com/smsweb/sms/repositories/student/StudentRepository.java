@@ -2,6 +2,8 @@ package com.smsweb.sms.repositories.student;
 
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.student.Student;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -32,4 +34,40 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
      */
     @Query("SELECT MAX(s.mobile1) FROM Student s WHERE s.mobile1 LIKE '00000%'")
     Optional<String> findMaxDummyMobile();
+
+    // ── Server-side DataTable queries ─────────────────────────────────────────
+
+    /** Paginated search for a specific school (non-superadmin). */
+    @Query(value = "SELECT s FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active' " +
+                   "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR s.mobile1 LIKE CONCAT('%',:search,'%'))",
+           countQuery = "SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active' " +
+                        "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR s.mobile1 LIKE CONCAT('%',:search,'%'))")
+    Page<Student> searchBySchool(@Param("schoolId") Long schoolId, @Param("search") String search, Pageable pageable);
+
+    /** Total active count for a specific school (used as recordsTotal). */
+    @Query("SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active'")
+    long countActiveBySchool(@Param("schoolId") Long schoolId);
+
+    /** Paginated search across all schools (superadmin). */
+    @Query(value = "SELECT s FROM Student s WHERE s.status = 'ACTIVE' " +
+                   "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                   "OR s.mobile1 LIKE CONCAT('%',:search,'%'))",
+           countQuery = "SELECT COUNT(s) FROM Student s WHERE s.status = 'ACTIVE' " +
+                        "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
+                        "OR s.mobile1 LIKE CONCAT('%',:search,'%'))")
+    Page<Student> searchAll(@Param("search") String search, Pageable pageable);
+
+    /** Total active count across all schools (superadmin, used as recordsTotal). */
+    @Query("SELECT COUNT(s) FROM Student s WHERE s.status = 'ACTIVE'")
+    long countAllActive();
 }

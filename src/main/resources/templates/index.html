@@ -13,7 +13,9 @@
 <style>
 
     /* ── Page chrome ─────────────────────────────────────────────── */
-    .dash-wrap { padding: 8px 0 60px; }
+    .dash-wrap {
+        padding: 8px 0 60px;
+    }
 
     .dash-section-hd {
         font-size: 11px; font-weight: 700; color: #64748b;
@@ -156,15 +158,16 @@
     /* ── Info panels (holidays / birthdays / absent) ─────────────── */
     .info-panel {
         background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
-        box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: hidden; height: 100%;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04); overflow: hidden;
+        height: 200px; display: flex; flex-direction: column;
     }
     .info-panel-hd {
         display: flex; align-items: center; gap: 7px;
-        padding: 12px 18px; border-bottom: 1px solid #f1f5f9;
+        padding: 10px 18px; border-bottom: 1px solid #f1f5f9;
         font-size: 11px; font-weight: 700; color: #475569;
-        text-transform: uppercase; letter-spacing: .07em;
+        text-transform: uppercase; letter-spacing: .07em; flex-shrink: 0;
     }
-    .info-panel-body { padding: 4px 0; max-height: 400px; overflow-y: auto; }
+    .info-panel-body { padding: 4px 0; overflow-y: auto; flex: 1; }
     .info-row {
         display: flex; justify-content: space-between; align-items: center;
         padding: 9px 18px; border-bottom: 1px solid #f8fafc;
@@ -178,7 +181,7 @@
     /* ── Grade-wise absent list ──────────────────────────────────── */
     .absent-list {
         padding: 8px 14px 10px;
-        max-height: 210px;
+        flex: 1;
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: #e2e8f0 transparent;
@@ -221,9 +224,9 @@
     <input type="hidden" id="feeActual" th:value="${totalFeeSubmittedToday}"/>
 
     <!-- ══════════════════════════════════════════════════════════
-         ROW 1 — STAT TILES
+         ROW 1 — STAT TILES (hidden per school via showDashboardStats flag)
     ══════════════════════════════════════════════════════════════ -->
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4" th:if="${showDashboardStats}">
 
         <!-- ── Today's Fee Collection ── -->
         <div class="col-xl-3 col-md-6">
@@ -401,7 +404,7 @@
                     <i class="bi bi-card-text" style="color:#059669;" aria-hidden="true"></i>
                     Aadhaar Coverage
                 </div>
-                <div style="position:relative; height:150px;">
+                <div style="position:relative; height:160px;">
                     <canvas id="aadharChart" role="img"
                             aria-label="Doughnut chart showing Aadhaar linkage percentage for students"></canvas>
                 </div>
@@ -423,7 +426,7 @@
                     <i class="bi bi-person-check-fill" style="color:#6366f1;" aria-hidden="true"></i>
                     Today's Attendance
                 </div>
-                <div style="position:relative; height:150px;">
+                <div style="position:relative; height:160px;">
                     <canvas id="attendanceChart" role="img"
                             aria-label="Doughnut chart showing present vs absent students today"></canvas>
                 </div>
@@ -445,7 +448,7 @@
                     <i class="bi bi-gender-ambiguous" style="color:#d97706;" aria-hidden="true"></i>
                     Absent by Gender
                 </div>
-                <div style="position:relative; height:150px;">
+                <div style="position:relative; height:160px;">
                     <canvas id="attendanceGenderChart" role="img"
                             aria-label="Doughnut chart showing today's absent students split by gender"></canvas>
                 </div>
@@ -470,7 +473,7 @@
                     <i class="bi bi-file-earmark-check-fill" style="color:#7c3aed;" aria-hidden="true"></i>
                     SR Number Status
                 </div>
-                <div style="position:relative; height:150px;">
+                <div style="position:relative; height:160px;">
                     <canvas id="srChart" role="img"
                             aria-label="Doughnut chart showing SR number assignment completion"></canvas>
                 </div>
@@ -481,6 +484,41 @@
                     <span class="legend-item">
                         <span class="legend-dot" style="background:#ede9fe;"></span> Pending
                     </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 3b — ATTENDANCE TREND + BIRTHDAY DISTRIBUTION
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="row g-3 mb-4">
+
+        <!-- Attendance Trend — last 7 days (Boys vs Girls line chart) -->
+        <div class="col-md-8">
+            <div class="chart-card" style="height:230px;">
+                <div class="chart-card-title">
+                    <i class="bi bi-graph-up-arrow" style="color:#6366f1;" aria-hidden="true"></i>
+                    Attendance Trend — Last 7 Days
+                </div>
+                <div style="position:relative; height:170px;">
+                    <canvas id="attendanceTrendChart" role="img"
+                            aria-label="Line chart showing boys and girls present count for last 7 days"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Birthday Distribution by Month (bar chart) -->
+        <div class="col-md-4">
+            <div class="chart-card" style="height:230px;">
+                <div class="chart-card-title">
+                    <i class="bi bi-cake2-fill" style="color:#ec4899;" aria-hidden="true"></i>
+                    Birthdays by Month
+                </div>
+                <div style="position:relative; height:170px;">
+                    <canvas id="birthdayMonthChart" role="img"
+                            aria-label="Bar chart showing birthday count per month"></canvas>
                 </div>
             </div>
         </div>
@@ -517,16 +555,18 @@
             <div class="info-panel">
                 <div class="info-panel-hd">
                     <i class="bi bi-balloon-heart-fill" style="color:#ec4899;" aria-hidden="true"></i>
-                    Upcoming Birthdays
+                    Today's Birthdays
                 </div>
                 <div class="info-panel-body">
                     <div th:each="dob : ${studentsDobUpcoming}" th:if="${isStudentsDobUpcoming}" class="info-row">
-                        <span class="info-name" th:text="${dob[0]}">Name</span>
-                        <span class="info-date" th:text="${dob[1]}">Date</span>
+                        <span class="info-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%;">
+                            <span th:text="${dob[1]}">Name</span><span th:if="${dob[2] != null}" th:text="${' · ' + dob[2] + (dob[3] != null ? '-' + dob[3] : '')}" style="font-size:0.75rem; color:#64748b; font-weight:400;"></span>
+                        </span>
+                        <span class="info-date" th:text="${dob[0]}">Date</span>
                     </div>
                     <div th:if="${!isStudentsDobUpcoming}" class="info-empty">
                         <i class="bi bi-emoji-smile" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>
-                        No upcoming birthdays
+                        No birthdays today
                     </div>
                 </div>
             </div>
@@ -554,6 +594,14 @@
                                 <span th:text="${a.absentSummaryCount}">0</span>
                             </span>
                         </div>
+                    </div>
+                    <!-- Total absent footer -->
+                    <div class="absent-row absent-total-row" style="border-top:2px solid #e2e8f0; margin-top:6px; padding-top:6px; font-weight:600;">
+                        <span class="absent-row-grade">Total Absent</span>
+                        <span class="absent-row-count">
+                            <i class="bi bi-person-dash-fill" style="color:#f43f5e;"></i>
+                            <span th:text="${totalAbsent}">0</span>
+                        </span>
                     </div>
                 </div>
                 <div th:if="${!isAttendance}" class="info-empty">
@@ -592,6 +640,10 @@
     }
 
     /* ── Chart data from Thymeleaf ──────────────────────────────── */
+    const trendLabels    = /*[[${attendanceTrendLabels}]]*/ [];
+    const trendBoys      = /*[[${attendanceTrendBoys}]]*/ [];
+    const trendGirls     = /*[[${attendanceTrendGirls}]]*/ [];
+    const bdMonthDist    = /*[[${birthdayMonthDist}]]*/ [0,0,0,0,0,0,0,0,0,0,0,0];
     const totalStudents  = /*[[${totalStudents}]]*/ 0;
     const totalAadhaar   = /*[[${totalAadhaar}]]*/ 0;
     const totalSR        = /*[[${totalSR}]]*/ 0;
@@ -678,6 +730,88 @@
             [pct(totalSR, totalStudents), pct(totalStudents - totalSR, totalStudents)],
             ['#8b5cf6', '#ede9fe']
         );
+
+        /* Attendance Trend — last 7 days line chart */
+        const trendCtx = document.getElementById('attendanceTrendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        {
+                            label: 'Boys',
+                            data: trendBoys,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#3b82f6',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Girls',
+                            data: trendGirls,
+                            borderColor: '#ec4899',
+                            backgroundColor: 'rgba(236,72,153,0.08)',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ec4899',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 10, font: { size: 11 }, color: '#64748b' }
+                        },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8', precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        /* Birthday Distribution by Month bar chart */
+        const bdCtx = document.getElementById('birthdayMonthChart');
+        if (bdCtx) {
+            new Chart(bdCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                    datasets: [{
+                        label: 'Birthdays',
+                        data: bdMonthDist,
+                        backgroundColor: 'rgba(236,72,153,0.7)',
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => '  ' + ctx.parsed.y + ' students' } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#94a3b8' } },
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8', precision: 0 } }
+                    }
+                }
+            });
+        }
 
     });
 

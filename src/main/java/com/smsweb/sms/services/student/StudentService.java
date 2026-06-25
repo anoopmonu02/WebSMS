@@ -28,6 +28,10 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionSystemException;
@@ -990,20 +994,23 @@ public class StudentService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
-            List<Object[]> stuDobList = academicStudentRepository.findUpcomingBirthdaysInNext7Days(school, academic, "Active");
+            // Today's birthdays only — also returns grade and section
+            List<Object[]> stuDobList = academicStudentRepository.findTodaysBirthdays(school, academic, "Active");
             if(!stuDobList.isEmpty()){
-                for(Object[] dd:stuDobList){
+                for(Object[] dd : stuDobList){
                     LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     String formattedDob = dob.format(formatter);
                     String studentName = (String) dd[1];
-                    System.out.println("DOB: "+dd[0]+" Name: "+dd[1]);
-                    String[] dobList = new String[2];
-                    dobList[1] = studentName;
+                    String gradeName   = dd[2] != null ? (String) dd[2] : "";
+                    String sectionName = dd[3] != null ? (String) dd[3] : "";
+                    String[] dobList = new String[4];
                     dobList[0] = formattedDob;
+                    dobList[1] = studentName;
+                    dobList[2] = gradeName;
+                    dobList[3] = sectionName;
                     dataList.add(dobList);
                 }
             }
-            //Student Data added
             return dataList;
         }catch(Exception e){
             e.printStackTrace();
@@ -1038,6 +1045,69 @@ public class StudentService {
                 academicStudentId, schoolId, academicYearId);
     }
 
+    /**
+     * Returns a DataTables server-side JSON payload.
+     * Called by GET /student/student/data
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStudentsPage(boolean superAdmin, Long schoolId,
+                                               int draw, int start, int length,
+                                               String search, int sortCol, String sortDir) {
+        // Map DataTable column index → entity field name
+        String sortField = switch (sortCol) {
+            case 1  -> "registrationDate";
+            case 2  -> "motherName";
+            case 3  -> "fatherName";
+            case 4  -> "aadharNo";
+            case 5  -> "religion";
+            case 7  -> "mobile1";
+            case 9  -> "address";
+            default -> "studentName";
+        };
+
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        int pageSize = (length > 0) ? length : 25;
+        int pageNum  = start / pageSize;
+        Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(direction, sortField));
+        String q = (search == null) ? "" : search.trim();
+
+        Page<Student> page;
+        long totalRecords;
+
+        if (superAdmin) {
+            totalRecords = repository.countAllActive();
+            page = repository.searchAll(q, pageable);
+        } else {
+            totalRecords = repository.countActiveBySchool(schoolId);
+            page = repository.searchBySchool(schoolId, q, pageable);
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MMM/yyyy");
+        List<Map<String, Object>> data = page.getContent().stream().map(s -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("studentName",     s.getStudentName()     != null ? s.getStudentName()     : "");
+            row.put("uuid",            s.getUuid());
+            row.put("registrationDate", s.getRegistrationDate() != null ? sdf.format(s.getRegistrationDate()) : "");
+            row.put("motherName",      s.getMotherName()      != null ? s.getMotherName()      : "");
+            row.put("fatherName",      s.getFatherName()      != null ? s.getFatherName()      : "");
+            row.put("aadharNo",        s.getAadharNo()        != null ? s.getAadharNo()        : "");
+            row.put("religion",        s.getReligion()        != null ? s.getReligion()        : "");
+            row.put("castName",        s.getCast() != null && s.getCast().getCastName() != null ? s.getCast().getCastName() : "");
+            row.put("mobile1",         s.getMobile1()         != null ? s.getMobile1()         : "");
+            row.put("email",           s.getUserEntity() != null && s.getUserEntity().getEmail() != null ? s.getUserEntity().getEmail() : "");
+            row.put("address",         s.getAddress()         != null ? s.getAddress()         : "");
+            row.put("id",              s.getId());
+            return row;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("draw",            draw);
+        result.put("recordsTotal",    totalRecords);
+        result.put("recordsFiltered", page.getTotalElements());
+        result.put("data",            data);
+        return result;
+    }
+
     public List getAbsentSummaryGradewise(Long school, Long academic){
         try{
             boolean hasAny = attendanceRepository.existsAnyAttendanceForToday(school, academic)>0;
@@ -1066,6 +1136,53 @@ public class StudentService {
             e.printStackTrace();
         }
         return new ArrayList<>();
+    }
+
+    public Map<String, Object> getAttendanceTrend7Days(Long schoolId, Long academicYearId) {
+        Map<String, int[]> dayMap = new LinkedHashMap<>();
+        DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("dd MMM");
+        for (int i = 6; i >= 0; i--) {
+            dayMap.put(LocalDate.now().minusDays(i).toString(), new int[]{0, 0});
+        }
+        try {
+            List<Object[]> raw = academicStudentRepository.getAttendanceTrendLast7Days(schoolId, academicYearId);
+            for (Object[] row : raw) {
+                String date = row[0].toString().substring(0, 10);
+                String gender = (String) row[1];
+                int count = ((Number) row[2]).intValue();
+                if (dayMap.containsKey(date)) {
+                    int[] arr = dayMap.get(date);
+                    if ("Male".equalsIgnoreCase(gender)) arr[0] = count;
+                    else if ("Female".equalsIgnoreCase(gender)) arr[1] = count;
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        List<String> labels = new ArrayList<>();
+        List<Integer> boys = new ArrayList<>();
+        List<Integer> girls = new ArrayList<>();
+        for (Map.Entry<String, int[]> e : dayMap.entrySet()) {
+            labels.add(LocalDate.parse(e.getKey()).format(labelFmt));
+            boys.add(e.getValue()[0]);
+            girls.add(e.getValue()[1]);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("labels", labels);
+        result.put("boys", boys);
+        result.put("girls", girls);
+        return result;
+    }
+
+    public int[] getBirthdayMonthDistribution(Long schoolId, Long academicYearId) {
+        int[] counts = new int[12];
+        try {
+            List<Object[]> raw = academicStudentRepository.getBirthdayDistributionByMonth(schoolId, academicYearId);
+            for (Object[] row : raw) {
+                int month = ((Number) row[0]).intValue();
+                int count = ((Number) row[1]).intValue();
+                if (month >= 1 && month <= 12) counts[month - 1] = count;
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return counts;
     }
 
     public Map<String, Object> toLeanAcademicStudentMap(AcademicStudent as) {

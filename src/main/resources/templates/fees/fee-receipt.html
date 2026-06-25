@@ -15,8 +15,7 @@
               <!--Search box-->
               <div class="search-container my-3">
                   <input class="form-control" id="search-input" onkeyup="searchStuName()" placeholder="Search student name" type="text">
-                  <div class="search-result">
-
+                  <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
                   </div>
               </div>
 
@@ -281,33 +280,37 @@
             toastr[msgType](msg,headerValue);
         }
 
-    const searchStuName=() =>{
-        let query=$("#search-input").val();
-        console.log('searched.....'+query);
-        if(query.trim().length>2){
-            //Sending request to server
-            let url = `${contextPath}searchStudentForFeePage/${query}`;
-            fetch(url).then(response=>{
-                return response.json();
-            }).then((data)=>{
-                console.log(data);
-                let text = `<div class='list-group'>`;
-
-                data.forEach((student) =>{
-                    let srval = student.classSrNo!=null && student.classSrNo!=''?' / ' + student.classSrNo: ' / -'
-                    text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
-                });
-
-                text+=`</div>`;
-                $(".search-result").html(text);
-                $(".search-result").show();
-            });
-
-
-        } else{
-            $(".search-result").hide();
-        }
-    }
+    let _frQuery = '', _frPage = 0, _frMore = false, _frLoading = false;
+    const _frRow = (s) => {
+        let sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+        return `<a onclick="loadStudentData(${s.id})" href="#" class='list-group-item list-group-item-action'>${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}</a>`;
+    };
+    const _frFetch = (query, page, append) => {
+        if (_frLoading) return;
+        _frLoading = true;
+        fetch(`${contextPath}searchStudentForFeePage/${encodeURIComponent(query)}?page=${page}`)
+            .then(r => r.json()).then(data => {
+                _frLoading = false;
+                _frMore = data.length === 10;
+                if (!append) {
+                    let html = `<div class='list-group' id='fr-list-group'>`;
+                    data.forEach(s => { html += _frRow(s); });
+                    $(".search-result").html(html + `</div>`).show();
+                } else {
+                    data.forEach(s => { $('#fr-list-group').append(_frRow(s)); });
+                }
+            }).catch(() => { _frLoading = false; });
+    };
+    const searchStuName = () => {
+        let query = $("#search-input").val();
+        if (query.trim().length > 2) {
+            if (query !== _frQuery) { _frQuery = query; _frPage = 0; _frFetch(query, 0, false); }
+        } else { _frQuery = ''; $(".search-result").hide(); }
+    };
+    document.querySelector('.search-result').addEventListener('scroll', function() {
+        if (!_frMore || _frLoading) return;
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) { _frPage++; _frFetch(_frQuery, _frPage, true); }
+    });
 
     const loadStudentData=(id)=>{
         $(".search-result").hide();

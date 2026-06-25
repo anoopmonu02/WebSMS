@@ -66,8 +66,8 @@ public class HomeController {
             School school = (School) session.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)session.getAttribute("activeAcademicYear");
             model.addAttribute("isSuperAdmin", false);
-            System.out.println("school--"+school);
             model.addAttribute("school", school);
+            model.addAttribute("showDashboardStats", school.isShowDashboardStats());
         /*schoolHolder.setCurrentSchool(school);
         academicYearHolder.setCurrentAcademicYear(academicyearService.getCurrentAcademicYear(school.getId()));*/
 
@@ -136,6 +136,14 @@ public class HomeController {
             model.addAttribute("studentsDobUpcoming", combinedList);
             model.addAttribute("isStudentsDobUpcoming", !combinedList.isEmpty());
             //Fetch month-wise collection
+
+            //Fetch attendance trend (last 7 days) and birthday month distribution for charts
+            Map<String, Object> attendanceTrend = studentService.getAttendanceTrend7Days(school.getId(), academicYear.getId());
+            model.addAttribute("attendanceTrendLabels", attendanceTrend.get("labels"));
+            model.addAttribute("attendanceTrendBoys", attendanceTrend.get("boys"));
+            model.addAttribute("attendanceTrendGirls", attendanceTrend.get("girls"));
+            int[] bdDist = studentService.getBirthdayMonthDistribution(school.getId(), academicYear.getId());
+            model.addAttribute("birthdayMonthDist", bdDist);
 
             //Fetch fee submitted today
             BigDecimal totalFeeSubmittedAmount = feeSubmissionService.getTodayFeeCollection(school.getId(), academicYear.getId());

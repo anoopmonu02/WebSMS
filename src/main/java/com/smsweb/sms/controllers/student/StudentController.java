@@ -78,21 +78,33 @@ public class StudentController extends BaseController {
     @GetMapping("/student")
     public String studentData(Model model){
         log.debug("inside student list");
-
-        List<Student> studentList;
         if(isSuperAdminLoggedIn()){
             model.addAttribute("hasSuperAdmin", true);
-            studentList = studentService.getAllActiveStudents(Student.STATUS_ACTIVE);
         }
-        else{
-            School school = (School)model.getAttribute("school");
-            studentList = studentService.getAllActiveStudentsOfSchool(school.getId());
-        }
-
-        model.addAttribute("students", studentList);
-        model.addAttribute("hasStudent", !studentList.isEmpty());
+        model.addAttribute("hasStudent", true);
         model.addAttribute("page", "datatable");
         return "student/student";
+    }
+
+    /** Server-side DataTable AJAX endpoint. */
+    @ResponseBody
+    @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
+    @GetMapping("/student/data")
+    public Map<String, Object> getStudentData(
+            @RequestParam(defaultValue = "0")  int draw,
+            @RequestParam(defaultValue = "0")  int start,
+            @RequestParam(defaultValue = "25") int length,
+            @RequestParam(name = "search[value]",    defaultValue = "") String search,
+            @RequestParam(name = "order[0][column]", defaultValue = "0") int sortCol,
+            @RequestParam(name = "order[0][dir]",    defaultValue = "asc") String sortDir,
+            Model model) {
+        boolean superAdmin = isSuperAdminLoggedIn();
+        Long schoolId = null;
+        if (!superAdmin) {
+            School school = (School) model.getAttribute("school");
+            schoolId = school.getId();
+        }
+        return studentService.getStudentsPage(superAdmin, schoolId, draw, start, length, search, sortCol, sortDir);
     }
 
     private boolean isSuperAdminLoggedIn(){

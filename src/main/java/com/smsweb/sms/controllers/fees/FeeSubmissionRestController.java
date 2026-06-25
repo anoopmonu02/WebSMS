@@ -74,23 +74,31 @@ public class FeeSubmissionRestController extends BaseController {
 
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/searchStudentForFeePage/{query}")
-    public ResponseEntity<?> searchStudentForFeePage(@PathVariable("query") String query, Model model){
+    public ResponseEntity<?> searchStudentForFeePage(
+            @PathVariable("query") String query,
+            @RequestParam(defaultValue = "0") int page,
+            Model model) {
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
+        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId(), page);
         List<Map<String, Object>> leanList = new ArrayList<>();
         if (raw != null) {
             for (AcademicStudent as : raw) leanList.add(studentService.toLeanAcademicStudentMap(as));
         }
+        // Returns plain array — all existing callers (fee-receipt, messageSender, etc.) continue to work.
+        // feesubmitform.js detects hasMore by checking data.length === 10.
         return ResponseEntity.ok(leanList);
     }
 
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchStudentForOtherPage/{query}")
-    public ResponseEntity<?> searchStudentForOtherPage(@PathVariable("query") String query, Model model){
+    public ResponseEntity<?> searchStudentForOtherPage(
+            @PathVariable("query") String query,
+            @RequestParam(defaultValue = "0") int page,
+            Model model) {
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId());
+        List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId(), page);
         List<Map<String, Object>> leanList = new ArrayList<>();
         if (raw != null) {
             for (AcademicStudent as : raw) leanList.add(studentService.toLeanAcademicStudentMap(as));

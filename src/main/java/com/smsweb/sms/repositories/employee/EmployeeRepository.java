@@ -37,4 +37,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             nativeQuery = true)
     List<Object[]> findUpcomingBirthdaysInNext7Days(@Param("schoolId") Long school,
                                                     @Param("status") String status);
+
+    @Query(value = "SELECT a.dob, a.employee_name, a.employee_code " +
+            "FROM employees a " +
+            "WHERE a.school_id = :schoolId " +
+            "AND a.status = :status " +
+            "AND a.dob IS NOT NULL " +
+            "AND DATE_FORMAT(a.dob, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') " +
+            "ORDER BY a.employee_name",
+            nativeQuery = true)
+    List<Object[]> findTodaysBirthdays(@Param("schoolId") Long school,
+                                       @Param("status") String status);
 }

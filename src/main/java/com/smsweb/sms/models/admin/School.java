@@ -81,6 +81,14 @@ public class School {
     @Column(nullable = false)
     private String status = "active";
 
+    /**
+     * Controls whether the 4 summary stat cards (Collection / Absent / Aadhaar / SR)
+     * are shown on the dashboard. Set to true for schools that want them visible.
+     * Defaults to false — hidden by default.
+     */
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean showDashboardStats = false;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Date creationDate;

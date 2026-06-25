@@ -84,7 +84,7 @@
   <script th:src="@{/js/flatpickr.js}"></script>
   <script type="text/javascript" th:inline="javascript">
       flatpickr("#customer_name", {
-        dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
+        dateFormat: "d/m/Y",  // d=padded day, m=padded numeric month (01-12), Y=4-digit year
       });
       toastr.options = {
         "closeButton": true,

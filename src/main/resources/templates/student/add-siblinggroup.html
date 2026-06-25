@@ -15,7 +15,7 @@
                 <div class="search-container my-3">
                     <!--<input  type="text" class="form-control" id="search-input" placeholder="Search student name">-->
                     <input type="text" onkeyup="searchStuName()" class="form-control" id="search-input" placeholder="Search student name">
-                    <div class="search-result">
+                    <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
                     </div>
                 </div>
                 <!--Add Individual Student-->
@@ -25,7 +25,7 @@
                     <div class="col-md-6 search-block">
                         <label for="search-input1" class="form-label">Student Name</label>
                         <input type="text" onkeyup="searchStuNameIndividual()" class="form-control" id="search-input1" placeholder="Search student name" name="stuname">
-                        <div class="search-result1">
+                        <div class="search-result1" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
                         </div>
                     </div>
                     <div class="col-md-1">
@@ -123,56 +123,71 @@
             toastr[msgType](msg,headerValue);
         }
 
-        const searchStuName=() =>{
-            let query=$("#search-input").val();
-            console.log('searched.....'+query);
-            if(query.trim().length>2){
-                //Sending request to server
-                let url = `${contextPath}searchStudentForOtherPage/${query}`;
-                fetch(url).then(response=>{
-                    return response.json();
-                }).then((data)=>{
-                    console.log(data);
-                    let text = `<div class='list-group'>`;
+        /* ── Search box 1 (group search via searchStudentForOtherPage) ── */
+        let _sb1Query = '', _sb1Page = 0, _sb1More = false, _sb1Loading = false;
+        const _sb1Row = (s) => {
+            let sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+            return `<a onclick="loadStudentData(${s.id})" href="#" class='list-group-item list-group-item-action'>${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}</a>`;
+        };
+        const _sb1Fetch = (query, page, append) => {
+            if (_sb1Loading) return;
+            _sb1Loading = true;
+            fetch(`${contextPath}searchStudentForOtherPage/${encodeURIComponent(query)}?page=${page}`)
+                .then(r => r.json()).then(data => {
+                    _sb1Loading = false;
+                    _sb1More = data.length === 10;
+                    if (!append) {
+                        let html = `<div class='list-group' id='sb1-list-group'>`;
+                        data.forEach(s => { html += _sb1Row(s); });
+                        $(".search-result").html(html + `</div>`).show();
+                    } else {
+                        data.forEach(s => { $('#sb1-list-group').append(_sb1Row(s)); });
+                    }
+                }).catch(() => { _sb1Loading = false; });
+        };
+        const searchStuName = () => {
+            let query = $("#search-input").val();
+            if (query.trim().length > 2) {
+                if (query !== _sb1Query) { _sb1Query = query; _sb1Page = 0; _sb1Fetch(query, 0, false); }
+            } else { _sb1Query = ''; $(".search-result").hide(); }
+        };
+        document.querySelector('.search-result').addEventListener('scroll', function() {
+            if (!_sb1More || _sb1Loading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) { _sb1Page++; _sb1Fetch(_sb1Query, _sb1Page, true); }
+        });
 
-                    data.forEach((student) =>{
-                        let srval = student.classSrNo!=null && student.classSrNo!=''?' / ' + student.classSrNo: ' / -';
-                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
-                    });
-
-                    text+=`</div>`;
-                    $(".search-result").html(text);
-                    $(".search-result").show();
-                });
-            } else{
-                $(".search-result").hide();
-            }
-        }
-
-        const searchStuNameIndividual = () =>{
-            let query=$("#search-input1").val();
-            console.log('searched.....'+query);
-            if(query.trim().length>2){
-                let url = `${contextPath}searchStudentForFeePage/${query}`;
-                fetch(url).then(response=>{
-                    return response.json();
-                }).then((data)=>{
-                    console.log(data);
-                    let text = `<div class='list-group'>`;
-
-                    data.forEach((student) =>{
-                        let srval = student.classSrNo!=null && student.classSrNo!=''?' / ' + student.classSrNo: ' / -'
-                        text+=`<a onclick="loadStudentData1(${student.id},'${student.student.studentName}')" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
-                    });
-
-                    text+=`</div>`;
-                    $(".search-result1").html(text);
-                    $(".search-result1").show();
-                });
-            } else{
-                $(".search-result1").hide();
-            }
-        }
+        /* ── Search box 2 (individual student via searchStudentForFeePage) ── */
+        let _sb2Query = '', _sb2Page = 0, _sb2More = false, _sb2Loading = false;
+        const _sb2Row = (s) => {
+            let sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+            return `<a onclick="loadStudentData1(${s.id},'${s.student.studentName}')" href="#" class='list-group-item list-group-item-action'>${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}</a>`;
+        };
+        const _sb2Fetch = (query, page, append) => {
+            if (_sb2Loading) return;
+            _sb2Loading = true;
+            fetch(`${contextPath}searchStudentForFeePage/${encodeURIComponent(query)}?page=${page}`)
+                .then(r => r.json()).then(data => {
+                    _sb2Loading = false;
+                    _sb2More = data.length === 10;
+                    if (!append) {
+                        let html = `<div class='list-group' id='sb2-list-group'>`;
+                        data.forEach(s => { html += _sb2Row(s); });
+                        $(".search-result1").html(html + `</div>`).show();
+                    } else {
+                        data.forEach(s => { $('#sb2-list-group').append(_sb2Row(s)); });
+                    }
+                }).catch(() => { _sb2Loading = false; });
+        };
+        const searchStuNameIndividual = () => {
+            let query = $("#search-input1").val();
+            if (query.trim().length > 2) {
+                if (query !== _sb2Query) { _sb2Query = query; _sb2Page = 0; _sb2Fetch(query, 0, false); }
+            } else { _sb2Query = ''; $(".search-result1").hide(); }
+        };
+        document.querySelector('.search-result1').addEventListener('scroll', function() {
+            if (!_sb2More || _sb2Loading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) { _sb2Page++; _sb2Fetch(_sb2Query, _sb2Page, true); }
+        });
 
         const loadStudentData=(id)=>{
             $(".search-result").hide();

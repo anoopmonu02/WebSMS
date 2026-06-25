@@ -206,16 +206,18 @@ public class EmployeeService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
-            List<Object[]> stuDobList = employeeRepository.findUpcomingBirthdaysInNext7Days(school, "Active");
+            List<Object[]> stuDobList = employeeRepository.findTodaysBirthdays(school, "Active");
             if(!stuDobList.isEmpty()){
                 for(Object[] dd:stuDobList){
                     LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     String formattedDob = dob.format(formatter);
                     String studentName = (String) dd[1];
                     System.out.println("DOB: "+dd[0]+" Name: "+dd[1]);
-                    String[] dobList = new String[2];
-                    dobList[1] = studentName + " ("+dd[2]+")";
+                    String[] dobList = new String[4];
                     dobList[0] = formattedDob;
+                    dobList[1] = studentName + " (" + dd[2] + ")";
+                    dobList[2] = null; // no grade for employees
+                    dobList[3] = null; // no section for employees
                     dataList.add(dobList);
                 }
             }

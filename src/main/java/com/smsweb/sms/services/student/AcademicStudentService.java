@@ -40,7 +40,11 @@ public class AcademicStudentService {
     // ── Existing methods (unchanged) ──────────────────────────────────────────
 
     public List<AcademicStudent> searchStudents(String stuname, Long academicYear, Long school) {
-        Pageable pageable = PageRequest.of(0, 10);
+        return searchStudents(stuname, academicYear, school, 0);
+    }
+
+    public List<AcademicStudent> searchStudents(String stuname, Long academicYear, Long school, int page) {
+        Pageable pageable = PageRequest.of(page, 10);
         return academicStudentRepository
                 .findAllByAcademicYearAndSchoolAndStudentName(academicYear, school, stuname, pageable)
                 .getContent();

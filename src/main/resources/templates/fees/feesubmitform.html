@@ -16,8 +16,7 @@
                 <!--Search box-->
                 <div class="search-container my-3">
                     <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
-                    <div class="search-result">
-
+                    <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
                     </div>
                 </div>
                 <form name="feesubmission" th:action="@{/fees/feesubmit}" th:object="${feesubmissionobj}" method="post">
@@ -264,34 +263,63 @@
 
         });
 
-        const searchStuName=() =>{
-            let query=$("#search-input").val();
-            console.log('searched.....'+query);
-            if(query.trim().length>2){
+        /* ── Student search with infinite scroll ─────────────────── */
+        let _searchQuery = '';
+        let _searchPage  = 0;
+        let _searchMore  = false;
+        let _searchLoading = false;
 
-                //Sending request to server
-                let url = `${contextPath}searchStudentForFeePage/${query}`;
-                fetch(url).then(response=>{
-                    return response.json();
-                }).then((data)=>{
-                    console.log(data);
-                    let text = `<div class='list-group'>`;
+        const renderStudentRow = (student) => {
+            let srval = student.classSrNo != null && student.classSrNo != '' ? ' / ' + student.classSrNo : ' / -';
+            return `<a onclick="loadStudentData(${student.id})" href="#" class='list-group-item list-group-item-action'>${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
+        };
 
-                    data.forEach((student) =>{
-                        let srval = student.classSrNo!=null && student.classSrNo!=''?' / ' + student.classSrNo: ' / -';
-                        text+=`<a onclick="loadStudentData(${student.id})" th:href="#" class='list-group-item list-group-item-action'> ${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
+        const fetchStudents = (query, page, append) => {
+            if (_searchLoading) return;
+            _searchLoading = true;
+            let url = `${contextPath}searchStudentForFeePage/${encodeURIComponent(query)}?page=${page}`;
+            fetch(url).then(r => r.json()).then(students => {
+                _searchLoading = false;
+                // Response is a plain array (page size = 10); if we got 10 rows there may be more
+                _searchMore = students.length === 10;
+                if (!append) {
+                    // First page — build fresh list
+                    let html = `<div class='list-group' id='student-list-group'>`;
+                    students.forEach(s => { html += renderStudentRow(s); });
+                    html += `</div>`;
+                    $(".search-result").html(html).show();
+                } else {
+                    // Append rows to existing list
+                    students.forEach(s => {
+                        $('#student-list-group').append(renderStudentRow(s));
                     });
+                }
+            }).catch(() => { _searchLoading = false; });
+        };
 
-                    text+=`</div>`;
-                    $(".search-result").html(text);
-                    $(".search-result").show();
-                });
-
-
-            } else{
+        const searchStuName = () => {
+            let query = $("#search-input").val();
+            if (query.trim().length > 2) {
+                if (query !== _searchQuery) {
+                    // New search — reset state
+                    _searchQuery = query;
+                    _searchPage  = 0;
+                    fetchStudents(query, 0, false);
+                }
+            } else {
+                _searchQuery = '';
                 $(".search-result").hide();
             }
-        }
+        };
+
+        // Infinite scroll: scroll doesn't bubble so bind directly on the element
+        document.querySelector('.search-result').addEventListener('scroll', function() {
+            if (!_searchMore || _searchLoading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+                _searchPage++;
+                fetchStudents(_searchQuery, _searchPage, true);
+            }
+        });
 
         const loadStudentData=(id)=>{
             $(".search-result").hide();
