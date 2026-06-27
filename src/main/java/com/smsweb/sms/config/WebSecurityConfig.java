@@ -87,7 +87,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/v1/**").authenticated()
             )
             .addFilterBefore(
-                new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService()),
+                new JwtAuthenticationFilter(jwtTokenProvider),
                 UsernamePasswordAuthenticationFilter.class
             )
             // Return 401 JSON instead of redirect-to-login for API clients

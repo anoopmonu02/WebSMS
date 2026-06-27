@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>Family Account Migration</title></head>
+<body>
+<section>
+<style>
+  .step-tracker { display:flex; align-items:center; gap:0; margin-bottom:1.5rem; }
+  .step-item { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+  .step-item:not(:last-child)::after {
+    content:''; position:absolute; top:18px; left:60%; width:80%;
+    height:2px; background:#dee2e6; z-index:0;
+  }
+  .step-item.done:not(:last-child)::after { background:#198754; }
+  .step-circle {
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.9rem; z-index:1;
+    border:2px solid #dee2e6; background:#fff; color:#6c757d;
+  }
+  .step-item.active .step-circle { border-color:#0d6efd; background:#0d6efd; color:#fff; }
+  .step-item.done   .step-circle { border-color:#198754; background:#198754; color:#fff; }
+  .step-label { font-size:.75rem; margin-top:5px; color:#6c757d; font-weight:500; }
+  .step-item.active .step-label { color:#0d6efd; font-weight:700; }
+  .step-item.done   .step-label { color:#198754; }
+
+  .stat-pill { border-radius:50px; padding:6px 18px; font-size:.85rem; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+  .result-stat-card { border-radius:12px; border:0; box-shadow:0 2px 10px rgba(0,0,0,.08); text-align:center; padding:20px 10px; }
+  .result-stat-num  { font-size:2.4rem; font-weight:800; line-height:1; }
+
+  .group-card { border-radius:10px; border:1px solid #e2e8f0; margin-bottom:.6rem; overflow:hidden; }
+  .group-header {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 14px; background:#f8fafc; cursor:pointer;
+    font-size:.85rem; font-weight:600;
+  }
+  .group-header:hover { background:#f1f5f9; }
+  .group-body { padding:0; }
+  .group-table { font-size:.78rem; margin:0; }
+  .group-table th { background:#f8fafc; font-weight:600; padding:5px 10px; }
+  .group-table td { padding:5px 10px; vertical-align:middle; }
+  .badge-m1 { background:#dbeafe; color:#1d4ed8; font-size:.68rem; }
+  .badge-m2 { background:#fce7f3; color:#9d174d; font-size:.68rem; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-people-fill text-primary me-2"></i>Family Account Migration
+      </h4>
+      <p class="text-muted small mb-0">Scan all students, group by mobile number, and create Family Accounts — Root Admin only</p>
+    </div>
+    <a th:href="@{/admin/family-migration}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+    </a>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Alerts -->
+  <div th:if="${error}" class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- Step tracker -->
+  <div class="step-tracker px-2">
+    <div th:classappend="${groups==null and result==null}?'active':(${result!=null}?'done':'done')" class="step-item">
+      <div class="step-circle"><i class="bi bi-search"></i></div>
+      <span class="step-label">1. Scan Students</span>
+    </div>
+    <div th:classappend="${groups!=null and result==null}?'active':(${result!=null}?'done':'')" class="step-item">
+      <div class="step-circle"><i class="bi bi-eye-fill"></i></div>
+      <span class="step-label">2. Review Groups</span>
+    </div>
+    <div th:classappend="${result!=null}?'active':''" class="step-item">
+      <div class="step-circle"><i class="bi bi-database-fill-up"></i></div>
+      <span class="step-label">3. Migration Done</span>
+    </div>
+  </div>
+
+  <!-- ══ STEP 1 — Scan ══ -->
+  <div th:if="${groups==null and result==null}">
+    <div class="card border-0 shadow-sm" style="border-radius:14px; max-width:600px;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2 text-primary"></i>What this does</h6>
+        <ul class="small text-muted mb-4">
+          <li>Scans ALL active students across ALL schools</li>
+          <li>Groups them by <strong>mobile1</strong> and <strong>mobile2</strong></li>
+          <li>Shows you the groups before making any changes</li>
+          <li>On confirm, creates <strong>FamilyAccount</strong> records and links students to them</li>
+          <li>Safe to run multiple times — existing accounts are not duplicated</li>
+        </ul>
+        <form th:action="@{/admin/family-migration/scan}" method="post">
+          <button type="submit" class="btn btn-primary w-100" style="font-size:1rem; padding:10px 28px; border-radius:8px; font-weight:600;">
+            <i class="bi bi-search me-2"></i>Scan All Students
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2 — Preview ══ -->
+  <div th:if="${groups!=null and result==null}">
+
+    <!-- Stat bar -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <span class="stat-pill bg-light border">
+        <i class="bi bi-phone-fill text-secondary"></i>
+        Groups <strong th:text="${totalGroups}">0</strong>
+      </span>
+      <span class="stat-pill bg-primary bg-opacity-10 text-primary border border-primary">
+        <i class="bi bi-people-fill"></i>
+        Students <strong th:text="${totalStudents}">0</strong>
+      </span>
+      <span class="stat-pill bg-warning bg-opacity-15 text-warning border border-warning">
+        <i class="bi bi-link-45deg"></i>
+        Needs Linking <strong th:text="${needsLink}">0</strong>
+      </span>
+      <span class="stat-pill bg-success bg-opacity-15 text-success border border-success">
+        <i class="bi bi-check-circle-fill"></i>
+        Already Linked <strong th:text="${alreadyLinked}">0</strong>
+      </span>
+      <div class="ms-auto d-flex gap-2">
+        <a th:href="@{/admin/family-migration}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Re-scan
+        </a>
+        <form th:action="@{/admin/family-migration/execute}" method="post">
+          <button type="submit" class="btn btn-success"
+                  style="font-size:1rem; padding:8px 24px; border-radius:8px; font-weight:600;"
+                  onclick="return confirm('Create Family Accounts and link all students?\n\nThis is safe to run multiple times.')">
+            <i class="bi bi-database-fill-up me-2"></i>Run Migration
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Groups list -->
+    <div th:if="${groups.isEmpty()}" class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>No students with mobile numbers found.
+    </div>
+
+    <div th:each="group : ${groups}" class="group-card">
+      <div class="group-header" th:attr="data-bs-toggle='collapse',data-bs-target='#grp-' + ${groupStat.index}">
+        <i class="bi bi-phone-fill text-primary"></i>
+        <span th:text="${group.mobile}" class="font-monospace"></span>
+        <span class="badge bg-primary rounded-pill ms-1" th:text="${group.totalStudents} + ' student(s)'"></span>
+        <span th:if="${group.accountExists}" class="badge bg-success ms-1">Account exists</span>
+        <span th:unless="${group.accountExists}" class="badge bg-warning text-dark ms-1">New account</span>
+        <span th:if="${group.needsLink > 0}" class="badge bg-danger ms-1" th:text="${group.needsLink} + ' unlinked'"></span>
+        <i class="bi bi-chevron-down ms-auto"></i>
+      </div>
+      <div th:id="'grp-' + ${groupStat.index}" class="collapse group-body">
+        <table class="table group-table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Student Name</th>
+              <th>Father</th>
+              <th>School</th>
+              <th>Grade-Section</th>
+              <th>Matched Via</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="stu : ${group.students}">
+              <td th:text="${stu.studentName}" class="fw-semibold"></td>
+              <td th:text="${stu.fatherName}" class="text-muted"></td>
+              <td th:text="${stu.schoolName}" class="text-muted"></td>
+              <td th:text="${stu.gradeName} + '-' + ${stu.sectionName}"></td>
+              <td>
+                <span th:if="${stu.matchedVia == 'mobile1'}" class="badge badge-m1">mobile1</span>
+                <span th:if="${stu.matchedVia == 'mobile2'}" class="badge badge-m2">mobile2</span>
+              </td>
+              <td>
+                <span th:if="${stu.alreadyLinked}"  class="badge bg-success">Linked</span>
+                <span th:unless="${stu.alreadyLinked}" class="badge bg-warning text-dark">Pending</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /step 2 -->
+
+  <!-- ══ STEP 3 — Result ══ -->
+  <div th:if="${result!=null}">
+
+    <div class="alert alert-success d-flex gap-3 align-items-center py-3 mb-4">
+      <i class="bi bi-check-circle-fill fs-2 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block fs-5">Migration Complete!</strong>
+        Family accounts have been created and students linked.
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card bg-light">
+          <div class="result-stat-num text-primary" th:text="${result['totalGroups']}">0</div>
+          <div class="text-muted small mt-1">Total Groups</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#f0fff4;">
+          <div class="result-stat-num text-success" th:text="${result['created']}">0</div>
+          <div class="text-muted small mt-1">Accounts Created</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#f0f9ff;">
+          <div class="result-stat-num text-info" th:text="${result['alreadyExisted']}">0</div>
+          <div class="text-muted small mt-1">Already Existed</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="result-stat-card" style="background:#fff5f5;">
+          <div class="result-stat-num text-danger" th:text="${result['errors']}">0</div>
+          <div class="text-muted small mt-1">Errors</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error list if any -->
+    <div th:if="${!result['errorList'].isEmpty()}" class="alert alert-warning">
+      <strong>Errors encountered:</strong>
+      <ul class="mb-0 mt-2 small">
+        <li th:each="err : ${result['errorList']}" th:text="${err}"></li>
+      </ul>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+      <a th:href="@{/admin/family-migration}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-repeat me-1"></i>Run Again
+      </a>
+    </div>
+
+  </div><!-- /step 3 -->
+
+</div>
+
+<script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+</section>
+</body>
+</html>

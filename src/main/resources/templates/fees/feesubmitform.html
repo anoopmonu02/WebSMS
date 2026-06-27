@@ -793,11 +793,13 @@
                 return false;
             }
             if($("#paymentType").val().toString()===''){
-                //toastr["warning"]("Balance Amount is missing!","Message");
                 showWarningMsg("error","Payment type is missing!","Message");
                 return false;
             }
-
+            if($('#feeTable > tbody > tr').length === 0){
+                showWarningMsg("error","No fee heads added. Please add at least one fee head before submitting.","Message");
+                return false;
+            }
 
             $('#feeSubmitBtn').attr('disabled',true);
             document.forms.feesubmission.submit();

@@ -260,8 +260,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.EDIT)
     @PostMapping("/resolveSmsMessage/{id}")
     public ResponseEntity<Map<String, Object>> resolveSmsMessage(@PathVariable Long id) {
-        String updatedBy = userService.getLoggedInUser().getUsername();
-        Optional<SmsMessage> smsMessageOpt = smsMessageService.resolveSmsMessage(id, updatedBy);
+        Optional<SmsMessage> smsMessageOpt = smsMessageService.resolveSmsMessage(id, userService.getLoggedInUser());
 
         if (smsMessageOpt.isPresent()) {
             Map<String, Object> response = new HashMap<>();

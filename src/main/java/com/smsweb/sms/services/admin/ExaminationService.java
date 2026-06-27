@@ -78,4 +78,9 @@ public class ExaminationService {
     public ExamDetails getExamDetailById(Long examName, Long academic_id, Long school_id){
         return examDetailsRepository.findByExamination_IdAndAcademicYear_IdAndSchool_Id(examName, academic_id, school_id);
     }
+
+    /** Fetch ExamDetails directly by its own PK — used when dropdown already sends ExamDetails.id */
+    public ExamDetails getExamDetailByDetailsId(Long examDetailsId){
+        return examDetailsRepository.findById(examDetailsId).orElse(null);
+    }
 }

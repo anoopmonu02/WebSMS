@@ -801,6 +801,13 @@
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_HOLIDAY:VIEW" th:href="@{'/admin/holidays'}"><i class="bi bi-dot"></i><span>Holiday Calendar</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM:VIEW" th:href="@{'/admin/examinations'}"><i class="bi bi-dot"></i><span>Examination</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM_DATE:VIEW" th:href="@{'/admin/examinations-date'}"><i class="bi bi-dot"></i><span>Examination Date</span></a></li>
+                        <li class="sidebar-item"><hr class="sidebar-divider"></li>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/family-migration}">
+                                <i class="bi bi-people-fill text-info"></i>
+                                <span>Family Migration</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 

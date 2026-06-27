@@ -181,11 +181,12 @@ public class ExcelFileHandler {
 
                 Iterator<Cell> cellIterator = row.iterator();
                 String[] rowData = new String[7];
-                int colNumber = 0;
                 while(cellIterator.hasNext()){
                     Cell cell = cellIterator.next();
-                    rowData[colNumber] = dataFormatter.formatCellValue(cell);//cell.getStringCellValue();
-                    colNumber++;
+                    int colIdx = cell.getColumnIndex();
+                    if (colIdx < rowData.length) {
+                        rowData[colIdx] = dataFormatter.formatCellValue(cell);
+                    }
                 }
                 excelData.add(rowData);
             }
@@ -202,28 +203,32 @@ public class ExcelFileHandler {
             int rowNumber = 0;
             XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
             Sheet sheet = workbook.getSheetAt(0);
-            Iterator<Row> iterator = sheet.iterator();
+            // FormulaEvaluator computes formula cell values instead of returning the formula string
+            org.apache.poi.ss.usermodel.FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
             DataFormatter dataFormatter = new DataFormatter();
+            Iterator<Row> iterator = sheet.iterator();
             while(iterator.hasNext()){
                 Row row = iterator.next();
-                if(rowNumber<dataStartRowNumber){
+                if(rowNumber < dataStartRowNumber){
                     rowNumber++;
-                    //check for header
                     continue;
                 }
 
                 Iterator<Cell> cellIterator = row.iterator();
                 String[] rowData = new String[15];
-                int colNumber = 0;
-                if(row.getPhysicalNumberOfCells()>10){
+                if(row.getPhysicalNumberOfCells() > 10){
                     while(cellIterator.hasNext()){
                         Cell cell = cellIterator.next();
-                        rowData[colNumber] = dataFormatter.formatCellValue(cell);//cell.getStringCellValue();
-                        colNumber++;
+                        int colIdx = cell.getColumnIndex();
+                        if (colIdx < rowData.length) {
+                            // Use evaluator so formula cells return computed value, not formula string
+                            rowData[colIdx] = dataFormatter.formatCellValue(cell, evaluator);
+                        }
                     }
                     excelData.add(rowData);
                 }
             }
+            workbook.close();
             return excelData;
         }catch(Exception e){
             e.printStackTrace();

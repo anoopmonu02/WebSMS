@@ -2,6 +2,7 @@ package com.smsweb.sms.services.smsmessage;
 
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.Employee;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
 import com.smsweb.sms.models.student.AcademicStudent;
@@ -50,8 +51,8 @@ public class SmsMessageService {
         return smsConversationRepository.save(conversation);
     }
 
-    public Optional<SmsMessage> resolveSmsMessage(Long id, String updatedBY) {
-        int updated = smsMessageRepository.resolveSmsMessage(id, updatedBY, new Date());
+    public Optional<SmsMessage> resolveSmsMessage(Long id, UserEntity updatedBy) {
+        int updated = smsMessageRepository.resolveSmsMessage(id, updatedBy, new Date());
         if (updated > 0) {
             return smsMessageRepository.findById(id);
         } else {

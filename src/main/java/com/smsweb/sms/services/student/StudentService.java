@@ -217,6 +217,10 @@ public class StudentService {
                 student.setMobile1(contactNo);
                 student.setUpdatedBy(userService.getLoggedInUser());
                 repository.save(student);
+                // Ensure FamilyAccount exists and student is linked to the new mobile
+                if (contactNo != null && !contactNo.isBlank()) {
+                    familyAccountService.createIfAbsent(contactNo);
+                }
                 return studentId;
             }
         } catch (Exception e) {
@@ -828,7 +832,6 @@ public class StudentService {
         try{
             List<String> requiredFields = Arrays.asList(
                     "Exam Name",
-                    "Exam Result Date",
                     "Total Marks",
                     "Obtained Marks",
                     "Percentage(%)",
@@ -866,14 +869,19 @@ public class StudentService {
                         if (missingFields.isEmpty()) {
                             String uuid = rowData.get("ID#");
                             if (uuid != null && !uuid.isEmpty()) {
-                                AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
-                                        UUID.fromString(uuid), "Active", academic.getId(), school.getId()).orElse(null);
+                                // UUID is globally unique — no need to filter by school/academicYear
+                                // (avoids mismatch when session academicYear differs from file download time)
+                                AcademicStudent academicStudent = academicStudentRepository.findByUuid(
+                                        UUID.fromString(uuid)).orElse(null);
 
                                 if (academicStudent != null) {
                                     ExamResultSummary examResultSummary = new ExamResultSummary();
                                     examResultSummary.setResult(rowData.get("Result"));
                                     examResultSummary.setExamDetails(examDetails);
-                                    examResultSummary.setExamResultDate(sf.parse(rowData.get("Exam Result Date")));
+                                    String examDateStr = rowData.get("Exam Result Date");
+                                    Date examDate = (examDateStr != null && !examDateStr.trim().isEmpty())
+                                            ? sf.parse(examDateStr) : new Date();
+                                    examResultSummary.setExamResultDate(examDate);
                                     examResultSummary.setAcademicStudent(academicStudent);
                                     examResultSummary.setSchool(school);
                                     examResultSummary.setAcademicYear(academic);
@@ -900,8 +908,17 @@ public class StudentService {
                         }
                     }
                     // Bulk save the students
-                    examResultSummaryRepository.saveAll(studentsResultsToSave);
-                    return "Total Results updated: " + erPassCounter + " and Results not found for: "+erFailCounter;
+                    if (!studentsResultsToSave.isEmpty()) {
+                        examResultSummaryRepository.saveAll(studentsResultsToSave);
+                    }
+                    String msg = "Total Results updated: " + erPassCounter + " and Results not found for: " + erFailCounter;
+                    if (!failedIds.isEmpty()) {
+                        log.warn("Exam result upload — UUIDs not matched: {}", failedIds);
+                    }
+                    if (erPassCounter == 0) {
+                        return "error#####" + msg + ". Check if UUIDs in the file match current school and academic year.";
+                    }
+                    return msg;
                 } else{
                     return "error#####Examination name not found. Kindly check your examination name!";
                 }
@@ -916,7 +933,9 @@ public class StudentService {
     }
 
     public List<ExamResultSummary> getExamResultsForStudents(Long medium, Long grade, Long section, Long exam, Long academic, Long school){
-        ExamDetails examDetails = examinationService.getExamDetailById(exam, academic, school);
+        // exam param is now ExamDetails.id (dropdown was changed to send ExamDetails.id directly)
+        ExamDetails examDetails = examinationService.getExamDetailByDetailsId(exam);
+        if (examDetails == null) return java.util.Collections.emptyList();
         List<ExamResultSummary> examResultSummaries = examResultSummaryRepository.getExamResultSummariesBy(school, academic, medium, grade, section, examDetails);
         System.out.println(examResultSummaries);
         return examResultSummaries;

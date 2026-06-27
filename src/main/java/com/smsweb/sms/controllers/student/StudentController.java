@@ -13,6 +13,7 @@ import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
+import com.smsweb.sms.repositories.admin.ExamDetailsRepository;
 import com.smsweb.sms.repositories.admin.ExaminationRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
@@ -62,8 +63,9 @@ public class StudentController extends BaseController {
     private final AttendanceRepository attendanceRepository;
 
     private final ExaminationRepository examinationRepository;
+    private final ExamDetailsRepository examDetailsRepository;
     @Autowired
-    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository){
+    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository, ExamDetailsRepository examDetailsRepository){
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.dropdownService = dropdownService;
@@ -72,6 +74,7 @@ public class StudentController extends BaseController {
         this.userService = userService1;
         this.attendanceRepository = attendanceRepository;
         this.examinationRepository = examinationRepository;
+        this.examDetailsRepository = examDetailsRepository;
     }
 
     @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
@@ -474,7 +477,15 @@ public class StudentController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
-        model.addAttribute("examNames",examinationRepository.findAll());
+        // Load only ExamDetails configured for this school + academic year
+        // so dropdown values match what getExamDetailById expects
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        if (school != null && academicYear != null) {
+            model.addAttribute("examNames", examDetailsRepository.findAllByAcademicYear_IdAndSchool_Id(academicYear.getId(), school.getId()));
+        } else {
+            model.addAttribute("examNames", java.util.Collections.emptyList());
+        }
         model.addAttribute("page", "datatable");
         return "student/stu_exam";
     }

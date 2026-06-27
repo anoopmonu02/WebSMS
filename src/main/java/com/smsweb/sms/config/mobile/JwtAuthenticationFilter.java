@@ -8,23 +8,24 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * JWT Authentication Filter for the Mobile API (/api/v1/**).
  *
  * Runs once per request. Reads the "Authorization: Bearer <token>" header,
- * validates the JWT, loads the UserDetails, and sets the SecurityContext.
+ * validates the JWT signature + expiry, then sets a minimal Spring Security
+ * authentication directly from the token claims — NO database lookup required.
  *
- * Also stores decoded claims (academicStudentId, schoolId, academicYearId, studentName)
- * as request attributes so controllers can access them without re-parsing the token.
+ * This is intentional: the JWT is the sole source of identity for the mobile API.
+ * Controllers obtain the student context via request attributes stashed here.
  *
  * Usage in controllers:
  *   Long academicStudentId = (Long) request.getAttribute("academicStudentId");
@@ -35,13 +36,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private final JwtTokenProvider   jwtTokenProvider;
-    private final UserDetailsService userDetailsService;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
-                                   UserDetailsService userDetailsService) {
-        this.jwtTokenProvider  = jwtTokenProvider;
-        this.userDetailsService = userDetailsService;
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @Override
@@ -55,14 +53,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
 
-                String   username = jwtTokenProvider.extractUsername(jwt);
-                Claims   claims   = jwtTokenProvider.extractAllClaims(jwt);
+                Claims claims  = jwtTokenProvider.extractAllClaims(jwt);
+                String subject = claims.getSubject(); // UserEntity.username
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
+                // Authenticate directly from claims — no DB lookup.
+                // The JWT signature already proves authenticity.
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                                subject,
+                                null,
+                                Collections.singletonList(
+                                        new SimpleGrantedAuthority("ROLE_STUDENT")));
                 authentication.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request));
 
@@ -77,10 +78,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         claims.get("academicYearId", Long.class));
                 request.setAttribute("studentName",
                         claims.get("studentName", String.class));
+
+                log.debug("JWT authenticated: subject={} studentId={}",
+                        subject, claims.get("academicStudentId"));
             }
 
         } catch (Exception ex) {
-            log.error("Cannot set user authentication from JWT: {}", ex.getMessage());
+            log.warn("JWT authentication failed: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

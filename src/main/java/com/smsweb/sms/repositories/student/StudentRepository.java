@@ -28,6 +28,13 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     /** Used by FamilyAccountService to link siblings via mobile1. */
     List<Student> findAllByMobile1(String mobile1);
 
+    /** Used by FamilyAccountService to link students whose mobile2 matches a family mobile. */
+    List<Student> findAllByMobile2(String mobile2);
+
+    /** All active students that have at least one mobile set — used by family migration scan. */
+    @Query("SELECT s FROM Student s WHERE s.status = 'Active' AND (s.mobile1 IS NOT NULL AND s.mobile1 <> '' OR s.mobile2 IS NOT NULL AND s.mobile2 <> '')")
+    List<Student> findAllActiveWithMobile();
+
     /**
      * Finds the highest dummy contact number ever assigned (pattern: 0000000000…).
      * Used to initialise the import dummy counter so we never reuse a number.

@@ -1,14 +1,18 @@
 package com.smsweb.sms.services.mobile;
 
+import com.smsweb.sms.dto.FamilyGroupPreview;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.models.student.Student;
+import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.FamilyAccountRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Manages FamilyAccount records — one per unique parent mobile number.
@@ -29,16 +33,19 @@ import java.util.Optional;
 @Service
 public class FamilyAccountService {
 
-    private final FamilyAccountRepository repo;
+    private final FamilyAccountRepository  repo;
     private final StudentRepository        studentRepository;
+    private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder          encoder;
 
     public FamilyAccountService(FamilyAccountRepository repo,
                                  StudentRepository studentRepository,
+                                 AcademicStudentRepository academicStudentRepository,
                                  PasswordEncoder encoder) {
-        this.repo              = repo;
-        this.studentRepository = studentRepository;
-        this.encoder           = encoder;
+        this.repo                     = repo;
+        this.studentRepository        = studentRepository;
+        this.academicStudentRepository = academicStudentRepository;
+        this.encoder                  = encoder;
     }
 
     // ── Lookup ────────────────────────────────────────────────────────────────
@@ -81,17 +88,95 @@ public class FamilyAccountService {
                     .build());
         });
 
-        // 2. Link all students with this mobile1 to the account (sets the FK)
-        //    This handles both new registration and migration of existing records.
-        studentRepository.findAllByMobile1(mobile).forEach(student -> {
-            if (student.getFamilyAccount() == null ||
-                    !student.getFamilyAccount().getId().equals(account.getId())) {
-                student.setFamilyAccount(account);
-                studentRepository.save(student);
-            }
-        });
+        // 2. Link students whose mobile1 = this mobile
+        studentRepository.findAllByMobile1(mobile).forEach(s -> linkStudent(s, account));
+
+        // 3. Also link students whose mobile2 = this mobile (cross-mobile2 family members)
+        studentRepository.findAllByMobile2(mobile).forEach(s -> linkStudent(s, account));
 
         return account;
+    }
+
+    private void linkStudent(Student student, FamilyAccount account) {
+        if (student.getFamilyAccount() == null ||
+                !student.getFamilyAccount().getId().equals(account.getId())) {
+            student.setFamilyAccount(account);
+            studentRepository.save(student);
+        }
+    }
+
+    // ── Migration scan ────────────────────────────────────────────────────────
+
+    /**
+     * Scans ALL active students with any mobile set, groups them by mobile number,
+     * and returns a preview list for the admin review UI.
+     * A student with both mobile1 and mobile2 can appear in two groups.
+     */
+    public List<FamilyGroupPreview> scanFamilyGroups() {
+        List<Student> allStudents = studentRepository.findAllActiveWithMobile();
+
+        // Build map: mobile → list of (student, matchedVia)
+        Map<String, List<Student[]>> mobileMap = new LinkedHashMap<>();
+        for (Student s : allStudents) {
+            if (s.getMobile1() != null && !s.getMobile1().isBlank()) {
+                mobileMap.computeIfAbsent(s.getMobile1(), k -> new ArrayList<>())
+                         .add(new Student[]{s});
+            }
+            if (s.getMobile2() != null && !s.getMobile2().isBlank()
+                    && !s.getMobile2().equals(s.getMobile1())) {
+                mobileMap.computeIfAbsent(s.getMobile2(), k -> new ArrayList<>())
+                         .add(new Student[]{s});
+            }
+        }
+
+        // Build academic student lookup: studentId → active AcademicStudent
+        Map<Long, AcademicStudent> asMap = new HashMap<>();
+        // We'll load lazily per student to avoid loading everything
+        // For efficiency, build a simple name-based lookup
+        List<FamilyGroupPreview> result = new ArrayList<>();
+
+        for (Map.Entry<String, List<Student[]>> entry : mobileMap.entrySet()) {
+            String mobile = entry.getKey();
+            List<Student[]> rows = entry.getValue();
+
+            boolean accountExists = repo.existsByMobile(mobile);
+            FamilyGroupPreview group = new FamilyGroupPreview(mobile, accountExists);
+
+            for (Student[] arr : rows) {
+                Student s = arr[0];
+                String matchedVia = (mobile.equals(s.getMobile1())) ? "mobile1" : "mobile2";
+                boolean linked = s.getFamilyAccount() != null;
+
+                // Try to get grade/section/school from active academic student
+                String gradeName = "—", sectionName = "—", schoolName = "";
+                try {
+                    List<AcademicStudent> asList = academicStudentRepository.findAllByStudent_IdAndStatus(s.getId(), "Active");
+                    if (!asList.isEmpty()) {
+                        AcademicStudent as = asList.get(0);
+                        gradeName   = as.getGrade()   != null ? as.getGrade().getGradeName()     : "—";
+                        sectionName = as.getSection() != null ? as.getSection().getSectionName() : "—";
+                        schoolName  = as.getSchool()  != null ? as.getSchool().getSchoolName()   : "";
+                    }
+                } catch (Exception ignored) {}
+
+                group.getStudents().add(new FamilyGroupPreview.StudentRow(
+                        s.getId(),
+                        s.getStudentName(),
+                        s.getFatherName(),
+                        schoolName,
+                        gradeName,
+                        sectionName,
+                        matchedVia,
+                        linked
+                ));
+            }
+            result.add(group);
+        }
+
+        // Sort: unlinked groups first, then by mobile
+        result.sort(Comparator.comparingInt(FamilyGroupPreview::getNeedsLink).reversed()
+                              .thenComparing(FamilyGroupPreview::getMobile));
+        return result;
     }
 
     // ── Password change ───────────────────────────────────────────────────────

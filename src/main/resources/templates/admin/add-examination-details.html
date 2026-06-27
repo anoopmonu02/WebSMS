@@ -28,7 +28,7 @@
           &nbsp;
         </div>
         <div class="col-md-5">
-          <label for="customer_name" class="form-label">Fee Date</label>
+          <label for="customer_name" class="form-label">Examination Date</label>
           <input type="text"  class="form-control" id="customer_name" name="examDeclaredDate" th:field="*{examDeclaredDate}" />
           <p class="text-danger" th:if="${#fields.hasErrors('examDeclaredDate')}" th:errors="*{examDeclaredDate}">date Error</p>
         </div>

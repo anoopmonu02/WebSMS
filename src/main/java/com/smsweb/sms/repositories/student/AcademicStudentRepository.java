@@ -42,6 +42,9 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
     Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(UUID uuid, String status, Long academic, Long school);
 
+    /** UUID is globally unique — use this for exam result upload to avoid academicYear/school mismatch issues */
+    Optional<AcademicStudent> findByUuid(UUID uuid);
+
     @Query("SELECT f FROM AcademicStudent f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.medium.id = :medium AND f.status='Active'")
     List<AcademicStudent> findAllStudentsDetails(
             @Param("schoolId") Long schoolId,

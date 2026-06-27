@@ -1,5 +1,6 @@
 package com.smsweb.sms.repositories.smsmessage;
 
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,7 +23,7 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Modifying
     @Transactional
     @Query("UPDATE SmsMessage m SET m.resolution = 'RESOLVED', m.updatedBy = :updatedBy, m.updatedAt = :updatedAt WHERE m.id = :id")
-    int resolveSmsMessage(@Param("id") Long id, @Param("updatedBy") String updatedBy, @Param("updatedAt") Date updatedAt);
+    int resolveSmsMessage(@Param("id") Long id, @Param("updatedBy") UserEntity updatedBy, @Param("updatedAt") Date updatedAt);
     // Returns number of rows updated
 
     @Query("SELECT DISTINCT m FROM SmsMessage m " +

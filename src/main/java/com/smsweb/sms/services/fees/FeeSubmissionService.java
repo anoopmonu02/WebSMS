@@ -117,9 +117,39 @@ public class FeeSubmissionService {
     /**
      * Returns all ACTIVE fee submissions for a student in the given academic year.
      * Used by the mobile fees screen (grid + summary + pie chart).
+     *
+     * @Transactional keeps the JPA session open so that lazy collections
+     * (feeSubmissionMonths → monthMaster, feeSubmissionSub → feehead) can be
+     * accessed by MobileFeesController.toSubmissionMap() without a
+     * LazyInitializationException.  We force-initialize them here so the caller
+     * gets fully-populated objects, not proxies that blow up after this method returns.
      */
+    @Transactional(readOnly = true)
     public List<FeeSubmission> getActiveFeeSubmissionsForYear(Long schoolId, Long academicId, Long academicStudentId) {
-        return feeSubmissionRepository.findAllBySchoolIdAndAcademicIdAndAcademicStudentId(schoolId, academicId, academicStudentId);
+        List<FeeSubmission> submissions = feeSubmissionRepository
+                .findAllBySchoolIdAndAcademicIdAndAcademicStudentId(schoolId, academicId, academicStudentId);
+
+        // Force-initialize lazy associations while the session is still open
+        for (FeeSubmission fs : submissions) {
+            if (fs.getFeeSubmissionMonths() != null) {
+                fs.getFeeSubmissionMonths().forEach(m -> {
+                    // Touch nested lazy association: MonthMaster
+                    if (m.getMonthMaster() != null) {
+                        m.getMonthMaster().getMonthName(); // triggers proxy init
+                    }
+                });
+            }
+            if (fs.getFeeSubmissionSub() != null) {
+                fs.getFeeSubmissionSub().forEach(sub -> {
+                    // Touch nested lazy association: Feehead
+                    if (sub.getFeehead() != null) {
+                        sub.getFeehead().getFeeHeadName(); // triggers proxy init
+                    }
+                });
+            }
+        }
+
+        return submissions;
     }
 
     public Map getPaidMonths(Long school_id, Long academic_id, Long academic_student_id){

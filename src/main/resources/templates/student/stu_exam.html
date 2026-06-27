@@ -37,8 +37,8 @@
                 <div class="col-md-2">
                     <label for="exam" class="form-label">Exam</label>
                     <select name="exam" id="exam" class="form-select">
-                        <option value="">Select Section</option>
-                        <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examinationName}">Exam Name</option>
+                        <option value="">Select Exam</option>
+                        <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
                     </select>
                 </div>
                 <div class="col-md-2 align-self-end">
@@ -278,7 +278,7 @@
             formData.append("file", fileInput.files[0]);
             $('#fileUploadModal').modal('hide');
             // AJAX call to send the file to the server
-            fetch('/upload-exam-result-file', {
+            fetch(`${contextPath}upload-exam-result-file`, {
                 method: 'POST',
                 body: formData,
             })
@@ -352,8 +352,8 @@
             //stu-sr-data
             const tableData = [];
 
-            // Iterate through each row in the table
-            $('#stu-sr-data tbody tr').each(function() {
+            // Only send valid (non-error) rows — skip red table-danger rows
+            $('#stu-sr-data tbody tr').not('.table-danger').each(function() {
                 const rowData = {};
                 $(this).find('td').each(function(index) {
                     const header = $('#stu-sr-data thead th').eq(index).text();
@@ -361,10 +361,14 @@
                 });
                 tableData.push(rowData);
             });
+            if (tableData.length === 0) {
+                showMsg("error", "No valid rows to upload. Please fix errors in the file.", "Error");
+                return;
+            }
 
             // Send data to the Spring Boot controller via AJAX
             $.ajax({
-                url: '/upload-exam-result-data', // Replace with your controller endpoint
+                url: `${contextPath}upload-exam-result-data`,
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(tableData),

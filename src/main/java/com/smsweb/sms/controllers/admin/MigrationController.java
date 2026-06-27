@@ -1,13 +1,12 @@
 package com.smsweb.sms.controllers.admin;
 
-import com.smsweb.sms.models.student.FamilyAccount;
-import com.smsweb.sms.models.student.Student;
-import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.dto.FamilyGroupPreview;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -15,85 +14,83 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * One-time migration endpoint.
+ * Family Account Migration — Super Admin only.
  *
- * POST /admin/migrate-family-accounts
- *   – Scans every student with a non-blank mobile1 and creates a FamilyAccount
- *     if one doesn't already exist.
- *   – Safe to call multiple times (createIfAbsent is idempotent).
- *   – Restricted to SUPERADMIN.
- *
- * After running this once, new students automatically get a FamilyAccount
- * via StudentService.saveStudent() / editStudentDetails().
+ * GET  /admin/family-migration          → Step 1: scan button
+ * POST /admin/family-migration/scan     → Step 2: preview groups
+ * POST /admin/family-migration/execute  → Step 3: run migration + result
  */
-@RestController
-@RequestMapping("/admin")
+@Controller
+@RequestMapping("/admin/family-migration")
 @PreAuthorize("hasRole('ROLE_SUPERADMIN')")
 public class MigrationController {
 
     private static final Logger log = LoggerFactory.getLogger(MigrationController.class);
 
-    private final StudentRepository    studentRepository;
     private final FamilyAccountService familyAccountService;
 
-    public MigrationController(StudentRepository studentRepository,
-                                FamilyAccountService familyAccountService) {
-        this.studentRepository    = studentRepository;
+    public MigrationController(FamilyAccountService familyAccountService) {
         this.familyAccountService = familyAccountService;
     }
 
-    /**
-     * Backfill FamilyAccount for every existing active student that has mobile1 set.
-     *
-     * Returns a summary:
-     * {
-     *   "totalStudents":   150,
-     *   "withMobile":      140,
-     *   "created":          85,   ← new FamilyAccounts created
-     *   "alreadyExisted":   55,   ← already had one (idempotent)
-     *   "skipped":          10,   ← mobile1 blank / null
-     *   "errors":          [ "Student ID 42: ..." ]
-     * }
-     */
-    @PostMapping("/migrate-family-accounts")
-    public ResponseEntity<Map<String, Object>> migrateFamilyAccounts() {
+    @GetMapping
+    public String showPage(Model model) {
+        model.addAttribute("page", "plain");
+        return "admin/familyMigration";
+    }
 
-        List<Student> allStudents = studentRepository.findAllByStatus("Active");
-
-        int withMobile   = 0;
-        int created      = 0;
-        int alreadyExisted = 0;
-        int skipped      = 0;
-        List<String> errors = new ArrayList<>();
-
-        for (Student student : allStudents) {
-            String mobile = student.getMobile1();
-            if (mobile == null || mobile.isBlank()) {
-                skipped++;
-                continue;
-            }
-            withMobile++;
-            try {
-                boolean existed = familyAccountService.findByMobile(mobile).isPresent();
-                familyAccountService.createIfAbsent(mobile);
-                if (existed) alreadyExisted++;
-                else         created++;
-            } catch (Exception e) {
-                errors.add("Student ID " + student.getId() + " (mobile: " + mobile + "): " + e.getMessage());
-                log.error("Migration error for student {}: {}", student.getId(), e.getMessage());
-            }
+    @PostMapping("/scan")
+    public String scan(Model model) {
+        try {
+            List<FamilyGroupPreview> groups = familyAccountService.scanFamilyGroups();
+            int totalGroups   = groups.size();
+            int totalStudents = groups.stream().mapToInt(FamilyGroupPreview::getTotalStudents).sum();
+            int needsLink     = groups.stream().mapToInt(FamilyGroupPreview::getNeedsLink).sum();
+            int alreadyLinked = groups.stream().mapToInt(FamilyGroupPreview::getAlreadyLinked).sum();
+            model.addAttribute("groups",        groups);
+            model.addAttribute("totalGroups",   totalGroups);
+            model.addAttribute("totalStudents", totalStudents);
+            model.addAttribute("needsLink",     needsLink);
+            model.addAttribute("alreadyLinked", alreadyLinked);
+        } catch (Exception e) {
+            log.error("Family migration scan error", e);
+            model.addAttribute("error", "Scan failed: " + e.getMessage());
         }
+        model.addAttribute("page", "plain");
+        return "admin/familyMigration";
+    }
 
-        log.info("FamilyAccount migration done — created={}, alreadyExisted={}, skipped={}, errors={}",
-                created, alreadyExisted, skipped, errors.size());
-
-        return ResponseEntity.ok(Map.of(
-                "totalStudents",  allStudents.size(),
-                "withMobile",     withMobile,
+    @PostMapping("/execute")
+    public String execute(Model model) {
+        int created = 0, alreadyExisted = 0, errors = 0;
+        List<String> errorList = new ArrayList<>();
+        try {
+            List<FamilyGroupPreview> groups = familyAccountService.scanFamilyGroups();
+            for (FamilyGroupPreview group : groups) {
+                try {
+                    boolean existed = familyAccountService.findByMobile(group.getMobile()).isPresent();
+                    familyAccountService.createIfAbsent(group.getMobile());
+                    if (existed) alreadyExisted++;
+                    else         created++;
+                } catch (Exception e) {
+                    errors++;
+                    errorList.add("Mobile " + group.getMobile() + ": " + e.getMessage());
+                    log.error("Family migration error for {}: {}", group.getMobile(), e.getMessage());
+                }
+            }
+            model.addAttribute("result", Map.of(
+                "totalGroups",    groups.size(),
                 "created",        created,
                 "alreadyExisted", alreadyExisted,
-                "skipped",        skipped,
-                "errors",         errors
-        ));
+                "errors",         errors,
+                "errorList",      errorList
+            ));
+            log.info("Family migration done — created={}, alreadyExisted={}, errors={}", created, alreadyExisted, errors);
+        } catch (Exception e) {
+            log.error("Family migration execute error", e);
+            model.addAttribute("error", "Migration failed: " + e.getMessage());
+        }
+        model.addAttribute("page", "plain");
+        return "admin/familyMigration";
     }
 }
