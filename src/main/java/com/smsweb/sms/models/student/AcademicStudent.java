@@ -19,6 +19,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
@@ -117,6 +118,19 @@ public class AcademicStudent {
     protected void onUpdate() {
         this.lastUpdated = new Date();
     }
+
+    /**
+     * Opening balance carried forward from before this system was used,
+     * or from the previous academic year during year-end promotion.
+     * Defaults to 0. Only read by the fee submission form when no
+     * FeeSubmissionBalance row exists yet for this student in this year.
+     */
+    @Column(precision = 10, scale = 2)
+    private BigDecimal openingBalance = BigDecimal.ZERO;
+
+    /** Optional remark for the opening balance (e.g. "Balance from 2023-24") */
+    @Size(max = 500)
+    private String openingBalanceRemark;
 
     public static final String STATUS_ACTIVE = "Active";
     public static final String STATUS_INACTIVE = "Inactive";

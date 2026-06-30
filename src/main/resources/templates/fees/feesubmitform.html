@@ -695,7 +695,10 @@
             $('#remark').val('');
             $('#discountHead').val('');
             $('#discountMsg').text('');
-            $('#discountCount').text('')
+            $('#discountCount').text('');
+            $('#msgLabel').html('').hide();
+            $('#msgAmount').html('').hide();
+            $('#fullPaymentAmount').val('');
         }
 
         function resetMonthCheckBoxes(){
@@ -799,6 +802,18 @@
             if($('#feeTable > tbody > tr').length === 0){
                 showWarningMsg("error","No fee heads added. Please add at least one fee head before submitting.","Message");
                 return false;
+            }
+
+            // Validation: last month of session selected → balance must be zero
+            const allMonthCheckboxes = $('.monthcheckbox');
+            const lastMonthCheckbox = allMonthCheckboxes.last();
+            const isLastMonthSelected = lastMonthCheckbox.is(':enabled') && lastMonthCheckbox.is(':checked');
+            if (isLastMonthSelected) {
+                const balanceAmt = parseFloat($('#balanceAmount').val()) || 0;
+                if (balanceAmt > 0) {
+                    showWarningMsg("error", "Balance amount must be zero when submitting the last month of the session. Please pay the full amount.", "Validation Error");
+                    return false;
+                }
             }
 
             $('#feeSubmitBtn').attr('disabled',true);

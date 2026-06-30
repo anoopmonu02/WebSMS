@@ -231,6 +231,10 @@ public class RoleInitializer {
                     "FEE_CANCEL",
                     "Cancel a submitted fee payment");
 
+            seed(screenRepo, "Fees", "Collect Balance",
+                    "PENDING_BALANCE_SUBMIT",
+                    "Collect pending balance amount from student");
+
             // ── Fee Reports ──────────────────────────────────────────────────
 
             seed(screenRepo, "Fees", "User-wise Collection Report",

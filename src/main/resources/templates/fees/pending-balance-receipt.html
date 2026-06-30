@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Balance Payment Receipt</title>
+</head>
+<body>
+<section>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+
+        <div class="card-header fs-3">Balance Payment Receipt</div>
+        <div th:if="${error != null}">
+          <p class="text-center text-danger" th:text="${error}"></p>
+        </div>
+        <hr/>
+
+        <div class="row">
+            <div class="col-md-3">
+                <button class="btn btn-success" onclick="printDiv('contentToExport','balance-receipt')">
+                    <i class="bi bi-printer-fill"></i> Print
+                </button>
+            </div>
+            <div class="col-md-3">
+                <a class="btn btn-info" th:href="@{/fees/collect-balance}">
+                    <i class="bi bi-arrow-left-circle-fill"></i> Back to Collect Balance
+                </a>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-sm-8">
+                <div class="card">
+                    <h5 class="card-header">Balance Payment Receipt</h5>
+                    <div class="card-body" id="contentToExport">
+
+                        <!-- School Header -->
+                        <div class="text-center"><strong th:text="${school['schoolName']?.toUpperCase()}"></strong></div>
+                        <div class="text-center"><strong th:text="${school['address']?.toUpperCase()}"></strong></div>
+                        <div class="text-center">
+                            <strong>CONTACT NO: (+91) <span th:text="${school['mobile1']}"></span>
+                            <span th:if="${school['mobile2'] != null and school['mobile2'] != ''}">
+                                , <span th:text="${school['mobile2']}"></span>
+                            </span></strong>
+                        </div>
+                        <div class="text-center" th:if="${school['email'] != null and school['email'] != ''}">
+                            <strong>Email: <span th:text="${school['email']}"></span></strong>
+                        </div>
+                        <hr/>
+
+                        <!-- Receipt Meta Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Academic Year: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${academicYear}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-2"></label>
+                                <label class="col-md-4 col-form-label"><strong>Submission Date: </strong></label>
+                                <label class="col-md-5 col-form-label"
+                                       th:text="${#dates.format(feeSubmission['feeSubmissionDate'],'dd-MMM-yyyy HH:mm:ss')}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Receipt No: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${feeSubmission['receiptNo']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-2"></label>
+                                <label class="col-md-4 col-form-label"><strong>Payment: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${feeSubmission['paymentType']}"></label>
+                            </div>
+                        </div>
+                        <hr/>
+
+                        <!-- Student Detail Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Student Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student['studentName']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-1"></label>
+                                <label class="col-md-4 col-form-label"><strong>Class: </strong></label>
+                                <label class="col-md-4 col-form-label"
+                                       th:text="${student['grade'] + '-' + student['section']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Father Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student['fatherName']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-1"></label>
+                                <label class="col-md-4 col-form-label"><strong>SR No: </strong></label>
+                                <label class="col-md-4 col-form-label" th:text="${student['classSrNo']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-4 col-form-label"><strong>Mother Name: </strong></label>
+                                <label class="col-md-5 col-form-label" th:text="${student['motherName']}"></label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="col-md-1"></label>
+                                <label class="col-md-4 col-form-label"><strong>Contact No: </strong></label>
+                                <label class="col-md-5 col-form-label"
+                                       th:text="'(+91) ' + ${student['mobile1']}"></label>
+                            </div>
+                        </div>
+                        <hr/>
+
+                        <!-- Remark -->
+                        <div class="row amountdetails">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-8">
+                                <strong>Remark: </strong>
+                                <span th:text="${feeSubmission['feeRemark']}"></span>
+                            </div>
+                        </div>
+                        <hr/>
+
+                        <!-- Previous Balance (pending balance being collected) -->
+                        <th:block th:if="${feeSubmission['previousFeeBalanceRemark'] != null
+                                          and feeSubmission['previousFeeBalanceRemark'].toString().trim() != ''
+                                          and feeSubmission['previousFeeBalanceRemark'].toString().trim() != '0'}">
+                            <div class="row">
+                                <div class="col-md-4"></div>
+                                <div class="col-md-4"><strong>Previous Balance: </strong></div>
+                                <div class="col-md-4 text-end"
+                                     th:text="'&#8377; ' + ${feeSubmission['previousFeeBalanceRemark']}"></div>
+                            </div>
+                            <hr/>
+                        </th:block>
+
+                        <!-- Amounts -->
+                        <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Total Amount: </strong></div>
+                            <div class="col-md-4 text-end"
+                                 th:text="'&#8377; ' + ${feeSubmission['totalAmount']}"></div>
+
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Paid Amount: </strong></div>
+                            <div class="col-md-4 text-end"
+                                 th:text="'&#8377; ' + ${feeSubmission['paidAmount']}"></div>
+
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Balance Amount: </strong></div>
+                            <div class="col-md-4 text-end"
+                                 th:text="'&#8377; ' + ${feeSubmission['balanceAmount']}"></div>
+                        </div>
+
+                        <br/><br/>
+                        <div class="row mb-3">
+                            <div class="col-md-12 text-end">(Authorized Signatory)</div>
+                        </div>
+
+                    </div><!-- /card-body -->
+                </div><!-- /card -->
+            </div>
+            <div class="col-sm-4"></div>
+        </div>
+
+        <div class="mb-5"></div>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/toastr.min.css}"/>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = /*[[${success}]]*/ null;
+    if (successMessage) showMsg('success', successMessage, 'Success');
+    const errorMessage   = /*[[${error}]]*/   null;
+    if (errorMessage)   showMsg('error',   errorMessage,   'Error');
+
+    function showMsg(type, msg, header) {
+        toastr.options = {
+            closeButton: true, progressBar: false,
+            positionClass: "toast-top-right", timeOut: "5000",
+            showEasing: "swing", hideEasing: "linear",
+            showMethod: "fadeIn", hideMethod: "fadeOut"
+        };
+        toastr[type](msg, header);
+    }
+
+    function printDiv(divId, title) {
+        let mywindow = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+        if (!mywindow) { alert('Popup blocked! Please allow popups for this site.'); return; }
+        mywindow.document.write('<html><head><title>' + title + '</title>');
+        mywindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>');
+        mywindow.document.write('</head><body>');
+        mywindow.document.write(document.getElementById(divId).innerHTML);
+        mywindow.document.write('</body></html>');
+        mywindow.document.close();
+        mywindow.focus();
+        setTimeout(function() { mywindow.print(); mywindow.close(); }, 1000);
+    }
+  </script>
+
+</section>
+</body>
+</html>

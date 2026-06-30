@@ -45,6 +45,14 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     /** UUID is globally unique — use this for exam result upload to avoid academicYear/school mismatch issues */
     Optional<AcademicStudent> findByUuid(UUID uuid);
 
+    /** Opening-balance upload — primary: exact student name + grade + section + school + AY */
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId AND LOWER(a.grade.gradeName) = LOWER(:gradeName) AND LOWER(a.section.sectionName) = LOWER(:sectionName) AND LOWER(s.studentName) = LOWER(:studentName) AND a.status = 'Active'")
+    List<AcademicStudent> findActiveByStudentNameAndGradeAndSection(@Param("studentName") String studentName, @Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId, @Param("gradeName") String gradeName, @Param("sectionName") String sectionName);
+
+    /** Opening-balance upload — fallback: exact father name + grade + section + school + AY */
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId AND LOWER(a.grade.gradeName) = LOWER(:gradeName) AND LOWER(a.section.sectionName) = LOWER(:sectionName) AND LOWER(s.fatherName) = LOWER(:fatherName) AND a.status = 'Active'")
+    List<AcademicStudent> findActiveByFatherNameAndGradeAndSection(@Param("fatherName") String fatherName, @Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId, @Param("gradeName") String gradeName, @Param("sectionName") String sectionName);
+
     @Query("SELECT f FROM AcademicStudent f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.medium.id = :medium AND f.status='Active'")
     List<AcademicStudent> findAllStudentsDetails(
             @Param("schoolId") Long schoolId,

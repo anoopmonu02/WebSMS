@@ -10,6 +10,8 @@ import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.MonthMaster;
+import com.smsweb.sms.models.admin.FeeClassMap;
+import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.*;
 import com.smsweb.sms.repositories.fees.FeeSubmissionRepository;
 import com.smsweb.sms.repositories.fees.ReceiptSequenceRepository;
@@ -56,6 +58,7 @@ public class FeeSubmissionService {
     private final FineRepository fineRepository;
     private final StudentDiscountRepository studentDiscountRepository;
     private final UserService userService;
+    private final SystemConfigRepository systemConfigRepository;
 
     @Autowired
     private StudentService studentService;
@@ -64,7 +67,8 @@ public class FeeSubmissionService {
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
                                 FullpaymentRepository fullpaymentRepository, FeemonthmapRepository feemonthmapRepository, FeeclassmapRepository feeclassmapRepository, DiscountclassmapRepository discountclassmapRepository,
                                 DiscountmonthmapRepository discountmonthmapRepository, AcademicyearRepository academicyearRepository, SchoolRepository schoolRepository, MonthMasterRepository monthMasterRepository,
-                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository, ReceiptSequenceRepository receiptSequenceRepository, FeedateRepository feedateRepository, FineRepository fineRepository, StudentDiscountRepository studentDiscountRepository, UserService userService){
+                                FeeheadRepository feeheadRepository, DiscountRepository discountRepository, ReceiptSequenceRepository receiptSequenceRepository, FeedateRepository feedateRepository, FineRepository fineRepository,
+                                StudentDiscountRepository studentDiscountRepository, UserService userService, SystemConfigRepository systemConfigRepository){
         this.feeSubmissionRepository = feeSubmissionRepository;
         this.monthmappingRepository = monthmappingRepository;
         this.gradeRepository = gradeRepository;
@@ -84,6 +88,7 @@ public class FeeSubmissionService {
         this.fineRepository = fineRepository;
         this.studentDiscountRepository = studentDiscountRepository;
         this.userService = userService;
+        this.systemConfigRepository = systemConfigRepository;
     }
 
     public List<FeeSubmission> getAllFeeSubmissionByAcademicYear(Long school_id, Long academic_id){
@@ -199,12 +204,27 @@ public class FeeSubmissionService {
             //Full Payment Calculated
             if(monthCount == 12){
                 lst.put("lastDate", new Date());
-                lst.put("amount",0.0);
+                lst.put("amount", 0.0);
                 FullPayment fullPayment = fullpaymentRepository.findBySchool_IdAndAcademicYear_IdAndGrade_Id(school_id, academic_id, grade_id).orElse(null);
-                if(fullPayment!=null){
-                    if(new Date().compareTo(fullPayment.getPaymentLastDate())<=0){
-                        lst.put("lastDate", fullPayment.getPaymentLastDate());
-                        lst.put("amount", fullPayment.getAmount());
+                if(fullPayment != null){
+                    if(new Date().compareTo(fullPayment.getPaymentLastDate()) <= 0){
+                        StudentDiscount existingDiscount = studentDiscountRepository
+                                .findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(
+                                        school_id, academic_id, academic_stu_id, "Active")
+                                .orElse(null);
+                        if(existingDiscount == null){
+                            // No student discount — apply configured full-payment amount
+                            lst.put("lastDate", fullPayment.getPaymentLastDate());
+                            lst.put("amount", fullPayment.getAmount());
+                        } else {
+                            // Has student discount — compute effective monthly payment via dedicated method
+                            BigDecimal effectiveMonthly = calculateFullPaymentForDiscountedStudent(
+                                    academic_id, school_id, grade_id, existingDiscount);
+                            if(effectiveMonthly.compareTo(BigDecimal.ZERO) > 0){
+                                lst.put("lastDate", fullPayment.getPaymentLastDate());
+                                lst.put("amount", effectiveMonthly);
+                            }
+                        }
                     }
                 }
             }
@@ -223,6 +243,76 @@ public class FeeSubmissionService {
         return resultMap;
     }
 
+
+    /**
+     * Calculates the effective 1-month payment burden for a student who already holds
+     * an active student discount (sibling / employee / etc.).
+     *
+     * Full-payment discount for such students = 1-month tuition fee  –  1-month student discount.
+     *
+     * The tuition fee head and the reference month used to confirm discount applicability
+     * are both read from the system_config table (keys: TUITION_FEE_HEAD_ID,
+     * FULL_PAYMENT_DISCOUNT_MONTH), so no fee-head names or month names are hardcoded here.
+     *
+     * @return effective monthly amount, or ZERO if config is missing / amounts are invalid
+     */
+    private BigDecimal calculateFullPaymentForDiscountedStudent(
+            Long academicId, Long schoolId, Long gradeId, StudentDiscount existingDiscount) {
+        try {
+            // ── 1. Read config keys ──────────────────────────────────────────────────
+            String tuitionFeeHeadIdStr = systemConfigRepository
+                    .findByConfigName("TUITION_FEE_HEAD_ID")
+                    .map(SystemConfig::getConfigValue)
+                    .orElseThrow(() -> new RuntimeException("system_config key TUITION_FEE_HEAD_ID not found"));
+
+            String discountRefMonthName = systemConfigRepository
+                    .findByConfigName("FULL_PAYMENT_DISCOUNT_MONTH")
+                    .map(SystemConfig::getConfigValue)
+                    .orElseThrow(() -> new RuntimeException("system_config key FULL_PAYMENT_DISCOUNT_MONTH not found"));
+
+            Long tuitionFeeHeadId = Long.parseLong(tuitionFeeHeadIdStr);
+
+            // ── 2. Get reference month master (used to verify discount is_applicable) ─
+            MonthMaster refMonthMaster = monthMasterRepository.findByMonthName(discountRefMonthName);
+            if(refMonthMaster == null){
+                throw new RuntimeException("MonthMaster not found for config month: " + discountRefMonthName);
+            }
+            List<Long> refMonthIdList = Collections.singletonList(refMonthMaster.getId());
+
+            // ── 3. Tuition fee per month ─────────────────────────────────────────────
+            // Direct lookup from fee_class_map — amount is a flat per-month value per grade.
+            // No month join needed; the JOIN query is only used for multi-month totals.
+            BigDecimal fee1Month = feeclassmapRepository
+                    .findByAcademicYear_IdAndSchool_IdAndGrade_IdAndFeehead_Id(
+                            academicId, schoolId, gradeId, tuitionFeeHeadId)
+                    .map(FeeClassMap::getAmount)
+                    .orElse(BigDecimal.ZERO);
+
+            // ── 4. Student discount per month ────────────────────────────────────────
+            // Use reference month to confirm is_applicable = true for this discount.
+            // result[4] = SAmount = raw per-month amount from discount_class_map (not multiplied by months).
+            List<Object[]> discountData = discountclassmapRepository
+                    .findAmountAndDiscountHeadNames(
+                            academicId, schoolId, refMonthIdList,
+                            gradeId, existingDiscount.getDiscounthead().getId());
+
+            BigDecimal discount1Month = BigDecimal.ZERO;
+            if(discountData != null && !discountData.isEmpty()){
+                discount1Month = discountData.get(0)[4] != null
+                        ? (BigDecimal) discountData.get(0)[4]
+                        : BigDecimal.ZERO;
+            }
+
+            // ── 5. Effective monthly payment = tuition fee – discount ────────────────
+            BigDecimal effectiveMonthly = fee1Month.subtract(discount1Month);
+            return effectiveMonthly.compareTo(BigDecimal.ZERO) > 0 ? effectiveMonthly : BigDecimal.ZERO;
+
+        } catch(Exception e){
+            e.printStackTrace();
+            System.err.println("calculateFullPaymentForDiscountedStudent failed: " + e.getMessage());
+            return BigDecimal.ZERO;
+        }
+    }
 
     public List<Map<String, Object>> processFeeData(Student student, List<Object[]> feeData, int stuCounting) {
         //int stuCounting = academicStudentRepository.countByStudent(student);
@@ -369,6 +459,26 @@ public class FeeSubmissionService {
                         proceedFlag = false;
                     }
                     if(proceedFlag){
+                        // Validation: if last month of session is being submitted, balance must be zero
+                        Map<String, MonthMaster> feeMonMapCheck = feeDataMap.get("FeeSubmission_mon");
+                        if (feeMonMapCheck != null && !feeMonMapCheck.isEmpty()) {
+                            List<MonthMapping> allSessionMonths = monthmappingRepository
+                                    .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+                            if (allSessionMonths != null && !allSessionMonths.isEmpty()) {
+                                String lastMonthName = allSessionMonths.get(allSessionMonths.size() - 1).getMonthMaster().getMonthName();
+                                if (feeMonMapCheck.containsKey(lastMonthName)) {
+                                    BigDecimal balanceAmt = feeMap.containsKey("balanceAmount")
+                                            ? new BigDecimal(feeMap.get("balanceAmount").toString())
+                                            : BigDecimal.ZERO;
+                                    if (balanceAmt.compareTo(BigDecimal.ZERO) > 0) {
+                                        resultMap.put("fee_submission_not_allowed",
+                                                "Balance amount must be zero when submitting the last month of the session. Please pay the full amount.");
+                                        return resultMap;
+                                    }
+                                }
+                            }
+                        }
+
                         FeeSubmission feeSubmission = new FeeSubmission();
                         if(feeMap!=null){
                             if(feeMap.containsKey("academicStudent.id")){

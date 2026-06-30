@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>Previous Balance Upload</title></head>
+<body>
+<section>
+<style>
+  /* ── Step tracker ── */
+  .step-tracker { display:flex; align-items:center; gap:0; margin-bottom:1.5rem; }
+  .step-item { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+  .step-item:not(:last-child)::after {
+    content:''; position:absolute; top:18px; left:60%; width:80%;
+    height:2px; background:#dee2e6; z-index:0;
+  }
+  .step-item.done:not(:last-child)::after { background:#198754; }
+  .step-circle {
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.9rem; z-index:1;
+    border:2px solid #dee2e6; background:#fff; color:#6c757d;
+  }
+  .step-item.active .step-circle { border-color:#0d6efd; background:#0d6efd; color:#fff; }
+  .step-item.done   .step-circle { border-color:#198754; background:#198754; color:#fff; }
+  .step-label { font-size:.75rem; margin-top:5px; color:#6c757d; font-weight:500; }
+  .step-item.active .step-label { color:#0d6efd; font-weight:700; }
+  .step-item.done   .step-label { color:#198754; }
+
+  /* ── Stat pills ── */
+  .stat-pill { border-radius:50px; padding:5px 16px; font-size:.82rem; font-weight:600;
+               display:inline-flex; align-items:center; gap:6px; }
+
+  /* ── Preview table ── */
+  .preview-table { font-size:.8rem; }
+  .preview-table th { background:#f8fafc; font-weight:600; padding:6px 10px; white-space:nowrap; }
+  .preview-table td { padding:5px 10px; vertical-align:middle; }
+  .status-badge { font-size:.7rem; font-weight:700; border-radius:4px; padding:2px 7px; }
+
+  /* ── Result cards ── */
+  .result-card { border-radius:12px; border:0; box-shadow:0 2px 10px rgba(0,0,0,.08);
+                 text-align:center; padding:20px 10px; }
+  .result-num  { font-size:2.2rem; font-weight:800; line-height:1; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-wallet2 text-warning me-2"></i>Previous / Opening Balance Upload
+      </h4>
+      <p class="text-muted small mb-0">Upload outstanding balances from before the system was set up — Super Admin only</p>
+    </div>
+    <a th:href="@{/admin/opening-balance}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+    </a>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Global error -->
+  <div th:if="${error}" class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- ══ Step tracker ══ -->
+  <div class="step-tracker px-2">
+    <!-- Step 1: active when no rows and no result -->
+    <div th:classappend="${rows==null and resultSaved==null} ? 'active' : 'done'" class="step-item">
+      <div class="step-circle"><i class="bi bi-upload"></i></div>
+      <span class="step-label">1. Select &amp; Upload</span>
+    </div>
+    <!-- Step 2: active when rows present, no result yet -->
+    <div th:classappend="${rows!=null and resultSaved==null} ? 'active' : (${resultSaved!=null} ? 'done' : '')" class="step-item">
+      <div class="step-circle"><i class="bi bi-eye-fill"></i></div>
+      <span class="step-label">2. Preview &amp; Confirm</span>
+    </div>
+    <!-- Step 3: active when result present -->
+    <div th:classappend="${resultSaved!=null} ? 'active' : ''" class="step-item">
+      <div class="step-circle"><i class="bi bi-check-circle-fill"></i></div>
+      <span class="step-label">3. Done</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 1 — School selection + file upload
+  ══════════════════════════════════════════════════ -->
+  <div th:if="${rows==null and resultSaved==null}">
+    <div class="card border-0 shadow-sm" style="border-radius:14px; max-width:620px;">
+      <div class="card-body p-4">
+
+        <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-2 text-primary"></i>How it works</h6>
+        <ul class="small text-muted mb-4">
+          <li>Select the school / branch and the active academic year is auto-filled</li>
+          <li>Upload the Excel file (columns: SNo, Student Name, Father Name, <strong>SR No</strong>, <strong>Class</strong>, <strong>Pending Amount</strong>)</li>
+          <li>System matches each row by SR No → cross-checks Grade + Section</li>
+          <li>You review the preview, then confirm to save</li>
+          <li>Only <span class="badge bg-success">Matched</span> and <span class="badge bg-warning text-dark">Grade/Section Mismatch</span> rows can be saved</li>
+        </ul>
+
+        <form th:action="@{/admin/opening-balance/preview}" method="post" enctype="multipart/form-data">
+
+          <!-- School dropdown -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">School / Branch <span class="text-danger">*</span></label>
+            <select id="schoolSelect" name="schoolId" class="form-select" required onchange="loadActiveYear(this.value)">
+              <option value="">— Select School —</option>
+              <option th:each="sc : ${schools}" th:value="${sc.id}" th:text="${sc.schoolName}"></option>
+            </select>
+          </div>
+
+          <!-- Academic Year (auto-filled) -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Active Academic Year</label>
+            <div class="input-group">
+              <input id="ayDisplay" type="text" class="form-control bg-light" placeholder="Select school first…" readonly>
+              <input id="ayId" type="hidden" name="academicYearId">
+            </div>
+            <div id="ayError" class="text-danger small mt-1 d-none">No active academic year found for this school.</div>
+          </div>
+
+          <!-- File -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Excel File (.xlsx) <span class="text-danger">*</span></label>
+            <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+            <div class="form-text">Columns expected: SNo | Student Name | Father Name | SR No | Class | Pending Amount</div>
+          </div>
+
+          <button type="submit" id="previewBtn" class="btn btn-primary w-100" style="font-size:1rem;padding:10px;border-radius:8px;font-weight:600;" disabled>
+            <i class="bi bi-eye me-2"></i>Upload &amp; Preview
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 2 — Preview table + save form
+  ══════════════════════════════════════════════════ -->
+  <div th:if="${rows!=null and resultSaved==null}">
+
+    <!-- Context banner -->
+    <div class="alert alert-light border d-flex align-items-center gap-3 py-2 mb-3">
+      <i class="bi bi-building text-primary fs-5"></i>
+      <div>
+        <strong th:text="${school?.schoolName}">School</strong>
+        <span class="text-muted mx-1">·</span>
+        <span class="text-muted" th:text="${academicYear?.sessionFormat}">AY</span>
+      </div>
+    </div>
+
+    <!-- Stat bar -->
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <span class="stat-pill bg-light border">
+        <i class="bi bi-file-earmark-spreadsheet text-secondary"></i>
+        Total Rows <strong th:text="${totalRows}">0</strong>
+      </span>
+      <span class="stat-pill bg-success bg-opacity-10 text-success border border-success">
+        <i class="bi bi-check-circle-fill"></i>
+        Matched <strong th:text="${matched}">0</strong>
+      </span>
+      <span class="stat-pill bg-warning bg-opacity-15 text-warning border border-warning">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Grade/Sec Mismatch <strong th:text="${mismatch}">0</strong>
+      </span>
+      <span class="stat-pill bg-danger bg-opacity-10 text-danger border border-danger">
+        <i class="bi bi-x-circle-fill"></i>
+        SR Not Found <strong th:text="${notFound}">0</strong>
+      </span>
+    </div>
+
+    <!-- Save form wraps the table so hidden inputs travel with POST -->
+    <form th:action="@{/admin/opening-balance/save}" method="post" id="saveForm">
+      <input type="hidden" name="schoolId"      th:value="${schoolId}">
+      <input type="hidden" name="academicYearId" th:value="${academicYearId}">
+
+      <div class="card border-0 shadow-sm mb-3" style="border-radius:12px; overflow:hidden;">
+        <div class="table-responsive">
+          <table class="table preview-table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>SR No</th>
+                <th>Student Name <span class="text-muted fw-normal">(Excel)</span></th>
+                <th>Father Name <span class="text-muted fw-normal">(Excel)</span></th>
+                <th>Class <span class="text-muted fw-normal">(Excel)</span></th>
+                <th>Pending ₹</th>
+                <th>System Student</th>
+                <th>System Class</th>
+                <th>Status</th>
+                <th>Include</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="row : ${rows}"
+                  th:classappend="${row.notFound} ? 'table-danger' : (${row.mismatch} ? 'table-warning' : '')">
+                <td th:text="${row.rowNum}" class="text-muted"></td>
+                <td class="font-monospace fw-semibold" th:text="${row.srNo}"></td>
+                <td th:text="${row.studentName}"></td>
+                <td th:text="${row.fatherName}" class="text-muted"></td>
+                <td>
+                  <span th:text="${row.excelClass}"></span>
+                  <br>
+                  <small class="text-muted" th:text="'(' + ${row.excelGrade} + ' / ' + ${row.excelSection} + ')'"></small>
+                </td>
+                <td class="fw-bold text-success" th:text="${'₹' + row.pendingAmount}"></td>
+                <!-- System match info -->
+                <td>
+                  <span th:if="${!row.notFound}" th:text="${row.systemStudentName}" class="fw-semibold"></span>
+                  <span th:if="${row.notFound}"  class="text-danger fst-italic small">—</span>
+                </td>
+                <td>
+                  <span th:if="${!row.notFound}" th:text="${row.systemGrade + ' / ' + row.systemSection}"></span>
+                  <span th:if="${row.notFound}"  class="text-danger fst-italic small">—</span>
+                </td>
+                <!-- Status badge -->
+                <td>
+                  <span th:if="${row.matched}"  class="status-badge bg-success text-white">Matched</span>
+                  <span th:if="${row.mismatch}" class="status-badge bg-warning text-dark">Mismatch</span>
+                  <span th:if="${row.notFound}" class="status-badge bg-danger text-white">Not Found</span>
+                </td>
+                <!-- Include checkbox — only for matched/mismatch rows -->
+                <td class="text-center">
+                  <th:block th:if="${!row.notFound}">
+                    <input type="checkbox"
+                           name="academicStudentIds"
+                           th:value="${row.academicStudentId}"
+                           th:checked="${row.matched}"
+                           class="form-check-input row-cb"
+                           style="width:1.1rem;height:1.1rem;">
+                    <!-- carry amounts and remarks as parallel hidden arrays -->
+                    <input type="hidden" class="row-amount"  th:value="${row.pendingAmount}">
+                    <input type="hidden" class="row-remark"  th:value="${'Balance from Excel upload — SR ' + row.srNo}">
+                  </th:block>
+                  <span th:if="${row.notFound}" class="text-muted small">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="d-flex gap-3 align-items-center flex-wrap">
+        <a th:href="@{/admin/opening-balance}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i>Start Over
+        </a>
+        <div class="ms-auto d-flex gap-2 align-items-center">
+          <span class="text-muted small" id="selectedCount">0 rows selected</span>
+          <button type="submit" class="btn btn-success"
+                  style="font-size:1rem;padding:8px 24px;border-radius:8px;font-weight:600;"
+                  onclick="return prepareAndConfirm()">
+            <i class="bi bi-floppy-fill me-2"></i>Save Opening Balances
+          </button>
+        </div>
+      </div>
+
+    </form><!-- /saveForm -->
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 3 — Result
+  ══════════════════════════════════════════════════ -->
+  <div th:if="${resultSaved!=null}">
+
+    <div th:if="${resultErrors == 0}"
+         class="alert alert-success d-flex gap-3 align-items-center py-3 mb-4">
+      <i class="bi bi-check-circle-fill fs-2 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block fs-5">Opening Balances Saved!</strong>
+        <span class="text-muted small"
+              th:text="${school?.schoolName} + ' · ' + ${academicYear?.sessionFormat}"></span>
+      </div>
+    </div>
+    <div th:if="${resultErrors > 0}"
+         class="alert alert-warning d-flex gap-3 align-items-center py-3 mb-4">
+      <i class="bi bi-exclamation-triangle-fill fs-2 flex-shrink-0"></i>
+      <div>
+        <strong class="d-block fs-5">Saved with some errors</strong>
+        <span class="text-muted small">Check the counts below.</span>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4" style="max-width:560px;">
+      <div class="col-4">
+        <div class="result-card" style="background:#f0fff4;">
+          <div class="result-num text-success" th:text="${resultSaved}">0</div>
+          <div class="text-muted small mt-1">Saved</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="result-card bg-light">
+          <div class="result-num text-secondary" th:text="${resultSkipped}">0</div>
+          <div class="text-muted small mt-1">Skipped</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="result-card" style="background:#fff5f5;">
+          <div class="result-num text-danger" th:text="${resultErrors}">0</div>
+          <div class="text-muted small mt-1">Errors</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a th:href="@{/admin/opening-balance}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-repeat me-1"></i>Upload Another File
+      </a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+<script type="text/javascript" th:inline="javascript">
+  const contextPath = /*[[@{/}]]*/ '/';
+
+  // ── Load active academic year when school changes ──
+  function loadActiveYear(schoolId) {
+    const display   = document.getElementById('ayDisplay');
+    const hidden    = document.getElementById('ayId');
+    const errDiv    = document.getElementById('ayError');
+    const submitBtn = document.getElementById('previewBtn');
+
+    if (!schoolId) {
+      display.value = '';
+      hidden.value  = '';
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
+
+    display.value = 'Loading…';
+    fetch(contextPath + 'admin/opening-balance/active-year?schoolId=' + schoolId)
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(ay => {
+        if (ay && ay.id) {
+          display.value = ay.sessionFormat || ('Year ID: ' + ay.id);
+          hidden.value  = ay.id;
+          errDiv.classList.add('d-none');
+          if (submitBtn) submitBtn.disabled = false;
+        } else {
+          display.value = '';
+          hidden.value  = '';
+          errDiv.classList.remove('d-none');
+          if (submitBtn) submitBtn.disabled = true;
+        }
+      })
+      .catch(err => {
+        display.value = 'Error fetching year';
+        hidden.value  = '';
+        if (submitBtn) submitBtn.disabled = true;
+        console.error('Active year fetch failed:', err);
+      });
+  }
+
+  // ── Auto-trigger on page load if school already selected ──
+  document.addEventListener('DOMContentLoaded', function () {
+    const sel = document.getElementById('schoolSelect');
+    if (sel && sel.value) {
+      loadActiveYear(sel.value);
+    }
+  });
+
+  // ── Track checkbox selection count ──
+  function updateSelectedCount() {
+    const count = document.querySelectorAll('.row-cb:checked').length;
+    const el = document.getElementById('selectedCount');
+    if (el) el.textContent = count + ' row' + (count !== 1 ? 's' : '') + ' selected';
+  }
+
+  document.addEventListener('change', e => {
+    if (e.target.classList.contains('row-cb')) updateSelectedCount();
+  });
+
+  // Run once on load to set initial count
+  document.addEventListener('DOMContentLoaded', updateSelectedCount);
+
+  // ── Build parallel amount/remark arrays before submit ──
+  function prepareAndConfirm() {
+    const checked = document.querySelectorAll('.row-cb:checked');
+    if (checked.length === 0) {
+      alert('No rows selected. Please check at least one row to save.');
+      return false;
+    }
+    if (!confirm('Save opening balances for ' + checked.length + ' student(s)?\n\nThis will update their opening balance for the selected academic year.')) {
+      return false;
+    }
+
+    // For each checked row, inject amount + remark into the form
+    // Rows are parallel: checkbox, .row-amount sibling, .row-remark sibling
+    const form = document.getElementById('saveForm');
+
+    // Remove any previously injected hidden inputs
+    form.querySelectorAll('.injected-hidden').forEach(el => el.remove());
+
+    checked.forEach(cb => {
+      const td     = cb.closest('td');
+      const amount = td.querySelector('.row-amount').value;
+      const remark = td.querySelector('.row-remark').value;
+
+      const addInput = (name, val) => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = name;
+        inp.value = val;
+        inp.className = 'injected-hidden';
+        form.appendChild(inp);
+      };
+      addInput('amounts', amount);
+      addInput('remarks', remark);
+    });
+
+    return true;
+  }
+</script>
+</section>
+</body>
+</html>

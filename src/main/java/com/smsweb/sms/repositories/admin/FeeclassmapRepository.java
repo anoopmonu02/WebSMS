@@ -6,8 +6,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FeeclassmapRepository extends JpaRepository<FeeClassMap, Long> {
+
+    Optional<FeeClassMap> findByAcademicYear_IdAndSchool_IdAndGrade_IdAndFeehead_Id(
+            Long academicYearId, Long schoolId, Long gradeId, Long feeheadId);
 
     List<FeeClassMap> findAllBySchool_IdAndAcademicYear_Id(Long school_id, Long academic_id);
 

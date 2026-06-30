@@ -258,6 +258,11 @@ public class FeeSubmissionRestController extends BaseController {
                                     school.getId(), academicYear.getId(), academicStudent.getId());
                     if (feeSubmission != null) {
                         previousBalance = feeSubmission.getFeeSubmissionBalance().getBalanceAmount();
+                    } else {
+                        // No fee submitted yet this year — fall back to opening balance
+                        // (set via Excel upload for students carrying dues from a previous year/system)
+                        previousBalance = academicStudent.getOpeningBalance() != null
+                                ? academicStudent.getOpeningBalance() : BigDecimal.ZERO;
                     }
 
                     result.put("student",         studentMap);      // ✅ flat map, not entity

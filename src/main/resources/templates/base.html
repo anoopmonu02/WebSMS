@@ -808,6 +808,12 @@
                                 <span>Family Migration</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/opening-balance}">
+                                <i class="bi bi-wallet2 text-warning"></i>
+                                <span>Previous Balance</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -867,6 +873,7 @@
                     </a>
                     <ul id="fees" class="sidebar-dropdown list-unstyled collapse">
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="FEE_SUBMIT:VIEW" th:href="@{'/fees/fee-submit-form'}"><i class="bi bi-dot"></i><span>Fee Submission</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="PENDING_BALANCE_SUBMIT:VIEW" th:href="@{'/fees/collect-balance'}"><i class="bi bi-dot"></i><span>Collect Balance</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="FEE_RECEIPT_PRINT:VIEW" th:href="@{'/fees/receipt'}"><i class="bi bi-dot"></i><span>Fee Receipt Print</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="FEE_REMINDER:VIEW" th:href="@{'/fees/fee-reminder'}"><i class="bi bi-dot"></i><span>Fee Reminder</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><hr class="sidebar-divider"></li>

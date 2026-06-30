@@ -197,6 +197,48 @@ public class ExcelFileHandler {
         return null;
     }
 
+    /**
+     * Parses the Previous Pending Balance Excel template.
+     * Expected columns (row 1 = header, data from row 2):
+     *   0=SNo, 1=Student Name, 2=Father Name, 3=SR No, 4=Class, 5=Pending Amount
+     * Returns each data row as String[6]: [sno, studentName, fatherName, srNo, className, pendingAmount]
+     */
+    public List<String[]> excelOpeningBalanceDataToList(InputStream inputStream) throws IOException {
+        List<String[]> result = new ArrayList<>();
+        try {
+            XSSFWorkbook workbook = new XSSFWorkbook(inputStream);
+            Sheet sheet = workbook.getSheetAt(0);
+            DataFormatter fmt = new DataFormatter();
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+            int rowNum = 0;
+            for (Row row : sheet) {
+                if (rowNum++ == 0) continue; // skip header
+                // skip empty / total rows — require at least SR No (col 3) and Pending Amount (col 5)
+                Cell srCell  = row.getCell(3);
+                Cell amtCell = row.getCell(5);
+                if (srCell == null && amtCell == null) continue;
+                String srVal = srCell  != null ? fmt.formatCellValue(srCell,  evaluator).trim() : "";
+                String amVal = amtCell != null ? fmt.formatCellValue(amtCell, evaluator).trim() : "";
+                if (srVal.isEmpty() || amVal.isEmpty()) continue;
+                // skip rows where SR No is not numeric (e.g. "Total:" row)
+                try { Double.parseDouble(amVal); } catch (NumberFormatException e) { continue; }
+
+                String[] data = new String[6];
+                data[0] = row.getCell(0) != null ? fmt.formatCellValue(row.getCell(0), evaluator).trim() : "";
+                data[1] = row.getCell(1) != null ? fmt.formatCellValue(row.getCell(1), evaluator).trim() : "";
+                data[2] = row.getCell(2) != null ? fmt.formatCellValue(row.getCell(2), evaluator).trim() : "";
+                data[3] = srVal;
+                data[4] = row.getCell(4) != null ? fmt.formatCellValue(row.getCell(4), evaluator).trim() : "";
+                data[5] = amVal;
+                result.add(data);
+            }
+            workbook.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     public List<String[]> excelExamResultDataToList(InputStream inputStream, int dataStartRowNumber) throws IOException{
         List<String[]> excelData = new ArrayList<>();
         try{

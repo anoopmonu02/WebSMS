@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Collect Balance</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+
+                <div class="card-header fs-3">Collect Balance</div>
+                <hr/>
+
+                <!-- Flash messages -->
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!--Search box — same pattern as feesubmitform-->
+                <div class="search-container my-3">
+                    <input onkeyup="searchStuName()" type="text" class="form-control"
+                           id="search-input" placeholder="Search student name">
+                    <div class="search-result"
+                         style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
+                    </div>
+                </div>
+
+                <form name="collectbalance" th:action="@{/fees/collect-balance-save}" method="post">
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" id="academicStudentId" name="academicStudentId" value="">
+                    <input type="hidden" id="school_id"         name="school_id"         th:value="${school?.id}"/>
+                    <input type="hidden" id="academic_id"       name="academic_id"       th:value="${academicYear?.id}"/>
+                    <input type="hidden" id="totalAmount"       name="totalAmount"       value="0">
+
+                    <hr/>
+
+                    <!--Student Info — identical 3-card layout as feesubmitform-->
+                    <div class="student-detail mb-3">
+                        <div class="row">
+                            <!-- Card 1: Student -->
+                            <div class="col-sm-4">
+                                <div class="card border-success">
+                                    <h5 class="card-header">Student Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item studname"><strong>Student Name:</strong></li>
+                                        <li class="list-group-item fname"><strong>Father Name:</strong></li>
+                                        <li class="list-group-item mname"><strong>Mother Name:</strong></li>
+                                        <li class="list-group-item contactno"><strong>Contact No:</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Academic -->
+                            <div class="col-sm-4">
+                                <div class="card border-success">
+                                    <h5 class="card-header">Academic Detail</h5>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item cmedium"><strong>Medium: </strong></li>
+                                        <li class="list-group-item cgrade"><strong>Class: </strong></li>
+                                        <li class="list-group-item csection"><strong>Section: </strong></li>
+                                        <li class="list-group-item csr"><strong>SR No: </strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Dates & Balance -->
+                            <div class="col-sm-4">
+                                <div class="mb-2 row">
+                                    <label class="col-sm-6 col-form-label"><b>Submission Date:</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control" id="submissionDate" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-6 col-form-label"><b>Pending Balance:</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control text-danger fw-bold"
+                                               id="displayPendingBalance" value="">
+                                    </div>
+                                </div>
+                                <div class="mb-2 row">
+                                    <label class="col-sm-6 col-form-label"><b>Fine (Ref):</b></label>
+                                    <div class="col-sm-6">
+                                        <input type="text" readonly class="form-control text-secondary"
+                                               id="displayFineAmount" value=""
+                                               title="Fine from last submission — displayed for reference only. Not collected here.">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr/>
+
+                    <!--Submission History Table-->
+                    <div id="historySection" style="display:none;">
+                        <div class="mb-2">
+                            <span class="badge rounded-pill text-bg-primary fs-6 fw-normal px-3 py-2">
+                                <i class="bi bi-clock-history me-1"></i> Previous Fee Submissions
+                            </span>
+                        </div>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-bordered table-hover table-sm" id="historyTable">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Submission Date</th>
+                                        <th>Receipt No</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Fine</th>
+                                        <th class="text-end">Discount</th>
+                                        <th class="text-end">Paid</th>
+                                        <th class="text-end">Balance</th>
+                                        <th>Remark</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <hr/>
+                    </div>
+
+                    <!--Balance Payment Form-->
+                    <div id="balanceFormSection" style="display:none;">
+                        <div class="mb-3">
+                            <span class="badge rounded-pill text-bg-success fs-6 fw-normal px-3 py-2">
+                                <i class="bi bi-cash-coin me-1"></i> Balance Payment Details
+                            </span>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+
+                                <div class="mb-3 row">
+                                    <label class="col-sm-5 col-form-label">Total Pending Amount</label>
+                                    <div class="col-sm-4">
+                                        <input type="text" readonly class="form-control fw-bold text-danger"
+                                               id="displayTotalAmount" value="">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 row">
+                                    <label for="submitAmount" class="col-sm-5 col-form-label">Submit Amount <span class="text-danger">*</span></label>
+                                    <div class="col-sm-4">
+                                        <input type="number" class="form-control" id="submitAmount"
+                                               name="submitAmount" value="" min="0" step="0.01"
+                                               autocomplete="off" placeholder="0.00">
+                                        <span id="submitAmountErr" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 row">
+                                    <label class="col-sm-5 col-form-label">Balance Amount</label>
+                                    <div class="col-sm-4">
+                                        <input type="number" readonly class="form-control" id="balanceAmount"
+                                               name="balanceAmount" value="">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 row">
+                                    <label for="paymentType" class="col-sm-5 col-form-label">Payment Type <span class="text-danger">*</span></label>
+                                    <div class="col-sm-4">
+                                        <select id="paymentType" class="form-select" name="paymentType">
+                                            <option value="">Select</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="Online">Online</option>
+                                        </select>
+                                        <span id="paymentTypeErr" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3 row">
+                                    <label for="feeRemark" class="col-sm-5 col-form-label">Remark (Optional)</label>
+                                    <div class="col-sm-7">
+                                        <input type="text" class="form-control" id="feeRemark"
+                                               name="feeRemark" placeholder="e.g. Cheque payment">
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <hr/>
+                        <div class="row mb-5">
+                            <div class="col-md-5"></div>
+                            <div class="col-md-6">
+                                <button type="button" sms:access="PENDING_BALANCE_SUBMIT:CREATE"
+                                        onclick="validateAndSubmit()"
+                                        class="btn btn-primary" id="saveBalanceBtn" disabled>
+                                    <i class="bi bi-save2-fill"></i> Save Balance Payment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No-student placeholder -->
+                    <div id="noStudentMsg" class="text-center text-muted py-4" style="display:none;">
+                        <i class="bi bi-info-circle"></i> Search and select a student above to begin.
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <link type="text/css" rel="stylesheet" th:href="@{/css/toastr.min.css}"/>
+
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        // ── Toast helper (same as rest of app) ──────────────────────────────
+        function showMsg(type, msg, header) {
+            toastr.options = {
+                closeButton: true, progressBar: false,
+                positionClass: "toast-top-right", timeOut: "5000",
+                showEasing: "swing", hideEasing: "linear",
+                showMethod: "fadeIn", hideMethod: "fadeOut"
+            };
+            toastr[type](msg, header);
+        }
+
+        // Show flash message if present
+        const flashError = /*[[${error}]]*/ null;
+        if (flashError) showMsg('error', flashError, 'Error');
+        const flashSuccess = /*[[${success}]]*/ null;
+        if (flashSuccess) showMsg('success', flashSuccess, 'Success');
+
+        // ── Student search with infinite scroll — same pattern as feesubmitform ──
+        let _searchQuery   = '';
+        let _searchPage    = 0;
+        let _searchMore    = false;
+        let _searchLoading = false;
+
+        const renderStudentRow = (s) => {
+            let sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+            return `<a onclick="loadStudentData(${s.id})" href="#"
+                       class='list-group-item list-group-item-action'>
+                       ${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}
+                    </a>`;
+        };
+
+        const fetchStudents = (query, page, append) => {
+            if (_searchLoading) return;
+            _searchLoading = true;
+            let url = `${contextPath}fees/searchStudentForPendingBalance/${encodeURIComponent(query)}?page=${page}`;
+            fetch(url).then(r => r.json()).then(students => {
+                _searchLoading = false;
+                _searchMore    = students.length === 10;
+                if (!append) {
+                    let html = `<div class='list-group' id='student-list-group'>`;
+                    students.forEach(s => { html += renderStudentRow(s); });
+                    html += `</div>`;
+                    document.querySelector('.search-result').innerHTML = html;
+                    document.querySelector('.search-result').style.display = 'block';
+                } else {
+                    students.forEach(s => {
+                        document.getElementById('student-list-group').insertAdjacentHTML('beforeend', renderStudentRow(s));
+                    });
+                }
+            }).catch(() => { _searchLoading = false; });
+        };
+
+        const searchStuName = () => {
+            let query = document.getElementById('search-input').value;
+            if (query.trim().length > 2) {
+                if (query !== _searchQuery) {
+                    _searchQuery = query;
+                    _searchPage  = 0;
+                    fetchStudents(query, 0, false);
+                }
+            } else {
+                _searchQuery = '';
+                document.querySelector('.search-result').style.display = 'none';
+            }
+        };
+
+        document.querySelector('.search-result').addEventListener('scroll', function () {
+            if (!_searchMore || _searchLoading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+                _searchPage++;
+                fetchStudents(_searchQuery, _searchPage, true);
+            }
+        });
+
+        // ── Load student data on selection ───────────────────────────────────
+        const loadStudentData = (id) => {
+            document.querySelector('.search-result').style.display = 'none';
+            document.getElementById('search-input').value = '';
+            resetForm();
+
+            fetch(`${contextPath}fees/getPendingBalanceData/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        showMsg('error', data.error, 'Error');
+                        return;
+                    }
+
+                    // ── Fill student info cards ───────────────────────────────
+                    const s  = data.student;
+                    const st = s.student;
+                    document.querySelector('.studname').innerHTML  = `<strong>Student Name:</strong> ${st.studentName}`;
+                    document.querySelector('.fname').innerHTML     = `<strong>Father Name:</strong> ${st.fatherName}`;
+                    document.querySelector('.mname').innerHTML     = `<strong>Mother Name:</strong> ${st.motherName}`;
+                    document.querySelector('.contactno').innerHTML = `<strong>Contact No:</strong> ${st.mobile1 || '-'}`;
+                    document.querySelector('.cmedium').innerHTML   = `<strong>Medium:</strong> ${s.medium ? s.medium.mediumName : '-'}`;
+                    document.querySelector('.cgrade').innerHTML    = `<strong>Class:</strong> ${s.grade ? s.grade.gradeName : '-'}`;
+                    document.querySelector('.csection').innerHTML  = `<strong>Section:</strong> ${s.section ? s.section.sectionName : '-'}`;
+                    document.querySelector('.csr').innerHTML       = `<strong>SR No:</strong> ${s.classSrNo || '-'}`;
+
+                    // ── Fill Card 3 ───────────────────────────────────────────
+                    document.getElementById('submissionDate').value      = data.todayDate;
+                    document.getElementById('displayPendingBalance').value = '₹ ' + parseFloat(data.pendingBalance).toFixed(2);
+                    document.getElementById('displayFineAmount').value   = '₹ ' + parseFloat(data.fineAmount).toFixed(2);
+
+                    // ── Store hidden fields ───────────────────────────────────
+                    document.getElementById('academicStudentId').value = s.id;
+                    document.getElementById('totalAmount').value       = parseFloat(data.pendingBalance).toFixed(2);
+
+                    // ── Render history table ──────────────────────────────────
+                    const history = data.history || [];
+                    const tbody   = document.getElementById('historyTableBody');
+                    tbody.innerHTML = '';
+                    history.forEach((row, idx) => {
+                        tbody.insertAdjacentHTML('beforeend', `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${row.submitDate}</td>
+                                <td><code>${row.receiptNo}</code></td>
+                                <td class="text-end">₹ ${parseFloat(row.totalAmount).toFixed(2)}</td>
+                                <td class="text-end">₹ ${parseFloat(row.fineAmount).toFixed(2)}</td>
+                                <td class="text-end">₹ ${parseFloat(row.discountAmount).toFixed(2)}</td>
+                                <td class="text-end">₹ ${parseFloat(row.paidAmount).toFixed(2)}</td>
+                                <td class="text-end fw-bold ${parseFloat(row.balanceAmount) > 0 ? 'text-danger' : 'text-success'}">
+                                    ₹ ${parseFloat(row.balanceAmount).toFixed(2)}
+                                </td>
+                                <td class="small text-muted">${row.feeRemark}</td>
+                            </tr>`);
+                    });
+                    document.getElementById('historySection').style.display = history.length > 0 ? 'block' : 'none';
+
+                    // ── Show form section ─────────────────────────────────────
+                    document.getElementById('balanceFormSection').style.display = 'block';
+                    document.getElementById('noStudentMsg').style.display       = 'none';
+                    document.getElementById('displayTotalAmount').value         = '₹ ' + parseFloat(data.pendingBalance).toFixed(2);
+
+                    // ── Handle zero balance ───────────────────────────────────
+                    const hasPending = data.hasPendingBalance;
+                    const saveBtn    = document.getElementById('saveBalanceBtn');
+                    if (!hasPending) {
+                        saveBtn.disabled = true;
+                        document.getElementById('submitAmount').disabled = true;
+                        showMsg('warning', 'No pending balance found for this student. Nothing to collect.', 'Info');
+                    } else {
+                        // Pre-fill submit amount with full pending balance so operator can save in one click
+                        const pending = parseFloat(data.pendingBalance);
+                        document.getElementById('submitAmount').value  = pending.toFixed(2);
+                        document.getElementById('balanceAmount').value = '0.00';
+                        saveBtn.disabled = false;
+                        document.getElementById('submitAmount').disabled = false;
+                        document.getElementById('submitAmount').select();
+                    }
+                })
+                .catch(() => showMsg('error', 'Failed to load student data. Please try again.', 'Error'));
+        };
+
+        // ── Submit amount → live balance calculation ──────────────────────────
+        document.getElementById('submitAmount').addEventListener('input', function () {
+            const total   = parseFloat(document.getElementById('totalAmount').value) || 0;
+            const entered = parseFloat(this.value) || 0;
+            const balance = total - entered;
+            document.getElementById('balanceAmount').value = balance.toFixed(2);
+
+            const errSpan = document.getElementById('submitAmountErr');
+            if (entered <= 0) {
+                errSpan.textContent = 'Amount must be greater than 0.';
+                document.getElementById('saveBalanceBtn').disabled = true;
+            } else if (entered > total) {
+                errSpan.textContent = 'Cannot exceed pending balance ₹' + total.toFixed(2) + '.';
+                document.getElementById('saveBalanceBtn').disabled = true;
+            } else {
+                errSpan.textContent = '';
+                document.getElementById('saveBalanceBtn').disabled = false;
+            }
+        });
+
+        // ── Validation before POST ────────────────────────────────────────────
+        const validateAndSubmit = () => {
+            const asId        = document.getElementById('academicStudentId').value;
+            const total       = parseFloat(document.getElementById('totalAmount').value) || 0;
+            const submitted   = parseFloat(document.getElementById('submitAmount').value) || 0;
+            const paymentType = document.getElementById('paymentType').value;
+
+            if (!asId) {
+                showMsg('warning', 'Please select a student first.', 'Validation');
+                return;
+            }
+            if (total <= 0) {
+                showMsg('warning', 'No pending balance to collect.', 'Validation');
+                return;
+            }
+            if (submitted <= 0) {
+                showMsg('warning', 'Submit amount must be greater than 0.', 'Validation');
+                document.getElementById('submitAmount').focus();
+                return;
+            }
+            if (submitted > total) {
+                showMsg('warning', 'Submit amount cannot exceed pending balance.', 'Validation');
+                document.getElementById('submitAmount').focus();
+                return;
+            }
+            if (!paymentType) {
+                showMsg('warning', 'Please select a payment type.', 'Validation');
+                document.getElementById('paymentTypeErr').textContent = 'Required.';
+                document.getElementById('paymentType').focus();
+                return;
+            }
+            document.getElementById('paymentTypeErr').textContent = '';
+            document.querySelector('form[name="collectbalance"]').submit();
+        };
+
+        // ── Reset ─────────────────────────────────────────────────────────────
+        const resetForm = () => {
+            ['studname','fname','mname','contactno'].forEach(c => {
+                const el = document.querySelector('.' + c);
+                if (el) el.innerHTML = `<strong>${c === 'studname' ? 'Student Name' : c === 'fname' ? 'Father Name' : c === 'mname' ? 'Mother Name' : 'Contact No'}:</strong>`;
+            });
+            ['cmedium','cgrade','csection','csr'].forEach(c => {
+                const el = document.querySelector('.' + c);
+                if (el) el.innerHTML = `<strong>${c.replace('c','')}:</strong>`;
+            });
+            document.getElementById('submissionDate').value      = '';
+            document.getElementById('displayPendingBalance').value = '';
+            document.getElementById('displayFineAmount').value   = '';
+            document.getElementById('displayTotalAmount').value  = '';
+            document.getElementById('academicStudentId').value   = '';
+            document.getElementById('totalAmount').value         = '0';
+            document.getElementById('submitAmount').value        = '';
+            document.getElementById('balanceAmount').value       = '';
+            document.getElementById('paymentType').value         = '';
+            document.getElementById('feeRemark').value           = '';
+            document.getElementById('submitAmountErr').textContent  = '';
+            document.getElementById('paymentTypeErr').textContent   = '';
+            document.getElementById('saveBalanceBtn').disabled   = true;
+            document.getElementById('historySection').style.display      = 'none';
+            document.getElementById('balanceFormSection').style.display  = 'none';
+        };
+
+    </script>
+</section>
+</body>
+</html>
