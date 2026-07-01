@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Pending Fee Summary Report</title>
+</head>
+<body>
+<section>
+<style>
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    #filter-sidebar {
+        width: 230px;
+        flex-shrink: 0;
+        background: #fff;
+        border-right: 1px solid #dee2e6;
+        padding: 12px;
+        overflow-y: auto;
+        min-height: calc(100vh - 110px);
+        max-height: calc(100vh - 110px);
+    }
+    #filter-sidebar .sidebar-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #495057;
+        margin-bottom: 5px;
+        margin-top: 2px;
+    }
+    #filter-sidebar .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 4px;
+    }
+    /* Scrollable checkbox panels */
+    .cb-panel {
+        border: 1px solid #dee2e6;
+        border-radius: .25rem;
+        max-height: 145px;
+        overflow-y: auto;
+        background: #fdfdfd;
+    }
+    .cb-panel .form-check {
+        padding: 4px 10px;
+        margin: 0;
+        font-size: 12px;
+    }
+    .cb-panel .form-check:hover { background: #f8f9fa; }
+    /* ── Custom checkboxes — bypass any theme override on form-check-input ── */
+    .cb-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .cb-item:hover { background: #f0f4ff; }
+    .cb-item input[type="checkbox"] {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px;
+        cursor: pointer;
+        accent-color: #0d6efd;
+        flex-shrink: 0;
+        /* Force browser-native rendering — bypass theme */
+        -webkit-appearance: checkbox !important;
+        -moz-appearance: checkbox !important;
+        appearance: checkbox !important;
+        border: none !important;
+        background: none !important;
+    }
+    .cb-item label { cursor: pointer; margin: 0; user-select: none; }
+    /* Select-all row */
+    .select-all-row {
+        font-size: 12px;
+        font-weight: 600;
+        color: #212529;
+        padding: 3px 2px 5px 2px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        cursor: pointer;
+        border-bottom: 1px dashed #e9ecef;
+        margin-bottom: 3px;
+    }
+    .select-all-row input[type="checkbox"] {
+        width: 14px !important;
+        height: 14px !important;
+        cursor: pointer;
+        accent-color: #0d6efd;
+        flex-shrink: 0;
+        -webkit-appearance: checkbox !important;
+        -moz-appearance: checkbox !important;
+        appearance: checkbox !important;
+        border: none !important;
+        background: none !important;
+    }
+    /* ── Stat cards ──────────────────────────────────────────────── */
+    .stat-card { border-radius: .375rem; padding: 10px 14px; border: 1px solid transparent; }
+    .stat-card .sc-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; color: #6c757d; }
+    .stat-card .sc-value { font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .stat-card .sc-sub   { font-size: 10px; color: #adb5bd; margin-top: 2px; }
+    .stat-danger  { background:#fff5f5; border-color:#f8d7da; } .stat-danger  .sc-value { color:#dc3545; }
+    .stat-warning { background:#fff8f0; border-color:#ffe0b2; } .stat-warning .sc-value { color:#fd7e14; }
+    .stat-primary { background:#eff6ff; border-color:#cfe2ff; } .stat-primary .sc-value { color:#0d6efd; }
+    .stat-success { background:#f0fff4; border-color:#c3e6cb; } .stat-success .sc-value { color:#198754; }
+    /* ── Table tweaks ────────────────────────────────────────────── */
+    #pendingSummaryTable th { font-size: 12px; }
+    #pendingSummaryTable td { font-size: 12.5px; vertical-align: middle; }
+    .progress-cell { display:flex; align-items:center; gap:6px; }
+    .mini-bar { flex:1; height:7px; background:#e9ecef; border-radius:4px; max-width:70px; overflow:hidden; }
+    .mini-bar-inner { height:100%; border-radius:4px; }
+</style>
+
+    <div class="container-fluid px-0">
+
+        <!-- ── Page Header ──────────────────────────────────────────── -->
+        <div class="d-flex align-items-center px-3 py-2 border-bottom bg-white">
+            <div>
+                <h6 class="mb-0 fw-bold">Fees Pending Summary Report</h6>
+                <small class="text-muted">Fees &rsaquo; Reports &rsaquo; Pending Fee Report</small>
+            </div>
+        </div>
+
+        <!-- ── Layout ────────────────────────────────────────────────── -->
+        <div class="d-flex">
+
+            <!-- ════ SIDEBAR ════════════════════════════════════════════ -->
+            <div id="filter-sidebar">
+
+                <div class="fw-bold mb-2 pb-1 border-bottom d-flex align-items-center gap-1" style="font-size:13px">
+                    <i class="bi bi-funnel-fill text-primary"></i> Report Filters
+                </div>
+
+                <!-- Medium -->
+                <div class="mb-3">
+                    <label for="summaryMedium" class="form-label">Medium</label>
+                    <select id="summaryMedium" class="form-select form-select-sm">
+                        <option value="">-- All Mediums --</option>
+                        <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}"></option>
+                    </select>
+                </div>
+
+                <hr class="my-2"/>
+
+                <!-- Grade -->
+                <div class="mb-3">
+                    <label class="form-label">Grade <span class="text-danger">*</span></label>
+                    <label class="select-all-row">
+                        <input type="checkbox" id="selectAllGrades" checked> Select All
+                    </label>
+                    <div class="cb-panel">
+                        <div th:each="grade : ${grades}" class="cb-item">
+                            <input class="grade-checkbox" type="checkbox"
+                                   th:id="'grade_' + ${grade.id}" th:value="${grade.id}" checked>
+                            <label th:for="'grade_' + ${grade.id}" th:text="${grade.gradeName}"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section -->
+                <div class="mb-3">
+                    <label class="form-label">Section <span class="text-danger">*</span></label>
+                    <label class="select-all-row">
+                        <input type="checkbox" id="selectAllSections" checked> Select All
+                    </label>
+                    <div class="cb-panel">
+                        <div th:each="sec : ${sections}" class="cb-item">
+                            <input class="section-checkbox" type="checkbox"
+                                   th:id="'sec_' + ${sec.id}" th:value="${sec.id}" checked>
+                            <label th:for="'sec_' + ${sec.id}" th:text="${sec.sectionName}"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-2"/>
+
+                <!-- Months -->
+                <div class="mb-3">
+                    <label class="form-label">Months <span class="text-danger">*</span></label>
+                    <label class="select-all-row">
+                        <input type="checkbox" id="selectAllMonths" checked> Select All
+                    </label>
+                    <div class="cb-panel">
+                        <div th:each="mm : ${monthmapping}" class="cb-item">
+                            <input class="month-checkbox" type="checkbox"
+                                   th:id="'month_' + ${mm.monthMaster.id}"
+                                   th:value="${mm.monthMaster.id}" checked>
+                            <label th:for="'month_' + ${mm.monthMaster.id}"
+                                   th:text="${mm.monthMaster.monthName}"></label>
+                        </div>
+                    </div>
+                    <div th:unless="${hasMonthMapping}" class="alert alert-warning mt-2 p-2" style="font-size:11px">
+                        <i class="bi bi-exclamation-triangle"></i> No month mapping found.
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="d-grid gap-2">
+                    <button id="generateBtn" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search"></i> Generate Report
+                    </button>
+                    <button id="resetBtn" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+
+            </div><!-- /sidebar -->
+
+            <!-- ════ MAIN CONTENT ════════════════════════════════════════ -->
+            <div class="flex-grow-1 p-3" style="background:#f8f9fa; overflow:auto; min-height:calc(100vh - 110px)">
+
+                <!-- Initial hint -->
+                <div id="initial-hint" class="text-center py-5 text-muted">
+                    <i class="bi bi-bar-chart-line" style="font-size:3rem; color:#dee2e6"></i>
+                    <p class="mt-2 mb-0">Select filters and click <strong>Generate Report</strong></p>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading-spinner" class="text-center py-5" style="display:none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted mb-0">Calculating pending fees&hellip;</p>
+                </div>
+
+                <!-- Error -->
+                <div id="error-panel" class="alert alert-danger mt-2" style="display:none">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i><span id="error-msg"></span>
+                </div>
+
+                <!-- ── Results ──────────────────────────────────────── -->
+                <div id="results-area" style="display:none">
+
+                    <!-- Summary cards -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <div class="stat-card stat-danger shadow-sm">
+                                <div class="sc-label">Total Pending Amount</div>
+                                <div id="card-pending-amt" class="sc-value">&#x20B9;0</div>
+                                <div class="sc-sub">Gross (fee class map)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card stat-warning shadow-sm">
+                                <div class="sc-label">Defaulters</div>
+                                <div id="card-defaulters" class="sc-value">0</div>
+                                <div class="sc-sub">Students with unpaid months</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card stat-primary shadow-sm">
+                                <div class="sc-label">Total Students</div>
+                                <div id="card-total-stu" class="sc-value">0</div>
+                                <div class="sc-sub">Active, selected classes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card stat-success shadow-sm">
+                                <div class="sc-label">Avg Pending %</div>
+                                <div id="card-pending-pct" class="sc-value">0%</div>
+                                <div class="sc-sub">School-wide average</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart -->
+                    <div class="card mb-3 shadow-sm border-0">
+                        <div class="card-header bg-white d-flex align-items-center py-2 border-bottom">
+                            <span class="fw-semibold" style="font-size:13px">
+                                <i class="bi bi-bar-chart-fill text-primary me-1"></i>Grade-wise Pending Overview
+                            </span>
+                            <div class="ms-auto d-flex gap-1">
+                                <button class="btn btn-sm btn-primary chart-toggle-btn" data-mode="pct">% Pending</button>
+                                <button class="btn btn-sm btn-outline-secondary chart-toggle-btn" data-mode="amt">&#x20B9; Amount</button>
+                                <button class="btn btn-sm btn-outline-secondary chart-toggle-btn" data-mode="count">Students</button>
+                            </div>
+                        </div>
+                        <div class="card-body py-2">
+                            <div id="chart-wrap" style="position:relative">
+                                <canvas id="pendingSummaryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white d-flex align-items-center py-2 border-bottom">
+                            <span class="fw-semibold" style="font-size:13px">
+                                <i class="bi bi-table text-primary me-1"></i>Detailed Breakdown
+                            </span>
+                            <span id="report-subtitle" class="text-muted ms-2" style="font-size:11px"></span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table id="pendingSummaryTable" class="table table-hover table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Grade</th>
+                                            <th>Section</th>
+                                            <th>Pending Amount (&#x20B9;)</th>
+                                            <th>Defaulters</th>
+                                            <th>Total Students</th>
+                                            <th>Pending %</th>
+                                            <th>Detail</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="summary-tbody"></tbody>
+                                    <tfoot id="summary-tfoot"></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /results-area -->
+            </div><!-- /main -->
+        </div><!-- /d-flex -->
+    </div><!-- /container -->
+
+    <!-- Scripts -->
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        // ── Toast ──────────────────────────────────────────────────────
+        function showMsg(type, msg, title) {
+            toastr.options = { closeButton:true, progressBar:true,
+                positionClass:"toast-top-right", timeOut:"4000" };
+            toastr[type](msg, title);
+        }
+
+        // ── Select-All wiring (generic) ────────────────────────────────
+        function wireSelectAll(masterId, childClass) {
+            $('#' + masterId).on('change', function () {
+                $(childClass).prop('checked', this.checked);
+            });
+            $(document).on('change', childClass, function () {
+                const total   = $(childClass).length;
+                const checked = $(childClass + ':checked').length;
+                $('#' + masterId)
+                    .prop('indeterminate', checked > 0 && checked < total)
+                    .prop('checked', checked === total);
+            });
+        }
+        wireSelectAll('selectAllGrades',   '.grade-checkbox');
+        wireSelectAll('selectAllSections', '.section-checkbox');
+        wireSelectAll('selectAllMonths',   '.month-checkbox');
+
+        // ── Reset ──────────────────────────────────────────────────────
+        $('#resetBtn').on('click', function () {
+            $('#summaryMedium').val('');
+            $('#selectAllGrades, .grade-checkbox').prop('checked', true).prop('indeterminate', false);
+            $('#selectAllSections, .section-checkbox').prop('checked', true).prop('indeterminate', false);
+            $('#selectAllMonths, .month-checkbox').prop('checked', true).prop('indeterminate', false);
+            $('#results-area, #error-panel').hide();
+            $('#initial-hint').show();
+            destroyChart();
+        });
+
+        // ── Chart ──────────────────────────────────────────────────────
+        let summaryChart = null;
+        let chartData    = { labels:[], pct:[], amt:[], count:[] };
+        let chartMode    = 'pct';
+
+        function destroyChart() { if (summaryChart) { summaryChart.destroy(); summaryChart = null; } }
+
+        function barColor(pct) {
+            if (pct >= 20) return '#dc3545';
+            if (pct >= 10) return '#fd7e14';
+            if (pct >= 5)  return '#ffc107';
+            return '#198754';
+        }
+
+        function buildChart(mode) {
+            destroyChart();
+            const ctx = document.getElementById('pendingSummaryChart').getContext('2d');
+            let data, label, tickCb;
+            if (mode === 'pct')   { data = chartData.pct;   label = 'Pending %';         tickCb = v => v + '%'; }
+            else if (mode === 'amt')   { data = chartData.amt;   label = 'Pending Amount (₹)'; tickCb = v => '₹' + v.toLocaleString('en-IN'); }
+            else                  { data = chartData.count; label = 'Defaulters';         tickCb = v => v; }
+
+            const colors = (mode === 'pct') ? chartData.pct.map(barColor) : chartData.labels.map(() => '#0d6efd');
+
+            // Dynamic height: 36px per bar, min 180px
+            const h = Math.max(180, chartData.labels.length * 36);
+            document.getElementById('chart-wrap').style.height = h + 'px';
+
+            summaryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{ label, data, backgroundColor: colors, borderRadius: 4, borderSkipped: false }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: c => ' ' + (mode==='pct' ? c.raw+'%' : mode==='amt' ? '₹'+Number(c.raw).toLocaleString('en-IN') : c.raw) } }
+                    },
+                    scales: {
+                        x: { grid:{ color:'#f0f0f0' }, ticks:{ font:{size:11}, callback: tickCb } },
+                        y: { grid:{ display:false },   ticks:{ font:{size:11} } }
+                    }
+                }
+            });
+        }
+
+        $(document).on('click', '.chart-toggle-btn', function () {
+            $('.chart-toggle-btn').removeClass('btn-primary').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-primary');
+            chartMode = $(this).data('mode');
+            buildChart(chartMode);
+        });
+
+        // ── Helpers ────────────────────────────────────────────────────
+        function fmtCurrency(v) {
+            return '₹ ' + (parseFloat(v)||0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+        }
+        function pctBadge(pct) {
+            let cls = 'bg-success';
+            if (pct >= 20) cls = 'bg-danger';
+            else if (pct >= 10) cls = 'bg-warning text-dark';
+            else if (pct >= 5)  cls = 'bg-secondary';
+            return `<span class="badge ${cls}">${pct}%</span>`;
+        }
+        function progressBar(pct) {
+            const color = pct >= 20 ? '#dc3545' : pct >= 10 ? '#fd7e14' : pct >= 5 ? '#ffc107' : '#198754';
+            const w = Math.min(pct, 100);
+            return `<div class="progress-cell">
+                        <div class="mini-bar"><div class="mini-bar-inner" style="width:${w}%;background:${color}"></div></div>
+                        ${pctBadge(pct)}
+                    </div>`;
+        }
+
+        // ── Generate ───────────────────────────────────────────────────
+        $('#generateBtn').on('click', async function () {
+            const mediumId    = $('#summaryMedium').val();
+            const gradeIds    = $('.grade-checkbox:checked').map(function(){ return this.value; }).get().join(',');
+            const sectionIds  = $('.section-checkbox:checked').map(function(){ return this.value; }).get().join(',');
+            const monthIds    = $('.month-checkbox:checked').map(function(){ return this.value; }).get().join(',');
+
+            // medium is optional (empty = All Mediums)
+            if (!gradeIds)   { showMsg('error','Please select at least one Grade.','Required'); return; }
+            if (!sectionIds) { showMsg('error','Please select at least one Section.','Required'); return; }
+            if (!monthIds)   { showMsg('error','Please select at least one Month.','Required'); return; }
+
+            $('#initial-hint, #results-area, #error-panel').hide();
+            $('#loading-spinner').show();
+
+            try {
+                const resp = await fetch(`${contextPath}getPendingFeeSummaryData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mediumId, gradeIds, sectionIds, monthIds })
+                });
+                if (!resp.ok) throw new Error('Server error: ' + resp.status);
+                const data = await resp.json();
+                $('#loading-spinner').hide();
+
+                if (data.error) {
+                    $('#error-msg').text(data.error);
+                    $('#error-panel').show();
+                    return;
+                }
+                if (!data.rows || data.rows.length === 0) {
+                    showMsg('warning','No data found for the selected filters.','No Data');
+                    $('#initial-hint').show();
+                    return;
+                }
+
+                // Cards
+                $('#card-pending-amt').text(fmtCurrency(data.grandTotalPendingAmount));
+                $('#card-defaulters').text(Number(data.grandTotalPendingStudents||0).toLocaleString('en-IN'));
+                $('#card-total-stu').text(Number(data.grandTotalStudents||0).toLocaleString('en-IN'));
+                $('#card-pending-pct').text((data.grandPendingPercent||0) + '%');
+
+                // Chart data — aggregate by grade
+                const gradeAgg = {};
+                data.rows.forEach(r => {
+                    if (!gradeAgg[r.gradeName]) gradeAgg[r.gradeName] = { total:0, pending:0, amt:0 };
+                    gradeAgg[r.gradeName].total   += Number(r.totalStudents)   || 0;
+                    gradeAgg[r.gradeName].pending += Number(r.pendingStudents) || 0;
+                    gradeAgg[r.gradeName].amt     += parseFloat(r.pendingAmount) || 0;
+                });
+                chartData = {
+                    labels: Object.keys(gradeAgg),
+                    pct:    Object.values(gradeAgg).map(g => g.total ? Math.round(g.pending*1000/g.total)/10 : 0),
+                    amt:    Object.values(gradeAgg).map(g => Math.round(g.amt * 100) / 100),
+                    count:  Object.values(gradeAgg).map(g => g.pending)
+                };
+                buildChart(chartMode);
+
+                // DataTable — destroy FIRST before touching DOM
+                if ($.fn.DataTable.isDataTable('#pendingSummaryTable')) {
+                    $('#pendingSummaryTable').DataTable().destroy();
+                }
+
+                // Table — flat rows, no colspan headers (avoids DataTable warning)
+                let html = '';
+                let i = 1;
+                data.rows.forEach(r => {
+                    const pct = Number(r.pendingPercent) || 0;
+                    html += `<tr>
+                        <td class="text-center">${i++}</td>
+                        <td class="fw-semibold">${r.gradeName}</td>
+                        <td>${r.sectionName}</td>
+                        <td>${fmtCurrency(r.pendingAmount)}</td>
+                        <td class="text-center">${r.pendingStudents}</td>
+                        <td class="text-center">${r.totalStudents}</td>
+                        <td>${progressBar(pct)}</td>
+                        <td class="text-center">
+                            <a href="${contextPath}fees/fees-pending-total-report?gradeId=${r.gradeId}&sectionId=${r.sectionId}"
+                               class="btn btn-sm btn-outline-primary py-0 px-2"
+                               title="View student-wise pending for ${r.gradeName} - ${r.sectionName}"
+                               target="_blank">
+                               <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>`;
+                });
+                $('#summary-tbody').html(html);
+
+                // Grand total footer
+                const gp = data.grandPendingPercent || 0;
+                $('#summary-tfoot').html(`
+                    <tr class="table-dark fw-bold">
+                        <td colspan="3" class="text-end py-2">GRAND TOTAL</td>
+                        <td>${fmtCurrency(data.grandTotalPendingAmount)}</td>
+                        <td class="text-center">${data.grandTotalPendingStudents}</td>
+                        <td class="text-center">${data.grandTotalStudents}</td>
+                        <td colspan="2">${gp}%</td>
+                    </tr>`);
+                $('#pendingSummaryTable').DataTable({
+                    paging: false,
+                    info: false,
+                    searching: true,
+                    ordering: true,
+                    autoWidth: false,
+                    layout: {
+                        top1Start: {
+                            buttons: [
+                                { extend:'excelHtml5', text:'<i class="bi bi-file-excel-fill text-success"></i>',
+                                  titleAttr:'Export Excel', title:'Fees Pending Summary Report',
+                                  exportOptions:{ columns:[0,1,2,3,4,5,6] } },
+                                { extend:'csvHtml5', text:'<i class="bi bi-filetype-csv text-info"></i>',
+                                  titleAttr:'Export CSV', title:'Fees Pending Summary Report',
+                                  exportOptions:{ columns:[0,1,2,3,4,5,6] } },
+                                { extend:'pdfHtml5', text:'<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                  titleAttr:'Export PDF', orientation:'landscape',
+                                  title:'Fees Pending Summary Report',
+                                  exportOptions:{ columns:[0,1,2,3,4,5,6] } }
+                            ]
+                        }
+                    },
+                    columnDefs: [
+                        { orderable: false, targets: [0, 6, 7] },
+                        { width: '40px',  targets: [0] },
+                        { width: '90px',  targets: [1] },
+                        { width: '80px',  targets: [2] },
+                        { width: '155px', targets: [3] },
+                        { width: '90px',  targets: [4] },
+                        { width: '100px', targets: [5] },
+                        { width: '130px', targets: [6] },
+                        { width: '60px',  targets: [7] }
+                    ]
+                });
+                $(".buttons-excel,.buttons-csv,.buttons-pdf").removeClass("btn-secondary");
+
+                $('#results-area').show();
+
+            } catch (err) {
+                $('#loading-spinner').hide();
+                $('#error-msg').text(err.message || 'Unexpected error. Please try again.');
+                $('#error-panel').show();
+            }
+        });
+    </script>
+
+</section>
+</body>
+</html>
