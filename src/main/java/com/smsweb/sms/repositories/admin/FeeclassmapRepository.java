@@ -17,6 +17,26 @@ public interface FeeclassmapRepository extends JpaRepository<FeeClassMap, Long> 
 
     List<FeeClassMap> findAllByGrade_IdAndSchool_IdAndAcademicYear_Id(Long grade_id, Long school_id, Long academic_id);
 
+    /**
+     * Per-month fee breakdown for summary report.
+     * Returns [amount, feeHeadName, monthMasterId] — one row per fee head per month.
+     * Unlike findAmountAndFeeHeadNames this does NOT aggregate across months.
+     */
+    @Query(value = "SELECT fcm.amount as amt, fh.fee_head_name as FeeName, fmm.month_master_id " +
+            "FROM fee_class_map fcm " +
+            "JOIN fee_month_map fmm ON fcm.academic_year_id = fmm.academic_year_id " +
+            "AND fcm.school_id = fmm.school_id AND fcm.feehead_id = fmm.feehead_id " +
+            "JOIN feehead fh ON fh.id = fcm.feehead_id " +
+            "WHERE fcm.academic_year_id = :academicYearId " +
+            "AND fcm.school_id = :schoolId " +
+            "AND fmm.month_master_id IN (:monthMasterIds) " +
+            "AND fmm.is_applicable = true " +
+            "AND fcm.grade_id = :gradeId", nativeQuery = true)
+    List<Object[]> findFeeDetailsPerMonth(@Param("academicYearId") Long academicYearId,
+                                          @Param("schoolId") Long schoolId,
+                                          @Param("monthMasterIds") List<Long> monthMasterIds,
+                                          @Param("gradeId") Long gradeId);
+
     @Query(value = "SELECT SUM(fcm.amount) as amt, fh.fee_head_name as FeeName, count(fmm.month_master_id) as qty, fcm.feehead_id " +
             "FROM fee_class_map fcm " +
             "JOIN fee_month_map fmm ON fcm.academic_year_id = fmm.academic_year_id " +

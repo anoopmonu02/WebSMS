@@ -423,7 +423,7 @@
                 if(data.previousBalance>0){
                     $("#previousBalance").addClass("text-bg-warning");
                 } else{
-                    $("#previousBalance").addClass("");
+                    $("#previousBalance").removeClass("text-bg-warning");
                 }
             } else{
                 $(".studname").html(`<strong>Student Name:</strong>`);
@@ -699,6 +699,7 @@
             $('#msgLabel').html('').hide();
             $('#msgAmount').html('').hide();
             $('#fullPaymentAmount').val('');
+            $('#previousBalance').removeClass("text-bg-warning");
         }
 
         function resetMonthCheckBoxes(){

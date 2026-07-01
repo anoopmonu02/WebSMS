@@ -612,6 +612,23 @@ public class FeeSubmissionRestController extends BaseController {
     }
 
 
+    @CheckAccess(screen = "FEE_PENDING_SUMMARY_REPORT", type = AccessType.VIEW)
+    @PostMapping("/getPendingFeeSummaryData")
+    public ResponseEntity<?> getPendingFeeSummaryData(@RequestBody Map<String, String> requestBody, Model model){
+        Map<String, Object> result = new HashMap<>();
+        try {
+            if (requestBody != null) {
+                School school = (School) model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                result = feeSubmissionService.calculatePendingFeeSummary(requestBody, school, academicYear);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("error", "Failed to generate report: " + e.getMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @CheckAccess(screen = "FEE_REMINDER", type = AccessType.VIEW)
     @PostMapping("/getFeeReminderDetails")
     public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody, Model model){

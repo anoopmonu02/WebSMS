@@ -235,13 +235,84 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
 
     @Query(value = """
     SELECT MAX(id)
-    FROM fee_submission 
+    FROM fee_submission
     WHERE academic_student_id = :studentId and status = :status and academic_year_id = :academicId
     """, nativeQuery = true)
     Long findLatestSubmissionId(@Param("studentId") Long studentId,
                                 @Param("status") String status,
                                 @Param("academicId") Long academicId);
 
+    /**
+     * Pending Fee Summary Report — aggregate query.
+     * Returns [academic_student_id, submitted_month_count] for students who have submitted
+     * at least one of the given months. Students absent from result have submitted 0 months.
+     */
+    @Query(value = """
+        SELECT fs.academic_student_id, COUNT(DISTINCT fsm.month_master_id) AS submitted_count
+        FROM fee_submission fs
+        JOIN fee_submission_months fsm ON fsm.fee_submission_id = fs.id
+        WHERE fs.school_id          = :schoolId
+          AND fs.academic_year_id   = :academicYearId
+          AND fs.academic_student_id IN (:studentIds)
+          AND fsm.month_master_id   IN (:monthIds)
+          AND LOWER(fs.status)      = 'active'
+        GROUP BY fs.academic_student_id
+    """, nativeQuery = true)
+    List<Object[]> getSubmittedMonthCountsForStudents(
+            @Param("schoolId")       Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("studentIds")     List<Long> studentIds,
+            @Param("monthIds")       List<Long> monthIds
+    );
+
+    /**
+     * Pending Fee Summary Report — returns WHICH specific months each student has paid.
+     * Result: [academic_student_id, month_master_id]
+     */
+    @Query(value = """
+        SELECT DISTINCT fs.academic_student_id, fsm.month_master_id
+        FROM fee_submission fs
+        JOIN fee_submission_months fsm ON fsm.fee_submission_id = fs.id
+        WHERE fs.school_id          = :schoolId
+          AND fs.academic_year_id   = :academicYearId
+          AND fs.academic_student_id IN (:studentIds)
+          AND fsm.month_master_id   IN (:monthIds)
+          AND LOWER(fs.status)      = 'active'
+    """, nativeQuery = true)
+    List<Object[]> getSubmittedMonthsForStudents(
+            @Param("schoolId")       Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("studentIds")     List<Long> studentIds,
+            @Param("monthIds")       List<Long> monthIds
+    );
+
+
+    /**
+     * Pending Fee Summary Report — returns the latest carry-forward balance per student.
+     * Only includes students who have a non-zero balance on their last active submission.
+     * Result: [academic_student_id, balance_amount]
+     */
+    @Query(value = """
+        SELECT fs.academic_student_id, fsb.balance_amount
+        FROM fee_submission fs
+        JOIN fee_submission_balance fsb ON fsb.fee_submission_id = fs.id
+        JOIN (
+            SELECT academic_student_id, MAX(id) AS max_id
+            FROM fee_submission
+            WHERE school_id = :schoolId
+              AND academic_year_id = :academicYearId
+              AND academic_student_id IN (:studentIds)
+              AND LOWER(status) = 'active'
+            GROUP BY academic_student_id
+        ) latest ON latest.academic_student_id = fs.academic_student_id AND latest.max_id = fs.id
+        WHERE LOWER(fsb.status) = 'active'
+          AND fsb.balance_amount > 0
+    """, nativeQuery = true)
+    List<Object[]> getLatestBalanceAmountsForStudents(
+            @Param("schoolId")       Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("studentIds")     List<Long> studentIds
+    );
 
     @Query(value = """
         select h.fee_head_name, sum(fs.amount) as AMT

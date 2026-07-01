@@ -733,8 +733,8 @@
                 </li>
 
                 <!-- Global Settings -->
-                <li class="nav-section-label">Configuration</li>
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="nav-section-label">Configuration</li>
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown" data-bs-toggle="collapse"
                        data-bs-target="#gsetting" aria-expanded="false" aria-controls="gsetting"
                        data-tip="Global Settings">
@@ -756,7 +756,7 @@
                 </li>
 
                 <!-- Admin Configuration -->
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#asetting" aria-expanded="false" aria-controls="asetting"
                        data-tip="Admin Config">
@@ -818,8 +818,8 @@
                 </li>
 
                 <!-- Students -->
-                <li class="nav-section-label">Academic</li>
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="nav-section-label">Academic</li>
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#students" aria-expanded="false" aria-controls="students"
                        data-tip="Students">
@@ -850,7 +850,7 @@
                 </li>
 
                 <!-- Attendance -->
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#attendance" aria-expanded="false" aria-controls="attendance"
                        data-tip="Attendance">
@@ -863,8 +863,8 @@
                 </li>
 
                 <!-- Fees -->
-                <li class="nav-section-label">Finance</li>
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')" class="nav-section-label">Finance</li>
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#fees" aria-expanded="false" aria-controls="fees"
                        data-tip="Fees">
@@ -882,7 +882,7 @@
                 </li>
 
                 <!-- Reports -->
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_TEACHER')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#reps" aria-expanded="false" aria-controls="reps"
                        data-tip="Reports">
@@ -891,7 +891,7 @@
                     </a>
                     <ul id="reps" class="sidebar-dropdown list-unstyled collapse">
                         <!-- Fee Report sub-group -->
-                        <li class="sidebar-item">
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item">
                             <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-target="#level-1"
                                data-bs-toggle="collapse" aria-expanded="false">
                                 <i class="bi bi-receipt-cutoff"></i><span>Fee Report</span>
@@ -903,14 +903,14 @@
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_REPORT_PENDING:VIEW" th:href="@{'/fees/fees-pending-total-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Pending Fee</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_REPORT_CANCELLED:VIEW" th:href="@{'/fees/fees-drop-off-collection'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Cancelled Fee List</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_REPORT_DEPOSITED:VIEW" th:href="@{'/fees/fees-total-deposited-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Total Deposited Fee</span></a></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Pending Fee Report</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_PENDING_SUMMARY_REPORT:VIEW" th:href="@{'/fees/fees-pending-summary-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Pending Fee Report</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_REPORT_GRADEWISE_INCOME:VIEW" th:href="@{'/fees/fees-total-gradewise-income-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade-wise Collection</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_DISCOUNT_REPORT:VIEW" th:href="@{'/student/stu-discount-list-session-wise'}"><i class="bi bi-dot"></i><span>Discount List Report</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="FEE_REPORT_HEAD_WISE:VIEW" th:href="@{'/fees/fees-head-wise-collection-summary'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Head-wise Summary</span></a></li>
                             </ul>
                         </li>
                         <!-- Student Report sub-group -->
-                        <li class="sidebar-item">
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item">
                             <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-target="#level-2"
                                data-bs-toggle="collapse" aria-expanded="false">
                                 <i class="bi bi-file-person"></i><span>Student Report</span>
@@ -927,8 +927,8 @@
                 </li>
 
                 <!-- Message -->
-                <li class="nav-section-label">Communication</li>
-                <li class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="nav-section-label">Communication</li>
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#message" aria-expanded="false" aria-controls="message"
                        data-tip="Message">

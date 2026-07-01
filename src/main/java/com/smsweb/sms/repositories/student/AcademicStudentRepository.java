@@ -36,6 +36,8 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
     List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(Long school, Long medium, Long grade, Long section, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_Id(Long school, Long medium, Long grade, Long section, Long academic_year);
+    // All mediums — used in summary reports where medium filter is optional
+    List<AcademicStudent> findAllBySchool_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(Long school, Long grade, Long section, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndStatus(Long school, String status);
 
@@ -197,10 +199,20 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<Object[]> getBirthdayDistributionByMonth(@Param("schoolId") Long schoolId,
                                                   @Param("academicYearId") Long academicYearId);
 
-    @Query(value = "SELECT a.grade.gradeName, a.section.sectionName, a.grade.id as gradeId, a.section.id as sectionId, count(a.student.id) as TotalStudents FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status group by a.grade, a.section")
+    @Query(value = "SELECT a.grade.gradeName, a.section.sectionName, a.grade.id as gradeId, a.section.id as sectionId, count(a.student.id) as TotalStudents FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = UPPER(:status) AND UPPER(a.student.status) = UPPER(:status) group by a.grade, a.section")
     List<Object[]> getGradesAndSectionList(@Param("schoolId") Long schoolId,
                                  @Param("academicYearId") Long academicYearId,
                                  @Param("status") String status);
+
+    /** Returns distinct Grade entities that have enrolled active students — used for sidebar in summary reports */
+    @Query("SELECT DISTINCT a.grade FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = 'ACTIVE' ORDER BY a.grade.gradeName")
+    List<com.smsweb.sms.models.universal.Grade> findEnrolledGrades(@Param("schoolId") Long schoolId,
+                                                                    @Param("academicYearId") Long academicYearId);
+
+    /** Returns distinct Section entities that have enrolled active students — used for sidebar in summary reports */
+    @Query("SELECT DISTINCT a.section FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = 'ACTIVE' ORDER BY a.section.sectionName")
+    List<com.smsweb.sms.models.universal.Section> findEnrolledSections(@Param("schoolId") Long schoolId,
+                                                                        @Param("academicYearId") Long academicYearId);
 
     // ── Mobile API queries ────────────────────────────────────────────────────
 

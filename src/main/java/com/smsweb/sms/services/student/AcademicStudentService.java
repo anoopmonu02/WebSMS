@@ -179,4 +179,14 @@ public class AcademicStudentService {
     public List<AcademicStudent> findSiblingsByMobile(String mobile) {
         return academicStudentRepository.findSiblingsByMobile(mobile);
     }
+
+    /** Grades that actually have enrolled active students — for summary report sidebar */
+    public List<Grade> findEnrolledGrades(Long schoolId, Long academicYearId) {
+        return academicStudentRepository.findEnrolledGrades(schoolId, academicYearId);
+    }
+
+    /** Sections that actually have enrolled active students — for summary report sidebar */
+    public List<Section> findEnrolledSections(Long schoolId, Long academicYearId) {
+        return academicStudentRepository.findEnrolledSections(schoolId, academicYearId);
+    }
 }

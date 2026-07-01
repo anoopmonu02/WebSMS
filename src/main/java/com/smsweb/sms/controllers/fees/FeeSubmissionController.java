@@ -293,6 +293,22 @@ public class FeeSubmissionController extends BaseController {
         return "fees/total_fee_submitted_details_grade";
     }
 
+    @CheckAccess(screen = "FEE_PENDING_SUMMARY_REPORT", type = AccessType.VIEW)
+    @GetMapping("fees-pending-summary-report")
+    public String feePendingSummaryReport(Model model){
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+        model.addAttribute("monthmapping", monthMappingList);
+        model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+        // Only show grades/sections that have actual enrolled students in the current academic year
+        model.addAttribute("grades",   academicStudentService.findEnrolledGrades(school.getId(), academicYear.getId()));
+        model.addAttribute("sections", academicStudentService.findEnrolledSections(school.getId(), academicYear.getId()));
+        model.addAttribute("mediums",  mediumService.getAllMediums());
+        model.addAttribute("page", "datatable");
+        return "fees/pending-fee-summary-report";
+    }
+
     @CheckAccess(screen = "FEE_REPORT_PENDING", type = AccessType.VIEW)
     @GetMapping("fees-pending-total-report")
     public String totalFeePending(Model model){

@@ -30,6 +30,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -1589,6 +1590,286 @@ public class FeeSubmissionService {
         }
         row.put("feeSubmissionMonths", monthsList);
         return row;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Pending Fee Summary Report
+    // Returns aggregate data per grade-section for the selected months.
+    // Security: gradeIds and monthIds are validated against school + academicYear
+    //           so tampered IDs from other schools are silently ignored.
+    // Performance: one batch SQL query per grade-section to count submitted months;
+    //              fee_class_map loaded once per grade (cached in map).
+    // ─────────────────────────────────────────────────────────────────────────────
+    public Map<String, Object> calculatePendingFeeSummary(Map<String, String> requestBody, School school, AcademicYear academicYear) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // ── 1. Parse inputs ────────────────────────────────────────────────
+            Long mediumId = parseLongSafe(requestBody.get("mediumId")); // null = All Mediums
+            String gradeIdsStr   = requestBody.getOrDefault("gradeIds", "");
+            String monthIdsStr   = requestBody.getOrDefault("monthIds", "");
+            String sectionIdsStr = requestBody.getOrDefault("sectionIds", "");
+
+            if (gradeIdsStr.isEmpty() || monthIdsStr.isEmpty()) {
+                result.put("error", "Grades and months are required.");
+                return result;
+            }
+
+            List<Long> selectedGradeIds = Arrays.stream(gradeIdsStr.split(","))
+                    .map(String::trim).filter(s -> !s.isEmpty())
+                    .map(Long::parseLong).collect(Collectors.toList());
+
+            List<Long> selectedMonthIds = Arrays.stream(monthIdsStr.split(","))
+                    .map(String::trim).filter(s -> !s.isEmpty())
+                    .map(Long::parseLong).collect(Collectors.toList());
+
+            List<Long> selectedSectionIds = sectionIdsStr.isEmpty() ? Collections.emptyList() :
+                    Arrays.stream(sectionIdsStr.split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty())
+                            .map(Long::parseLong).collect(Collectors.toList());
+
+            int selectedMonthCount = selectedMonthIds.size();
+
+            // ── 2. Pre-load Fine and fee-due date (once for all students) ─────
+            Fine fine = null;
+            try {
+                List<Fine> fines = fineRepository.findAllByAcademicYear_IdAndSchool_Id(academicYear.getId(), school.getId());
+                if (fines != null && !fines.isEmpty()) fine = fines.get(0);
+            } catch (Exception ignore) {}
+
+            int cdiff = 0; // positive = fee date not yet passed; negative = overdue
+            FeeDate feeDate = null;
+            try {
+                List<FeeDate> feeDates = feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(
+                        academicYear.getId(), school.getId(), LocalDate.now().getMonthValue());
+                if (feeDates != null && !feeDates.isEmpty()) {
+                    feeDate = feeDates.get(0);
+                    cdiff = monthmappingRepository.currentFeeDateDifference(
+                            new SimpleDateFormat("dd/MMM/yyyy").format(feeDate.getFeeSubmissiondate()),
+                            new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
+                }
+            } catch (Exception ignore) {}
+            final int finalCdiff = cdiff;
+            final Fine finalFine = fine;
+
+            // ── 3. Load all active student discounts for this school+year ─────
+            List<StudentDiscount> allDiscounts = studentDiscountRepository
+                    .findAllBySchool_IdAndAcademicYear_IdAndStatus(school.getId(), academicYear.getId(), "Active");
+            Map<Long, StudentDiscount> discountByStudentId = new HashMap<>();
+            if (allDiscounts != null) {
+                for (StudentDiscount sd : allDiscounts) {
+                    if (sd.getAcademicStudent() != null)
+                        discountByStudentId.put(sd.getAcademicStudent().getId(), sd);
+                }
+            }
+
+            // ── 4. Build monthId → monthName map (for fine calculation) ───────
+            Map<Long, String> monthIdToName = new HashMap<>();
+            List<MonthMapping> allMMs = monthmappingRepository
+                    .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+            for (MonthMapping mm : allMMs) {
+                monthIdToName.put(mm.getMonthMaster().getId(), mm.getMonthMaster().getMonthName());
+            }
+
+            // ── 5. Per-grade caches ───────────────────────────────────────────
+            // gradeFeePerMonth: gradeId → monthId → list of [amount, headName]
+            Map<Long, Map<Long, List<Object[]>>> gradeFeePerMonth = new HashMap<>();
+            // gradeDiscountPerHead: gradeId → discountHeadId → [totalDiscount for ALL selectedMonths]
+            // We will compute on-demand per student with their specific unpaid months
+            // Fine cache: firstUnpaidMonthName → fine amount
+            Map<String, BigDecimal> fineCacheByFirstMonth = new HashMap<>();
+
+            // ── 6. Main loop ──────────────────────────────────────────────────
+            List<Object[]> gradeSectionRows = academicStudentRepository
+                    .getGradesAndSectionList(school.getId(), academicYear.getId(), "Active");
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            BigDecimal grandTotalPendingAmount  = BigDecimal.ZERO;
+            long grandTotalPendingStudents = 0;
+            long grandTotalStudents        = 0;
+
+            for (Object[] row : gradeSectionRows) {
+                String gradeName   = (String) row[0];
+                String sectionName = (String) row[1];
+                Long   gradeId     = (Long)   row[2];
+                Long   sectionId   = (Long)   row[3];
+
+                if (!selectedGradeIds.contains(gradeId)) continue;
+                if (!selectedSectionIds.isEmpty() && !selectedSectionIds.contains(sectionId)) continue;
+
+                // ── 6a. Cache per-month fee details for this grade ────────────
+                if (!gradeFeePerMonth.containsKey(gradeId)) {
+                    // One query per grade (not per student): returns [amount, headName, monthId]
+                    List<Object[]> feeRows = feeclassmapRepository.findFeeDetailsPerMonth(
+                            academicYear.getId(), school.getId(), selectedMonthIds, gradeId);
+                    Map<Long, List<Object[]>> monthMap = new HashMap<>();
+                    if (feeRows != null) {
+                        for (Object[] fr : feeRows) {
+                            Long mId = ((Number) fr[2]).longValue();
+                            monthMap.computeIfAbsent(mId, k -> new ArrayList<>()).add(fr);
+                        }
+                    }
+                    gradeFeePerMonth.put(gradeId, monthMap);
+                }
+                Map<Long, List<Object[]>> feeByMonth = gradeFeePerMonth.get(gradeId);
+
+                // ── 6b. Fetch students ────────────────────────────────────────
+                List<AcademicStudent> students = (mediumId != null)
+                        ? academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(
+                                school.getId(), mediumId, gradeId, sectionId, academicYear.getId(), "Active")
+                        : academicStudentRepository.findAllBySchool_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(
+                                school.getId(), gradeId, sectionId, academicYear.getId(), "Active");
+
+                if (students == null || students.isEmpty()) continue;
+                long totalStu = students.size();
+
+                // ── 6c. Batch: which months has each student paid ─────────────
+                List<Long> studentIds = students.stream().map(AcademicStudent::getId).collect(Collectors.toList());
+                List<Object[]> paidPairs = feeSubmissionRepository
+                        .getSubmittedMonthsForStudents(school.getId(), academicYear.getId(), studentIds, selectedMonthIds);
+
+                Map<Long, Set<Long>> studentPaidMonths = new HashMap<>();
+                if (paidPairs != null) {
+                    for (Object[] p : paidPairs) {
+                        Long stuId  = ((Number) p[0]).longValue();
+                        Long mId    = ((Number) p[1]).longValue();
+                        studentPaidMonths.computeIfAbsent(stuId, k -> new HashSet<>()).add(mId);
+                    }
+                }
+
+                // ── 6c2. Batch: latest carry-forward balance per student ───────
+                List<Object[]> balancePairs = feeSubmissionRepository
+                        .getLatestBalanceAmountsForStudents(school.getId(), academicYear.getId(), studentIds);
+                Map<Long, BigDecimal> studentBalance = new HashMap<>();
+                if (balancePairs != null) {
+                    for (Object[] bp : balancePairs) {
+                        Long stuId = ((Number) bp[0]).longValue();
+                        BigDecimal bal = bp[1] != null ? new BigDecimal(bp[1].toString()) : BigDecimal.ZERO;
+                        studentBalance.put(stuId, bal);
+                    }
+                }
+
+                // ── 6d. Per-student accurate calculation ──────────────────────
+                long pendingStudents  = 0;
+                BigDecimal pendingAmt = BigDecimal.ZERO;
+
+                for (AcademicStudent stu : students) {
+                    Set<Long> paid = studentPaidMonths.getOrDefault(stu.getId(), Collections.emptySet());
+                    List<Long> unpaidMonthIds = selectedMonthIds.stream()
+                            .filter(m -> !paid.contains(m)).collect(Collectors.toList());
+                    BigDecimal stuBalance = studentBalance.getOrDefault(stu.getId(), BigDecimal.ZERO);
+
+                    if (unpaidMonthIds.isEmpty()) {
+                        // All selected months paid — count only if carry-forward balance exists
+                        if (stuBalance.compareTo(BigDecimal.ZERO) > 0) {
+                            pendingStudents++;
+                            pendingAmt = pendingAmt.add(stuBalance);
+                        }
+                        continue;
+                    }
+
+                    pendingStudents++;
+
+                    // Fee for unpaid months (exclude one-time fee per student type)
+                    String feeTypeToExclude = "Old".equalsIgnoreCase(
+                            stu.getStudent() != null ? stu.getStudent().getStudentType() : "Old")
+                            ? "Admission Fee" : "Annual Fee";
+
+                    BigDecimal stuFee = BigDecimal.ZERO;
+                    for (Long mId : unpaidMonthIds) {
+                        List<Object[]> monthFees = feeByMonth.getOrDefault(mId, Collections.emptyList());
+                        for (Object[] fd : monthFees) {
+                            String headName = fd[1] != null ? fd[1].toString() : "";
+                            if (!feeTypeToExclude.equalsIgnoreCase(headName) && fd[0] != null) {
+                                stuFee = stuFee.add((BigDecimal) fd[0]);
+                            }
+                        }
+                    }
+
+                    // Discount for unpaid months
+                    BigDecimal discountAmt = BigDecimal.ZERO;
+                    StudentDiscount stuDiscount = discountByStudentId.get(stu.getId());
+                    if (stuDiscount != null) {
+                        try {
+                            List<Object[]> disRows = discountclassmapRepository.findAmountAndDiscountHeadNames(
+                                    academicYear.getId(), school.getId(), unpaidMonthIds,
+                                    gradeId, stuDiscount.getDiscounthead().getId());
+                            if (disRows != null) {
+                                for (Object[] dr : disRows) {
+                                    if (dr[0] != null) discountAmt = discountAmt.add((BigDecimal) dr[0]);
+                                }
+                            }
+                        } catch (Exception ignore) {}
+                    }
+
+                    // Fine for unpaid months (based on oldest unpaid month)
+                    BigDecimal fineAmt = BigDecimal.ZERO;
+                    if (finalFine != null && !unpaidMonthIds.isEmpty()) {
+                        try {
+                            // Use first unpaid month's name as fine anchor (same logic as detail report)
+                            Long firstUnpaidMonthId = unpaidMonthIds.get(0);
+                            String firstMonthName = monthIdToName.getOrDefault(firstUnpaidMonthId, "");
+                            if (!firstMonthName.isEmpty()) {
+                                BigDecimal cachedFine = fineCacheByFirstMonth.get(firstMonthName);
+                                if (cachedFine == null) {
+                                    int monthDiff = monthmappingRepository.findMonthDifference(
+                                            academicYear.getId(), school.getId(), firstMonthName,
+                                            new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
+                                    int fineMultiplier = Math.max(0, monthDiff + (finalCdiff < 0 ? 1 : 0));
+                                    if (fineMultiplier >= finalFine.getMaxCalculated()) {
+                                        cachedFine = BigDecimal.valueOf(finalFine.getFineAmount())
+                                                .multiply(BigDecimal.valueOf(finalFine.getMaxCalculated()));
+                                    } else {
+                                        cachedFine = BigDecimal.valueOf(finalFine.getFineAmount())
+                                                .multiply(BigDecimal.valueOf(fineMultiplier));
+                                    }
+                                    fineCacheByFirstMonth.put(firstMonthName, cachedFine);
+                                }
+                                fineAmt = cachedFine;
+                            }
+                        } catch (Exception ignore) {}
+                    }
+
+                    // Final: balance + fee + fine - discount (never go below zero)
+                    BigDecimal stuTotal = stuBalance.add(stuFee).add(fineAmt).subtract(discountAmt);
+                    if (stuTotal.compareTo(BigDecimal.ZERO) < 0) stuTotal = BigDecimal.ZERO;
+                    pendingAmt = pendingAmt.add(stuTotal);
+                }
+
+                double pendingPercent = totalStu > 0
+                        ? Math.round((pendingStudents * 100.0 / totalStu) * 10.0) / 10.0
+                        : 0.0;
+
+                Map<String, Object> rowMap = new LinkedHashMap<>();
+                rowMap.put("gradeName",       gradeName);
+                rowMap.put("sectionName",     sectionName);
+                rowMap.put("gradeId",         gradeId);
+                rowMap.put("sectionId",       sectionId);
+                rowMap.put("totalStudents",   totalStu);
+                rowMap.put("pendingStudents", pendingStudents);
+                rowMap.put("pendingAmount",   pendingAmt);
+                rowMap.put("pendingPercent",  pendingPercent);
+                rows.add(rowMap);
+
+                grandTotalPendingAmount   = grandTotalPendingAmount.add(pendingAmt);
+                grandTotalPendingStudents += pendingStudents;
+                grandTotalStudents        += totalStu;
+            }
+
+            double grandPendingPercent = grandTotalStudents > 0
+                    ? Math.round((grandTotalPendingStudents * 100.0 / grandTotalStudents) * 10.0) / 10.0
+                    : 0.0;
+
+            result.put("rows",                     rows);
+            result.put("grandTotalPendingAmount",  grandTotalPendingAmount);
+            result.put("grandTotalPendingStudents",grandTotalPendingStudents);
+            result.put("grandTotalStudents",       grandTotalStudents);
+            result.put("grandPendingPercent",      grandPendingPercent);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("error", "Error generating summary: " + e.getMessage());
+        }
+        return result;
     }
 
     private Map<String, Object> toLeanAcademicStudentForFee(AcademicStudent as) {
