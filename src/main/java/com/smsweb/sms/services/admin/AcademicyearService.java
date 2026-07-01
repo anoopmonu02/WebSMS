@@ -19,8 +19,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class AcademicyearService {
+    private static final Logger log = LoggerFactory.getLogger(AcademicyearService.class);
+
     private final AcademicyearRepository academicyearRepository;
     private final UserRepository userRepository;
     private SchoolService schoolService;
@@ -47,11 +51,13 @@ public class AcademicyearService {
 
     @Transactional
     public AcademicYear save(AcademicYear academicYear){
+        log.info("Inside save");
         academicyearRepository.save(academicYear);
         return academicYear;
     }
 
     public AcademicYear getCurrentAcademicYear(){
+        log.info("Inside getCurrentAcademicYear");
         AcademicYear ay = academicyearRepository.findTopByStatusOrderByIdDesc("active");
         if (ay == null) ay = academicyearRepository.findTopByStatusOrderByIdDesc("Active");
         return ay;
@@ -62,6 +68,7 @@ public class AcademicyearService {
     }
 
     public String delete(Long id) {
+        log.info("Inside delete");
         try {
             if (!academicyearRepository.existsById(id)) {
                 return "Academic year not found: " + id;
@@ -77,6 +84,7 @@ public class AcademicyearService {
     }
 
     public UserEntity getLoggedInUser() {
+        log.info("Inside getLoggedInUser");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -86,6 +94,7 @@ public class AcademicyearService {
     }
 
     public AcademicYear saveAcademicYearIfNotFound() {
+        log.info("Inside saveAcademicYearIfNotFound");
         try {
             List<School> schools = schoolService.getAllSchools();
             int year = LocalDate.now().getYear();
@@ -100,11 +109,11 @@ public class AcademicyearService {
 
                 // Proceed only if no academic years exist
                 if (academicYears.isEmpty()) {
-                    System.out.println("No academic year found for: " + school.getSchoolName());
+                    log.info("No academic year found for school={}, creating new one", school.getSchoolName());
                     AcademicYear academicYear = createNewAcademicYear(school, startDateConverted, endDateConverted, year);
                     return academicyearRepository.save(academicYear);
                 } else {
-                    System.out.println("Academic year already exists for: " + school.getSchoolName());
+                    log.debug("Academic year already exists for school={}", school.getSchoolName());
                 }
             }
         } catch (Exception e) {

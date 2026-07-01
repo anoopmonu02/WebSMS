@@ -17,6 +17,7 @@ import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.SiblingGroupService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
 
@@ -37,9 +38,13 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class FeeSubmissionRestController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(FeeSubmissionRestController.class);
+
 
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -52,6 +57,7 @@ public class FeeSubmissionRestController extends BaseController {
     private final MonthmappingService monthmappingService;
     private final FeeReceiptService receiptService;
     private final MonthmappingService mmService;
+    private final SiblingGroupService siblingGroupService;
 
     @Autowired
     private TemplateEngine templateEngine;
@@ -59,7 +65,8 @@ public class FeeSubmissionRestController extends BaseController {
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
                                        FeeSubmissionService feeSubmissionService, FeedateService feedateService, StudentDiscountService studentDiscountService,
-                                       FineService fineService, MonthmappingService monthmappingService, FeeReceiptService receiptService, MonthmappingService mmService) {
+                                       FineService fineService, MonthmappingService monthmappingService, FeeReceiptService receiptService,
+                                       MonthmappingService mmService, SiblingGroupService siblingGroupService) {
         this.studentService = studentService;
         this.academicyearService = academicyearService;
         this.academicStudentService = academicStudentService;
@@ -70,6 +77,7 @@ public class FeeSubmissionRestController extends BaseController {
         this.monthmappingService = monthmappingService;
         this.receiptService = receiptService;
         this.mmService = mmService;
+        this.siblingGroupService = siblingGroupService;
     }
 
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
@@ -78,6 +86,7 @@ public class FeeSubmissionRestController extends BaseController {
             @PathVariable("query") String query,
             @RequestParam(defaultValue = "0") int page,
             Model model) {
+        log.info("Inside searchStudentForFeePage");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId(), page);
@@ -90,12 +99,68 @@ public class FeeSubmissionRestController extends BaseController {
         return ResponseEntity.ok(leanList);
     }
 
+    /**
+     * Global student search for sibling group "Add Manually" — searches ALL active students
+     * regardless of school or academic year. Returns each student's latest active enrollment
+     * so the display shows their current branch, grade and section.
+     */
+    @GetMapping("/searchStudentForSiblingPage/{query}")
+    public ResponseEntity<?> searchStudentForSiblingPage(
+            @PathVariable("query") String query,
+            @RequestParam(defaultValue = "0") int page,
+            Model model) {
+        log.info("Inside searchStudentForSiblingPage (global)");
+        List<AcademicStudent> raw = academicStudentService.searchGlobalStudentsByName(query, page);
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        if (raw != null) {
+            for (AcademicStudent as : raw) leanList.add(studentService.toLeanAcademicStudentMap(as));
+        }
+        return ResponseEntity.ok(leanList);
+    }
+
+    /**
+     * Cross-school individual fetch — kept for backward compatibility.
+     * New flow uses /checkSiblingEligibility + cached data instead.
+     */
+    @GetMapping("/searchStudentIndividualGlobal/{id}")
+    public ResponseEntity<?> searchStudentIndividualGlobal(@PathVariable("id") Long id, Model model) {
+        log.info("Inside searchStudentIndividualGlobal");
+        Map<String, Object> result = new HashMap<>();
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        AcademicStudent academicStudent = academicStudentService.searchStudentByIdCrossBranch(id, academicYear.getSessionFormat());
+        try {
+            if (academicStudent != null) {
+                result.put("academicStudent", studentService.toLeanAcademicStudentMap(academicStudent));
+            } else {
+                result.put("noAcademicStudent", "Student not found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("error", "Error: " + e.getLocalizedMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * UX-level sibling eligibility check — called when staff clicks "Add Student".
+     * Checks if the student (by student.id) is already in ANY active sibling group
+     * across ALL branches. Prevents duplicate discount assignment.
+     *
+     * Returns: {eligible: true} OR {blocked: true, groupName, schoolName}
+     */
+    @GetMapping("/checkSiblingEligibility/{studentId}")
+    public ResponseEntity<?> checkSiblingEligibility(@PathVariable("studentId") Long studentId) {
+        log.info("Inside checkSiblingEligibility - studentId={}", studentId);
+        return ResponseEntity.ok(siblingGroupService.checkSiblingEligibility(studentId));
+    }
+
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchStudentForOtherPage/{query}")
     public ResponseEntity<?> searchStudentForOtherPage(
             @PathVariable("query") String query,
             @RequestParam(defaultValue = "0") int page,
             Model model) {
+        log.info("Inside searchStudentForOtherPage");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<AcademicStudent> raw = academicStudentService.searchStudents(query, academicYear.getId(), school.getId(), page);
@@ -182,6 +247,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailForFee/{id}")
     public ResponseEntity<?> getStudentDetailForFee(@PathVariable("id") Long id, Model model) {
+        log.info("Inside getStudentDetailForFee");
         Map<String, Object> result = new HashMap<>();
 
         School school = (School) model.getAttribute("school");
@@ -304,6 +370,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailsForSibling/{id}")
     public ResponseEntity<?> getStudentDetailsForSibling(@PathVariable("id") Long id, Model model){
+        log.info("Inside getStudentDetailsForSibling");
         Map result = new HashMap<>();
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -334,6 +401,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchStudentIndividual/{id}")
     public ResponseEntity<?> getStudentDetail(@PathVariable("id")Long id, Model model){
+        log.info("Inside getStudentDetail");
         Map result = new HashMap<>();
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -354,6 +422,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailForDiscount/{id}")
     public ResponseEntity<?> getStudentDetailForDiscount(@PathVariable("id") Long id, Model model){
+        log.info("Inside getStudentDetailForDiscount");
         Map result = new HashMap<>();
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -389,6 +458,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.EDIT)
     @PostMapping("/updateContact")
     public ResponseEntity<?> updateContact(@RequestBody Map<String, String> requestBody){
+        log.info("Inside updateContact");
         Map result = new HashMap<>();
         try{
             if(requestBody!=null){
@@ -412,7 +482,8 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFeeDetailsBasedOnMonth")
     public ResponseEntity<?> getFeeDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
-        System.out.println("-=-=-=-=--=-== "+requestBody);
+        log.info("Inside getFeeDetailsBasedOnMonth");
+        log.debug("requestBody={}", requestBody);
         Map result = new HashMap<>();
         try{
             //{checkBoxes=July, gradeId=2, academicStudentId=5}
@@ -422,7 +493,7 @@ public class FeeSubmissionRestController extends BaseController {
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map serviceResultMap = feeSubmissionService.getFeeDetailsBasedOnMonth(school.getId(), academicYear.getId(), academicStuId, requestBody.get("checkBoxes"), gradeId);
-                System.out.println("========================================================================= "+serviceResultMap);
+                log.debug("serviceResultMap keys={}", serviceResultMap != null ? serviceResultMap.keySet() : null);
                 if(serviceResultMap!=null && !serviceResultMap.isEmpty()){
                     result.put("feelist", serviceResultMap.get("feelist"));
                     result.put("paymentlist", serviceResultMap.get("paymentlist"));
@@ -443,7 +514,8 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getDiscountDetailsBasedOnMonth")
     public ResponseEntity<?> getDiscountDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
-        System.out.println("-=-=-=-=--=-== "+requestBody);
+        log.info("Inside getDiscountDetailsBasedOnMonth");
+        log.debug("requestBody={}", requestBody);
         Map result = new HashMap<>();
         try{
             if(requestBody!=null){
@@ -452,7 +524,7 @@ public class FeeSubmissionRestController extends BaseController {
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map serviceResultMap = feeSubmissionService.getDiscountDetailsBasedOnMonth(school.getId(), academicYear.getId(), academicStuId, requestBody.get("checkBoxes"), gradeId);
-                System.out.println("========================================================================= "+serviceResultMap);
+                log.debug("serviceResultMap keys={}", serviceResultMap != null ? serviceResultMap.keySet() : null);
                 if(serviceResultMap!=null && !serviceResultMap.isEmpty()){
                     result.put("discountlist", serviceResultMap.get("discountdata"));
                     /*result.put("paymentlist", serviceResultMap.get("paymentlist"));*/
@@ -472,7 +544,8 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFineDetailsBasedOnMonth")
     public ResponseEntity<?> getFineDetailsBasedOnMonth(@RequestBody Map<String, String> requestBody, Model model){
-        System.out.println("-=-=-=-=--=-== "+requestBody);
+        log.info("Inside getFineDetailsBasedOnMonth");
+        log.debug("requestBody={}", requestBody);
         Map fineMap = new HashMap();
         Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
         Long gradeId = requestBody.get("gradeId")!=null?Long.parseLong(requestBody.get("gradeId")):0L;
@@ -502,7 +575,8 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @PostMapping("/getFineDetailsBasedOnMonth_Old_Request")
     public ResponseEntity<?> getFineDetailsBasedOnMonth_Old(@RequestBody Map<String, String> requestBody, Model model){
-        System.out.println("-=-=-=-=--=-== "+requestBody);
+        log.info("Inside getFineDetailsBasedOnMonth_Old");
+        log.debug("requestBody={}", requestBody);
         Map fineMap = new HashMap();
         double fineAmount = 0.0;
         Long academicStuId = requestBody.get("academicStudentId")!=null?Long.parseLong(requestBody.get("academicStudentId")):0L;
@@ -615,6 +689,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_PENDING_SUMMARY_REPORT", type = AccessType.VIEW)
     @PostMapping("/getPendingFeeSummaryData")
     public ResponseEntity<?> getPendingFeeSummaryData(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getPendingFeeSummaryData");
         Map<String, Object> result = new HashMap<>();
         try {
             if (requestBody != null) {
@@ -632,15 +707,15 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REMINDER", type = AccessType.VIEW)
     @PostMapping("/getFeeReminderDetails")
     public ResponseEntity<?> getFeeReminderDetails(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getFeeReminderDetails");
         Map result = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 result = feeSubmissionService.calculateFeeReminder(requestBody, school, academicYear);
-                System.out.println("responseMap "+result);
-                //System.out.println("result "+result.keySet());
+                log.debug("getFeeReminderDetails result keys={}", result.keySet());
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -651,6 +726,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/getStudentFeeDetails/{id}")
     public ResponseEntity<?> getStudentFeeDetails(@PathVariable("id") Long id, Model model){
+        log.info("Inside getStudentFeeDetails");
         Map result = new HashMap<>();
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -693,62 +769,7 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/student-receipt-print/{id}")
     public ResponseEntity<?> getFeeReceipt(@PathVariable("id")Long id, Model model){
-        //Map result = new HashMap<>();
-        /*try{
-            SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
-            SimpleDateFormat sf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            FeeSubmission feeSubmission = feeSubmissionService.getFeeSubmissionById(id).orElse(null);
-            AcademicStudent academicStudent = feeSubmission.getAcademicStudent();
-            School school = (School)model.getAttribute("school");
-            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-            List<String> slipDateList = new ArrayList<>();
-            if(academicStudent!=null && feeSubmission!=null){
-                model.addAttribute("student", academicStudent);
-                model.addAttribute("school", academicStudent.getSchool());
-                model.addAttribute("academicYear", academicStudent.getAcademicYear().getSessionFormat());
-                model.addAttribute("hasStudent", academicStudent!=null);
-                //FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(4L, 0L, id);
-                model.addAttribute("hasFeeSubmission", feeSubmission!=null);
-                if(feeSubmission!=null){
-                    model.addAttribute("feeSubmission", feeSubmission);
-                    HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
-                    List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
-                    List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
-                    if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
-                        for(FeeSubmission submission: feeSubmissionList){
-                            List<FeeSubmissionMonths> feeSubmissionMonthsList = submission.getFeeSubmissionMonths();
-                            if(feeSubmissionMonthsList!=null && !feeSubmissionMonthsList.isEmpty()){
-                                for(FeeSubmissionMonths feeMonths: feeSubmissionMonthsList){
-                                    submittedMonthMap.put(feeMonths.getMonthMaster(), submission.getFeeSubmissionDate());
-                                }
-                            }
-                        }
-                    }
-                    System.out.println("submittedMonthMap "+submittedMonthMap);
-                    int i = 1;
-                    for(MonthMapping mm: monthMappingList){
-                        String dateString = "Month-"+ i +" ####("+mm.getMonthMaster().getMonthName().toUpperCase()+"): ####";
-                        if(submittedMonthMap.containsKey(mm.getMonthMaster())){
-                            dateString+="PAID " + sf.format(submittedMonthMap.get(mm.getMonthMaster()));
-                        }
-                        slipDateList.add(dateString);
-                        i++;
-                    }
-                    model.addAttribute("feeSubmittedMonths", slipDateList);
-                    System.out.println("feeSubmittedMonths: "+slipDateList);
-                    //Calculate the fee
-                    model.addAttribute("feesublist", feeSubmission.getFeeSubmissionSub());
-                } else{
-                    model.addAttribute("feeSubmissionError", "Fee not found for: "+academicStudent.getStudent().getStudentName()+"!");
-                }
-
-            } else{
-                model.addAttribute("studentError", "Fees Object/Student not found!");
-            }
-        }catch(Exception e){
-            e.printStackTrace();
-            model.addAttribute("error", e.getLocalizedMessage());
-        }*/
+        log.info("Inside getFeeReceipt");
         School school = (School) model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
 
@@ -756,14 +777,13 @@ public class FeeSubmissionRestController extends BaseController {
         if(receiptData==null || receiptData.isEmpty()){
             receiptData.put("error","Unable to print");
         }
-        //System.out.println("receiptData "+ receiptData);
-        System.out.println("--->>>>><<<<<<<<<==========");
         return ResponseEntity.ok(receiptData);
     }
 
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/searchReceiptForFeePage/{query}")
     public ResponseEntity<?> searchReceiptForFeePage(@PathVariable("query") String query, Model model){
+        log.info("Inside searchReceiptForFeePage");
         Map<String, Object> receiptData = new HashMap<>();
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -793,15 +813,14 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_USER_WISE", type = AccessType.VIEW)
     @PostMapping("/getFeeCollectionDetailsUserwise")
     public ResponseEntity<?> getFeeCollectionDetailsUserwise(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getFeeCollectionDetailsUserwise");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map result = feeSubmissionService.calculateFeeSubmissionUserWise(requestBody, school, academicYear);
-                //System.out.println("responseMap "+result);
-                //System.out.println("result "+result.keySet());
                 return ResponseEntity.ok(result);
             }
         }catch(Exception e){
@@ -815,9 +834,10 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_CANCELLED", type = AccessType.VIEW)
     @PostMapping("/getFeeCancelledDetails")
     public ResponseEntity<?> getFeeCancelledDetails(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getFeeCancelledDetails");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -835,9 +855,10 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_TOTAL_SUBMITTED", type = AccessType.VIEW)
     @PostMapping("/getTotalFeeSubmittedDetails")
     public ResponseEntity<?> getTotalFeeSubmittedDetails(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getTotalFeeSubmittedDetails");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -855,9 +876,10 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_GRADE_WISE", type = AccessType.VIEW)
     @PostMapping("/getTotalFeeSubmittedDetailsForGrades")
     public ResponseEntity<?> getTotalFeeSubmittedDetailsForGrades(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getTotalFeeSubmittedDetailsForGrades");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -875,9 +897,10 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_DEPOSITED", type = AccessType.VIEW)
     @PostMapping("/getTotalDepositedFeeSubmittedDetailsForGrades")
     public ResponseEntity<?> getTotalDepositedFeeSubmittedDetailsForGrades(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getTotalDepositedFeeSubmittedDetailsForGrades");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -897,15 +920,14 @@ public class FeeSubmissionRestController extends BaseController {
     @PostMapping("/cancelFeeForStudent")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     public ResponseEntity<?> cancelFeeForStudent(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside cancelFeeForStudent");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map result = feeSubmissionService.cancelSubmittedFeeForStudent(requestBody, school, academicYear);
-                //System.out.println("responseMap "+result);
-                //System.out.println("result "+result.keySet());
                 return ResponseEntity.ok(result);
             }
         }catch(Exception e){
@@ -919,15 +941,14 @@ public class FeeSubmissionRestController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_HEAD_WISE", type = AccessType.VIEW)
     @PostMapping("/getFeeCollectionDetailsHeadwise")
     public ResponseEntity<?> getFeeCollectionDetailsHeadwise(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getFeeCollectionDetailsHeadwise");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map result = feeSubmissionService.calculateFeeSubmissionHeadWise(requestBody, school, academicYear);
-                //System.out.println("responseMap "+result);
-                //System.out.println("result "+result.keySet());
                 return ResponseEntity.ok(result);
             }
         }catch(Exception e){

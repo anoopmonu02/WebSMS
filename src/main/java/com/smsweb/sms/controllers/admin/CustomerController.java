@@ -29,10 +29,14 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN')")
 public class CustomerController {
+    private static final Logger log = LoggerFactory.getLogger(CustomerController.class);
+
 
     private final CustomerService customerService;
     private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -50,6 +54,7 @@ public class CustomerController {
     @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.VIEW)
     @GetMapping("/customer")
     public String getCustomers(Model model){
+        log.info("Inside getCustomers");
         List<Customer> customers = customerService.getAllCustomers();
         model.addAttribute("customers",customers);
         model.addAttribute("hasCustomerData", !customers.isEmpty());
@@ -58,6 +63,7 @@ public class CustomerController {
     @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.CREATE)
     @GetMapping("/customer/add")
     public String addCustomerForm(Model model){
+        log.info("Inside addCustomerForm");
         model.addAttribute("customer", new Customer());
         model.addAttribute("provinces", customerService.getAllProvinces());
         return "admin/add-customer";
@@ -67,6 +73,7 @@ public class CustomerController {
     @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.VIEW)
     @GetMapping("/customer/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
+        log.info("Inside getCities");
         return customerService.getAllCitiesByProvince(provinceId);
     }
 
@@ -74,6 +81,7 @@ public class CustomerController {
     @PostMapping("/customer")
     public String saveCustomer(@Valid @ModelAttribute("customer")Customer customer, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                                Model model, RedirectAttributes ra){
+        log.info("Inside saveCustomer");
         if(result.hasErrors()){
             model.addAttribute("provinces", customerService.getAllProvinces());
             return "admin/add-customer";
@@ -82,7 +90,7 @@ public class CustomerController {
         String registrationNo = sf.format(new Date());
         if(!customerPic.isEmpty()){
             try{
-                System.out.println("==== "+customerPic.getContentType());
+                log.debug("Uploaded customer pic content-type: {}", customerPic.getContentType());
                 if (!customerPic.getContentType().startsWith("image/")) {
                     model.addAttribute("provinces", customerService.getAllProvinces());
                     model.addAttribute("picUploadError", "Only image files are allowed.");
@@ -111,7 +119,7 @@ public class CustomerController {
                     customer.setPic(imageResponse);
                     proceedFlag = true;
                 }
-                System.out.println("File Name: "+customerPic.getOriginalFilename()+"  L: "+imageResponse);
+                log.debug("Customer pic saved: fileName={}, result={}", customerPic.getOriginalFilename(), imageResponse);
 
             }catch(Exception e){
                 model.addAttribute("picUploadError", "Could not upload pic: "+e.getLocalizedMessage());
@@ -124,7 +132,7 @@ public class CustomerController {
             customer.setPic(null);
         }
         customer.setRegistrationNo(registrationNo);
-        System.out.println("customer: "+customer);
+        log.info("Saving new customer, registrationNo={}", registrationNo);
         customer.setCreatedBy(userService.getLoggedInUser());
         customerService.saveCustomer(customer);
 
@@ -136,6 +144,7 @@ public class CustomerController {
     @CheckAccess(screen = "ADMIN_CUSTOMER", type = AccessType.EDIT)
     @GetMapping("/customer/edit/{id}")
     public String getEditPage(@PathVariable("id") Long id, Model model){
+        log.info("Inside getEditPage");
         Customer customer = customerService.getCustomerById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid customer Id:" + id));
         model.addAttribute("customer", customer);
@@ -147,6 +156,7 @@ public class CustomerController {
     @PostMapping("/customer/{id}")
     public String updateCustomer(@PathVariable("id") Long id, @Valid @ModelAttribute("customer") Customer customer,
                                  @RequestParam("customerPic")MultipartFile customerPic, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateCustomer");
         if(result.hasErrors()){
             model.addAttribute("provinces", customerService.getAllProvinces());
             return "admin/edit-customer";
@@ -155,7 +165,7 @@ public class CustomerController {
         String imageFileNameFormat = sf.format(new Date());
         if(!customerPic.isEmpty()){
             try{
-                System.out.println("==== "+customerPic.getContentType());
+                log.debug("Uploaded customer pic content-type: {}", customerPic.getContentType());
                 if (!customerPic.getContentType().startsWith("image/")) {
                     model.addAttribute("provinces", customerService.getAllProvinces());
                     model.addAttribute("picUploadError", "Only image files are allowed.");
@@ -183,7 +193,7 @@ public class CustomerController {
                     customer.setPic(imageResponse);
                     proceedFlag = true;
                 }
-                System.out.println("File Name: "+customerPic.getOriginalFilename()+"  L: "+imageResponse);
+                log.debug("Customer pic saved: fileName={}, result={}", customerPic.getOriginalFilename(), imageResponse);
                 customer.setPic(imageResponse);
             }catch(Exception e){
                 model.addAttribute("picUploadError", "Could not upload pic: "+e.getLocalizedMessage());

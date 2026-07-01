@@ -30,6 +30,7 @@
                     </div>
                     <div class="col-md-1">
                         <input type="hidden" id="academic_student" name="academic_student" />
+                        <input type="hidden" id="student_id_global" />
                     </div>
                     <div class="col-md-5 align-self-end mb-2">
                         <label class="form-label">&nbsp;</label>
@@ -60,6 +61,7 @@
                                         <th>Mother Name</th>
                                         <th>Grade</th>
                                         <th>Branch</th>
+                                        <th>Action</th>
                                     </tr>
                                     </thead>
                                     <tbody class="table-group-divider">
@@ -156,19 +158,27 @@
             if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) { _sb1Page++; _sb1Fetch(_sb1Query, _sb1Page, true); }
         });
 
-        /* ── Search box 2 (individual student via searchStudentForFeePage) ── */
+        /* ── Search box 2 (individual — GLOBAL search: all active students, all branches) ── */
         let _sb2Query = '', _sb2Page = 0, _sb2More = false, _sb2Loading = false;
+        // Cache stores full lean-map objects keyed by academicStudent.id
+        // so we can build the table row without a second API call
+        const _sb2Cache = {};
+
         const _sb2Row = (s) => {
             let sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
-            return `<a onclick="loadStudentData1(${s.id},'${s.student.studentName}')" href="#" class='list-group-item list-group-item-action'>${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}</a>`;
+            let school = s.school ? ' [' + s.school.schoolName + ']' : '';
+            return `<a onclick="loadStudentData1(${s.id})" href="#" class='list-group-item list-group-item-action'>${s.student.studentName} / ${s.student.fatherName} / ${s.grade.gradeName}-${s.section.sectionName}${sr}${school}</a>`;
         };
         const _sb2Fetch = (query, page, append) => {
             if (_sb2Loading) return;
             _sb2Loading = true;
-            fetch(`${contextPath}searchStudentForFeePage/${encodeURIComponent(query)}?page=${page}`)
+            // Global endpoint — searches ALL active students regardless of school/year
+            fetch(`${contextPath}searchStudentForSiblingPage/${encodeURIComponent(query)}?page=${page}`)
                 .then(r => r.json()).then(data => {
                     _sb2Loading = false;
                     _sb2More = data.length === 10;
+                    // Cache each result by academicStudent.id
+                    data.forEach(s => { _sb2Cache[s.id] = s; });
                     if (!append) {
                         let html = `<div class='list-group' id='sb2-list-group'>`;
                         data.forEach(s => { html += _sb2Row(s); });
@@ -189,28 +199,56 @@
             if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) { _sb2Page++; _sb2Fetch(_sb2Query, _sb2Page, true); }
         });
 
+        /* ── Shared: build a table row with remove button ── */
+        const buildSiblingRow = (idx, value) => {
+            return `<tr>
+                <td>${idx}<input type="hidden" name="academicstudent" value="${value.id}" /></td>
+                <td>${value.student.studentName}</td>
+                <td>${value.student.fatherName}</td>
+                <td>${value.student.motherName}</td>
+                <td>${value.grade.gradeName} - ${value.section.sectionName}</td>
+                <td>${value.school.schoolName}</td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-sibling-row"><i class="bi bi-trash"></i></button></td>
+            </tr>`;
+        };
+
+        /* ── Renumber all rows after a removal ── */
+        const renumberSiblingRows = () => {
+            $('#siblingTable tbody tr').each(function(index) {
+                const td = $(this).find('td').first();
+                const hidden = td.find('input[type=hidden]');
+                td.text(index + 1);
+                td.append(hidden);
+            });
+        };
+
+        /* ── Remove row click handler (delegated) ── */
+        $('#siblingTable').on('click', '.remove-sibling-row', function() {
+            $(this).closest('tr').remove();
+            renumberSiblingRows();
+            if ($('#siblingTable tbody tr').length === 0) {
+                $('.group-data').hide();
+            }
+        });
+
         const loadStudentData=(id)=>{
             $(".search-result").hide();
             $("#search-input").val('');
             $('.group-data').hide();
             if(id>0){
-                console.log("id::::"+id);
                 let url = `${contextPath}getStudentDetailsForSibling/${id}`;
                 fetch(url).then(response => {
                     return response.json();
                 }).then((data) => {
-                    console.log(data);
-                    console.log(data.siblingList);
                     if('noSibling' in data){
                         showMsg("warning",data.noSibling,"Message");
-                        //toastr["warning"](data.noSibling,"Message");
                     } else{
+                        // FIX 2: clear table before loading new search result
+                        $('#siblingTable > tbody').empty();
                         $('.group-data').show();
                         let siblings = data.siblingList;
                         for (let i = 0; i < siblings.length; i++) {
-                            console.log("-----> "+siblings[i]);
-                            let value = siblings[i];
-                            $('#siblingTable > tbody').append('<tr><td>'+ (i+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
+                            $('#siblingTable > tbody').append(buildSiblingRow(i + 1, siblings[i]));
                         }
                     }
                 }).catch(error => {
@@ -220,86 +258,106 @@
             }
         }
 
-        const loadStudentData1=(id, stuName)=>{
+        // Stores the full lean-map of the student selected in search box 2
+        let _selectedSiblingStudent = null;
+
+        const loadStudentData1=(acStuId)=>{
             $(".search-result1").hide();
-            $("#search-input1").val('');
-            if(id>0){
-                console.log("id::::"+id);
-                $('#academic_student').val(""+id);
-                $("#search-input1").val(stuName);
-                /*let url = `${window.location.origin}/searchStudentIndividual/${id}`;
-                fetch(url).then(response => {
-                    return response.json();
-                }).then((data) => {
-                    console.log(data);
-                    console.log(data.siblingList);
-                    if('noSibling' in data){
-                        showMsg("warning",data.noSibling,"Message");
-                        //toastr["warning"](data.noSibling,"Message");
-                    } else{
-                        $('.group-data').show();
-                        let siblings = data.siblingList;
-                        for (let i = 0; i < siblings.length; i++) {
-                            console.log("-----> "+siblings[i]);
-                            let value = siblings[i];
-                            $('#siblingTable > tbody').append('<tr><td>'+ (i+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
-                        }
-                    }
-                }).catch(error => {
-                    console.error('Error:', error);
-                    showMsg("error", error, "Error");
-                });*/
+            if(acStuId > 0){
+                const cached = _sb2Cache[acStuId];
+                if(cached){
+                    _selectedSiblingStudent = cached;
+                    $('#academic_student').val("" + cached.id);
+                    $('#student_id_global').val("" + cached.student.id);
+                    $("#search-input1").val(cached.student.studentName);
+                } else{
+                    // Fallback if not in cache (shouldn't happen in normal flow)
+                    $('#academic_student').val("" + acStuId);
+                    $("#search-input1").val('');
+                }
             } else{
+                _selectedSiblingStudent = null;
                 $('.group-data').hide();
             }
         }
 
         const checkStudentData = () =>{
             let academic_student_id = $('#academic_student').val();
-            const stuName = $("#search-input1").val();
-            if(academic_student_id>0){
-                let url = `${contextPath}searchStudentIndividual/${academic_student_id}`;
-                fetch(url).then(response=>{
-                    return response.json();
-                }).then((data)=>{
-                    console.log(data);
+            let student_id = $('#student_id_global').val();
+            if(!academic_student_id || academic_student_id <= 0){
+                showMsg("warning","No student selected. Please search and select a student first.","Message");
+                return;
+            }
+            // Layer 1: duplicate check — reject if academicStudent.id already in the table
+            const alreadyAdded = $('#siblingTable tbody input[name="academicstudent"]')
+                .toArray().some(el => el.value === String(academic_student_id));
+            if(alreadyAdded){
+                showMsg("warning","This student is already added to the group.","Duplicate");
+                return;
+            }
+            // Layer 2: cross-school eligibility check — prevent duplicate sibling discount
+            if(student_id && student_id > 0){
+                fetch(`${contextPath}checkSiblingEligibility/${student_id}`)
+                    .then(r => r.json())
+                    .then(eligibility => {
+                        if(eligibility.blocked){
+                            showMsg("error",
+                                `Cannot add: Student is already in sibling group "<b>${eligibility.groupName}</b>" at ${eligibility.schoolName}. Sibling discount is centralised — one group per family across all branches.`,
+                                "Duplicate Discount Blocked");
+                            return;
+                        }
+                        // Eligible — build row from cached data (no extra API call needed)
+                        const value = _selectedSiblingStudent;
+                        if(!value){
+                            showMsg("warning","Student data not found. Please search and select again.","Error");
+                            return;
+                        }
+                        const rowCount = $('#siblingTable tbody tr').length;
+                        $('.group-data').show();
+                        $('#siblingTable > tbody').append(buildSiblingRow(rowCount + 1, value));
+                        $('#academic_student').val('');
+                        $('#student_id_global').val('');
+                        $("#search-input1").val('');
+                        _selectedSiblingStudent = null;
+                    }).catch(err => {
+                        showMsg("error", "Eligibility check failed. Please try again.", "Error");
+                        console.error(err);
+                    });
+            } else{
+                // student_id not available — fallback to old API fetch
+                let url = `${contextPath}searchStudentIndividualGlobal/${academic_student_id}`;
+                fetch(url).then(r => r.json()).then(data => {
                     if('noAcademicStudent' in data){
                         showMsg("warning", data.noAcademicStudent, "Error");
                     } else{
                         const value = data.academicStudent;
                         const rowCount = $('#siblingTable tbody tr').length;
                         $('.group-data').show();
-                        $('#siblingTable > tbody').append('<tr><td>'+ (rowCount+1) +'<input type="hidden" name="academicstudent" value="'+ value.id +'" /></td><td>'+ value.student.studentName+'</td><td>'+ value.student.fatherName +'</td><td>'+value.student.motherName+'</td><td>'+ value.grade.gradeName +' - '+ value.section.sectionName +'</td><td>'+ value.school.schoolName +'</td></tr>');
+                        $('#siblingTable > tbody').append(buildSiblingRow(rowCount + 1, value));
                         $('#academic_student').val('');
                         $("#search-input1").val('');
                     }
-                }).catch(err=>{
-                    showMsg("error", error, "Error");
-                });
-
-            } else{
-                showMsg("warning","No student found to add!","Message");
+                }).catch(err => { showMsg("error", err, "Error"); });
             }
         }
 
         const checkData = ()=>{
             const grpName = $('#groupname').val();
             if(grpName.trim()===''){
-                showMsg("error","No sibling group name found. Please add a group name.","Message");
+                showMsg("error","Please enter a group name.","Message");
                 return;
             }
             const rowCount = $('#siblingTable tbody tr').length;
-            console.log("Row Count': "+rowCount);
-            if(rowCount>2){
-                document.forms.siblinggroup.submit();
-                return true;
-            } else if(rowCount<3){
-                showMsg("info","Atleast 3 sibling must be available to avail this discount","Info");
-                return;
-            } else{
-                showMsg("warning","No student data found for sibling group!","Message");
+            // FIX 3: explicit 0-row check before the min-3 check
+            if(rowCount === 0){
+                showMsg("warning","No students added to the group yet.","Message");
                 return;
             }
+            if(rowCount < 3){
+                showMsg("info","At least 3 siblings are required to avail this discount.","Info");
+                return;
+            }
+            document.forms.siblinggroup.submit();
         }
 
     </script>

@@ -64,6 +64,7 @@ public class PendingBalanceService {
     public Map<String, Object> getStudentPendingBalanceData(Long academicStudentId,
                                                             School school,
                                                             AcademicYear academicYear) {
+        log.info("Inside getStudentPendingBalanceData");
         Map<String, Object> result = new HashMap<>();
         try {
             // Latest Active submission (already filtered by status='Active' in repo query)
@@ -130,6 +131,7 @@ public class PendingBalanceService {
     public Map<String, Object> savePendingBalance(Map<String, String[]> params,
                                                   School school,
                                                   AcademicYear academicYear) {
+        log.info("Inside savePendingBalance");
         Map<String, Object> result = new HashMap<>();
         try {
             Long       academicStudentId = Long.parseLong(params.get("academicStudentId")[0].trim());
@@ -221,6 +223,7 @@ public class PendingBalanceService {
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getPendingBalanceReceiptData(Long id) {
+        log.info("Inside getPendingBalanceReceiptData");
         Map<String, Object> model = new HashMap<>();
         try {
             Optional<FeeSubmission> opt = feeSubmissionRepository.findById(id);

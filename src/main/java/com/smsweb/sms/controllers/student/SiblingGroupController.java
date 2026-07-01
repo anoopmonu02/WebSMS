@@ -24,10 +24,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/sibling")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class SiblingGroupController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(SiblingGroupController.class);
+
     private SiblingGroupService siblingGroupService;
 
     @Autowired
@@ -38,6 +42,7 @@ public class SiblingGroupController extends BaseController {
     @CheckAccess(screen = "SIBLING_LIST", type = AccessType.VIEW)
     @GetMapping("/sibling-group")
     public String getSiblingGroupListForm(Model model){
+        log.info("Inside getSiblingGroupListForm");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
@@ -49,38 +54,41 @@ public class SiblingGroupController extends BaseController {
     @CheckAccess(screen = "SIBLING_ADD", type = AccessType.CREATE)
     @GetMapping("/sibling-group/add")
     public String getAddSiblingForm(Model model){
+        log.info("Inside getAddSiblingForm");
         return "student/add-siblinggroup";
     }
 
     @CheckAccess(screen = "SIBLING_ADD", type = AccessType.CREATE)
     @PostMapping("/savesiblinggroup")
     public String saveSiblingGroup(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
+        log.info("Inside saveSiblingGroup");
         try{
             Map paramMap = request.getParameterMap();
-            System.out.println("==== "+paramMap.keySet());
+            log.debug("saveSiblingGroup request params: {}", paramMap.keySet());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Map responseMap = siblingGroupService.save(paramMap, school, academicYear);
             if(responseMap.containsKey("STUDENT_EXIST")){
+                // Student already in another sibling group — block and show error on the add form
                 redirectAttributes.addFlashAttribute("error", responseMap.get("STUDENT_EXIST"));
-                return "student/add-siblinggroup";
+                return "redirect:/sibling/sibling-group/add";
             }
             if(responseMap.containsKey("error")){
                 redirectAttributes.addFlashAttribute("error", responseMap.get("error"));
-                return "student/add-siblinggroup";
+                return "redirect:/sibling/sibling-group/add";
             }
             if(responseMap.containsKey("NOT_SAVED")){
-                redirectAttributes.addFlashAttribute("error", "Error in saving");
-                return "student/add-siblinggroup";
+                redirectAttributes.addFlashAttribute("error", "Error in saving sibling group.");
+                return "redirect:/sibling/sibling-group/add";
             }
             if(responseMap.containsKey("siblingGroup")){
                 List<SiblingGroup> siblingGroupList = (List<SiblingGroup>) responseMap.get("siblingGroup");
                 if(siblingGroupList==null || siblingGroupList.isEmpty()){
-                    redirectAttributes.addFlashAttribute("error", "Error in sibling group creation");
-                    return "student/add-siblinggroup";
+                    redirectAttributes.addFlashAttribute("error", "Error in sibling group creation.");
+                    return "redirect:/sibling/sibling-group/add";
                 }
             }
-            redirectAttributes.addFlashAttribute("success", "Group saved successfully");
+            redirectAttributes.addFlashAttribute("success", "Group saved successfully.");
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -90,6 +98,7 @@ public class SiblingGroupController extends BaseController {
     @CheckAccess(screen = "SIBLING_VIEW", type = AccessType.VIEW)
     @GetMapping("/sibling-group/show/{id}")
     public String showgroupdetail(@PathVariable("id")Long id, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside showgroupdetail");
         SiblingGroup group = siblingGroupService.getSiblingGroupDetail(id).orElse(null);
         if(group!=null){
             model.addAttribute("siblinggroup", group);
@@ -103,6 +112,7 @@ public class SiblingGroupController extends BaseController {
     @CheckAccess(screen = "SIBLING_DELETE", type = AccessType.DELETE)
     @GetMapping("/sibling-group/delete/{id}")
     public String deletegroup(@PathVariable("id")String id, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside deletegroup");
         String msg = siblingGroupService.deleteSiblingGroup(Long.valueOf(id));
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success","Sibling-group deleted successfully.");

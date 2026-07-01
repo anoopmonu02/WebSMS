@@ -17,8 +17,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FeedateService {
+    private static final Logger log = LoggerFactory.getLogger(FeedateService.class);
+
     private final FeedateRepository feedateRepository;
     private final MonthMasterRepository monthMasterRepository;
     private final UserService userService;
@@ -31,14 +35,17 @@ public class FeedateService {
     }
 
     public List<FeeDate> getAllFeeDates(Long academicYear_id, Long school_id){
+        log.info("Inside getAllFeeDates");
         return feedateRepository.findAllByAcademicYear_IdAndSchool_IdOrderByIdDesc(academicYear_id, school_id);
     }
 
     public FeeDate getFeeDate(Long academicYear_id, Long school_id, Long month_id){
+        log.info("Inside getFeeDate");
         return feedateRepository.findByAcademicYear_IdAndSchool_IdAndMonthMaster_Id(academicYear_id, school_id, month_id).get();
     }
 
     public FeeDate save(FeeDate feeDate){
+        log.info("Inside save");
         try{
             feeDate.setCreatedBy(userService.getLoggedInUser());
             return feedateRepository.save(feeDate);
@@ -50,6 +57,7 @@ public class FeedateService {
     }
 
     public String delete(Long id){
+        log.info("Inside delete");
         try{
             feedateRepository.deleteById(id);
         }catch(Exception e){
@@ -59,6 +67,7 @@ public class FeedateService {
     }
 
     public List<FeeDate> getByGivenMonth(Long academicYear_id, Long school_id, int monthGiven){
+        log.info("Inside getByGivenMonth");
         return feedateRepository.findByAcademicYearAndSchoolAndGivenMonth(academicYear_id, school_id, monthGiven);
     }
 

@@ -58,6 +58,7 @@ public class MobileAuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(
             @Valid @RequestBody MobileLoginRequest request) {
+        log.info("Inside login");
 
         // 1. Find FamilyAccount by mobile
         FamilyAccount account = familyAccountService.findActive(request.getMobile())
@@ -95,7 +96,7 @@ public class MobileAuthController {
             AcademicStudent as = students.get(0);
             String token = buildJwt(as);
             MobileLoginResponse resp = buildLoginResponse(as, token, account.isMustChangePassword());
-            log.info("Mobile login (single): student={}", as.getStudent().getStudentName());
+            log.info("Mobile login (single): academicStudentId={}", as.getId());
             return ResponseEntity.ok(ApiResponse.success("Login successful", resp));
         }
 
@@ -121,6 +122,7 @@ public class MobileAuthController {
     @PostMapping("/select-child")
     public ResponseEntity<ApiResponse<MobileLoginResponse>> selectChild(
             @Valid @RequestBody SelectChildRequest request) {
+        log.info("Inside selectChild");
 
         // 1. Validate temp token → get mobile
         String mobile = parentSessionStore.validateAndConsume(request.getTempToken());
@@ -154,7 +156,7 @@ public class MobileAuthController {
         String token = buildJwt(chosen);
         MobileLoginResponse resp = buildLoginResponse(chosen, token, mustChange);
 
-        log.info("Child selected: student={}", chosen.getStudent().getStudentName());
+        log.info("Child selected: academicStudentId={}", chosen.getId());
         return ResponseEntity.ok(ApiResponse.success("Login successful", resp));
     }
 
@@ -165,6 +167,7 @@ public class MobileAuthController {
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @RequestHeader("X-Parent-Mobile") String mobile,
             @RequestBody Map<String, String> body) {
+        log.info("Inside changePassword");
 
         String currentPassword = body.get("currentPassword");
         String newPassword     = body.get("newPassword");
@@ -196,6 +199,7 @@ public class MobileAuthController {
     public ResponseEntity<ApiResponse<MobileLoginResponse>> switchChild(
             @RequestBody Map<String, Object> body,
             jakarta.servlet.http.HttpServletRequest request) {
+        log.info("Inside switchChild");
 
         Long currentAcademicStudentId = (Long) request.getAttribute("academicStudentId");
         if (currentAcademicStudentId == null) {
@@ -252,7 +256,7 @@ public class MobileAuthController {
         String token = buildJwt(chosen);
         MobileLoginResponse resp = buildLoginResponse(chosen, token, mustChange);
 
-        log.info("Child switched: from={} to={}", currentAcademicStudentId, chosen.getStudent().getStudentName());
+        log.info("Child switched: from={} to={}", currentAcademicStudentId, chosen.getId());
         return ResponseEntity.ok(ApiResponse.success("Switched successfully", resp));
     }
 
@@ -263,6 +267,7 @@ public class MobileAuthController {
     @GetMapping("/siblings")
     public ResponseEntity<ApiResponse<List<ChildSummaryDto>>> getSiblings(
             jakarta.servlet.http.HttpServletRequest request) {
+        log.info("Inside getSiblings");
 
         Long currentAcademicStudentId = (Long) request.getAttribute("academicStudentId");
         if (currentAcademicStudentId == null) {

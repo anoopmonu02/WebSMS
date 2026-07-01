@@ -11,8 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class SectionService {
+    private static final Logger log = LoggerFactory.getLogger(SectionService.class);
+
     private final SectionRepository sectionRepository;
 
     @Autowired
@@ -25,6 +29,7 @@ public class SectionService {
     }
 
     public Section saveSection(Section section) {
+        log.info("Inside saveSection");
         try{
             return sectionRepository.save(section);
         }catch(DataIntegrityViolationException de){
@@ -39,6 +44,7 @@ public class SectionService {
     }
 
     public void deleteSection(Long id) {
+        log.info("Inside deleteSection");
         sectionRepository.deleteById(id);
     }
 }

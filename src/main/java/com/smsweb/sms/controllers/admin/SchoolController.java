@@ -32,10 +32,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ROLE_SUPERADMIN')")
 public class SchoolController {
+    private static final Logger log = LoggerFactory.getLogger(SchoolController.class);
+
 
     private final SchoolService schoolService;
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -52,6 +56,7 @@ public class SchoolController {
     @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school")
     public String getSchools(Model model){
+        log.info("Inside getSchools");
         List<School> schools = schoolService.getAllSchools();
         model.addAttribute("schools",schools);
         model.addAttribute("hasSchoolData", !schools.isEmpty());
@@ -61,6 +66,7 @@ public class SchoolController {
     @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.CREATE)
     @GetMapping("/school/add")
     public String addSchoolForm(Model model){
+        log.info("Inside addSchoolForm");
         model.addAttribute("school", new School());
         model.addAttribute("provinces", schoolService.getAllProvinces());
         model.addAttribute("customer", schoolService.getAllCustomers());
@@ -71,6 +77,7 @@ public class SchoolController {
     @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
+        log.info("Inside getCities");
         return schoolService.getAllCitiesByProvince(provinceId);
     }
 
@@ -78,6 +85,7 @@ public class SchoolController {
     @PostMapping("/school")
     public String saveSchool(@Valid @ModelAttribute("school")School school, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                              Model model, RedirectAttributes redirectAttribute){
+        log.info("Inside saveSchool");
         //@RequestParam("customerPic1")MultipartFile customerPic1,
         if(result.hasErrors()){
             model.addAttribute("provinces", schoolService.getAllProvinces());
@@ -123,6 +131,7 @@ public class SchoolController {
     @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.EDIT)
     @GetMapping("/school/edit/{id}")
     public String getEditPage(@PathVariable("id") Long id, Model model){
+        log.info("Inside getEditPage");
         School school = schoolService.getSchoolById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid School Id:" + id));
         model.addAttribute("school", school);
@@ -135,7 +144,7 @@ public class SchoolController {
     @PostMapping("/school/{id}")
     public String updateSchool(@PathVariable("id") Long id, @Valid @ModelAttribute("school")School school, BindingResult result, @RequestParam("customerPic")MultipartFile customerPic,
                                Model model, RedirectAttributes redirectAttribute){
-        System.out.println("inside method");
+        log.info("Inside updateSchool");
         if(result.hasErrors()){
             //school.setId(id);
             model.addAttribute("provinces", schoolService.getAllProvinces());
@@ -180,6 +189,7 @@ public class SchoolController {
     @CheckAccess(screen = "ADMIN_SCHOOL", type = AccessType.VIEW)
     @GetMapping("/school/show/{id}")
     public String showSchoolForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside showSchoolForm");
         Optional<School> school = schoolService.getSchoolById(id);
         model.addAttribute("provinces", schoolService.getAllProvinces());
         model.addAttribute("customer", schoolService.getAllCustomers());

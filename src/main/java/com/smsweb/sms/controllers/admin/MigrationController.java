@@ -35,12 +35,14 @@ public class MigrationController {
 
     @GetMapping
     public String showPage(Model model) {
+        log.info("Inside showPage");
         model.addAttribute("page", "plain");
         return "admin/familyMigration";
     }
 
     @PostMapping("/scan")
     public String scan(Model model) {
+        log.info("Inside scan");
         try {
             List<FamilyGroupPreview> groups = familyAccountService.scanFamilyGroups();
             int totalGroups   = groups.size();
@@ -62,6 +64,7 @@ public class MigrationController {
 
     @PostMapping("/execute")
     public String execute(Model model) {
+        log.info("Inside execute");
         int created = 0, alreadyExisted = 0, errors = 0;
         List<String> errorList = new ArrayList<>();
         try {

@@ -64,6 +64,7 @@ public class EmployeeController extends BaseController {
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/employee-list")
     public String getEmployeeList(Model model){
+        log.info("Inside getEmployeeList");
         List<Employee> employees = null;
         School school = (School)model.getAttribute("school");
         if(isSuperAdminLoggedIn()){
@@ -81,6 +82,7 @@ public class EmployeeController extends BaseController {
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.CREATE)
     @GetMapping("/employee-add")
     public String getAddEmployeeForm(Model model) {
+        log.info("Inside getAddEmployeeForm");
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isSuperAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
@@ -157,6 +159,7 @@ public class EmployeeController extends BaseController {
     @PostMapping("/employee-save")
     public String saveEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
                                @RequestParam("customerPic") MultipartFile customerPic){
+        log.info("Inside saveEmployee");
         String returnStr = "/employee/add-employee";
         Employee existingEmployee = null;
 
@@ -215,6 +218,7 @@ public class EmployeeController extends BaseController {
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.EDIT)
     @GetMapping("/employee-edit/{uuid}")
     public String editEmployeeForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes) {
+        log.info("Inside editEmployeeForm");
         try {
             Optional<Employee> employeeOptional = employeeService.getEmployeeByUUID(uuid);
             if (employeeOptional.isEmpty()) {
@@ -230,9 +234,7 @@ public class EmployeeController extends BaseController {
             model.addAttribute("employee", employee);
             return "employee/edit-employee";
         } catch (Exception e) {
-            // Log the error for debugging purposes
-            System.err.println("Error fetching employee: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Error fetching employee", e);
             redirectAttributes.addFlashAttribute("error", "An error occurred while fetching the employee.");
             return "redirect:/employee/employee";
         }
@@ -242,6 +244,7 @@ public class EmployeeController extends BaseController {
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")
     public Resource getImage(@PathVariable("filename") String filename) {
+        log.info("Inside getImage");
         try {
             String imagePath = employeeImageDirectory + "/" + filename;
             Resource resource = new FileSystemResource(imagePath);
@@ -257,6 +260,7 @@ public class EmployeeController extends BaseController {
     @PostMapping("/employee-delete")
     public String deleteEmployee(@Valid @ModelAttribute("employee")Employee employee, BindingResult result, Model model, RedirectAttributes redirectAttributes,
                                  @RequestParam("customerPic") MultipartFile customerPic){
+        log.info("Inside deleteEmployee");
         return "redirect:/employee/employee";
     }
 

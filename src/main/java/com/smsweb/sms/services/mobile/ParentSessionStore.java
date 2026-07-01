@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Holds short-lived parent session tokens issued after mobile+password auth
  * when multiple children are found.
@@ -15,6 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ParentSessionStore {
+    private static final Logger log = LoggerFactory.getLogger(ParentSessionStore.class);
+
 
     private static final long TTL_MS = 10 * 60 * 1000L; // 10 minutes
 
@@ -24,6 +28,7 @@ public class ParentSessionStore {
 
     /** Creates a new temp token for the given mobile number. */
     public String createToken(String mobile) {
+        log.info("Inside createToken");
         evictExpired();
         String token = UUID.randomUUID().toString();
         store.put(token, new Entry(mobile, Instant.now().plusMillis(TTL_MS)));
@@ -36,6 +41,7 @@ public class ParentSessionStore {
      * The token is consumed (single-use) on successful validation.
      */
     public String validateAndConsume(String token) {
+        log.info("Inside validateAndConsume");
         evictExpired();
         Entry entry = store.remove(token);
         if (entry == null || Instant.now().isAfter(entry.expiry())) return null;

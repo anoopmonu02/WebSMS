@@ -14,10 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class GConfigurationController {
+    private static final Logger log = LoggerFactory.getLogger(GConfigurationController.class);
+
     private final GConfigurationService configurationService;
 
     @Autowired
@@ -28,6 +32,7 @@ public class GConfigurationController {
     @CheckAccess(screen = "ADMIN_REPORT_SETTINGS", type = AccessType.VIEW)
     @GetMapping("/select-columns")
     public String getColumns(Model model) {
+        log.info("Inside getColumns");
         // Use reflection utility to get field names and labels
         Map<String, String> fieldLabels = FieldUtils.getFieldLabels(Student.class);
 

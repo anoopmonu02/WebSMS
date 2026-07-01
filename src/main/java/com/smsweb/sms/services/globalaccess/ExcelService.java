@@ -19,8 +19,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class ExcelService {
+    private static final Logger log = LoggerFactory.getLogger(ExcelService.class);
+
     private final GradeService gradeService;
     private final MediumService mediumService;
     private final SectionService sectionService;
@@ -37,6 +41,7 @@ public class ExcelService {
 
 
     public Map<String, Object> downloadSampleSRExcel(Long grade, Long section, Long medium, Long academic, Long school, String fileType, String calledFrom) {
+        log.info("Inside downloadSampleSRExcel");
         Map<String, Object> responseMap = new HashMap<>();
         try {
             Grade gradeObj = gradeService.getGradeById(grade).orElse(null);
@@ -94,6 +99,7 @@ public class ExcelService {
     }
 
     public Map<String, Map<String, List<String[]>>> checkAndValidateSRData(MultipartFile excelFile){
+        log.info("Inside checkAndValidateSRData");
         String msg = "";
         Map<String, Map<String, List<String[]>>> validatedData = new HashMap<>();
         Map<String, List<String[]>> childData = new HashMap<>();
@@ -120,7 +126,7 @@ public class ExcelService {
             }
             childData.put("DATA", excelData);
             validatedData.put("success", childData);
-            System.out.println("excelData "+excelData.size());
+            log.debug("excelData size={}", excelData.size());
             return validatedData;
 
         }catch(Exception e){
@@ -132,6 +138,7 @@ public class ExcelService {
     }
 
     public List<String[]> readSRExcelDataAndValidate(List<String[]> excelData, String fileName){
+        log.info("Inside readSRExcelDataAndValidate");
         List<String[]> validatedData = new ArrayList<>();
         try{
             for(String[] rowData : excelData){
@@ -151,10 +158,6 @@ public class ExcelService {
                     if(rowData[7]!=null && rowData[7].trim()!=""){
                         rowData[7] = parseAndFormatDate(rowData[7]);
                     }
-                    System.out.println("Row Data[7] "+ rowData[7]);
-                    System.out.println("Row Data[7] "+ rowData[8]);
-                    System.out.println("Row Data[7] "+ rowData[9]);
-                    System.out.println("Row Data[7] "+ rowData[10]);
                     if (hasMissing) {
                         rowData[14] = "error#####Failed: Mandatory fields for exam result are missing.";
                     } else {
@@ -184,6 +187,7 @@ public class ExcelService {
     }
 
     public Map<String, Object> downloadSampleAadharExcel(Long grade, Long section, Long medium, Long academic, Long school, String fileType) {
+        log.info("Inside downloadSampleAadharExcel");
         Map<String, Object> responseMap = new HashMap<>();
         try {
             Grade gradeObj = gradeService.getGradeById(grade).orElse(null);
@@ -236,6 +240,7 @@ public class ExcelService {
     }
 
     public Map<String, Map<String, List<String[]>>> checkAndValidateAadharData(MultipartFile excelFile){
+        log.info("Inside checkAndValidateAadharData");
         String msg = "";
         Map<String, Map<String, List<String[]>>> validatedData = new HashMap<>();
         Map<String, List<String[]>> childData = new HashMap<>();
@@ -262,7 +267,7 @@ public class ExcelService {
             }
             childData.put("DATA", excelData);
             validatedData.put("success", childData);
-            System.out.println("excelData "+excelData.size());
+            log.debug("excelData size={}", excelData.size());
             return validatedData;
 
         }catch(Exception e){
@@ -288,6 +293,7 @@ public class ExcelService {
     ));
 
     public String parseAndFormatDate(String inputDate) {
+        log.info("Inside parseAndFormatDate");
         for (String format : possibleDateFormats) {
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.ENGLISH);
@@ -305,6 +311,7 @@ public class ExcelService {
     }
 
     public Map<String, Map<String, List<String[]>>> checkAndValidateExamResultData(MultipartFile excelFile){
+        log.info("Inside checkAndValidateExamResultData");
         String msg = "";
         Map<String, Map<String, List<String[]>>> validatedData = new HashMap<>();
         Map<String, List<String[]>> childData = new HashMap<>();
@@ -331,7 +338,7 @@ public class ExcelService {
             }
             childData.put("DATA", excelData);
             validatedData.put("success", childData);
-            System.out.println("excelData "+excelData.size());
+            log.debug("excelData size={}", excelData.size());
             return validatedData;
 
         }catch(Exception e){

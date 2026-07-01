@@ -12,8 +12,12 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class HolidayService {
+    private static final Logger log = LoggerFactory.getLogger(HolidayService.class);
+
 
     private final HolidayRepository holidayRepository;
 
@@ -24,15 +28,18 @@ public class HolidayService {
     }
 
     public List<Holiday> getAllHoliday(Long academic_year, Long school_id){
+        log.info("Inside getAllHoliday");
         return holidayRepository.findAllByAcademicYear_IdAndSchool_IdOrderByIdAsc(academic_year, school_id);
     }
 
     public List<Holiday> getAllHolidayStartsFromToday(Long academic_year, Long school_id){
+        log.info("Inside getAllHolidayStartsFromToday");
         Date today = new Date();
         return holidayRepository.findAllByAcademicYear_IdAndSchool_IdAndHolidayStartDateAfterOrderByIdAsc(academic_year, school_id, today);
     }
 
     public Holiday save(Holiday holiday){
+        log.info("Inside save");
         try{
             return holidayRepository.save(holiday);
         }catch(DataIntegrityViolationException de){
@@ -43,6 +50,7 @@ public class HolidayService {
     }
 
     public String delete(Long id){
+        log.info("Inside delete");
         try{
             holidayRepository.deleteById(id);
         }catch(Exception e){

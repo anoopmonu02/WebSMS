@@ -22,8 +22,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class SiblingDiscountService {
+    private static final Logger log = LoggerFactory.getLogger(SiblingDiscountService.class);
+
     private SiblingDiscountRepository siblingDiscountRepository;
     private final AcademicyearRepository academicyearRepository;
     private final SchoolRepository schoolRepository;
@@ -47,6 +51,7 @@ public class SiblingDiscountService {
 
     @Transactional
     public Map save(Map<String, String[]> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside save");
         Map<String, String> resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()){
@@ -55,10 +60,7 @@ public class SiblingDiscountService {
                 for (Map.Entry<String, String[]> entry : paramsMap.entrySet()) {
                     String key = entry.getKey();
                     String[] values = entry.getValue();
-                    System.out.println("Key: " + key);
-                    System.out.println("Values:"+values);
                     for (String value : values) {
-                        System.out.println(" - " + value);
                         if(key.equalsIgnoreCase("grp") && value!=null && value!=""){
                             groupId = Long.parseLong(value);
                         } else if(key.equalsIgnoreCase("assignedstu") && value!=null && value!=""){

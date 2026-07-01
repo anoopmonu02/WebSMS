@@ -31,8 +31,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class SchoolService {
+    private static final Logger log = LoggerFactory.getLogger(SchoolService.class);
+
     private final SchoolRepository schoolRepository;
     private final ProvinceRepository provinceRepository;
     private final CityRepository cityRepository;
@@ -63,6 +67,7 @@ public class SchoolService {
 
     @Transactional
     public School saveSchool(School school, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+        log.info("Inside saveSchool");
         School existingSchool=null;
         try{
             if(school.getId()!=null){
@@ -122,6 +127,7 @@ public class SchoolService {
 
     @Transactional
     public School saveSchoolData(School school, String fileNameOrSchoolCode, School existingSchool){
+        log.info("Inside saveSchoolData");
         try{
             school.setSchoolCode("SC-"+fileNameOrSchoolCode);
             if(existingSchool!=null && existingSchool.getSchoolCode().length()>0){
@@ -143,6 +149,7 @@ public class SchoolService {
     }
 
     public void deleteSchool(Long id){
+        log.info("Inside deleteSchool");
         schoolRepository.deleteById(id);
     }
 

@@ -11,8 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class BankService {
+    private static final Logger log = LoggerFactory.getLogger(BankService.class);
+
     private final BankRepository bankRepository;
 
     @Autowired
@@ -25,6 +29,7 @@ public class BankService {
     }
 
     public Bank saveBank(Bank bank) {
+        log.info("Inside saveBank");
         try{
             return bankRepository.save(bank);
         }catch(DataIntegrityViolationException de){
@@ -39,6 +44,7 @@ public class BankService {
     }
 
     public void deleteBank(Long id) {
+        log.info("Inside deleteBank");
         bankRepository.deleteById(id);
     }
 }

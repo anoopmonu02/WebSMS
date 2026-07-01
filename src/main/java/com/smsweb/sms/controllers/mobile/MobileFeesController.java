@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Fee endpoints for the student mobile app.
  *
@@ -26,6 +28,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/v1/fees")
 public class MobileFeesController {
+    private static final Logger log = LoggerFactory.getLogger(MobileFeesController.class);
+
 
     private final FeeSubmissionService feeSubmissionService;
 
@@ -38,6 +42,7 @@ public class MobileFeesController {
     @GetMapping("/submissions")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissions(
             HttpServletRequest request) {
+        log.info("Inside getSubmissions");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
         Long academicYearId    = (Long) request.getAttribute("academicYearId");
@@ -60,6 +65,7 @@ public class MobileFeesController {
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSummary(
             HttpServletRequest request) {
+        log.info("Inside getSummary");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
         Long academicYearId    = (Long) request.getAttribute("academicYearId");
@@ -97,6 +103,7 @@ public class MobileFeesController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getReceipt(
             @PathVariable Long id,
             HttpServletRequest request) {
+        log.info("Inside getReceipt");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 

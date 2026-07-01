@@ -13,8 +13,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FullpaymentService {
+    private static final Logger log = LoggerFactory.getLogger(FullpaymentService.class);
+
     private final FullpaymentRepository fullpaymentRepository;
 
     @Autowired
@@ -23,6 +27,7 @@ public class FullpaymentService {
     }
 
     public List<FullPayment> getAllFullPayments(Long school_id, Long academic_id){
+        log.info("Inside getAllFullPayments");
         return fullpaymentRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
     }
 
@@ -31,6 +36,7 @@ public class FullpaymentService {
     }
 
     public FullPayment save(FullPayment fullPayment){
+        log.info("Inside save");
         try{
             return fullpaymentRepository.save(fullPayment);
         }catch(DataIntegrityViolationException de){
@@ -41,6 +47,7 @@ public class FullpaymentService {
     }
 
     public String deleteFullPayment(Long id){
+        log.info("Inside deleteFullPayment");
         try{
             fullpaymentRepository.deleteById(id);
             return "success";

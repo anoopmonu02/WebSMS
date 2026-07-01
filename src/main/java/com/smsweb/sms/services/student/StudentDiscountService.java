@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class StudentDiscountService {
+    private static final Logger log = LoggerFactory.getLogger(StudentDiscountService.class);
+
     private final StudentDiscountRepository studentDiscountRepository;
 
     @Autowired
@@ -20,14 +24,17 @@ public class StudentDiscountService {
     }
 
     public List<StudentDiscount> getAllStudentDiscounts(Long school_id, Long academic_id){
+        log.info("Inside getAllStudentDiscounts");
         return studentDiscountRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_id, "Active");
     }
 
     public Optional<StudentDiscount> getStudentDiscountForStudent(Long school_id, Long academic_id, Long stuId){
+        log.info("Inside getStudentDiscountForStudent");
         return studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school_id, academic_id, stuId);
     }
 
     public StudentDiscount save(StudentDiscount studentDiscount){
+        log.info("Inside save");
         try{
             studentDiscountRepository.save(studentDiscount);
             return studentDiscount;
@@ -39,6 +46,7 @@ public class StudentDiscountService {
     }
 
     public String deleteStudentDiscount(Long id){
+        log.info("Inside deleteStudentDiscount");
         try{
             studentDiscountRepository.deleteById(id);
             return "success";
@@ -48,6 +56,7 @@ public class StudentDiscountService {
     }
 
     public String deactivateStudentDiscount(Long id){
+        log.info("Inside deactivateStudentDiscount");
         try{
             StudentDiscount studentDiscount = studentDiscountRepository.findById(id).orElse(null);
             if(studentDiscount!=null){
@@ -63,6 +72,7 @@ public class StudentDiscountService {
     }
 
     public List<Map<String, String>> getAllStudentDiscountsBySession(Long school_id, Long academic_id){
+        log.info("Inside getAllStudentDiscountsBySession");
         List<StudentDiscount> stuList = studentDiscountRepository.findAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_id, "Active");
         List<Map<String, String>> stuDiscList = new ArrayList<>();
         //Form map which data should show

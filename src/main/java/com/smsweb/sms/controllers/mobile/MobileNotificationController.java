@@ -12,6 +12,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Notice / Notification endpoints for the student mobile app.
  *
@@ -24,6 +26,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/notifications")
 public class MobileNotificationController {
+    private static final Logger log = LoggerFactory.getLogger(MobileNotificationController.class);
+
 
     private final SmsMessageService smsMessageService;
 
@@ -49,6 +53,7 @@ public class MobileNotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getNotifications(
             HttpServletRequest request) {
+        log.info("Inside getNotifications");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 
@@ -69,6 +74,7 @@ public class MobileNotificationController {
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUnreadCount(
             HttpServletRequest request) {
+        log.info("Inside getUnreadCount");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 

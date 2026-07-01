@@ -10,8 +10,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class DropdownService {
+    private static final Logger log = LoggerFactory.getLogger(DropdownService.class);
+
 
     private final CategoryService categoryService;
     private final CastService castService;
@@ -39,6 +43,7 @@ public class DropdownService {
 
 
     public Map<String, String> getRelationships() {
+        log.info("Inside getRelationships");
         Map<String, String> relationships = new LinkedHashMap<>();
         relationships.put("Parent", "PARENT");
         relationships.put("Sibling", "SIBLING");

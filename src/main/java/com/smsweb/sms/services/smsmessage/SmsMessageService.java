@@ -20,8 +20,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class SmsMessageService {
+    private static final Logger log = LoggerFactory.getLogger(SmsMessageService.class);
+
 
     @Autowired
     private SmsMessageRepository smsMessageRepository;
@@ -40,18 +44,22 @@ public class SmsMessageService {
     }
 
     public Optional<SmsMessage> findById(Long id) {
+        log.info("Inside findById");
         return smsMessageRepository.findById(id);
     }
 
     public List<SmsConversation> findSmsConversationBySmsMessageId(Long messageId) {
+        log.info("Inside findSmsConversationBySmsMessageId");
         return smsMessageRepository.findSmsConversationBySmsMessageId(messageId);
     }
 
     public SmsConversation saveSmsConversation(SmsConversation conversation) {
+        log.info("Inside saveSmsConversation");
         return smsConversationRepository.save(conversation);
     }
 
     public Optional<SmsMessage> resolveSmsMessage(Long id, UserEntity updatedBy) {
+        log.info("Inside resolveSmsMessage");
         int updated = smsMessageRepository.resolveSmsMessage(id, updatedBy, new Date());
         if (updated > 0) {
             return smsMessageRepository.findById(id);
@@ -61,6 +69,7 @@ public class SmsMessageService {
     }
 
     public SmsMessage saveSmsMessage(SmsMessage smsMessage) {
+        log.info("Inside saveSmsMessage");
         if (smsMessage.getConversations() != null) {
             smsMessage.getConversations().forEach(convo -> convo.setSmsMessage(smsMessage));
         }
@@ -68,10 +77,12 @@ public class SmsMessageService {
     }
 
     public void saveConversation(SmsConversation conversation) {
+        log.info("Inside saveConversation");
         smsConversationRepository.save(conversation);
     }
 
     public void saveAllConversations(List<SmsConversation> conversations) {
+        log.info("Inside saveAllConversations");
         smsConversationRepository.saveAll(conversations); // efficient batch save
     }
     public List<SmsMessage> getNotificationsByStudentId(Long studentId) {
@@ -88,6 +99,7 @@ public class SmsMessageService {
 
 
     public List<SmsNotificationDto> getNotificationDtosByStudentId(Long studentId) {
+        log.info("Inside getNotificationDtosByStudentId");
         List<SmsMessage> messages = smsMessageRepository.findByRecipientId(studentId);
         List<SmsNotificationDto> dtos = new ArrayList<>();
 

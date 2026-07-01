@@ -12,6 +12,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Exam result endpoints for the student mobile app.
  *
@@ -22,6 +24,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/results")
 public class MobileResultsController {
+    private static final Logger log = LoggerFactory.getLogger(MobileResultsController.class);
+
 
     private final StudentService studentService;
 
@@ -51,6 +55,7 @@ public class MobileResultsController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getResults(
             HttpServletRequest request) {
+        log.info("Inside getResults");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
         Long schoolId          = (Long) request.getAttribute("schoolId");

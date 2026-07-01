@@ -21,8 +21,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class EmployeeService {
+    private static final Logger log = LoggerFactory.getLogger(EmployeeService.class);
+
 
     private final FileHandleHelper fileHandleHelper;
     private final EmployeeRepository employeeRepository;
@@ -42,6 +46,7 @@ public class EmployeeService {
 
     @Transactional
     public Employee saveEmployee(Employee employee, MultipartFile logo, String fileNameOrSchoolCode, Employee existingEmployee) throws IOException {
+        log.info("Inside saveEmployee");
         String imageResponse = fileHandleHelper.saveImage("employee", logo);
         boolean proceedFlag = false;
 
@@ -125,6 +130,7 @@ public class EmployeeService {
 
 
     public UserEntity generateUsernameAndPassword(Employee employee, UserEntity userEntity) {
+        log.info("Inside generateUsernameAndPassword");
         // Generate Username
 
         userEntity.setUsername(employee.getEmployeeCode());
@@ -136,6 +142,7 @@ public class EmployeeService {
     }
 
     public static String generatePassword(String employeeCode, String mobileNumber) {
+        log.info("Inside generatePassword");
         String lastSixDigitsOfEmployeeCode = employeeCode.length() >= 6
                 ? employeeCode.substring(employeeCode.length() - 6)
                 : employeeCode;
@@ -152,6 +159,7 @@ public class EmployeeService {
     }
 
     public List<String> getExistingRoleNames(Long employeeId) {
+        log.info("Inside getExistingRoleNames");
         Employee employee = employeeRepository.findById(employeeId).orElse(null);
         if (employee == null) return new ArrayList<>();
         List<String> roleNames = new ArrayList<>();
@@ -174,6 +182,7 @@ public class EmployeeService {
     }
 
     public boolean saveRoleUserMapping(Long userId, Long roleId){
+        log.info("Inside saveRoleUserMapping");
         try{
             Employee employee = employeeRepository.findById(userId).orElse(null);
             Roles roles = roleRepository.findById(roleId).orElse(null);
@@ -194,6 +203,7 @@ public class EmployeeService {
     }
 
     public School getLoggedInEmployeeSchool(){
+        log.info("Inside getLoggedInEmployeeSchool");
         Employee employee = employeeRepository.findByUserEntity(userService.getLoggedInUser());
         return  employee.getSchool();
     }
@@ -203,6 +213,7 @@ public class EmployeeService {
     }
 
     public List<String[]> getComingBirthDays(Long school, Long academic){
+        log.info("Inside getComingBirthDays");
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
@@ -212,7 +223,6 @@ public class EmployeeService {
                     LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     String formattedDob = dob.format(formatter);
                     String studentName = (String) dd[1];
-                    System.out.println("DOB: "+dd[0]+" Name: "+dd[1]);
                     String[] dobList = new String[4];
                     dobList[0] = formattedDob;
                     dobList[1] = studentName + " (" + dd[2] + ")";

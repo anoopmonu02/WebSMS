@@ -19,8 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class CustomerService {
+    private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
+
     private final CustomerRepository customerRepository;
     private final ProvinceRepository provinceRepository;
     private final CityRepository cityRepository;
@@ -45,10 +49,12 @@ public class CustomerService {
 
     @Transactional
     public void saveCustomer(Customer customer){
+        log.info("Inside saveCustomer");
         customerRepository.save(customer);
     }
 
     public void deleteCustomer(Long id){
+        log.info("Inside deleteCustomer");
         customerRepository.deleteById(id);
     }
 
@@ -70,6 +76,7 @@ public class CustomerService {
 
 
     public UserEntity getLoggedInUser() {
+        log.info("Inside getLoggedInUser");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();

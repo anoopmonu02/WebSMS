@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Manages FamilyAccount records — one per unique parent mobile number.
  *
@@ -32,6 +34,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class FamilyAccountService {
+    private static final Logger log = LoggerFactory.getLogger(FamilyAccountService.class);
+
 
     private final FamilyAccountRepository  repo;
     private final StudentRepository        studentRepository;
@@ -51,16 +55,19 @@ public class FamilyAccountService {
     // ── Lookup ────────────────────────────────────────────────────────────────
 
     public Optional<FamilyAccount> findActive(String mobile) {
+        log.info("Inside findActive");
         return repo.findByMobileAndStatus(mobile, "ACTIVE");
     }
 
     public Optional<FamilyAccount> findByMobile(String mobile) {
+        log.info("Inside findByMobile");
         return repo.findByMobile(mobile);
     }
 
     // ── Password verification ─────────────────────────────────────────────────
 
     public boolean verifyPassword(FamilyAccount account, String rawPassword) {
+        log.info("Inside verifyPassword");
         return encoder.matches(rawPassword, account.getPasswordHash());
     }
 
@@ -75,6 +82,7 @@ public class FamilyAccountService {
      */
     @Transactional
     public FamilyAccount createIfAbsent(String mobile) {
+        log.info("Inside createIfAbsent");
         // 1. Find or create the FamilyAccount
         FamilyAccount account = repo.findByMobile(mobile).orElseGet(() -> {
             String last4 = mobile.length() >= 4
@@ -113,6 +121,7 @@ public class FamilyAccountService {
      * A student with both mobile1 and mobile2 can appear in two groups.
      */
     public List<FamilyGroupPreview> scanFamilyGroups() {
+        log.info("Inside scanFamilyGroups");
         List<Student> allStudents = studentRepository.findAllActiveWithMobile();
 
         // Build map: mobile → list of (student, matchedVia)
@@ -190,6 +199,7 @@ public class FamilyAccountService {
     public String changePassword(FamilyAccount account,
                                   String currentPassword,
                                   String newPassword) {
+        log.info("Inside changePassword");
         if (!encoder.matches(currentPassword, account.getPasswordHash())) {
             return "Current password is incorrect.";
         }
@@ -208,6 +218,7 @@ public class FamilyAccountService {
      */
     @Transactional
     public void adminResetPassword(FamilyAccount account, String newRawPassword) {
+        log.info("Inside adminResetPassword");
         account.setPasswordHash(encoder.encode(newRawPassword));
         account.setMustChangePassword(true);
         repo.save(account);

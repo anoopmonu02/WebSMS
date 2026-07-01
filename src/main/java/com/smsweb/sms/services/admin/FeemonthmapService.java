@@ -11,8 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FeemonthmapService {
+    private static final Logger log = LoggerFactory.getLogger(FeemonthmapService.class);
+
     private final FeemonthmapRepository feemonthmapRepository;
 
     @Autowired
@@ -21,11 +25,13 @@ public class FeemonthmapService {
     }
 
     public List<FeeMonthMap> getAllFeeMonthMap(Long school_id, Long academic_id){
+        log.info("Inside getAllFeeMonthMap");
         Sort sort = Sort.by(Sort.Order.asc("feehead"), Sort.Order.asc("monthMaster"));
         return feemonthmapRepository.findAllBySchool_IdAndAcademicYear_IdOrderByFeeheadAscMonthMasterAsc(school_id, academic_id, sort);
     }
 
     public List<FeeMonthMap> getAllFeeMonthMapByFee(Long school_id, Long academic_id, Long fee_id){
+        log.info("Inside getAllFeeMonthMapByFee");
         return feemonthmapRepository.findAllBySchool_IdAndAcademicYear_IdAndFeehead_Id(school_id, academic_id, fee_id);
     }
 
@@ -34,14 +40,17 @@ public class FeemonthmapService {
     }
 
     public List<FeeMonthMap> saveAllFeeMonths(List<FeeMonthMap> feeMonthMaps){
+        log.info("Inside saveAllFeeMonths");
         return feemonthmapRepository.saveAll(feeMonthMaps);
     }
 
     public FeeMonthMap saveFeeMonth(FeeMonthMap feeMonthMap){
+        log.info("Inside saveFeeMonth");
         return feemonthmapRepository.save(feeMonthMap);
     }
 
     public String delete(Long id){
+        log.info("Inside delete");
         try{
             feemonthmapRepository.deleteById(id);
         }catch(Exception e){

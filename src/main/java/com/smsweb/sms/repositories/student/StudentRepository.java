@@ -77,4 +77,14 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     /** Total active count across all schools (superadmin, used as recordsTotal). */
     @Query("SELECT COUNT(s) FROM Student s WHERE s.status = 'ACTIVE'")
     long countAllActive();
+
+    /**
+     * Global name search across ALL schools — used for sibling group "Add Manually" section.
+     * Matches student name, father name, or mother name. No school or academic year filter.
+     */
+    @Query("SELECT s FROM Student s WHERE UPPER(s.status) = 'ACTIVE' AND " +
+           "(LOWER(s.studentName) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+           "LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+           "LOWER(s.motherName) LIKE LOWER(CONCAT('%',:name,'%')))")
+    Page<Student> findAllActiveByName(@Param("name") String name, Pageable pageable);
 }

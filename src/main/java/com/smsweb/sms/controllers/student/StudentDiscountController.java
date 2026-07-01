@@ -29,10 +29,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/student")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class StudentDiscountController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(StudentDiscountController.class);
+
 
     private final StudentDiscountService studentDiscountService;
     private final DiscountService discountService;
@@ -55,6 +59,7 @@ public class StudentDiscountController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)
     @GetMapping("/stu-discount-list")
     public String discountpage(Model model){
+        log.info("Inside discountpage");
         School school = getSchool(model);
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<StudentDiscount> studentDiscountList = studentDiscountService.getAllStudentDiscounts(school.getId(), academicYear.getId());
@@ -67,6 +72,7 @@ public class StudentDiscountController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @GetMapping("/assign-discount/add")
     public String addDiscountPage(Model model){
+        log.info("Inside addDiscountPage");
         List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
         model.addAttribute("discounts",discountheads);
         model.addAttribute("studentDiscount",new StudentDiscount());
@@ -76,13 +82,14 @@ public class StudentDiscountController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @PostMapping("/assign-discount")
     public String saveStudentDiscount(@Valid @ModelAttribute("studentDiscount")StudentDiscount studentDiscount, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside saveStudentDiscount");
         if(result.hasErrors()){
             List<Discounthead> discountheads = discountService.getAllDiscountheadsExcludeSibling();
             model.addAttribute("discounts",discountheads);
             return "student/discountassign";
         }
         try{
-            System.out.println("studentDiscount: "+studentDiscount);
+            log.debug("studentDiscount received: id={}", studentDiscount.getId());
             School school = getSchool(model);
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             AcademicStudent student = academicStudentService.searchStudentById(studentDiscount.getAcademicStudent().getId(), academicYear.getId(), school.getId());
@@ -100,7 +107,6 @@ public class StudentDiscountController extends BaseController {
                 }
             }
             studentDiscount.setStatus("Active");
-            System.out.println("studentDiscount 1: "+studentDiscount);
             studentDiscountService.save(studentDiscount);
             ra.addFlashAttribute("success", returnMsg);
         }catch(UniqueConstraintsException de){
@@ -125,6 +131,7 @@ public class StudentDiscountController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_DELETE", type = AccessType.DELETE)
     @GetMapping("/assign-discount/delete/{id}")
     public String deleteDiscount(@PathVariable("id")Long id, RedirectAttributes model){
+        log.info("Inside deleteDiscount");
         try{
             String msg = studentDiscountService.deactivateStudentDiscount(id);//deleteStudentDiscount(id);
             if(msg.equalsIgnoreCase("success")){
@@ -141,6 +148,7 @@ public class StudentDiscountController extends BaseController {
     @CheckAccess(screen = "STUDENT_DISCOUNT_REPORT", type = AccessType.VIEW)
     @GetMapping("/stu-discount-list-session-wise")
     public String discountsessionpage(Model model){
+        log.info("Inside discountsessionpage");
         School school = getSchool(model);
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
         model.addAttribute("academicYears", academicYears);

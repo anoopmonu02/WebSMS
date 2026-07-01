@@ -48,6 +48,7 @@ public class DownloadDocsController {
 
     @GetMapping
     public String listDocs(Model model) {
+        log.info("Inside listDocs");
         List<Map<String, Object>> files = new ArrayList<>();
         File folder = new File(downloadDocsPath);
 
@@ -76,6 +77,7 @@ public class DownloadDocsController {
 
     @GetMapping("/file/{filename:.+}")
     public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
+        log.info("Inside downloadFile");
         // Security: only allow PDF, no path traversal
         if (!filename.toLowerCase().endsWith(".pdf") || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             return ResponseEntity.badRequest().build();

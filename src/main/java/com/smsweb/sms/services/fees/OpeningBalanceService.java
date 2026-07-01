@@ -35,6 +35,7 @@ public class OpeningBalanceService {
      *  3. Neither found or multiple ambiguous → SR_NOT_FOUND
      */
     public List<OpeningBalanceRowDto> preview(MultipartFile file, Long schoolId, Long academicYearId) {
+        log.info("Inside preview");
         List<OpeningBalanceRowDto> rows = new ArrayList<>();
         try {
             List<String[]> rawData = excelFileHandler.excelOpeningBalanceDataToList(file.getInputStream());
@@ -110,6 +111,7 @@ public class OpeningBalanceService {
      */
     @Transactional
     public int[] save(List<Long> academicStudentIds, List<String> amounts, List<String> remarks) {
+        log.info("Inside save");
         int saved = 0, skipped = 0, errors = 0;
         for (int i = 0; i < academicStudentIds.size(); i++) {
             Long asId = academicStudentIds.get(i);

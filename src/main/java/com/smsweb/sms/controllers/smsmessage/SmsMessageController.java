@@ -31,10 +31,14 @@ import org.springframework.web.bind.annotation.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/message")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class SmsMessageController {
+    private static final Logger log = LoggerFactory.getLogger(SmsMessageController.class);
+
 
     //@Autowired
     //private SmsMessageService messageService;
@@ -70,12 +74,14 @@ public class SmsMessageController {
             @RequestParam Long recipientId,
             @RequestParam String content
     ) {
+        log.info("Inside sendMessage");
         //messageService.sendMessage(senderId, recipientId, content);
         return ResponseEntity.ok("Message sent successfully!");
     }
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.VIEW)
     @GetMapping("/sendMessage")
     public String sendMessage(Model model){
+        log.info("Inside sendMessage");
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
         model.addAttribute("page", "datatable");
@@ -93,6 +99,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getSmsMessagesByStudent/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getSmsMessagesByStudent(@PathVariable Long studentId) {
+        log.info("Inside getSmsMessagesByStudent");
         List<SmsMessage> messages = smsMessageService.getMessagesByStudentId(studentId);
         List<Map<String, Object>> leanList = new ArrayList<>();
         for (SmsMessage msg : messages) {
@@ -111,6 +118,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getSmsConversationsByMessage/{messageId}")
     public ResponseEntity<Map<String, Object>> getSmsConversationsByMessage(@PathVariable Long messageId) {
+        log.info("Inside getSmsConversationsByMessage");
         Optional<SmsMessage> smsMessageOpt = smsMessageService.findById(messageId);
         if (smsMessageOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -159,6 +167,7 @@ public class SmsMessageController {
     @PostMapping("/sendSmsConversation")
     public ResponseEntity<Map<String, Object>> sendSmsConversation(
             @RequestBody Map<String, Object> payload) {
+        log.info("Inside sendSmsConversation");
 
         // Extract values from the payload
         Long messageId = Long.valueOf(payload.get("messageId").toString());
@@ -201,6 +210,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/sendNewMessage")
     public ResponseEntity<Map<String, Object>> sendNewMessage(@RequestBody Map<String, Object> payload) {
+        log.info("Inside sendNewMessage");
         Map<String, Object> response = new HashMap<>();
 
         try {
@@ -260,6 +270,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.EDIT)
     @PostMapping("/resolveSmsMessage/{id}")
     public ResponseEntity<Map<String, Object>> resolveSmsMessage(@PathVariable Long id) {
+        log.info("Inside resolveSmsMessage");
         Optional<SmsMessage> smsMessageOpt = smsMessageService.resolveSmsMessage(id, userService.getLoggedInUser());
 
         if (smsMessageOpt.isPresent()) {
@@ -275,6 +286,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/sendNewNotification")
     public ResponseEntity<?> sendNotification(@RequestBody Map<String, Object> payload) {
+        log.info("Inside sendNotification");
         try {
             // Extract required fields
             String heading = (String) payload.get("heading");
@@ -367,6 +379,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getActivitiesByStudent/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getActivitiesByStudent(@PathVariable Long studentId) {
+        log.info("Inside getActivitiesByStudent");
         List<SmsMessage> activities = smsMessageService.getActivitiesByStudentId(studentId);
         List<Map<String, Object>> leanList = new ArrayList<>();
         for (SmsMessage msg : activities) {
@@ -389,6 +402,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/saveActivity")
     public ResponseEntity<Map<String, Object>> saveActivity(@RequestBody Map<String, Object> payload) {
+        log.info("Inside saveActivity");
         Map<String, Object> response = new HashMap<>();
         try {
             String title = (String) payload.get("title");
@@ -445,6 +459,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/viewNotification")
     public String viewStudentNotifications(Model model) {
+        log.info("Inside viewStudentNotifications");
         model.addAttribute("page", "datatable");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -456,6 +471,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/notifications")
     public ResponseEntity<List<SmsNotificationDto>> getStudentNotifications(@RequestParam(required = false) Long studentId) {
+        log.info("Inside getStudentNotifications");
         List<SmsNotificationDto> notifications = new ArrayList<>();
         if (studentId != null) {
             notifications = smsMessageService.getNotificationDtosByStudentId(studentId);
@@ -466,6 +482,7 @@ public class SmsMessageController {
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.VIEW)
     @GetMapping("/getStudentDetailForMessage/{id}")
     public ResponseEntity<Map<String, Object>> getStudentDetailForMessage(@PathVariable("id") Long id) {
+        log.info("Inside getStudentDetailForMessage");
         Map<String, Object> result = new HashMap<>();
         try {
             Optional<AcademicStudent> studentOpt = academicStudentService.findById(id);

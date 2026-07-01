@@ -12,8 +12,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class DiscountService {
+    private static final Logger log = LoggerFactory.getLogger(DiscountService.class);
+
     private final DiscountRepository discountRepository;
 
     @Autowired
@@ -32,6 +36,7 @@ public class DiscountService {
     }
 
     public Discounthead saveDiscounthead(Discounthead discounthead) {
+        log.info("Inside saveDiscounthead");
         try{
             return discountRepository.save(discounthead);
         }catch(DataIntegrityViolationException de){
@@ -46,10 +51,12 @@ public class DiscountService {
     }
 
     public Discounthead findByDiscountName(String discountName){
+        log.info("Inside findByDiscountName");
         return discountRepository.findByDiscountName(discountName);
     }
 
     public void deleteDiscounthead(Long id) {
+        log.info("Inside deleteDiscounthead");
         discountRepository.deleteById(id);
     }
 }

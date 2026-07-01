@@ -36,11 +36,13 @@ public class AuthController {
 
     @GetMapping("/forgot-password")
     public String showForgotPasswordPage() {
+        log.info("Inside showForgotPasswordPage");
         return "forgot-password";  // This should be the name of your template
     }
 
     @PostMapping("/forgot-password")
     public String forgotPassword(@RequestParam("email") String email, Model model, HttpServletRequest request) {
+        log.info("Inside forgotPassword");
         UserEntity user = userService.findByEmail(email);
         if (user == null) {
             model.addAttribute("error", "No user associated with this email address.");
@@ -74,6 +76,7 @@ public class AuthController {
 
     @GetMapping("/reset-password")
     public String showResetPasswordPage(@RequestParam("token") String token, Model model) {
+        log.info("Inside showResetPasswordPage");
         PasswordResetToken resetToken = passwordResetTokenService.findByToken(token).orElse(null);
         if (resetToken == null || resetToken.isExpired()) {
             model.addAttribute("error", "Invalid or expired password reset token.");
@@ -90,6 +93,7 @@ public class AuthController {
     public String resetPassword(@RequestParam("token") String token,
                                 @RequestParam("password") String password,
                                 Model model) {
+        log.info("Inside resetPassword");
         Optional<PasswordResetToken> resetTokenOptional = passwordResetTokenService.findByToken(token);
 
         if (!resetTokenOptional.isPresent()) {
@@ -118,6 +122,7 @@ public class AuthController {
 
     @GetMapping("/change-password")
     public String showChangePasswordPage() {
+        log.info("Inside showChangePasswordPage");
         return "change-password";
     }
 
@@ -127,6 +132,7 @@ public class AuthController {
             @RequestParam("newPassword") String newPassword,
             @RequestParam("confirmPassword") String confirmPassword,
             Model model) {
+        log.info("Inside changePassword");
 
         UserEntity user = userService.getLoggedInUser();
         if (user == null) {

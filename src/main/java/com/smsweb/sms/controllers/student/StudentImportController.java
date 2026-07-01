@@ -69,6 +69,7 @@ public class StudentImportController extends BaseController {
     /** Step 1 — Show upload form (also shows school-picker for SUPERADMIN with no school in session) */
     @GetMapping
     public String showUploadForm(HttpSession session, Model model) {
+        log.info("Inside showUploadForm");
         School school = resolveSchool(session, model);
         if (school == null) {
             model.addAttribute("allSchools", schoolRepository.findAllByStatus("Active"));
@@ -84,6 +85,7 @@ public class StudentImportController extends BaseController {
                                @RequestParam String sessionFormat,
                                HttpSession session,
                                RedirectAttributes ra) {
+        log.info("Inside selectSchool");
         School school = schoolRepository.findById(schoolId).orElse(null);
         if (school == null) {
             ra.addFlashAttribute("error", "School not found.");
@@ -109,6 +111,7 @@ public class StudentImportController extends BaseController {
     @GetMapping("/academic-years")
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getAcademicYears(@RequestParam Long schoolId) {
+        log.info("Inside getAcademicYears");
         List<AcademicYear> years = academicYearRepository.findAllBySchoolIdOrderByIdDesc(schoolId);
         List<Map<String, Object>> result = years.stream()
                 .map(y -> Map.<String, Object>of(
@@ -124,6 +127,7 @@ public class StudentImportController extends BaseController {
                           HttpSession session,
                           Model model,
                           RedirectAttributes ra) {
+        log.info("Inside preview");
 
         if (resolveSchool(session, model) == null) {
             ra.addFlashAttribute("error", "Please select a school and academic year first.");
@@ -169,6 +173,7 @@ public class StudentImportController extends BaseController {
     public String execute(HttpSession session,
                           Model model,
                           RedirectAttributes ra) {
+        log.info("Inside execute");
 
         byte[] fileBytes = (byte[]) session.getAttribute(SESSION_FILE_KEY);
         if (fileBytes == null) {
@@ -218,6 +223,7 @@ public class StudentImportController extends BaseController {
     /** Reset session — also clears school selection */
     @GetMapping("/reset")
     public String reset(HttpSession session, RedirectAttributes ra) {
+        log.info("Inside reset");
         session.removeAttribute(SESSION_FILE_KEY);
         session.removeAttribute(SESSION_PREVIEW_KEY);
         session.removeAttribute(SESSION_SCHOOL_KEY);
@@ -253,6 +259,7 @@ public class StudentImportController extends BaseController {
     @PostMapping("/quick-add/grade")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickAddGrade(@RequestParam String name) {
+        log.info("Inside quickAddGrade");
         return quickAdd(name, () -> {
             if (gradeRepository.findByGradeNameIgnoreCase(name.trim()).isPresent())
                 return Map.of("status", "exists", "message", "Grade '" + name + "' already exists.");
@@ -266,6 +273,7 @@ public class StudentImportController extends BaseController {
     @PostMapping("/quick-add/section")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickAddSection(@RequestParam String name) {
+        log.info("Inside quickAddSection");
         return quickAdd(name, () -> {
             if (sectionRepository.findBySectionNameIgnoreCase(name.trim()).isPresent())
                 return Map.of("status", "exists", "message", "Section '" + name + "' already exists.");
@@ -279,6 +287,7 @@ public class StudentImportController extends BaseController {
     @PostMapping("/quick-add/cast")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickAddCast(@RequestParam String name) {
+        log.info("Inside quickAddCast");
         return quickAdd(name, () -> {
             if (castRepository.findByCastNameIgnoreCase(name.trim()).isPresent())
                 return Map.of("status", "exists", "message", "Caste '" + name + "' already exists.");
@@ -292,6 +301,7 @@ public class StudentImportController extends BaseController {
     @PostMapping("/quick-add/city")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickAddCity(@RequestParam String name) {
+        log.info("Inside quickAddCity");
         return quickAdd(name, () -> {
             if (cityRepository.findByCityNameIgnoreCase(name.trim()).isPresent())
                 return Map.of("status", "exists", "message", "City '" + name + "' already exists.");
@@ -305,6 +315,7 @@ public class StudentImportController extends BaseController {
     @PostMapping("/quick-add/bank")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> quickAddBank(@RequestParam String name) {
+        log.info("Inside quickAddBank");
         return quickAdd(name, () -> {
             if (bankRepository.findByBankNameIgnoreCase(name.trim()).isPresent())
                 return Map.of("status", "exists", "message", "Bank '" + name + "' already exists.");

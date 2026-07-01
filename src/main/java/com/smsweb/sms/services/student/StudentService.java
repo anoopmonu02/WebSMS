@@ -1,6 +1,5 @@
 package com.smsweb.sms.services.student;
 
-import com.smsweb.sms.controllers.employee.EmployeeController;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.ObjectNotSaveException;
@@ -52,7 +51,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class StudentService {
-    public static final Logger log = LoggerFactory.getLogger(EmployeeController.class);
+    public static final Logger log = LoggerFactory.getLogger(StudentService.class);
     private final StudentRepository repository;
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder passwordEncoder;
@@ -81,47 +80,58 @@ public class StudentService {
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
+        log.info("Inside getAllActiveStudentsOfSchool");
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Active");
     }
     //findAllBySchool_IdAndStatus
 
 
     public List<Student> getAllInActiveStudents(Long school_id) {
+        log.info("Inside getAllInActiveStudents");
         return repository.findAllBySchool_IdAndStatusOrderByStudentNameAsc(school_id, "Inactive");
     }
 
     public List<AcademicStudent> getAllInActiveStudentsList(Long school_id) {
+        log.info("Inside getAllInActiveStudentsList");
         return academicStudentRepository.findAllBySchool_IdAndStatus(school_id, "Inactive");
     }
 
     public List<Student> getAllStudents(Long school_id) {
+        log.info("Inside getAllStudents");
         return repository.findAllBySchool_IdOrderByStudentNameAsc(school_id);
     }
 
     public int getAllStudentsCount(Long school_id, Long academic_year_id) {
+        log.info("Inside getAllStudentsCount");
         return academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_year_id, "Active");
     }
     public int getAllInactiveStudentsCount(Long school_id, Long academic_year_id) {
+        log.info("Inside getAllInactiveStudentsCount");
         return academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatus(school_id, academic_year_id, "Inactive");
     }
 
     public Optional<Student> getStudentDetail(Long student_id, Long school_id) {
+        log.info("Inside getStudentDetail");
         return repository.findByIdAndSchool_Id(student_id, school_id);
     }
 
     public Optional<Student> getStudentDetail(UUID uuid, Long school_id) {
+        log.info("Inside getStudentDetail");
         return repository.findByUuidAndStatusAndSchool_Id(uuid, "Active", school_id);
     }
     public Optional<Student> getDeletedStudentDetail(UUID uuid, Long school_id) {
+        log.info("Inside getDeletedStudentDetail");
         return repository.findByUuidAndStatusAndSchool_Id(uuid, "Inactive", school_id);
     }
 
     public List<Student> getAllActiveStudents(String status){
+        log.info("Inside getAllActiveStudents");
         return  repository.findAllByStatus(status);
     }
 
     @Transactional
     public Student saveStudent(Student student, MultipartFile logo, String fileNameOrSchoolCode, Student existingStudent) throws IOException {
+        log.info("Inside saveStudent");
         String imageResponse = fileHandleHelper.saveImage("student", logo);
         try{
             boolean proceedFlag = false;
@@ -205,12 +215,14 @@ public class StudentService {
     }
 
     public List<Student> searchStudent(String stuname) {
+        log.info("Inside searchStudent");
         //TODO - Check the usage of method and fix
         return repository.findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(stuname, 4L, "Active");
     }
 
     @Transactional
     public Long updateContact(String contactNo, Long studentId) {
+        log.info("Inside updateContact");
         try {
             Student student = repository.findById(studentId).orElse(null);
             if (student != null) {
@@ -246,6 +258,7 @@ public class StudentService {
 
     @Transactional
     public Student editStudentDetails(Student student, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+        log.info("Inside editStudentDetails");
         try{
             Student existingStudent = null;
             existingStudent = repository.findById(student.getId()).orElseThrow(()->new RuntimeException("Student not found"));
@@ -316,11 +329,13 @@ public class StudentService {
     }
 
     public List<AcademicStudent> getAllStudentsByGrade(Long medium, Long grade, Long section, Long academic, Long school){
+        log.info("Inside getAllStudentsByGrade");
         return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school, medium, grade, section, academic, "Active");
     }
 
     @Transactional
     public String deleteStudent(Long id){
+        log.info("Inside deleteStudent");
         String msg = "";
         try{
             List<AcademicStudent> academicList = academicStudentRepository.findAllByStudent_IdAndStatus(id, "Active");
@@ -349,6 +364,7 @@ public class StudentService {
 
     @Transactional
     public String activateStudent(Long id){
+        log.info("Inside activateStudent");
         String msg = "";
         try{
             List<AcademicStudent> academicList = academicStudentRepository.findAllByStudent_IdAndStatus(id, "Inactive");
@@ -377,6 +393,7 @@ public class StudentService {
 
     @Transactional
     public String uploadSR(List<Map<String, String>> srdata, Long academic, Long school){
+        log.info("Inside uploadSR");
         int SRFailCounter = 0, srPassCounter = 0;
         List<AcademicStudent> studentsToSave = new ArrayList<>();
         List<String> failedIds = new ArrayList<>();
@@ -416,6 +433,7 @@ public class StudentService {
 
     @Transactional
     public String uploadSRFromTable(Map<String, String> studentData, Long academic, Long school){
+        log.info("Inside uploadSRFromTable");
         AtomicInteger SRFailCounter = new AtomicInteger();
         AtomicInteger srPassCounter = new AtomicInteger();
         List<AcademicStudent> studentsToSave = new ArrayList<>();
@@ -455,6 +473,7 @@ public class StudentService {
     }
 
     public List getAttendanceDetailsByClass(Long school, Long academic){
+        log.info("Inside getAttendanceDetailsByClass");
         try{
             List<Object[]> results = attendanceRepository.findAttendanceSummaryBySchoolAndAcademicYear(school, academic);
             List<Map<String, Object>> summaries = new ArrayList<>();
@@ -477,6 +496,7 @@ public class StudentService {
     }
 
     public Map getAllStudentsAttendanceByGrade(Long medium, Long gradeId, Long sectionId, Long academicYearId, Long schoolId){
+        log.info("Inside getAllStudentsAttendanceByGrade");
         List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId, medium);
         List<AcademicStudent> academicStudents = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(schoolId, medium, gradeId, sectionId, academicYearId, "Active");
         Map<String, List> academicAttendanceMap = new HashMap<>();
@@ -517,6 +537,7 @@ public class StudentService {
 
     @Transactional
     public String saveStudentsAttendance(List<Map<String, Object>> studentData, AcademicYear academic, School school){
+        log.info("Inside saveStudentsAttendance");
         List<Attendance> studentsToSave = new ArrayList<>();
         int failCounter = 0;
         int passCounter = 0;
@@ -524,7 +545,6 @@ public class StudentService {
             Date truncatedDate = truncateTime(new Date());
             UserEntity loggedInUser = userService.getLoggedInUser();
             for (Map<String, Object> record : studentData){
-                System.out.println("Record----"+record);
                 boolean isChecked = (Boolean) record.get("isChecked");
                 String remark = (String) record.get("remark");
                 String uuid = (String) record.get("id");
@@ -571,9 +591,11 @@ public class StudentService {
     }
 
     public Date convertToDate(LocalDate localDate) {
+        log.info("Inside convertToDate");
         return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
     public List<Map<String, Object>> getMonthlyAttendance(Long mediumId, Long gradeId, Long sectionId, Long schoolId, Long academicId, int month, int year){
+        log.info("Inside getMonthlyAttendance");
         try{
             YearMonth yearMonth = YearMonth.of(year, month);
             LocalDate firstDay = yearMonth.atDay(1);
@@ -641,6 +663,7 @@ public class StudentService {
     }
 
     public void getAttendanceSummaryByDates(Date startDate, Date endDate, Long schoolId, Long academicId, Long medium, Long gradeId, Long sectionId){
+        log.info("Inside getAttendanceSummaryByDates");
         List<Object[]> results = attendanceRepository.fetchAttendanceSummaryByDate(startDate, endDate, schoolId, gradeId, sectionId, academicId, medium);
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MMM/yyyy");
         if(results!=null && !results.isEmpty()){
@@ -649,15 +672,13 @@ public class StudentService {
                 Long presentCount = (Long) row[1];
                 Long absentCount = (Long) row[2];
 
-                System.out.println("Date: " + sdf.format(attendanceDate) +
-                        " | Present: " + presentCount +
-                        " | Absent: " + absentCount);
             }
         }
     }
 
     @Transactional
     public String uploadAadhar(List<Map<String, String>> srdata, Long academic, Long school){
+        log.info("Inside uploadAadhar");
         int SRFailCounter = 0, srPassCounter = 0;
         List<AcademicStudent> studentsToSave = new ArrayList<>();
         List<Student> students = new ArrayList<>();
@@ -701,6 +722,7 @@ public class StudentService {
 
     @Transactional
     public String uploadAadharFromTable(Map<String, String> studentData, Long academic, Long school){
+        log.info("Inside uploadAadharFromTable");
         AtomicInteger SRFailCounter = new AtomicInteger();
         AtomicInteger srPassCounter = new AtomicInteger();
         List<Student> studentsToSave = new ArrayList<>();
@@ -754,14 +776,12 @@ public class StudentService {
                     String propertyPath = violation.getPropertyPath().toString();
                     String message = violation.getMessage();
                     if ("aadharNo".equals(propertyPath) && "Aadhar number must be a 12-digit number".equals(message)) {
-                        System.out.println("Validation error: " + message);
-                        // Handle the error as needed
+                        log.warn("Aadhar validation error: {}", message);
                     }
                 }
             } else {
                 // Handle other types of exceptions
-                ex.printStackTrace();
-                System.out.println("------------------------------");
+                log.error("Unexpected error updating Aadhar", ex);
             }
             return "---------";
         }catch(Exception e){
@@ -771,11 +791,12 @@ public class StudentService {
     }
 
     public Map getAllStudentsOfActiveSession(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside getAllStudentsOfActiveSession");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                System.out.println("paramsMap:: "+paramsMap);
+                log.debug("getAllStudentsOfActiveSession paramsMap={}", paramsMap);
                 String medium = paramsMap.get("medium");
 
                 List<AcademicStudent> rawList = academicStudentRepository.findAllStudentsDetailsBySession(school.getId(), academicYear.getId(), Long.parseLong(medium));
@@ -796,16 +817,16 @@ public class StudentService {
     }
 
     public Map getAllStudentsOfActiveSessionGrades(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside getAllStudentsOfActiveSessionGrades");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                System.out.println("paramsMap:: "+paramsMap);
+                log.debug("getAllStudentsOfActiveSessionGrades paramsMap={}", paramsMap);
                 String medium = paramsMap.get("medium");
                 String section = paramsMap.get("section");
                 String grade = paramsMap.get("grade");
                 Long academicId = academicYear.getId();
-                System.out.println("Acadmeic ID:  "+academicId);
                 List<AcademicStudent> rawList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school.getId(),
                         Long.parseLong(medium), Long.parseLong(grade), Long.parseLong(section), academicId, "Active");
                 if (CollectionUtils.isEmpty(rawList)) {
@@ -826,6 +847,7 @@ public class StudentService {
 
     @Transactional
     public String uploadExamResult(List<Map<String, String>> srdata, AcademicYear academic, School school){
+        log.info("Inside uploadExamResult");
         int erFailCounter = 0, erPassCounter = 0;
         List<ExamResultSummary> studentsResultsToSave = new ArrayList<>();
         List<String> failedIds = new ArrayList<>();
@@ -933,20 +955,21 @@ public class StudentService {
     }
 
     public List<ExamResultSummary> getExamResultsForStudents(Long medium, Long grade, Long section, Long exam, Long academic, Long school){
+        log.info("Inside getExamResultsForStudents");
         // exam param is now ExamDetails.id (dropdown was changed to send ExamDetails.id directly)
         ExamDetails examDetails = examinationService.getExamDetailByDetailsId(exam);
         if (examDetails == null) return java.util.Collections.emptyList();
         List<ExamResultSummary> examResultSummaries = examResultSummaryRepository.getExamResultSummariesBy(school, academic, medium, grade, section, examDetails);
-        System.out.println(examResultSummaries);
+        log.debug("getExamResultsForStudents result size={}", examResultSummaries.size());
         return examResultSummaries;
     }
 
     public List getAttendanceDetailsCollectedByClass(Long school, Long academic){
+        log.info("Inside getAttendanceDetailsCollectedByClass");
         try{
             List<Object[]> results = attendanceRepository.findAttendanceCollectedSummaryBySchoolAndAcademicYear(school, academic);
             List<Map<String, Object>> summaries = new ArrayList<>();
             for (Object[] row : results) {
-                System.out.println("row"+row);
                 Map<String, Object> summary = new HashMap<>();
                 summary.put("mediumName", row[0]);        // Grade Name
                 summary.put("gradeName", row[1]);        // Grade Name
@@ -963,6 +986,7 @@ public class StudentService {
     }
 
     public Map getPieChartData(Long school, Long academic, int totalActiveStudents){
+        log.info("Inside getPieChartData");
         try{
             Map<String, Object> chartData = new HashMap<>();
             //1. Total Active Student, 2. Total SR, 3. Total Aadhaar, 4. Total Absent, 5. Total Boys/Girls Absent, 6. Total Boys/Girls
@@ -973,7 +997,7 @@ public class StudentService {
             int aadharCount = academicStudentRepository.countWhereAadharNoIsPresent(school, academic, "Active");
             int srCount = academicStudentRepository.countAllBySchool_IdAndAcademicYear_IdAndStatusAndClassSrNoIsNotNull(school, academic, "Active");
             int totalStudentPresentToday = attendanceRepository.countAllBySchool_IdAndAcademicYear_IdAndAcademicStudent_StatusAndIsPresentAndAttendanceDate(school, academic, "Active", true, new Date());
-            System.out.println("girlsCount: "+girlsCount+" aadharCount: "+aadharCount+" srCount: "+srCount);
+            log.debug("getPieChartData counts - girls={}, aadhar={}, sr={}", girlsCount, aadharCount, srCount);
             chartData.put("totalAadhaarCount", aadharCount);
             chartData.put("totalSRCount", srCount);
             chartData.put("totalAbsentCount", (totalActiveStudents-totalStudentPresentToday));
@@ -1010,6 +1034,7 @@ public class StudentService {
     }
 
     public List<String[]> getComingBirthDays(Long school, Long academic){
+        log.info("Inside getComingBirthDays");
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
@@ -1044,6 +1069,7 @@ public class StudentService {
      * Used by the mobile monthly calendar view.
      */
     public List<Attendance> getStudentAttendanceForMonth(Long academicStudentId, Date startDate, Date endDate) {
+        log.info("Inside getStudentAttendanceForMonth");
         return attendanceRepository.findByAcademicStudentIdBetweenDates(academicStudentId, startDate, endDate);
     }
 
@@ -1052,6 +1078,7 @@ public class StudentService {
      * Used by the mobile yearly bar-chart view.
      */
     public List<Attendance> getStudentAttendanceForYear(Long academicStudentId, Long academicYearId) {
+        log.info("Inside getStudentAttendanceForYear");
         return attendanceRepository.findByAcademicStudentIdAndAcademicYearId(academicStudentId, academicYearId);
     }
 
@@ -1060,6 +1087,7 @@ public class StudentService {
      * Used by the mobile Results screen.
      */
     public List<ExamResultSummary> getStudentExamResults(Long academicStudentId, Long schoolId, Long academicYearId) {
+        log.info("Inside getStudentExamResults");
         return examResultSummaryRepository.findByAcademicStudentIdAndSchoolIdAndAcademicYearId(
                 academicStudentId, schoolId, academicYearId);
     }
@@ -1072,6 +1100,7 @@ public class StudentService {
     public Map<String, Object> getStudentsPage(boolean superAdmin, Long schoolId,
                                                int draw, int start, int length,
                                                String search, int sortCol, String sortDir) {
+        log.info("Inside getStudentsPage");
         // Map DataTable column index → entity field name
         String sortField = switch (sortCol) {
             case 1  -> "registrationDate";
@@ -1128,6 +1157,7 @@ public class StudentService {
     }
 
     public List getAbsentSummaryGradewise(Long school, Long academic){
+        log.info("Inside getAbsentSummaryGradewise");
         try{
             boolean hasAny = attendanceRepository.existsAnyAttendanceForToday(school, academic)>0;
             if(!hasAny){
@@ -1147,7 +1177,6 @@ public class StudentService {
                     summary.put("totalSummaryCount", row[1]);     // Total Count
                     summary.put("gradeNameSummary", row[0]);     // Grade Name
                     summaries.add(summary);
-                    //System.out.println(className + " → Total: " + total + ", Present: " + present + ", Absent: " + absent);
                 }
                 return summaries;
             }
@@ -1158,6 +1187,7 @@ public class StudentService {
     }
 
     public Map<String, Object> getAttendanceTrend7Days(Long schoolId, Long academicYearId) {
+        log.info("Inside getAttendanceTrend7Days");
         Map<String, int[]> dayMap = new LinkedHashMap<>();
         DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("dd MMM");
         for (int i = 6; i >= 0; i--) {
@@ -1192,6 +1222,7 @@ public class StudentService {
     }
 
     public int[] getBirthdayMonthDistribution(Long schoolId, Long academicYearId) {
+        log.info("Inside getBirthdayMonthDistribution");
         int[] counts = new int[12];
         try {
             List<Object[]> raw = academicStudentRepository.getBirthdayDistributionByMonth(schoolId, academicYearId);
@@ -1205,6 +1236,7 @@ public class StudentService {
     }
 
     public Map<String, Object> toLeanAcademicStudentMap(AcademicStudent as) {
+        log.info("Inside toLeanAcademicStudentMap");
         Map<String, Object> aMap = new HashMap<>();
         if (as == null) return aMap;
         aMap.put("id", as.getId());

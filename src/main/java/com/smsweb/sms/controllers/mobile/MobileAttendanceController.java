@@ -12,6 +12,8 @@ import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Attendance endpoints for the student mobile app.
  *
@@ -24,6 +26,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/v1/attendance")
 public class MobileAttendanceController {
+    private static final Logger log = LoggerFactory.getLogger(MobileAttendanceController.class);
+
 
     private final StudentService studentService;
 
@@ -51,6 +55,7 @@ public class MobileAttendanceController {
             @RequestParam int year,
             @RequestParam int month,
             HttpServletRequest request) {
+        log.info("Inside getMonthlyAttendance");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 
@@ -118,6 +123,7 @@ public class MobileAttendanceController {
     @GetMapping("/yearly")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getYearlyAttendance(
             HttpServletRequest request) {
+        log.info("Inside getYearlyAttendance");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
         Long academicYearId    = (Long) request.getAttribute("academicYearId");

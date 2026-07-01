@@ -29,10 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/sibling")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class SiblingDiscountController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(SiblingDiscountController.class);
+
 
     private SiblingDiscountService siblingDiscountService;
     private DiscountclassmapService discountclassmapService;
@@ -55,6 +59,7 @@ public class SiblingDiscountController extends BaseController {
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @GetMapping("/assign-sibling-discount")
     public String getSiblingDiscount(Model model){
+        log.info("Inside getSiblingDiscount");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<SiblingGroup> siblingGroupList = siblingGroupService.getAllSiblingGroups(school.getId(), academicYear.getId());
@@ -67,10 +72,10 @@ public class SiblingDiscountController extends BaseController {
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/groups/by-group/{groupId}")
     public List<Map<String, Object>> getStudentsByGroup(@PathVariable Long groupId) {
-        System.out.println("INside controller "+groupId);
+        log.info("Inside getStudentsByGroup - groupId={}", groupId);
         SiblingGroup group = siblingGroupService.getSiblingGroupDetail(groupId).orElse(null);
         List<SiblingGroupStudent> students = group != null ? group.getSiblingGroupStudents() : new java.util.ArrayList<>();
-        System.out.println("students: "+students);
+        log.debug("getStudentsByGroup - students size={}", students == null ? 0 : students.size());
         List<Map<String, Object>> leanList = new java.util.ArrayList<>();
         if (students != null) {
             for (SiblingGroupStudent sgs : students) {
@@ -120,6 +125,7 @@ public class SiblingDiscountController extends BaseController {
     @GetMapping("/validate-student/{academicStudentId}")
     @ResponseBody
     public Map<String, String> getStudentDetail(@PathVariable Long academicStudentId, Model model) {
+        log.info("Inside getStudentDetail");
         Map<String, String> responseMap = new HashMap<>();
 
         // Validate student existence and belonging to the correct school
@@ -165,9 +171,10 @@ public class SiblingDiscountController extends BaseController {
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.CREATE)
     @PostMapping("/savesiblinggroupdiscount")
     public String saveStudentSiblingDiscount(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
+        log.info("Inside saveStudentSiblingDiscount");
         try{
             Map paramMap = request.getParameterMap();
-            System.out.println("==== "+paramMap.keySet());
+            log.debug("request params: {}", paramMap.keySet());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Map responseMap = siblingDiscountService.save(paramMap, school, academicYear);

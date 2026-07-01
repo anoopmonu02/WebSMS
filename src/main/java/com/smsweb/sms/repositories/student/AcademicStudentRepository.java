@@ -18,9 +18,17 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     //Fetching all active student
 
 
-    //Fetching student by ID
+    //Fetching student by ID (school-scoped)
     @Query("SELECT a FROM AcademicStudent a LEFT JOIN FETCH a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND a.id = :academicStudentId")
     AcademicStudent findByAcademicYearAndSchoolAndAcademicStudentId(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("academicStudentId") Long academic_stu_id);
+
+    // Fetching student by ID across ALL branches — matched by sessionFormat so other schools' academic years are included
+    @Query("SELECT a FROM AcademicStudent a LEFT JOIN FETCH a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.sessionFormat = :sessionFormat AND a.id = :academicStudentId")
+    AcademicStudent findBySessionFormatAndAcademicStudentId(@Param("sessionFormat") String sessionFormat, @Param("academicStudentId") Long academic_stu_id);
+
+    // Cross-branch name search — matched by sessionFormat so students from all branches appear
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.sessionFormat = :sessionFormat AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")
+    Page<AcademicStudent> findAllBySessionFormatAndStudentName(@Param("sessionFormat") String sessionFormat, @Param("studentName") String studentName, Pageable pageable);
 
     //Fetching All students by Name
     @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName% OR a.classSrNo LIKE :studentName)")
@@ -213,6 +221,32 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     @Query("SELECT DISTINCT a.section FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = 'ACTIVE' ORDER BY a.section.sectionName")
     List<com.smsweb.sms.models.universal.Section> findEnrolledSections(@Param("schoolId") Long schoolId,
                                                                         @Param("academicYearId") Long academicYearId);
+
+    /**
+     * Global search — finds the LATEST active AcademicStudent enrollment per student across ALL schools/years.
+     * Uses MAX(id) subquery to deduplicate: each physical student appears only once (their most recent enrollment).
+     */
+    @Query(value = "SELECT a.* FROM academic_students a " +
+                   "JOIN students s ON s.id = a.student_id " +
+                   "WHERE UPPER(s.status) = 'ACTIVE' AND a.status = 'Active' " +
+                   "AND a.id = (SELECT MAX(a2.id) FROM academic_students a2 WHERE a2.student_id = a.student_id AND a2.status = 'Active') " +
+                   "AND (LOWER(s.student_name) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+                   "LOWER(s.father_name) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+                   "LOWER(s.mother_name) LIKE LOWER(CONCAT('%',:name,'%')))",
+           countQuery = "SELECT COUNT(DISTINCT a.student_id) FROM academic_students a " +
+                        "JOIN students s ON s.id = a.student_id " +
+                        "WHERE UPPER(s.status) = 'ACTIVE' AND a.status = 'Active' " +
+                        "AND (LOWER(s.student_name) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+                        "LOWER(s.father_name) LIKE LOWER(CONCAT('%',:name,'%')) OR " +
+                        "LOWER(s.mother_name) LIKE LOWER(CONCAT('%',:name,'%')))",
+           nativeQuery = true)
+    Page<AcademicStudent> findLatestEnrollmentGlobalByName(@Param("name") String name, Pageable pageable);
+
+    /**
+     * Returns the latest active AcademicStudent for a given student.id (highest ID = most recent enrollment).
+     */
+    @Query("SELECT a FROM AcademicStudent a WHERE a.student.id = :studentId AND a.status = 'Active' ORDER BY a.id DESC")
+    List<AcademicStudent> findAllActiveByStudentIdOrderByIdDesc(@Param("studentId") Long studentId);
 
     // ── Mobile API queries ────────────────────────────────────────────────────
 

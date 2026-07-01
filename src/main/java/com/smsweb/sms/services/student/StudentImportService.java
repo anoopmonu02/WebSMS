@@ -141,6 +141,7 @@ public class StudentImportService {
      * Does NOT write anything to DB.
      */
     public ImportPreviewResult parseAndValidate(byte[] fileBytes) {
+        log.info("Inside parseAndValidate - fileBytes.length={}", fileBytes == null ? 0 : fileBytes.length);
         initDummyCounter();
         ImportPreviewResult result = new ImportPreviewResult();
 
@@ -179,6 +180,7 @@ public class StudentImportService {
      */
     @Transactional
     public ImportPreviewResult executeImport(byte[] fileBytes, School school, AcademicYear academicYear) {
+        log.info("Inside executeImport - schoolId={}, academicYearId={}", school != null ? school.getId() : null, academicYear != null ? academicYear.getId() : null);
         initDummyCounter();
         ImportPreviewResult result = new ImportPreviewResult();
 

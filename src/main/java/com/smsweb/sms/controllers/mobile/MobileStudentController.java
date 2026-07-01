@@ -17,6 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Student profile endpoints.
  *
@@ -28,6 +30,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/student")
 public class MobileStudentController {
+    private static final Logger log = LoggerFactory.getLogger(MobileStudentController.class);
+
 
     @Value("${student.image.storage.path}")
     private String studentImagePath;
@@ -42,6 +46,7 @@ public class MobileStudentController {
 
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getProfile(HttpServletRequest request) {
+        log.info("Inside getProfile");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 
@@ -111,6 +116,7 @@ public class MobileStudentController {
 
     @GetMapping("/pic/{filename}")
     public ResponseEntity<Resource> getProfilePic(@PathVariable String filename) {
+        log.info("Inside getProfilePic");
         File file = new File(studentImagePath, filename);
         if (!file.exists()) {
             return ResponseEntity.notFound().build();

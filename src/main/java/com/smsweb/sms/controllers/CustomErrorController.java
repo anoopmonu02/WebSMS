@@ -10,11 +10,16 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.ui.Model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 public class CustomErrorController implements ErrorController {
+    private static final Logger log = LoggerFactory.getLogger(CustomErrorController.class);
+
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model, WebRequest webRequest) {
+        log.info("Inside handleError");
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
 
         if (status != null) {

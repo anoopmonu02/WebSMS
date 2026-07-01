@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FineheadService {
+    private static final Logger log = LoggerFactory.getLogger(FineheadService.class);
+
     private final FineheadRepository fineheadRepository;
 
     @Autowired
@@ -24,6 +28,7 @@ public class FineheadService {
     }
 
     public void saveFinehead(Finehead finehead) {
+        log.info("Inside saveFinehead");
         fineheadRepository.save(finehead);
     }
 
@@ -32,10 +37,12 @@ public class FineheadService {
     }
 
     public Finehead findByFineHeadName(String fineHeadName){
+        log.info("Inside findByFineHeadName");
         return fineheadRepository.findByFineHeadName(fineHeadName);
     }
 
     public void deleteFinehead(Long id) {
+        log.info("Inside deleteFinehead");
         fineheadRepository.deleteById(id);
     }
 }

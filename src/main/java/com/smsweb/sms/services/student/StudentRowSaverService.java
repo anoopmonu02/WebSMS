@@ -81,6 +81,7 @@ public class StudentRowSaverService {
                      School school, AcademicYear academicYear,
                      UserEntity loggedInUser, Roles studentRole,
                      String gradeKey) throws Exception {
+        log.info("Inside save");
 
         // ── Cast ──────────────────────────────────────────────────────────────
         String casteName = normaliseCaste(importRow.getCasteCleaned());

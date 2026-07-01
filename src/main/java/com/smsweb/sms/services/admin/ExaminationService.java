@@ -13,8 +13,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class ExaminationService {
+    private static final Logger log = LoggerFactory.getLogger(ExaminationService.class);
+
     private final ExaminationRepository examinationRepository;
     private final ExamDetailsRepository examDetailsRepository;
 
@@ -29,6 +33,7 @@ public class ExaminationService {
     }
 
     public Examination save(Examination examination){
+        log.info("Inside save");
         try{
             return examinationRepository.save(examination);
         }catch(DataIntegrityViolationException de){
@@ -39,6 +44,7 @@ public class ExaminationService {
     }
 
     public String deleteExamination(String uuid){
+        log.info("Inside deleteExamination");
         try{
             Long id = examinationRepository.findByUuid(UUID.fromString(uuid)).get().getId();
             examinationRepository.deleteById(id);
@@ -49,10 +55,12 @@ public class ExaminationService {
     }
 
     public List<ExamDetails> getAllExaminationDates(Long academic_id, Long school_id){
+        log.info("Inside getAllExaminationDates");
         return examDetailsRepository.findAllByAcademicYear_IdAndSchool_Id(academic_id, school_id);
     }
 
     public ExamDetails saveExamDetails(ExamDetails examDetails){
+        log.info("Inside saveExamDetails");
         try{
             return examDetailsRepository.save(examDetails);
         }catch(DataIntegrityViolationException de){
@@ -63,6 +71,7 @@ public class ExaminationService {
     }
 
     public String deleteExamDetails(String uuid){
+        log.info("Inside deleteExamDetails");
         try{
             Long id = examDetailsRepository.findByUuid(UUID.fromString(uuid)).get().getId();
             examDetailsRepository.deleteById(id);
@@ -73,9 +82,11 @@ public class ExaminationService {
     }
 
     public ExamDetails getExamDetailByName(String examName, Long academic_id, Long school_id){
+        log.info("Inside getExamDetailByName");
         return examDetailsRepository.findByExaminationExaminationNameAndAcademicYear_IdAndSchool_Id(examName, academic_id, school_id);
     }
     public ExamDetails getExamDetailById(Long examName, Long academic_id, Long school_id){
+        log.info("Inside getExamDetailById");
         return examDetailsRepository.findByExamination_IdAndAcademicYear_IdAndSchool_Id(examName, academic_id, school_id);
     }
 

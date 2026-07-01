@@ -12,8 +12,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FineService {
+    private static final Logger log = LoggerFactory.getLogger(FineService.class);
+
     private final FineRepository fineRepository;
 
     @Autowired
@@ -22,6 +26,7 @@ public class FineService {
     }
 
     public List<Fine> getAllFines(Long school_id, Long academic_id){
+        log.info("Inside getAllFines");
         return fineRepository.findAllByAcademicYear_IdAndSchool_Id(academic_id, school_id);
     }
 
@@ -30,6 +35,7 @@ public class FineService {
     }
 
     public Fine saveFine(Fine fine){
+        log.info("Inside saveFine");
         try{
             return fineRepository.save(fine);
         }catch(DataIntegrityViolationException de){
@@ -40,6 +46,7 @@ public class FineService {
     }
 
     public String deleteFine(Long id){
+        log.info("Inside deleteFine");
         try{
             fineRepository.deleteById(id);
             return "success";

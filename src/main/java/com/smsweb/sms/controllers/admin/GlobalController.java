@@ -39,10 +39,14 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class GlobalController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(GlobalController.class);
+
 
     private final AcademicyearService academicyearService;
     private final MonthmappingService monthmappingService;
@@ -103,10 +107,10 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.VIEW)
     @GetMapping("/academicyear")
     public String academciyear(Model model){
+        log.info("Inside academciyear");
         //Get data of school when loggedin
         List<AcademicYear> academicYears;
         School school = (School)model.getAttribute("school");
-        System.out.println("school holder "+school.getSchoolName());
         if(isSuperAdminLoggedIn()){
             academicYears  = academicyearService.getAllAcademicYear();
         }
@@ -122,6 +126,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.CREATE)
     @GetMapping("/academicyear/add")
     public String addAcademicyearForm(Model model){
+        log.info("Inside addAcademicyearForm");
         model.addAttribute("academicyear", new AcademicYear());
         if(isSuperAdminLoggedIn()){
             model.addAttribute("superUserLogin", true);
@@ -138,6 +143,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/academicyear")
     public String saveAcademicYear(@Valid @ModelAttribute("academicyear") AcademicYear academicYear,
                                    BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveAcademicYear");
         if (result.hasErrors()) {
             model.addAttribute("schools", schoolService.getAllSchools());
             return "admin/add-academicyear";
@@ -174,6 +180,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.EDIT)
     @GetMapping("/academicyear/edit/{id}")
     public String editAcademicYearPage(@PathVariable("id")Long id, Model model){
+        log.info("Inside editAcademicYearPage");
         AcademicYear academicYear = academicyearService.getAcademicyearById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid academic-year Id:" + id));
         model.addAttribute("academicyear", academicYear);
@@ -192,6 +199,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/academicyear/{id}")
     public String updateAcademicYear(@PathVariable("id") Long id, @Valid @ModelAttribute("academicyear") AcademicYear academicYear,
                                  BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateAcademicYear");
         if(result.hasErrors()){
             model.addAttribute("schools", schoolService.getAllSchools());
             return "admin/edit-academicyear";
@@ -225,6 +233,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_ACYEAR", type = AccessType.DELETE)
     @GetMapping("/academicyear/delete/{id}")
     public String deleteAcademicYear(@PathVariable("id") Long id, RedirectAttributes ra) {
+        log.info("Inside deleteAcademicYear");
         try {
             String result = academicyearService.delete(id);
             if ("success".equals(result)) {
@@ -243,6 +252,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.VIEW)
     @GetMapping("/month-mapping")
     public String getMonthmappings(Model model){
+        log.info("Inside getMonthmappings");
         //Get data of school and academicyear when loggedin
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
@@ -255,6 +265,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.CREATE)
     @GetMapping("/month-mapping/add")
     public String getAddMonthMappingForm(Model model){
+        log.info("Inside getAddMonthMappingForm");
         List<MonthMaster> months = monthMasterService.getAllMonths();
         model.addAttribute("months", months);
         model.addAttribute("monthMapping", new MonthMapping());
@@ -268,9 +279,8 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_MONTH_MAP", type = AccessType.CREATE)
     @PostMapping("/month-mapping")
     public String saveMonthMapping(@RequestParam("monthMaster") Long monthMaster, RedirectAttributes redirectAttributes, Model model){
-        System.out.println("id----"+monthMaster);
+        log.info("Inside saveMonthMapping - monthMasterId={}", monthMaster);
         MonthMaster selectedMonth = monthMasterService.getMonthById(monthMaster).get();
-        System.out.println("monthMapping----"+selectedMonth);
         List<MonthMaster> months = monthMasterService.getAllMonths();
         try{
             if(selectedMonth!=null){
@@ -309,6 +319,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.VIEW)
     @GetMapping("/feedate")
     public String getFeeDate(Model model){
+        log.info("Inside getFeeDate");
         //Get data of school and academicyear when loggedin
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
@@ -321,6 +332,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.CREATE)
     @GetMapping("/feedate/add")
     public String getAddFeeDateForm(Model model){
+        log.info("Inside getAddFeeDateForm");
         model.addAttribute("feedate", new FeeDate());
         model.addAttribute("months", monthMasterService.getAllMonths());
         return "admin/add-feedate";
@@ -329,6 +341,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEEDATE", type = AccessType.CREATE)
     @PostMapping("/feedate")
     public String save(@Valid @ModelAttribute("feedate")FeeDate feedate, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside save");
         if(result.hasErrors()){
             model.addAttribute("months", monthMasterService.getAllMonths());
             model.addAttribute("error", result.getFieldError());
@@ -366,6 +379,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/feedate/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeDate(@PathVariable("id")Long id){
+        log.info("Inside deleteFeeDate");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = feedateService.delete(id);
@@ -388,6 +402,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FINE", type = AccessType.VIEW)
     @GetMapping("/fine")
     public String getFineForm(Model model){
+        log.info("Inside getFineForm");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<Fine> fineList = fineService.getAllFines(school.getId(), academicYear.getId());
@@ -399,6 +414,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FINE", type = AccessType.CREATE)
     @GetMapping("/fine/add")
     public String getFineAddForm(Model model){
+        log.info("Inside getFineAddForm");
         model.addAttribute("fine", new Fine());
         model.addAttribute("fineheads", fineheadService.getAllFineHeads());
         return "admin/add-fine";
@@ -407,6 +423,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FINE", type = AccessType.CREATE)
     @PostMapping("/fine")
     public String saveFineData(@Valid @ModelAttribute("fine")Fine fine, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside saveFineData");
         if(result.hasErrors()){
             model.addAttribute("fineheads", fineheadService.getAllFineHeads());
             model.addAttribute("error", result.getFieldError());
@@ -444,6 +461,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FINE", type = AccessType.EDIT)
     @GetMapping("/fine/edit/{id}")
     public String editFineForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside editFineForm");
         Fine fine = fineService.getFineById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fine Id:" + id));
         model.addAttribute("fine",fine);
@@ -455,6 +473,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/fine/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFineDate(@PathVariable("id")Long id){
+        log.info("Inside deleteFineDate");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = fineService.deleteFine(id);
@@ -477,6 +496,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.VIEW)
     @GetMapping("/fee-class")
     public String getFeeClassDetails(Model model){
+        log.info("Inside getFeeClassDetails");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<FeeClassMap> feeClassMaps = feeclassmapService.getAllFeeClassMapping(school.getId(), academicYear.getId());
@@ -489,6 +509,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.CREATE)
     @GetMapping("/fee-class/add")
     public String getAddFeeClassMappingForm(Model model){
+        log.info("Inside getAddFeeClassMappingForm");
         //model.addAttribute("feeheads", feeheadService.getAllFeeheads());
         model.addAttribute("grades", gradeService.getAllGrades());
         FeeClassMapWrapper feeClassMapWrapper = new FeeClassMapWrapper();
@@ -500,6 +521,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/fee-class/getAllFeeData/{classId}")
     @ResponseBody
     public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId, HttpSession session, Model model){
+        log.info("Inside getAllFeeData");
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
@@ -532,7 +554,6 @@ public class GlobalController extends BaseController {
             } else{
                 // If feeClassMapList is empty, add all feeheads with default values
                 feeheadList.forEach(fh -> {
-                    System.out.println("fh"+fh.getClass());
                     finalMap.put(fh.getId()+":"+fh.getFeeHeadName()+":-1", "0");
                 });
             }
@@ -541,16 +562,16 @@ public class GlobalController extends BaseController {
             e.printStackTrace();
             responseMap.put("error", new HashMap<>());
         }
-        System.out.println(responseMap);
+        log.debug("getFeeClassMapData result keys={}", responseMap.keySet());
         return responseMap;
     }
 
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.CREATE)
     @PostMapping("/fee-class")
     public String saveFeeClassMappings(@ModelAttribute FeeClassMapWrapper feeClassMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside saveFeeClassMappings");
         List<FeeClassMap> feeClassMaps = feeClassMapWrapper.getFeeClassMaps();
-        System.out.println("feeClassMaps: "+feeClassMaps);
-        System.out.println("result: "+result);
+        log.debug("saveFeeClassMappings - feeClassMaps size={}", feeClassMaps.size());
 
         try{
             List<FeeClassMap> feeClassMapList = new ArrayList<>();
@@ -558,12 +579,9 @@ public class GlobalController extends BaseController {
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = feeClassMaps.get(0).getGrade();
             for (FeeClassMap fee : feeClassMaps) {
-                System.out.println("Fee Head Name: " + fee.getFeehead());
-                System.out.println("Amount: " + fee.getAmount());
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setGrade(grade);
-                System.out.println("Grade "+fee.getGrade());
                 fee.setCreatedBy(userService.getLoggedInUser());
                 feeClassMapList.add(feeclassmapService.save(fee));
             }
@@ -584,6 +602,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.EDIT)
     @GetMapping("/fee-class/edit/{id}")
     public String editFeeClassForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside editFeeClassForm");
         FeeClassMap feeClassMap = feeclassmapService.getFeeClassMapById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee-class Id:" + id));
         model.addAttribute("feeclassmap",feeClassMap);
@@ -594,6 +613,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.EDIT)
     @PostMapping("/edit-fee-class")
     public String updateFeeClassMap(@Valid @ModelAttribute("feeclassmap")FeeClassMap feeClassMap, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateFeeClassMap");
         if(result.hasErrors()){
             return "admin/edit-feeclassmap";
         }
@@ -613,6 +633,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/fee-class/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeClassMap(@PathVariable("id")Long id){
+        log.info("Inside deleteFeeClassMap");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = feeclassmapService.delete(id);
@@ -638,6 +659,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.VIEW)
     @GetMapping("/fee-month")
     public String getFeeMonthDetails(Model model){
+        log.info("Inside getFeeMonthDetails");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<FeeMonthMap> feeMonthMaps = feemonthmapService.getAllFeeMonthMap(school.getId(), academicYear.getId());
@@ -650,6 +672,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.CREATE)
     @GetMapping("/fee-month/add")
     public String getAddFeeMonthMappingForm(Model model){
+        log.info("Inside getAddFeeMonthMappingForm");
         model.addAttribute("fees", feeheadService.getAllFeeheads());
         FeeMonthMapWrapper feeMonthMapWrapper = new FeeMonthMapWrapper();
         model.addAttribute("feeMonthMapWrapper", feeMonthMapWrapper);
@@ -660,6 +683,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/fee-month/getAllFeeMonthData/{feeId}")
     @ResponseBody
     public Map<String, Map<String, Boolean>> getAllFeeMonthData(@PathVariable("feeId")Long feeId, Model model){
+        log.info("Inside getAllFeeMonthData");
         Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
@@ -704,16 +728,16 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             responseMap.put("error", new HashMap<>());
         }
-        System.out.println(responseMap);
+        log.debug("getFeeMonthMapData result keys={}", responseMap.keySet());
         return responseMap;
     }
 
     @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.CREATE)
     @PostMapping("/fee-month")
     public String saveFeeMonthMappings(@ModelAttribute FeeMonthMapWrapper feeMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside saveFeeMonthMappings");
         List<FeeMonthMap> feeMonthMaps = feeMonthMapWrapper.getFeeMonthMaps();
-        System.out.println("feeMonthMaps: "+feeMonthMaps);
-        System.out.println("result: "+result);
+        log.debug("saveFeeMonthMappings - feeMonthMaps size={}", feeMonthMaps.size());
 
         try{
             List<FeeMonthMap> feeMonthMapList = new ArrayList<>();
@@ -721,12 +745,9 @@ public class GlobalController extends BaseController {
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Feehead feehead = feeMonthMaps.get(0).getFeehead();
             for (FeeMonthMap fee : feeMonthMaps) {
-                System.out.println("Fee Head Name: " + fee.getMonthMaster());
-                System.out.println("Amount: " + fee.getIsApplicable());
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setFeehead(feehead);
-                System.out.println("Grade "+fee.getFeehead());
                 fee.setCreatedBy(userService.getLoggedInUser());
                 feeMonthMapList.add(feemonthmapService.saveFeeMonth(fee));
             }
@@ -747,6 +768,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.EDIT)
     @GetMapping("/fee-month/edit/{id}")
     public String editFeeMonthForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside editFeeMonthForm");
         FeeMonthMap feeMonthMap = feemonthmapService.getFeeMonthMapById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee-month Id:" + id));
         model.addAttribute("feemonthmap",feeMonthMap);
@@ -757,6 +779,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FEE_MONTH", type = AccessType.EDIT)
     @PostMapping("/edit-fee-month")
     public String updateFeeMonthMap(@Valid @ModelAttribute("feemonthmap")FeeMonthMap feeMonthMap, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateFeeMonthMap");
         if(result.hasErrors()){
             return "admin/edit-feemonthmap";
         }
@@ -776,6 +799,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/fee-month/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFeeMonthMap(@PathVariable("id")Long id){
+        log.info("Inside deleteFeeMonthMap");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = feemonthmapService.delete(id);
@@ -802,6 +826,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.VIEW)
     @GetMapping("/discount-class")
     public String getDiscountClassDetails(Model model){
+        log.info("Inside getDiscountClassDetails");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<DiscountClassMap> discountClassMaps = discountclassmapService.getAllDiscountClassMapping(school.getId(), academicYear.getId());
@@ -814,6 +839,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.CREATE)
     @GetMapping("/discount-class/add")
     public String getAddDiscountClassMappingForm(Model model){
+        log.info("Inside getAddDiscountClassMappingForm");
         model.addAttribute("grades", gradeService.getAllGrades());
         DiscountClassMapWrapper discountClassMapWrapper = new DiscountClassMapWrapper();
         model.addAttribute("discountClassMapWrapper", discountClassMapWrapper);
@@ -824,6 +850,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/discount-class/getAllDiscountData/{classId}")
     @ResponseBody
     public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId, Model model){
+        log.info("Inside getAllDiscountData");
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
@@ -852,7 +879,6 @@ public class GlobalController extends BaseController {
             } else{
                 // If feeClassMapList is empty, add all feeheads with default values
                 discountheadList.forEach(fh -> {
-                    System.out.println("fh"+fh.getClass());
                     finalMap.put(fh.getId()+":"+fh.getDiscountName()+":-1", "0");
                 });
             }
@@ -860,16 +886,16 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             responseMap.put("error", new HashMap<>());
         }
-        System.out.println(responseMap);
+        log.debug("getDiscountClassMapData result keys={}", responseMap.keySet());
         return responseMap;
     }
 
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.CREATE)
     @PostMapping("/discount-class")
     public String saveDiscountClassMappings(@ModelAttribute DiscountClassMapWrapper discountClassMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside saveDiscountClassMappings");
         List<DiscountClassMap> discountClassMaps = discountClassMapWrapper.getDiscountClassMaps();
-        System.out.println("discountClassMaps: "+discountClassMaps);
-        System.out.println("result: "+result);
+        log.debug("saveDiscountClassMappings - discountClassMaps size={}", discountClassMaps.size());
 
         try{
             List<DiscountClassMap> discountClassMapList = new ArrayList<>();
@@ -877,12 +903,9 @@ public class GlobalController extends BaseController {
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = discountClassMaps.get(0).getGrade();
             for (DiscountClassMap fee : discountClassMaps) {
-                System.out.println("Fee Head Name: " + fee.getDiscounthead());
-                System.out.println("Amount: " + fee.getAmount());
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setGrade(grade);
-                System.out.println("Grade "+fee.getGrade());
                 fee.setCreatedBy(userService.getLoggedInUser());
                 discountClassMapList.add(discountclassmapService.save(fee));
             }
@@ -903,6 +926,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.EDIT)
     @GetMapping("/discount-class/edit/{id}")
     public String editDiscountClassForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside editDiscountClassForm");
         DiscountClassMap discountClassMap = discountclassmapService.getDiscountClassMapById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount-class Id:" + id));
         model.addAttribute("discountclassmap",discountClassMap);
@@ -913,6 +937,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.EDIT)
     @PostMapping("/edit-discount-class")
     public String updateDiscountClassMap(@Valid @ModelAttribute("discountclassmap")DiscountClassMap discountClassMap, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateDiscountClassMap");
         if(result.hasErrors()){
             return "admin/edit-discountclassmap";
         }
@@ -932,6 +957,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/discount-class/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteDiscountClassMap(@PathVariable("id")Long id){
+        log.info("Inside deleteDiscountClassMap");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = discountclassmapService.delete(id);
@@ -957,6 +983,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.VIEW)
     @GetMapping("/discount-month")
     public String getDiscountMonthDetails(Model model){
+        log.info("Inside getDiscountMonthDetails");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<DiscountMonthMap> discountMonthMaps = discountmonthmapService.getAllDiscountMonthMap(school.getId(), academicYear.getId());
@@ -969,6 +996,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.CREATE)
     @GetMapping("/discount-month/add")
     public String getAddDiscountMonthMappingForm(Model model){
+        log.info("Inside getAddDiscountMonthMappingForm");
         model.addAttribute("discounts", discountService.getAllDiscountheads());
         DiscountMonthMapWrapper discountMonthMapWrapper = new DiscountMonthMapWrapper();
         model.addAttribute("discountMonthMapWrapper", discountMonthMapWrapper);
@@ -979,6 +1007,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/discount-month/getAllDiscountMonthData/{feeId}")
     @ResponseBody
     public Map<String, Map<String, Boolean>> getAllDiscountMonthData(@PathVariable("feeId")Long feeId, Model model){
+        log.info("Inside getAllDiscountMonthData");
         Map<String, Map<String, Boolean>> responseMap = new HashMap<>();
         //map - fee - amount
         try{
@@ -1023,16 +1052,16 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             responseMap.put("error", new HashMap<>());
         }
-        System.out.println(responseMap);
+        log.debug("getDiscountMonthMapData result keys={}", responseMap.keySet());
         return responseMap;
     }
 
     @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.CREATE)
     @PostMapping("/discount-month")
     public String saveDiscountMonthMappings(@ModelAttribute DiscountMonthMapWrapper discountMonthMapWrapper, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside saveDiscountMonthMappings");
         List<DiscountMonthMap> discountMonthMaps = discountMonthMapWrapper.getDiscountMonthMaps();
-        System.out.println("feeMonthMaps: "+discountMonthMaps);
-        System.out.println("result: "+result);
+        log.debug("saveDiscountMonthMappings - discountMonthMaps size={}", discountMonthMaps.size());
 
         try{
             List<DiscountMonthMap> discountMonthMapList = new ArrayList<>();
@@ -1040,12 +1069,9 @@ public class GlobalController extends BaseController {
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Discounthead feehead = discountMonthMaps.get(0).getDiscounthead();
             for (DiscountMonthMap fee : discountMonthMaps) {
-                System.out.println("Fee Head Name: " + fee.getMonthMaster());
-                System.out.println("Amount: " + fee.getIsApplicable());
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setDiscounthead(feehead);
-                System.out.println("Grade "+fee.getDiscounthead());
                 fee.setCreatedBy(userService.getLoggedInUser());
                 discountMonthMapList.add(discountmonthmapService.saveDiscountMonth(fee));
             }
@@ -1066,6 +1092,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.EDIT)
     @GetMapping("/discount-month/edit/{id}")
     public String editDiscountMonthForm(@PathVariable("id")Long id, Model model){
+        log.info("Inside editDiscountMonthForm");
         DiscountMonthMap discountMonthMap = discountmonthmapService.getDiscountMonthMapById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount-month Id:" + id));
         model.addAttribute("discountmonthmap",discountMonthMap);
@@ -1076,6 +1103,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_DISCOUNT_MONTH", type = AccessType.EDIT)
     @PostMapping("/edit-discount-month")
     public String updateDiscountMonthMap(@Valid @ModelAttribute("discountmonthmap")DiscountMonthMap discountMonthMap, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside updateDiscountMonthMap");
         if(result.hasErrors()){
             return "admin/edit-discountmonthmap";
         }
@@ -1095,6 +1123,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/discount-month/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteDiscountMonthMap(@PathVariable("id")Long id){
+        log.info("Inside deleteDiscountMonthMap");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = discountmonthmapService.delete(id);
@@ -1121,6 +1150,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.VIEW)
     @GetMapping("/full-payment-discount")
     public String getFullPaymentDetails(Model model){
+        log.info("Inside getFullPaymentDetails");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<FullPayment> fullPaymentList = fullpaymentService.getAllFullPayments(school.getId(), academicYear.getId());
@@ -1132,6 +1162,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.CREATE)
     @GetMapping("/full-payment-discount/add")
     public String getAddFullPaymentForm(Model model){
+        log.info("Inside getAddFullPaymentForm");
         model.addAttribute("grades", gradeService.getAllGrades());
         model.addAttribute("fullpayment", new FullPayment());
         return "admin/add-fullpayment";
@@ -1140,6 +1171,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.CREATE)
     @PostMapping("/full-payment-discount")
     public String saveFullPayment(@Valid @ModelAttribute("fullpayment") FullPayment fullPayment, BindingResult result, Model model, RedirectAttributes ra){
+        log.info("Inside saveFullPayment");
         if(result.hasErrors()){
             model.addAttribute("grades", gradeService.getAllGrades());
             return "admin/add-fullpayment";
@@ -1173,6 +1205,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_FULL_PAYMENT", type = AccessType.EDIT)
     @GetMapping("/full-payment-discount/edit/{id}")
     public String editFullPayment(@PathVariable("id")Long id, Model model){
+        log.info("Inside editFullPayment");
         FullPayment fullPayment = fullpaymentService.getFullPaymentById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid full-payment Id:" + id));
         model.addAttribute("fullpayment",fullPayment);
@@ -1183,6 +1216,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/full-payment-discount/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteFullPaymentMap(@PathVariable("id")Long id){
+        log.info("Inside deleteFullPaymentMap");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = fullpaymentService.deleteFullPayment(id);
@@ -1208,6 +1242,7 @@ public class GlobalController extends BaseController {
     @GetMapping("/user-role-list")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String getUserRoleList(Model model){
+        log.info("Inside getUserRoleList");
         List<Employee> employees = null;
         Map<Employee, List<Roles>> userRoleMap = new HashMap<>();
         boolean isSuperAdmin = isSuperAdminLoggedIn();
@@ -1232,7 +1267,6 @@ public class GlobalController extends BaseController {
         model.addAttribute("userRoleMap", userRoleMap);
         model.addAttribute("isUserRoleMap", !userRoleMap.isEmpty());
         model.addAttribute("employees",employees);
-        //System.out.println("employees:::: "+employees);
         return "admin/user-role";
     }
 
@@ -1240,6 +1274,7 @@ public class GlobalController extends BaseController {
     @GetMapping("/add-user-to-role")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public String addUserRole(Model model){
+        log.info("Inside addUserRole");
         List<Employee> employees = null;
         boolean isSuperAdmin = isSuperAdminLoggedIn();
         boolean isAdmin = isAdminLogin();
@@ -1272,6 +1307,7 @@ public class GlobalController extends BaseController {
     @GetMapping("/api/user-role/existing-roles/{employeeId}")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
     public ResponseEntity<?> getExistingRoles(@PathVariable("employeeId") Long employeeId) {
+        log.info("Inside getExistingRoles");
         try {
             List<String> roleNames = employeeService.getExistingRoleNames(employeeId);
             return ResponseEntity.ok(roleNames);
@@ -1283,8 +1319,9 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.CREATE)
     @PostMapping("/api/user-role/save")
     public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload){
+        log.info("Inside saveRoleUserMapping");
         try {
-            System.out.println("payload "+payload);
+            log.debug("saveRoleUserMapping payload={}", payload);
             if(payload!=null){
                 Long employeeId = payload.get("employeeId");
                 Long roleId = payload.get("roleId");
@@ -1335,6 +1372,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.VIEW)
     @GetMapping("/holidays")
     public String getHoliday(Model model){
+        log.info("Inside getHoliday");
         //Get data of school and academicyear when loggedin
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
@@ -1347,6 +1385,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.CREATE)
     @GetMapping("/holiday/add")
     public String getAddHolidayForm(Model model){
+        log.info("Inside getAddHolidayForm");
         model.addAttribute("holiday", new Holiday());
         return "admin/add-holiday";
     }
@@ -1354,6 +1393,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_HOLIDAY", type = AccessType.CREATE)
     @PostMapping("/holiday")
     public String save(@Valid @ModelAttribute("holiday")Holiday holiday, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside save");
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
             return "admin/add-holiday";
@@ -1364,20 +1404,19 @@ public class GlobalController extends BaseController {
             holiday.setAcademicYear(academicYear);
             holiday.setSchool(school);
             holiday = holidayService.save(holiday);
-            System.out.println("holiday: "+holiday);
+            log.info("Holiday saved: id={}", holiday.getId());
             redirectAttributes.addFlashAttribute("success","Holiday saved successfully for: "+holiday.getHolidayName());
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName());
-            de.printStackTrace();
+            log.error("Duplicate holiday entry for {}", holiday.getHolidayName(), de);
             return "admin/add-holiday";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+holiday.getHolidayName()+". "+de.getLocalizedMessage());
-            de.printStackTrace();
+            log.error("Duplicate holiday entry for {}", holiday.getHolidayName(), de);
             return "admin/add-holiday";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
-            System.out.println("ERRORRRR");
-            e.printStackTrace();
+            log.error("Error saving holiday", e);
             return "admin/add-holiday";
         }
         return "redirect:/admin/holidays";
@@ -1386,6 +1425,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/holiday/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteHoliday(@PathVariable("id")Long id){
+        log.info("Inside deleteHoliday");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = holidayService.delete(id);
@@ -1407,6 +1447,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.VIEW)
     @GetMapping("/examinations")
     public String getExaminations(Model model){
+        log.info("Inside getExaminations");
         List<Examination> examinationList = examinationService.getAllExamination();
         model.addAttribute("examinations", examinationList);
         model.addAttribute("isExamination", !examinationList.isEmpty());
@@ -1416,6 +1457,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.CREATE)
     @GetMapping("/examination/add")
     public String getAddExaminationForm(Model model){
+        log.info("Inside getAddExaminationForm");
         model.addAttribute("examination", new Examination());
         return "admin/add-examination";
     }
@@ -1424,6 +1466,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/examination/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteExamination(@PathVariable("id")String uuid){
+        log.info("Inside deleteExamination");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = examinationService.deleteExamination(uuid);
@@ -1444,26 +1487,26 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM", type = AccessType.CREATE)
     @PostMapping("/examination")
     public String save(@Valid @ModelAttribute("examination")Examination examination, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside save");
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
             return "admin/add-examination";
         }
         try{
             examination = examinationService.save(examination);
-            System.out.println("examination: "+examination);
+            log.info("Examination saved: id={}", examination.getId());
             redirectAttributes.addFlashAttribute("success","Examination: "+examination.getExaminationName()+" saved successfully.");
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName());
-            de.printStackTrace();
+            log.error("Duplicate examination entry for {}", examination.getExaminationName(), de);
             return "admin/add-examination";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+examination.getExaminationName()+". "+de.getLocalizedMessage());
-            de.printStackTrace();
+            log.error("Duplicate examination entry for {}", examination.getExaminationName(), de);
             return "admin/add-examination";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
-            System.out.println("ERRORRRR");
-            e.printStackTrace();
+            log.error("Error saving examination", e);
             return "admin/add-examination";
         }
         return "redirect:/admin/examinations";
@@ -1472,6 +1515,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.VIEW)
     @GetMapping("/examinations-date")
     public String getExaminationsDate(Model model){
+        log.info("Inside getExaminationsDate");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         List<ExamDetails> examinationList = examinationService.getAllExaminationDates(academicYear.getId(), school.getId());
@@ -1483,6 +1527,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.CREATE)
     @GetMapping("/examination-details/add")
     public String getAddExaminationDateForm(Model model){
+        log.info("Inside getAddExaminationDateForm");
         model.addAttribute("examDetails", new ExamDetails());
         model.addAttribute("examinations", examinationService.getAllExamination());
         return "admin/add-examination-details";
@@ -1491,6 +1536,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_EXAM_DATE", type = AccessType.CREATE)
     @PostMapping("/examination-details")
     public String save(@Valid @ModelAttribute("examDetails")ExamDetails examDetails, BindingResult result, Model model, RedirectAttributes redirectAttributes){
+        log.info("Inside save");
         model.addAttribute("examinations", examinationService.getAllExamination());
         if(result.hasErrors()){
             model.addAttribute("error", result.getFieldError());
@@ -1503,21 +1549,20 @@ public class GlobalController extends BaseController {
             examDetails.setAcademicYear(academicYear);
             examDetails.setSchool(school);
             examDetails = examinationService.saveExamDetails(examDetails);
-            System.out.println("examination: "+examDetails);
+            log.info("Examination details saved: id={}", examDetails.getId());
             SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
             redirectAttributes.addFlashAttribute("success","Examination: "+examDetails.getExamination().getExaminationName()+" scheduled on: "+sf.format(examDetails.getExamDeclaredDate())+" successfully.");
         }catch(DataIntegrityViolationException de){
             model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName());
-            de.printStackTrace();
+            log.error("Duplicate examination details entry for {}", examDetails.getExamination().getExaminationName(), de);
             return "admin/add-examination-details";
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", "Duplicate entry for "+examDetails.getExamination().getExaminationName()+". "+de.getLocalizedMessage());
-            de.printStackTrace();
+            log.error("Duplicate examination details entry for {}", examDetails.getExamination().getExaminationName(), de);
             return "admin/add-examination-details";
         }catch(Exception e){
             model.addAttribute("error", "Error in saving: "+e.getLocalizedMessage());
-            System.out.println("ERRORRRR");
-            e.printStackTrace();
+            log.error("Error saving examination details", e);
             return "admin/add-examination-details";
         }
         return "redirect:/admin/examinations-date";
@@ -1527,6 +1572,7 @@ public class GlobalController extends BaseController {
     @PostMapping("/examinations-detail/delete/{id}")
     @ResponseBody
     public Map<String, String> deleteExaminationDetail(@PathVariable("id")String uuid){
+        log.info("Inside deleteExaminationDetail");
         Map<String, String> response = new HashMap<>();
         try{
             String returnMsg = examinationService.deleteExamDetails(uuid);

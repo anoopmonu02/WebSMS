@@ -9,12 +9,16 @@ import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 public abstract class BaseController {
+    private static final Logger log = LoggerFactory.getLogger(BaseController.class);
+
     @Autowired
     private AcademicyearService academicyearService;
     @Autowired
@@ -27,6 +31,7 @@ public abstract class BaseController {
     // This method will run before every request in the extending controllers
     @ModelAttribute("academicYear")
     public AcademicYear setAcademicYearInModel(HttpSession session) {
+        log.debug("Inside setAcademicYearInModel");
         AcademicYear academicYear = (AcademicYear) session.getAttribute("activeAcademicYear");
         if (academicYear == null) {
             // Try to resolve via school in session first (school-scoped, case-insensitive)
@@ -53,6 +58,7 @@ public abstract class BaseController {
 
     @ModelAttribute("school")
     public School setSchoolInModel(HttpSession session) {
+        log.debug("Inside setSchoolInModel");
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         // Block students and anonymous users entirely
         boolean isStudent = auth.getAuthorities().stream()
@@ -73,7 +79,7 @@ public abstract class BaseController {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.warn("Unable to resolve school for logged-in user", e);
             }
         }
         return school;
@@ -92,6 +98,7 @@ public abstract class BaseController {
      */
     @ModelAttribute("userRoleLabel")
     public String setUserRoleLabelInModel() {
+        log.debug("Inside setUserRoleLabelInModel");
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated()) return "Online";
@@ -102,7 +109,7 @@ public abstract class BaseController {
             if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ACCOUNTENT"))) return "Accountant";
             if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT")))    return "Student";
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Unable to resolve user role label", e);
         }
         return "Online";
     }
@@ -115,7 +122,7 @@ public abstract class BaseController {
                 return true;
             }
         }catch(Exception e){
-            e.printStackTrace();
+            log.warn("Unable to determine super-admin status", e);
         }
         return false;
     }

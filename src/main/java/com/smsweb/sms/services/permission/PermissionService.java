@@ -5,6 +5,8 @@ import com.smsweb.sms.models.permission.UserPermission;
 import com.smsweb.sms.repositories.permission.UserPermissionRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -15,6 +17,8 @@ import java.util.*;
 
 @Service
 public class PermissionService {
+
+    private static final Logger log = LoggerFactory.getLogger(PermissionService.class);
 
     private static final String SESSION_KEY = "USER_PERMISSIONS";
 
@@ -29,6 +33,7 @@ public class PermissionService {
      * Super-admin and admin roles bypass all checks and always return true.
      */
     public boolean hasAccess(String screenKey, AccessType requiredType) {
+        log.debug("Inside hasAccess");
         if (isSuperOrAdmin()) return true;
         Set<AccessType> granted = getGrantedTypes(screenKey);
         return switch (requiredType) {
@@ -51,6 +56,7 @@ public class PermissionService {
      *   otherwise → highest individual type present (VIEW < CREATE < EDIT < DELETE)
      */
     public AccessType getAccessType(String screenKey) {
+        log.debug("Inside getAccessType");
         if (isSuperOrAdmin()) return AccessType.ALL;
         Set<AccessType> granted = getGrantedTypes(screenKey);
         if (granted.isEmpty()) return AccessType.NOTHING;
@@ -71,12 +77,14 @@ public class PermissionService {
      * Returns an empty set when no permission record exists.
      */
     public Set<AccessType> getGrantedTypes(String screenKey) {
+        log.debug("Inside getGrantedTypes");
         return getPermissionsForCurrentUser()
                 .getOrDefault(screenKey, Collections.emptySet());
     }
 
     /** Evict the cached permissions for this session after an admin saves changes. */
     public void evictCache(Long userId) {
+        log.info("Inside evictCache - userId={}", userId);
         session.removeAttribute(SESSION_KEY);
     }
 

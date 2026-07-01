@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Complaint endpoints for the student mobile app.
  *
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/complaints")
 public class MobileComplaintsController {
+    private static final Logger log = LoggerFactory.getLogger(MobileComplaintsController.class);
+
 
     private final SmsMessageService smsMessageService;
 
@@ -53,6 +57,7 @@ public class MobileComplaintsController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getComplaints(
             HttpServletRequest request) {
+        log.info("Inside getComplaints");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 
@@ -77,6 +82,7 @@ public class MobileComplaintsController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getComplaintDetail(
             @PathVariable Long id,
             HttpServletRequest request) {
+        log.info("Inside getComplaintDetail");
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 

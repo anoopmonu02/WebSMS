@@ -27,9 +27,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class StudentRestController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(StudentRestController.class);
+
     private final ExcelService excelService;
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -45,9 +49,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @PostMapping("/downloadSRSampleFile")
     public ResponseEntity<?> downloadSRSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
+        log.info("Inside downloadSRSampleFile");
         String fileName = "Academic_Students_SR_Sample_File.xlsx";
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
                 String grade = requestBody.getOrDefault("gradeId","0");
@@ -86,6 +91,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @GetMapping("/fetchStudentForSR")
     public ResponseEntity<?> fetchStudentForSR(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside fetchStudentForSR");
         try{
             if(requestBody!=null){
                 Long mediumId = Long.parseLong(requestBody.getOrDefault("mediumId", "0"));
@@ -104,6 +110,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/upload-sr-file")
     public ResponseEntity<?> validateExcelDataForSR(@RequestParam("file") MultipartFile file){
+        log.info("Inside validateExcelDataForSR");
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateSRData(file);
         Map<String, List<String[]>> dataMap = new HashMap<>();
         try{
@@ -112,7 +119,7 @@ public class StudentRestController extends BaseController {
                 String outerKey = outerEntry.getKey();
                 Map<String, List<String[]>> innerMap = outerEntry.getValue();
 
-                System.out.println("Outer Key: " + outerKey);
+                log.debug("Processing outer key: {}", outerKey);
                 if("success".equalsIgnoreCase(outerKey)){
                     dataMap.put(outerKey, innerMap.get("DATA"));
                 } else{
@@ -128,15 +135,12 @@ public class StudentRestController extends BaseController {
                     String innerKey = innerEntry.getKey();
                     List<String[]> stringList = innerEntry.getValue();
 
-                    System.out.println("\tInner Key: " + innerKey);
-
                     // Iterate through the list of String arrays
                     for (String[] stringArray : stringList) {
                         System.out.print("\t\tValues: ");
                         for (String str : stringArray) {
                             System.out.print(str + " ");
                         }
-                        System.out.println();
                     }
                 }*/
             }
@@ -150,9 +154,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/upload-sr-data")
     public ResponseEntity<?> uploadSRData(@RequestBody List<Map<String, String>> tableData, Model model){
+        log.info("Inside uploadSRData");
         String responseMsg = "";
         try{
-            System.out.println("Received data: " + tableData);
+            log.debug("Received data, size={}", tableData.size());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             responseMsg = studentService.uploadSR(tableData, academicYear.getId(), school.getId());
@@ -165,6 +170,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
     @PostMapping("/getStudentsForSR")
     public ResponseEntity<?> getStudentsForSR(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentsForSR");
         try{
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
@@ -197,6 +203,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)
     @PostMapping("/saveStudentSRFromTable")
     public ResponseEntity<?> saveStudentSRFromTable(@RequestBody Map<String, String> studentData, Model model){
+        log.info("Inside saveStudentSRFromTable");
         try{
             AtomicInteger counter = new AtomicInteger();
             studentData.forEach((key, value) -> {
@@ -221,6 +228,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_VIEW", type = AccessType.VIEW)
     @GetMapping("/getStudentDetail/{uuid}")
     public ResponseEntity<?> getStudentDetail(@PathVariable("uuid") String uuid, Model model){
+        log.info("Inside getStudentDetail");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
         AcademicStudent students = academicStudentService.getStudentDetailByUuid(UUID.fromString(uuid), academicYear.getId(), school.getId()).orElse(null);
@@ -233,9 +241,9 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT_GRADE", type = AccessType.EDIT)
     @PostMapping("/updateStudentGradeSection")
     public ResponseEntity<?> updateStudentGradeOrSection(@RequestBody Map<String, String> studentData, Model model){
+        log.info("Inside updateStudentGradeOrSection");
         try{
-            System.out.println("student Data>>>>>>>>>>>> "+studentData);
-            //mediumId=1, gradeId=5, sectionId=1, stuId=bfe37aab-d8fe-4481-af94-ae5d871f2ce5, reason=
+            log.debug("updateStudentGradeOrSection studentData={}", studentData);
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             String responseMsg = academicStudentService.updateGradeSection(studentData, academicYear.getId(), school.getId());
@@ -249,6 +257,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.VIEW)
     @PostMapping("/getStudentsForAttendance")
     public ResponseEntity<?> getStudentsForAttendance(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentsForAttendance");
         try{
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
@@ -290,6 +299,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.CREATE)
     @PostMapping("/saveStudentAttendance")
     public ResponseEntity<?> saveStudentsAttendance(@RequestBody List<Map<String, Object>> studentData, Model model){
+        log.info("Inside saveStudentsAttendance");
         try{
             if(studentData.size()==0){
                 return ResponseEntity.ok("error#####No attendance found for students.");
@@ -308,6 +318,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_ATTENDANCE_REPORT", type = AccessType.VIEW)
     @PostMapping("/getStudentsMonthlyAttendance")
     public ResponseEntity<?> getStudentsMonthlyAttendance(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentsMonthlyAttendance");
         try{
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
@@ -343,9 +354,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.VIEW)
     @PostMapping("/downloadAadharSampleFile")
     public ResponseEntity<?> downloadAadharSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
+        log.info("Inside downloadAadharSampleFile");
         String fileName = "Academic_Students_Aadhar_Sample_File.xlsx";
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
                 String grade = requestBody.getOrDefault("gradeId","0");
@@ -384,6 +396,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/upload-aadhar-file")
     public ResponseEntity<?> validateExcelDataForAadhar(@RequestParam("file") MultipartFile file){
+        log.info("Inside validateExcelDataForAadhar");
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateAadharData(file);
         Map<String, List<String[]>> dataMap = new HashMap<>();
         try{
@@ -392,7 +405,7 @@ public class StudentRestController extends BaseController {
                 String outerKey = outerEntry.getKey();
                 Map<String, List<String[]>> innerMap = outerEntry.getValue();
 
-                System.out.println("Outer Key: " + outerKey);
+                log.debug("Processing outer key: {}", outerKey);
                 if("success".equalsIgnoreCase(outerKey)){
                     dataMap.put(outerKey, innerMap.get("DATA"));
                 } else{
@@ -413,9 +426,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/upload-aadhar-data")
     public ResponseEntity<?> uploadAadharData(@RequestBody List<Map<String, String>> tableData, Model model){
+        log.info("Inside uploadAadharData");
         String responseMsg = "";
         try{
-            System.out.println("Received data: " + tableData);
+            log.debug("Received data, size={}", tableData.size());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             responseMsg = studentService.uploadAadhar(tableData, academicYear.getId(), school.getId());
@@ -428,6 +442,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @PostMapping("/saveStudentAadharFromTable")
     public ResponseEntity<?> saveStudentAadharFromTable(@RequestBody Map<String, String> studentData, Model model){
+        log.info("Inside saveStudentAadharFromTable");
         try{
             AtomicInteger counter = new AtomicInteger();
             studentData.forEach((key, value) -> {
@@ -452,9 +467,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_REPORT_SESSION", type = AccessType.VIEW)
     @PostMapping("/getTotalStudentDetails")
     public ResponseEntity<?> getTotalStudentDetails(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getTotalStudentDetails");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -472,9 +488,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_REPORT_GRADE", type = AccessType.VIEW)
     @PostMapping("/getTotalStudentDetailsByGrade")
     public ResponseEntity<?> getTotalStudentDetailsByGrade(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getTotalStudentDetailsByGrade");
         Map<String, Object> receiptData = new HashMap<>();
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -492,9 +509,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @PostMapping("/downloadSampleFileToEnterExamResult")
     public ResponseEntity<?> downloadSampleFileToEnterExamResult(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
+        log.info("Inside downloadSampleFileToEnterExamResult");
         String fileName = "Academic_Students_Exam_Result_Sample_File.xlsx";
         try{
-            System.out.println("requestBody--------> "+requestBody);
+            log.debug("requestBody={}", requestBody);
             if(requestBody!=null){
                 String medium = requestBody.getOrDefault("mediumId","0");
                 String grade = requestBody.getOrDefault("gradeId","0");
@@ -534,6 +552,7 @@ public class StudentRestController extends BaseController {
     @PostMapping("/upload-exam-result-file")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
+        log.info("Inside validateExcelDataForExamResult");
         Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateExamResultData(file);
         Map<String, List<String[]>> dataMap = new HashMap<>();
         try{
@@ -541,7 +560,7 @@ public class StudentRestController extends BaseController {
                 String outerKey = outerEntry.getKey();
                 Map<String, List<String[]>> innerMap = outerEntry.getValue();
 
-                System.out.println("Outer Key: " + outerKey);
+                log.debug("Processing outer key: {}", outerKey);
                 if("success".equalsIgnoreCase(outerKey)){
                     dataMap.put(outerKey, innerMap.get("DATA"));
                 } else{
@@ -563,9 +582,10 @@ public class StudentRestController extends BaseController {
     @PostMapping("/upload-exam-result-data")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
+        log.info("Inside uploadExamResultData");
         String responseMsg = "";
         try{
-            System.out.println("Received data: " + tableData);
+            log.debug("Received data, size={}", tableData.size());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             responseMsg = studentService.uploadExamResult(tableData, academicYear, school);
@@ -578,10 +598,11 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @PostMapping("/getStudentsExamResults")
     public ResponseEntity<?> getSelectedGradeStudentsExamResult(@RequestBody Map<String, String> tableData, Model model){
+        log.info("Inside getSelectedGradeStudentsExamResult");
         String responseMsg = "";
         try{
             if(tableData!=null && !tableData.isEmpty()){
-                System.out.println("Received data: " + tableData);
+                log.debug("Received data, size={}", tableData.size());
                 String medium = tableData.getOrDefault("mediumId","0");
                 String grade = tableData.getOrDefault("gradeId","0");
                 String section = tableData.getOrDefault("sectionId","0");
@@ -637,6 +658,7 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_SEARCH", type = AccessType.VIEW)
     @PostMapping("/searchStudentData")
     public ResponseEntity<?> searchStudentData(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside searchStudentData");
         School school = (School)model.getAttribute("school");
         List<Map<String, Object>> leanList = new ArrayList<>();
         try{
@@ -651,8 +673,7 @@ public class StudentRestController extends BaseController {
                 throw new IllegalArgumentException("request is not valid");
             }
         }catch(Exception e){
-            System.out.println("Error: "+e.getLocalizedMessage());
-            e.printStackTrace();
+            log.error("searchStudentData failed", e);
         }
         return ResponseEntity.ok(leanList);
     }
@@ -662,6 +683,7 @@ public class StudentRestController extends BaseController {
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     @ResponseBody
     public ResponseEntity<?> getStudentsDiscountList(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentsDiscountList");
         School school = (School)model.getAttribute("school");
         List<Map<String, String>> studentDataList;
         Map responseMap = new HashMap<>();

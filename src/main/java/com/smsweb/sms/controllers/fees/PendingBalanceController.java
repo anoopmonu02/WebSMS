@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Pending Balance Collection — completely separate from FeeSubmissionController.
  *
@@ -35,6 +37,8 @@ import java.util.Map;
 @RequestMapping("/fees")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 public class PendingBalanceController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(PendingBalanceController.class);
+
 
     private final PendingBalanceService    pendingBalanceService;
     private final AcademicStudentService   academicStudentService;
@@ -53,6 +57,7 @@ public class PendingBalanceController extends BaseController {
     @CheckAccess(screen = "PENDING_BALANCE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/collect-balance")
     public String collectBalancePage(Model model) {
+        log.info("Inside collectBalancePage");
         return "fees/pendingbalanceform";
     }
 
@@ -65,6 +70,7 @@ public class PendingBalanceController extends BaseController {
             @PathVariable("query") String query,
             @RequestParam(defaultValue = "0") int page,
             Model model) {
+        log.info("Inside searchStudentForPendingBalance");
 
         School      school      = (School)      model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -90,6 +96,7 @@ public class PendingBalanceController extends BaseController {
     public ResponseEntity<?> getPendingBalanceData(
             @PathVariable("id") Long id,
             Model model) {
+        log.info("Inside getPendingBalanceData");
 
         School       school       = (School)       model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -120,6 +127,7 @@ public class PendingBalanceController extends BaseController {
     public String saveCollectBalance(HttpServletRequest request,
                                      RedirectAttributes redirectAttributes,
                                      Model model) {
+        log.info("Inside saveCollectBalance");
         School       school       = (School)       model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
 
@@ -142,6 +150,7 @@ public class PendingBalanceController extends BaseController {
     @CheckAccess(screen = "PENDING_BALANCE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/collect-balance-receipt/{id}")
     public String collectBalanceReceipt(@PathVariable("id") Long id, Model model) {
+        log.info("Inside collectBalanceReceipt");
         Map<String, Object> data = pendingBalanceService.getPendingBalanceReceiptData(id);
         model.addAllAttributes(data);
         return "fees/pending-balance-receipt";

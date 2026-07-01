@@ -12,8 +12,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class CategoryService {
+    private static final Logger log = LoggerFactory.getLogger(CategoryService.class);
+
     private final CategoryRepository categoryRepository;
     @Autowired
     public CategoryService(CategoryRepository categoryRepository){
@@ -23,6 +27,7 @@ public class CategoryService {
     public List<Category> getAllCategories(){return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));}
     //Sort.by(Sort.Direction.ASC, "id")
     public Category saveCategory(Category category) {
+        log.info("Inside saveCategory");
         try{
             return categoryRepository.save(category);
         }catch(DataIntegrityViolationException de){
@@ -37,6 +42,7 @@ public class CategoryService {
     }
 
     public void deleteCategory(Long id) {
+        log.info("Inside deleteCategory");
         categoryRepository.deleteById(id);
     }
 

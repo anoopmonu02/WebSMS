@@ -1,5 +1,7 @@
 package com.smsweb.sms.helper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 @Component
 public class FileHandleHelper {
+    private static final Logger log = LoggerFactory.getLogger(FileHandleHelper.class);
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     private final String FILE_NAME_FORMAT_PREFIX = "ddMMyyyyhhmmss";
     /*private final String SCHOOL_IMG_FOLDER_PATH = new ClassPathResource("static/school/").getFile().getAbsolutePath();
@@ -40,10 +43,11 @@ public class FileHandleHelper {
     }
 
     public String copyImageToGivenDirectory(MultipartFile logo, String imageFolder){
+        log.info("Inside copyImageToGivenDirectory - imageFolder={}", imageFolder);
         String fileName = "";
         try{
             if(!logo.isEmpty()){
-                System.out.println("==== "+logo.getContentType());
+                log.debug("Uploaded file content-type: {}", logo.getContentType());
                 boolean isSizeOrTypeValid = checkValidImageFileAndSize(logo);
                 if(isSizeOrTypeValid){
                     String fileFormatName = new SimpleDateFormat(FILE_NAME_FORMAT_PREFIX).format(new Date());
@@ -51,12 +55,12 @@ public class FileHandleHelper {
                     Path path;
                     if(imageFolder.equalsIgnoreCase("school")){
                         path = Paths.get(SCHOOL_IMG_FOLDER_PATH + File.separator + imageFileName);
-                        System.out.println("path: "+path);
+                        log.debug("Saving school image to: {}", path);
                         long l = Files.copy(logo.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
                         fileName = "Success";
                     } else if(imageFolder.equalsIgnoreCase("students")){
                         path = Paths.get(STUDENT_IMG_FOLDER_PATH + File.separator + imageFileName);
-                        System.out.println("path: "+path);
+                        log.debug("Saving student image to: {}", path);
                         long l = Files.copy(logo.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
                         fileName = "Success";
                     }
@@ -90,6 +94,7 @@ public class FileHandleHelper {
     }
 
     public String saveImage(String imageFolderName, MultipartFile imageFile) throws IOException {
+        log.info("Inside saveImage - imageFolderName={}", imageFolderName);
         String fileName = "";
         try{
             if(!imageFile.isEmpty()){

@@ -18,8 +18,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Collections;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 public class UserController {
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
 
 
     @Autowired
@@ -32,12 +36,14 @@ public class UserController {
 
     @GetMapping("/register")
     public String showRegistrationForm(Model model) {
+        log.info("Inside showRegistrationForm");
         model.addAttribute("user", new UserEntity());
         return "register";
     }
 
     @PostMapping("/register")
     public String registerUser(UserEntity user, RedirectAttributes redirectAttributes) {
+        log.info("Inside registerUser");
         try {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
             Roles userRole = roleRepository.findByName("ROLE_USER");
@@ -53,6 +59,7 @@ public class UserController {
 
     @GetMapping("/login")
     public String login() {
+        log.info("Inside login");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null && authentication.isAuthenticated() &&

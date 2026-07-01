@@ -27,6 +27,8 @@ import com.smsweb.sms.services.permission.PermissionService;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  * Admin controller for managing fine-grained user permissions.
  *
@@ -44,6 +46,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/admin/permissions")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class PermissionAdminController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(PermissionAdminController.class);
+
 
     @Autowired private AppScreenRepository screenRepo;
     @Autowired private UserPermissionRepository permRepo;
@@ -60,6 +64,7 @@ public class PermissionAdminController extends BaseController {
      */
     @GetMapping
     public String listUsers(Model model) {
+        log.info("Inside listUsers");
         List<UserEntity> users;
         if (isSuperAdmin()) {
             users = userRepo.findAllWithRoles();
@@ -90,6 +95,7 @@ public class PermissionAdminController extends BaseController {
      */
     @GetMapping("/user/{userId}")
     public String userPermissions(@PathVariable Long userId, Model model) {
+        log.info("Inside userPermissions");
         UserEntity user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
@@ -143,6 +149,7 @@ public class PermissionAdminController extends BaseController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> savePermissions(
             @RequestBody PermissionSaveRequest request) {
+        log.info("Inside savePermissions");
 
         if (request == null || request.getUserId() == null)
             return badRequest("userId is required");

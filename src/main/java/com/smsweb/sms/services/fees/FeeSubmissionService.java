@@ -38,8 +38,12 @@ import java.time.Year;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class FeeSubmissionService {
+    private static final Logger log = LoggerFactory.getLogger(FeeSubmissionService.class);
+
     private final FeeSubmissionRepository feeSubmissionRepository;
     private final MonthmappingRepository monthmappingRepository;
     private final GradeRepository gradeRepository;
@@ -93,10 +97,12 @@ public class FeeSubmissionService {
     }
 
     public List<FeeSubmission> getAllFeeSubmissionByAcademicYear(Long school_id, Long academic_id){
+        log.info("Inside getAllFeeSubmissionByAcademicYear");
         return feeSubmissionRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
     }
 
     public List<FeeSubmission> getAllFeeSubmissionForAcademicStudent(Long school_id, Long academic_id, Long academic_stu_id){
+        log.info("Inside getAllFeeSubmissionForAcademicStudent");
         return feeSubmissionRepository.findAllBySchool_IdAndAcademicYear_IdAndAcademicStudent_Id(school_id, academic_id, academic_stu_id);
     }
 
@@ -109,6 +115,7 @@ public class FeeSubmissionService {
         return feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(academic_stu_id, "Active");
     }
     public FeeSubmission getLastFeeSubmissionOfStudentForBalance(Long school_id, Long academic_id, Long academic_stu_id){
+        log.info("Inside getLastFeeSubmissionOfStudentForBalance");
         List<FeeSubmission> feeSubmissionList = feeSubmissionRepository.findTopBySchoolIdAndAcademicYearIdAndAcademicStudentIdOrderByIdDesc(school_id, academic_stu_id);
         return feeSubmissionList!=null && !feeSubmissionList.isEmpty()?feeSubmissionList.get(0):null;
     }
@@ -132,6 +139,7 @@ public class FeeSubmissionService {
      */
     @Transactional(readOnly = true)
     public List<FeeSubmission> getActiveFeeSubmissionsForYear(Long schoolId, Long academicId, Long academicStudentId) {
+        log.info("Inside getActiveFeeSubmissionsForYear");
         List<FeeSubmission> submissions = feeSubmissionRepository
                 .findAllBySchoolIdAndAcademicIdAndAcademicStudentId(schoolId, academicId, academicStudentId);
 
@@ -159,6 +167,7 @@ public class FeeSubmissionService {
     }
 
     public Map getPaidMonths(Long school_id, Long academic_id, Long academic_student_id){
+        log.info("Inside getPaidMonths");
         Map paidMonths = new HashMap();
         try{
             List<FeeSubmission> feeSubmissionList = feeSubmissionRepository.findAllBySchoolIdAndAcademicIdAndAcademicStudentId(school_id, academic_id, academic_student_id);
@@ -179,6 +188,7 @@ public class FeeSubmissionService {
     }
 
     public Map getFeeDetailsBasedOnMonth(Long school_id, Long academic_id, Long academic_stu_id, String monthnames, Long grade_id){
+        log.info("Inside getFeeDetailsBasedOnMonth");
         Map resultMap = new HashMap();
         try{
             List monNames = Arrays.stream(monthnames.split("-")).toList();
@@ -309,15 +319,14 @@ public class FeeSubmissionService {
             return effectiveMonthly.compareTo(BigDecimal.ZERO) > 0 ? effectiveMonthly : BigDecimal.ZERO;
 
         } catch(Exception e){
-            e.printStackTrace();
-            System.err.println("calculateFullPaymentForDiscountedStudent failed: " + e.getMessage());
+            log.error("calculateFullPaymentForDiscountedStudent failed", e);
             return BigDecimal.ZERO;
         }
     }
 
     public List<Map<String, Object>> processFeeData(Student student, List<Object[]> feeData, int stuCounting) {
-        //int stuCounting = academicStudentRepository.countByStudent(student);
-        System.out.println("feeDatafeeDatafeeDatafeeDatafeeData " + feeData);
+        log.info("Inside processFeeData");
+        log.debug("processFeeData - feeData size={}", feeData == null ? 0 : feeData.size());
 
         List<Map<String, Object>> resultList = new ArrayList<>();
         if (feeData != null && !feeData.isEmpty()) {
@@ -339,8 +348,7 @@ public class FeeSubmissionService {
                         resultList.add(map);
                     }
                 } catch (ClassCastException | NullPointerException | NumberFormatException e) {
-                    System.err.println("Error processing fee data record: " + e.getMessage());
-                    // Handle the exception according to your application's needs
+                    log.warn("Error processing fee data record: {}", e.getMessage());
                 }
             }
         }
@@ -349,6 +357,7 @@ public class FeeSubmissionService {
     }
 
     public Map getDiscountDetailsBasedOnMonth(Long school_id, Long academic_id, Long academic_stu_id, String monthnames, Long grade_id){
+        log.info("Inside getDiscountDetailsBasedOnMonth");
         Map resultMap = new HashMap();
         try{
             List monNames = Arrays.stream(monthnames.split("-")).toList();
@@ -383,8 +392,7 @@ public class FeeSubmissionService {
                         map.put("amt", (BigDecimal) result[4]);
                         resultList.add(map);
                     } catch (ClassCastException | NullPointerException | NumberFormatException e) {
-                        System.err.println("Error processing fee data record: " + e.getMessage());
-                        // Handle the exception according to your application's needs
+                        log.warn("Error processing discount data record: {}", e.getMessage());
                         resultMap.put("DiscountError", e.getLocalizedMessage());
                     }
                 }
@@ -399,6 +407,7 @@ public class FeeSubmissionService {
 
     @Transactional
     public String generateReceiptNumber(String branchCode) {
+        log.info("Inside generateReceiptNumber");
         int currentYear = Year.now().getValue(); // Get the current year
 
         // Fetch the sequence for the branch and current year
@@ -440,6 +449,7 @@ public class FeeSubmissionService {
 
     @Transactional
     public Map save(Map<String, String[]> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside save");
         Map resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()) {
@@ -566,6 +576,7 @@ public class FeeSubmissionService {
     }
 
     public Map<String, Map> getColumnsValue(Map<String, String[]> paramsMap, List<String> columnsList){
+        log.info("Inside getColumnsValue");
         Map finalMap = new HashMap();
         Map feeMap = new HashMap();
         Map<Feehead, BigDecimal> feeSubMap = new HashMap();
@@ -576,12 +587,9 @@ public class FeeSubmissionService {
                 String key = entry.getKey();
                 String[] values = entry.getValue();
 
-                System.out.println("Key: " + key);
-                System.out.println("Values:" + values[0]);
                 if(columnsList.contains(key)){
                     if(values.length>0 && (key.equalsIgnoreCase("headName") || key.equalsIgnoreCase("months"))){
                         for (String value : values) {
-                            System.out.println(" - " + value);
                             if(key.equalsIgnoreCase("headName")){
                                 //feesubmissionsub model
                                 feeSubMap.put(feeheadRepository.findById(Long.parseLong(value.split("###")[2])).get(), new BigDecimal(value.split("###")[1]));
@@ -624,15 +632,15 @@ public class FeeSubmissionService {
                                         feeMap.put(key, value);
                                         break;
                                     default:
-                                        System.out.println("Unknown key: " + key);
+                                        log.warn("Unknown key encountered: {}", key);
                                         break;
                                 }
                             } catch (NumberFormatException e) {
-                                System.err.println("Invalid number format for key: " + key + " and value: " + value);
+                                log.warn("Invalid number format for key: {} and value: {}", key, value);
                             } catch (ParseException e) {
-                                System.err.println("Error parsing date for key: " + key + " and value: " + value);
+                                log.warn("Error parsing date for key: {} and value: {}", key, value);
                             } catch (Exception e) {
-                                System.err.println("Error processing key: " + key + " with value: " + value + " - " + e.getMessage());
+                                log.warn("Error processing key: {} with value: {} - {}", key, value, e.getMessage());
                             }
                         }
                     }
@@ -649,6 +657,7 @@ public class FeeSubmissionService {
     }
 
     public Map calculateFeeReminder(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateFeeReminder");
         Map responseMap  = new HashMap();
         try{
             Map<Long, Map> finalDataMap = new HashMap<>();
@@ -661,11 +670,7 @@ public class FeeSubmissionService {
                 if(paramsMap!=null && paramsMap.containsKey("month")){
                     months = paramsMap.get("month");
                 }
-                System.out.println("Grade: "+gradeId);
-                System.out.println("Sec: "+secId);
-                System.out.println("Medium: "+mediumId);
-                System.out.println("Months: "+months);
-                System.out.println("Date: "+lastDate);
+                log.debug("calculateFeeReminder - gradeId={}, secId={}, mediumId={}, months={}, lastDate={}", gradeId, secId, mediumId, months, lastDate);
                 List<Long> monIdList = new ArrayList<>();
 
                 for(int i=0;i<months.split("-").length;i++){
@@ -680,7 +685,7 @@ public class FeeSubmissionService {
                 List<AcademicStudent> academicStudentList = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school.getId(), mediumId, gradeId, secId, academicYear.getId(), "Active");
                 //AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
                 if(academicStudentList!=null && !academicStudentList.isEmpty()){
-                    System.out.println("Academic Students: "+academicStudentList.size());
+                    log.debug("calculateFeeReminder - academicStudentList size={}", academicStudentList.size());
                     for(AcademicStudent academicStudent: academicStudentList){
                         Map stuMap = new HashMap<>();
                         BigDecimal balanceAmount = BigDecimal.ZERO;
@@ -699,7 +704,7 @@ public class FeeSubmissionService {
                                     balanceAmount = submission.getFeeSubmissionBalance().getBalanceAmount();
                                 }
                             }
-                            System.out.println("submittedMonthsList: "+submittedMonthsList);
+                            log.debug("submittedMonthsList size={}", submittedMonthsList == null ? 0 : submittedMonthsList.size());
                             if(submittedMonthsList!=null && !submittedMonthsList.isEmpty()){
                                 if(submittedMonthsList.containsAll(selectedMonthsList)){
                                     //All selected months fee already submitted
@@ -715,28 +720,25 @@ public class FeeSubmissionService {
                                     List<MonthMaster> restMonthsList = selectedMonthsList.stream()
                                             .filter(monthMaster -> !submittedMonthsList.contains(monthMaster))
                                             .collect(Collectors.toList());
-                                    System.out.println("Rest Months: "+restMonthsList);
+                                    log.debug("restMonthsList size={}", restMonthsList.size());
                                     BigDecimal amt = BigDecimal.ZERO;
                                     BigDecimal fineAmount = BigDecimal.ZERO;
                                     BigDecimal discountAmount = BigDecimal.ZERO;
                                     String headNames  = "";
                                     //Calculate Fee for rest months
                                     List<Object[]> amtHeadList = feeclassmapRepository.findAmountAndFeeHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId);
-                                    System.out.println("-----");
                                     String feeTypeToexclude = academicStudent.getStudent().getStudentType().equalsIgnoreCase("Old")?"Admission Fee":"Annual Fee";
                                     if(amtHeadList!=null && !amtHeadList.isEmpty()){
                                         for(Object[] rowData : amtHeadList){
                                             if(!feeTypeToexclude.equalsIgnoreCase(rowData[1].toString())){
                                                 headNames+=rowData[1]+", ";
-                                                System.out.println("rowData[0] "+rowData[0]);
-                                                System.out.println("rowData[0] "+rowData[0].getClass());
                                                 amt=amt.add((BigDecimal) rowData[0]);
                                             }
                                         }
                                     } else{
                                         responseMap.put("FEE_CLASS_MAP_NOT_FOUND","Fee-class-map not found");
                                     }
-                                    System.out.println("headNames "+headNames+" amt:"+amt);
+                                    log.debug("restMonths headNames={}, amt={}", headNames, amt);
                                     //Calculate Fine
                                     //int monthDiff = monthmappingService.monthDifference(14L, 4L, lastMonthName, subDate);
                                     int monthDiff = monthmappingRepository.findMonthDifference(academicYear.getId(), school.getId(), restMonthsList.get(0).getMonthName(), new SimpleDateFormat("dd/MMM/yyyy").format(new Date()));
@@ -770,8 +772,6 @@ public class FeeSubmissionService {
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
-                                                    System.out.println("rowData[0] "+rowData[0]);
-                                                    System.out.println("rowData[0] "+rowData[0].getClass());
                                                     discountAmount=discountAmount.add((BigDecimal) rowData[0]);
                                                 }
                                             }
@@ -780,7 +780,7 @@ public class FeeSubmissionService {
                                             //responseMap.put("error","Discount-class-map not found");
                                         }
                                     } else{
-                                        System.out.println("Discount not assigned to student: "+academicStudent.getStudent().getStudentName());
+                                        log.debug("Discount not assigned to student id={}", academicStudent.getId());
                                     }
                                     String montnNames = "";
                                     for(MonthMaster monthMaster : restMonthsList){
@@ -798,7 +798,7 @@ public class FeeSubmissionService {
                             }
                         } else{
                             //No fee submission happen till
-                            System.out.println("No Fee submitted "+academicStudent.getStudent().getStudentName());
+                            log.debug("No fee submitted yet for student id={}", academicStudent.getId());
                             BigDecimal amt = BigDecimal.ZERO;
                             BigDecimal fineAmount = BigDecimal.ZERO;
                             BigDecimal discountAmount = BigDecimal.ZERO;
@@ -819,7 +819,7 @@ public class FeeSubmissionService {
                                             }
                                         }
                                     } else{
-                                        System.out.println("No fee class mapping found for class: "+gradeId);
+                                        log.warn("No fee class mapping found for gradeId={}", gradeId);
                                         //responseMap.put("FEE_CLASS_MAP_NOT_FOUND","Fee-class-map not found");
                                         responseMap.put("error","Fee-class-map not found");
                                     }
@@ -867,8 +867,6 @@ public class FeeSubmissionService {
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
-                                                    System.out.println("rowData[0] "+rowData[0]);
-                                                    System.out.println("rowData[0] "+rowData[0].getClass());
                                                     discountAmt=discountAmt.add((BigDecimal) rowData[0]);
                                                 }
                                             }
@@ -876,7 +874,7 @@ public class FeeSubmissionService {
                                             responseMap.put("DISCOUNT_CLASS_MAP_NOT_FOUND","Discount-class-map not found");
                                         }
                                     } else{
-                                        System.out.println("Discount not assigned to student: "+academicStudent.getStudent().getStudentName());
+                                        log.debug("Discount not assigned to student id={}", academicStudent.getId());
                                     }
                                     String montnNames = "";
                                     for(MonthMaster monthMaster : allMonthsList){
@@ -902,7 +900,6 @@ public class FeeSubmissionService {
                     responseMap.put("STUDENT_NOT_FOUND","Student Not found!");
                 }
             }
-            //System.out.println("finalData: "+finalDataMap);
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
             e.printStackTrace();
@@ -913,6 +910,7 @@ public class FeeSubmissionService {
 
     @Transactional
     public int calculateFine(List<String> selectedMonths, School school, AcademicYear academicYear, int maxFineAmount, Fine fine){
+        log.info("Inside calculateFine");
         int finalFineAmount = 0;
         try{
             for(String mnName : selectedMonths){
@@ -946,6 +944,7 @@ public class FeeSubmissionService {
     }
 
     public Map<String, Object> getFeeReceiptData(Long id, School school, AcademicYear academicYear) {
+        log.info("Inside getFeeReceiptData");
         Map<String, Object> modelData = new HashMap<>();
         try {
             SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
@@ -1028,16 +1027,17 @@ public class FeeSubmissionService {
             modelData.put("error", e.getLocalizedMessage());
             e.printStackTrace();
         }
-        System.out.println("modelData>>>>>>>> "+modelData);
+        log.debug("getFeeReceiptDataForModel result keys={}", modelData.keySet());
         return modelData;
     }
 
     public FeeSubmission getFeeDetailsForReceipt(String receipt_no, School school, AcademicYear academicYear){
+        log.info("Inside getFeeDetailsForReceipt");
         try{
             String finalReceiptNo = receipt_no.trim().replace("-","/");
             //Optional<FeeSubmission> feesubmission = feeSubmissionRepository.findByReceiptNoAndStatusAndSchool_IdAndAcademicYear_Id(receipt_no, "Active", school.getId(), academicYear.getId());
             FeeSubmission feesubmission = feeSubmissionRepository.findByReceiptNoIgnoreCaseAndStatusAndSchoolIdAndAcademicYearId(finalReceiptNo, "Active", school.getId(), academicYear.getId());
-            System.out.println("submission: "+feesubmission);
+            log.debug("getFeeDetailsForReceipt - found={}", feesubmission != null);
             return feesubmission!=null? feesubmission : null;
         }catch(Exception e){
             e.printStackTrace();
@@ -1046,6 +1046,7 @@ public class FeeSubmissionService {
     }
 
     public Map calculateFeeSubmissionUserWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateFeeSubmissionUserWise");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
@@ -1053,7 +1054,7 @@ public class FeeSubmissionService {
                 if(paramsMap.containsKey("selectedOption")){
                     if(paramsMap.get("selectedOption").equalsIgnoreCase("today")){
                         String currentDate = paramsMap.get("todayDate");
-                        System.out.println("currentDate:"+currentDate);
+                        log.debug("currentDate={}", currentDate);
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForCurrentDate(currentDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                         List<FeeSubmission> todayFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(), currentDate, null, null);
@@ -1067,7 +1068,7 @@ public class FeeSubmissionService {
                     } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
                         String startDate = paramsMap.get("startDate");
                         String endDate = paramsMap.get("endDate");
-                        System.out.println("start-end:"+startDate+"-"+endDate);
+                        log.debug("dateRange start={}, end={}", startDate, endDate);
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                         List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(),  null, startDate, endDate);
@@ -1081,7 +1082,6 @@ public class FeeSubmissionService {
                     }
                 }
             }
-            //System.out.println("finalData: "+finalDataMap);
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
             e.printStackTrace();
@@ -1091,6 +1091,7 @@ public class FeeSubmissionService {
     }
 
     public Map calculateCancelledFees(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateCancelledFees");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
@@ -1115,11 +1116,12 @@ public class FeeSubmissionService {
     }
 
     public Map calculateTotalSubmittedFees(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateTotalSubmittedFees");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                System.out.println("paramsMap:: "+paramsMap);
+                log.debug("paramsMap={}", paramsMap);
                 String medium = paramsMap.get("medium");
 
                 List<FeeSubmission> totalFeeCollectionDetails = feeSubmissionRepository.findAllFeeSubmittedDetails(school.getId(), academicYear.getId(), Long.parseLong(medium));
@@ -1140,11 +1142,12 @@ public class FeeSubmissionService {
     }
 
     public Map calculateTotalSubmittedFeesGradeWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateTotalSubmittedFeesGradeWise");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
             if(paramsMap!=null && !paramsMap.isEmpty()){
-                System.out.println("paramsMap:: "+paramsMap);
+                log.debug("paramsMap={}", paramsMap);
                 String medium = paramsMap.get("medium");
                 String section = paramsMap.get("section");
                 String grade = paramsMap.get("grade");
@@ -1167,6 +1170,7 @@ public class FeeSubmissionService {
     }
 
     public Map getSubmittedFeeDetailForGrade(School school, AcademicYear academicYear, Map<String, String> paramsMap){
+        log.info("Inside getSubmittedFeeDetailForGrade");
         Map responseMap  = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()){
@@ -1237,7 +1241,6 @@ public class FeeSubmissionService {
                                         BigDecimal discountAppliedForMonth = BigDecimal.ZERO;
                                         //Calculating Discount based on month
                                         if (discountAmt.compareTo(BigDecimal.ZERO) > 0 && feeSubmission.getDiscounthead()!=null) {
-                                            //System.out.println("Discount is greater than 0");
                                             List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId());
                                             feeDetailMap.put("discountApplied", BigDecimal.valueOf(0.0));
                                             if(discountBasedOnMonths!=null && !discountBasedOnMonths.isEmpty()){
@@ -1284,11 +1287,9 @@ public class FeeSubmissionService {
                             if(monthCount<12){
                                 depositedFeeList = setBlankForNotSubmittedMonth(monthCount, student, depositedFeeList);
                             }
-                            //System.out.println("depositedFeeList:"+depositedFeeList);
                             stuFeeSubMap.put(""+student.getId(), depositedFeeList);
                         } else{
                             depositedFeeList = setBlankForNotSubmittedMonth(monthCount, student, depositedFeeList);
-                            //System.out.println("depositedFeeList:"+depositedFeeList);
                             stuFeeSubMap.put(""+student.getId(), depositedFeeList);
                         }
                     }
@@ -1309,6 +1310,7 @@ public class FeeSubmissionService {
     }
 
     public List setBlankForNotSubmittedMonth(int monthCount, AcademicStudent student, List depositedFeeList){
+        log.info("Inside setBlankForNotSubmittedMonth");
         try{
             for(int k=monthCount;k<12;k++){
                 Map feeDetailMap = new HashMap();
@@ -1334,6 +1336,7 @@ public class FeeSubmissionService {
     }
 
     public BigDecimal getTodayFeeCollection(Long school, Long academic){
+        log.info("Inside getTodayFeeCollection");
         try{
             BigDecimal totalFeeSubmitted = feeSubmissionRepository.getTodayTotalFeeSubmission(school, academic);
             if(totalFeeSubmitted.compareTo(BigDecimal.ZERO) > 0){
@@ -1346,10 +1349,11 @@ public class FeeSubmissionService {
     }
 
     public List calculateTotalGradewiseFees(Long school, Long academic){
+        log.info("Inside calculateTotalGradewiseFees");
         try{
             //Get All classes
             List<Object[]> gradeSectionList = academicStudentRepository.getGradesAndSectionList(school, academic, "Active");
-            System.out.println("gradeSectionList: "+gradeSectionList);
+            log.debug("calculateTotalGradewiseFees - gradeSectionList size={}", gradeSectionList.size());
             if(!gradeSectionList.isEmpty()){
                 List<List> finalDataList = new ArrayList<>();
                 Map<Long, List<Long>> gradeSectionMap = new HashMap<>();
@@ -1361,7 +1365,6 @@ public class FeeSubmissionService {
                     Long gradeId = (Long) row[2];
                     Long sectionId = (Long) row[3];
                     Long students = (Long) row[4];
-                    System.out.println("Students:m "+students);
                     // Grade-Section IDs mapping
                     gradeSectionMap
                             .computeIfAbsent(gradeId, k -> new ArrayList<>())
@@ -1373,12 +1376,11 @@ public class FeeSubmissionService {
                             .add(sectionName);
                     studentTotal.put(gradeName+"###"+sectionName, students);
                 }
-                System.out.println("GRADES::::: "+gradeSectionMap.keySet());
+                log.debug("gradeSectionMap keys={}", gradeSectionMap.keySet());
                 List<Object[]> feeAmountDetails = feeSubmissionRepository.getGradewiseTutionFeesCurrentMonth(school, academic, new ArrayList<>(gradeSectionMap.keySet()));
 
-                System.out.println("feeAmountDetails: "+feeAmountDetails);
+                log.debug("feeAmountDetails size={}", feeAmountDetails.size());
                 for(Object[] objLst: feeAmountDetails){
-                    System.out.println("Grade:"+objLst[2]+" Amount:"+objLst[0]);
                     if(objLst[1]!=null && gradeSectionNameMap.containsKey(objLst[2])){
                         List<String> sectionList = gradeSectionNameMap.get(objLst[2]);
                         for(String section: sectionList){
@@ -1398,7 +1400,6 @@ public class FeeSubmissionService {
                             BigDecimal totalFeesIncome = feeAmount.multiply(BigDecimal.valueOf(noOfStudents));
                             list.add(totalFeesIncome);
                             //Add discount detail
-                            System.out.println("class: school:"+school.getClass()+" academic: "+academic.getClass()+" grade: "+gradeName.getClass()+"-"+section.getClass());
                             List<Object[]> discountDetails = feeSubmissionRepository.getStudentDiscountSummary(academic, school, gradeName, section);
                             //List<Object[]> discountDetails = feeSubmissionRepository.getStudentDiscountSummary(school, academic, gradeName, section, monthId);
                             Long studentCountForDiscount = 0L;
@@ -1407,14 +1408,12 @@ public class FeeSubmissionService {
                                 for(Object[] discountDetail : discountDetails){
                                     studentCountForDiscount += (Long)discountDetail[0];
                                     studentAmountSumForDiscount = studentAmountSumForDiscount.add((BigDecimal) discountDetail[2]);
-                                    System.out.println("Duscoiunt: "+discountDetail[0]+" total: "+discountDetail[2]+" Grade:"+discountDetail[3]+", "+discountDetail[4]+"== "+studentAmountSumForDiscount);
                                 }
                             }
                             list.add(studentCountForDiscount);
                             list.add(studentAmountSumForDiscount);
                             BigDecimal incomeAmount  = totalFeesIncome.subtract(studentAmountSumForDiscount);
                             list.add(incomeAmount);
-                            System.out.println("discountDetails: "+discountDetails);
                             //add total discount fees
                             finalDataList.add(list);
                         }
@@ -1422,7 +1421,7 @@ public class FeeSubmissionService {
                     }
                 }
                 //Get tution fee amount for classes
-                System.out.println("finalDataList: "+finalDataList);
+                log.debug("calculateTotalGradewiseFees - finalDataList size={}", finalDataList.size());
                 return finalDataList;
             } else{
                 new ArrayList<>();
@@ -1435,6 +1434,7 @@ public class FeeSubmissionService {
     }
 
     public Map cancelSubmittedFeeForStudent(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside cancelSubmittedFeeForStudent");
         Map<String, String> responseMap  = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()){
@@ -1443,7 +1443,6 @@ public class FeeSubmissionService {
                 AcademicStudent student = academicStudentRepository.findByAcademicYearAndSchoolAndAcademicStudentId(academicYear.getId(), school.getId(), id);
                 if(student!=null && student.getStatus().equalsIgnoreCase("active")){
                     Long feeId = paramsMap.get("feeId")!=null? Long.parseLong(paramsMap.get("feeId")):0L;
-                    System.out.println("islatest::::: "+feeSubmissionRepository.findLatestSubmissionId(id, "Active", academicYear.getId()));
                     Long isLatest = feeSubmissionRepository.findLatestSubmissionId(id, "Active", academicYear.getId());
                     if (!feeId.equals(isLatest)) {
                         responseMap.put("error", "Only latest fee submission can be processed");
@@ -1460,7 +1459,7 @@ public class FeeSubmissionService {
             } else{
                 responseMap.put("error","No matching data found.");
             }
-            System.out.println("responseMap: "+responseMap);
+            log.debug("cancelSubmittedFeeForStudent responseMap keys={}", responseMap.keySet());
             //responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
             e.printStackTrace();
@@ -1481,6 +1480,7 @@ public class FeeSubmissionService {
     }
 
     public Map calculateFeeSubmissionHeadWise(Map<String, String> paramsMap, School school, AcademicYear academicYear){
+        log.info("Inside calculateFeeSubmissionHeadWise");
         Map responseMap  = new HashMap();
         try{
             Map<String, Object> finalDataMap = new HashMap<>();
@@ -1488,13 +1488,13 @@ public class FeeSubmissionService {
                 if(paramsMap.containsKey("selectedOption")){
                     if(paramsMap.get("selectedOption").equalsIgnoreCase("today")){
                         String currentDate = paramsMap.get("todayDate");
-                        System.out.println("currentDate:"+currentDate);
+                        log.debug("currentDate={}", currentDate);
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.getFeeSubmissionHeadWiseToday(currentDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                     } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
                         String startDate = paramsMap.get("startDate");
                         String endDate = paramsMap.get("endDate");
-                        System.out.println("start-end:"+startDate+"-"+endDate);
+                        log.debug("dateRange start={}, end={}", startDate, endDate);
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.getFeeSubmissionHeadWiseAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                     } else if(paramsMap.get("selectedOption").equalsIgnoreCase("gradewise")){
@@ -1533,7 +1533,6 @@ public class FeeSubmissionService {
                     }
                 }
             }
-            //System.out.println("finalData: "+finalDataMap);
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
             e.printStackTrace();
@@ -1601,6 +1600,7 @@ public class FeeSubmissionService {
     //              fee_class_map loaded once per grade (cached in map).
     // ─────────────────────────────────────────────────────────────────────────────
     public Map<String, Object> calculatePendingFeeSummary(Map<String, String> requestBody, School school, AcademicYear academicYear) {
+        log.info("Inside calculatePendingFeeSummary");
         Map<String, Object> result = new HashMap<>();
         try {
             // ── 1. Parse inputs ────────────────────────────────────────────────

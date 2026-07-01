@@ -46,6 +46,8 @@ public class OpeningBalanceController {
 
     @GetMapping
     public String showPage(Model model) {
+        log.info("Inside showPage");
+        log.info("Inside showPage");
         model.addAttribute("schools", schoolRepository.findAllByStatus("Active"));
         model.addAttribute("page", "plain");
         return "admin/openingBalance";
@@ -55,6 +57,8 @@ public class OpeningBalanceController {
     @GetMapping("/active-year")
     @ResponseBody
     public Map<String, Object> getActiveYear(@RequestParam Long schoolId) {
+        log.info("Inside getActiveYear");
+        log.info("Inside getActiveYear");
         AcademicYear ay = academicyearRepository.findActiveBySchoolId(schoolId);
         if (ay == null) return Map.of();
         return Map.of("id", ay.getId(), "sessionFormat", ay.getSessionFormat());
@@ -66,6 +70,8 @@ public class OpeningBalanceController {
                           @RequestParam MultipartFile file,
                           Model model,
                           RedirectAttributes redirectAttributes) {
+        log.info("Inside preview");
+        log.info("Inside preview");
         model.addAttribute("schools", schoolRepository.findAllByStatus("Active"));
         model.addAttribute("page", "plain");
 
@@ -108,6 +114,8 @@ public class OpeningBalanceController {
                        @RequestParam(required = false) List<String> amounts,
                        @RequestParam(required = false) List<String> remarks,
                        Model model) {
+        log.info("Inside save");
+        log.info("Inside save");
         model.addAttribute("schools", schoolRepository.findAllByStatus("Active"));
         model.addAttribute("page", "plain");
 

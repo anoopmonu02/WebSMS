@@ -15,8 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class DiscountclassmapService {
+    private static final Logger log = LoggerFactory.getLogger(DiscountclassmapService.class);
+
 
     private final DiscountclassmapRepository repository;
     private final UserRepository userRepository;
@@ -28,21 +32,25 @@ public class DiscountclassmapService {
     }
 
     public List<DiscountClassMap> getAllDiscountClassMapping(Long school_id, Long academic_id){
+        log.info("Inside getAllDiscountClassMapping");
         return repository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
     }
 
     public List<DiscountClassMap> getAllDiscountClassMappingByGrade(Long school_id, Long academic_id, Long grade_id){
+        log.info("Inside getAllDiscountClassMappingByGrade");
         return repository.findAllByGrade_IdAndSchool_IdAndAcademicYear_Id(grade_id,school_id, academic_id);
     }
 
     @Transactional
     public List<DiscountClassMap> saveAllDiscountClassMap(List<DiscountClassMap> discountClassMaps){
+        log.info("Inside saveAllDiscountClassMap");
         List<DiscountClassMap> discountClassMapList = repository.saveAll(discountClassMaps);
         return discountClassMapList;
     }
 
     @Transactional
     public DiscountClassMap save(DiscountClassMap fcm){
+        log.info("Inside save");
         DiscountClassMap discountClassMap = repository.save(fcm);
         return discountClassMap;
     }
@@ -51,10 +59,12 @@ public class DiscountclassmapService {
         return repository.findById(id);
     }
     public Optional<DiscountClassMap> getDiscountClassMapByDiscountName(String discountName, Long academic_id, Long school_id, Long grade_id){
+        log.info("Inside getDiscountClassMapByDiscountName");
         return repository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(discountName, academic_id, school_id, grade_id);
     }
 
     public String delete(Long id){
+        log.info("Inside delete");
         try{
             repository.deleteById(id);
         }catch(Exception e){
@@ -65,6 +75,7 @@ public class DiscountclassmapService {
     }
 
     public UserEntity getLoggedInUser() {
+        log.info("Inside getLoggedInUser");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();

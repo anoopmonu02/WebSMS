@@ -16,8 +16,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
 
     @Autowired
     private UserRepository userRepository;
@@ -32,6 +36,7 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public void saveUser(UserEntity userEntity) throws DuplicateUserException {
+        log.info("Inside saveUser");
         try {
             // Save logic based on the userType
 
@@ -47,15 +52,18 @@ public class UserService {
 
 
     public UserEntity findByEmail(String email) {
+        log.info("Inside findByEmail");
         return userRepository.findByEmail(email);
     }
 
     public void updatePassword(UserEntity user, String newPassword) {
+        log.info("Inside updatePassword");
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 
     public UserEntity getLoggedInUser() {
+        log.info("Inside getLoggedInUser");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();

@@ -11,8 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class GradeService {
+    private static final Logger log = LoggerFactory.getLogger(GradeService.class);
+
     private final GradeRepository gradeRepository;
 
     @Autowired
@@ -25,6 +29,7 @@ public class GradeService {
     }
 
     public Grade saveGrade(Grade grade) {
+        log.info("Inside saveGrade");
         try{
             return gradeRepository.save(grade);
         }catch(DataIntegrityViolationException de){
@@ -39,6 +44,7 @@ public class GradeService {
     }
 
     public void deleteGrade(Long id) {
+        log.info("Inside deleteGrade");
         gradeRepository.deleteById(id);
     }
 }

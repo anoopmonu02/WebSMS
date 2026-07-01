@@ -30,10 +30,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')")
 @Controller
 @RequestMapping("/fees")
 public class FeeSubmissionController extends BaseController {
+    private static final Logger log = LoggerFactory.getLogger(FeeSubmissionController.class);
+
 
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
@@ -62,10 +66,11 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/fee-submit-form")
     public String getFeeSubmissionForm(Model model){
+        log.info("Inside getFeeSubmissionForm");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
-        System.out.println(monthMappingList);
+        log.debug("getFeeSubmissionForm - monthMappingList size={}", monthMappingList.size());
         model.addAttribute("monthmapping", monthMappingList);
         model.addAttribute("feesubmissionobj", new FeeSubmission());
         model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
@@ -75,20 +80,10 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.CREATE)
     @PostMapping("/feesubmit")
     public String saveFeeSubmission(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){
+        log.info("Inside saveFeeSubmission");
         try{
             Map paramMap = request.getParameterMap();
-            System.out.println("==== "+paramMap.keySet());
-            /*for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet()) {
-                String key = entry.getKey();
-                String[] values = entry.getValue();
-
-                System.out.println("Key: " + key);
-                System.out.println("Values:");
-                for (String value : values) {
-                    System.out.println(" - " + value);
-                }
-                System.out.println(); // Newline for better readability
-            }*/
+            log.debug("saveFeeSubmission request params: {}", paramMap.keySet());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
             Map responseMap = feeSubmissionService.save(paramMap, school, academicYear);
@@ -117,6 +112,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/receipt")
     public String getFeeReceiptPage(Model model){
+        log.info("Inside getFeeReceiptPage");
         /*try{
             AcademicStudent academicStudent = academicStudentService.getAcademicStudent(id).orElse(null);
             if(academicStudent!=null){
@@ -141,62 +137,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)
     @GetMapping("/receipt-print/{id}")
     public String getFeeReceipt(@PathVariable("id")Long id, Model model){
-        /*try{
-            SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
-            SimpleDateFormat sf1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            FeeSubmission feeSubmission = feeSubmissionService.getFeeSubmissionById(id).orElse(null);
-            AcademicStudent academicStudent = feeSubmission.getAcademicStudent();
-            School school = (School)model.getAttribute("school");
-            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-            List<String> slipDateList = new ArrayList<>();
-            if(academicStudent!=null && feeSubmission!=null){
-                model.addAttribute("student", academicStudent);
-                model.addAttribute("school", academicStudent.getSchool());
-                model.addAttribute("academicYear", academicStudent.getAcademicYear().getSessionFormat());
-                model.addAttribute("hasStudent", academicStudent!=null);
-                //FeeSubmission feeSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(4L, 0L, id);
-                model.addAttribute("hasFeeSubmission", feeSubmission!=null);
-                if(feeSubmission!=null){
-                    model.addAttribute("feeSubmission", feeSubmission);
-                    HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
-                    List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
-                    List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
-                    if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
-                        for(FeeSubmission submission: feeSubmissionList){
-                            List<FeeSubmissionMonths> feeSubmissionMonthsList = submission.getFeeSubmissionMonths();
-                            if(feeSubmissionMonthsList!=null && !feeSubmissionMonthsList.isEmpty()){
-                                for(FeeSubmissionMonths feeMonths: feeSubmissionMonthsList){
-                                    submittedMonthMap.put(feeMonths.getMonthMaster(), submission.getFeeSubmissionDate());
-                                }
-                            }
-                        }
-                    }
-                    System.out.println("submittedMonthMap "+submittedMonthMap);
-                    int i = 1;
-                    for(MonthMapping mm: monthMappingList){
-                        String dateString = "Month-"+ i +" ####("+mm.getMonthMaster().getMonthName().toUpperCase()+"): ####";
-                        if(submittedMonthMap.containsKey(mm.getMonthMaster())){
-                            dateString+="PAID " + sf.format(submittedMonthMap.get(mm.getMonthMaster()));
-                        }
-                        slipDateList.add(dateString);
-                        i++;
-                    }
-                    model.addAttribute("feeSubmittedMonths", slipDateList);
-                    System.out.println("feeSubmittedMonths: "+slipDateList);
-                    //Calculate the fee
-                    model.addAttribute("feesublist", feeSubmission.getFeeSubmissionSub());
-                } else{
-                    model.addAttribute("feeSubmissionError", "Fee not found for: "+academicStudent.getStudent().getStudentName()+"!");
-                }
-
-            } else{
-                model.addAttribute("studentError", "Fees Object/Student not found!");
-            }
-        }catch(Exception e){
-            e.printStackTrace();
-            model.addAttribute("error", e.getLocalizedMessage());
-        }*/
-
+        log.info("Inside getFeeReceipt");
         School school = (School) model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
 
@@ -209,6 +150,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REMINDER", type = AccessType.VIEW)
     @GetMapping("fee-reminder")
     public String reminderpage(Model model){
+        log.info("Inside reminderpage");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
@@ -222,6 +164,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_CANCEL", type = AccessType.VIEW)
     @GetMapping("/fee-cancel")
     public String cancelFeePage(Model model){
+        log.info("Inside cancelFeePage");
         return "fees/feecancel";
 
     }
@@ -229,6 +172,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_USER_WISE", type = AccessType.VIEW)
     @GetMapping("/fees-user-wise-collection")
     public String userwiseCollection(Model model){
+        log.info("Inside userwiseCollection");
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             boolean isAdmin = authentication.getAuthorities()
@@ -245,6 +189,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_HEAD_WISE", type = AccessType.VIEW)
     @GetMapping("/fees-head-wise-collection-summary")
     public String headwiseCollectionSummary(Model model){
+        log.info("Inside headwiseCollectionSummary");
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             boolean isAdmin = authentication.getAuthorities()
@@ -270,6 +215,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_CANCELLED", type = AccessType.VIEW)
     @GetMapping("/fees-drop-off-collection")
     public String feesCancellation(Model model){
+        log.info("Inside feesCancellation");
         model.addAttribute("page", "datatable");
         return "fees/fees_cancelled";
     }
@@ -278,6 +224,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_TOTAL_SUBMITTED", type = AccessType.VIEW)
     @GetMapping("/fees-submitted-total-detail")
     public String totalFeeSubmissionDetail(Model model){
+        log.info("Inside totalFeeSubmissionDetail");
         model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("page", "datatable");
         return "fees/total_fee_submitted_details";
@@ -286,6 +233,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_GRADE_WISE", type = AccessType.VIEW)
     @GetMapping("fees-submitted-total-detail-grade-wise")
     public String totalFeeSubmittedGradeWise(Model model){
+        log.info("Inside totalFeeSubmittedGradeWise");
         model.addAttribute("grades",gradeService.getAllGrades());
         model.addAttribute("sections",sectionService.getAllSections());
         model.addAttribute("mediums", mediumService.getAllMediums());
@@ -296,6 +244,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_PENDING_SUMMARY_REPORT", type = AccessType.VIEW)
     @GetMapping("fees-pending-summary-report")
     public String feePendingSummaryReport(Model model){
+        log.info("Inside feePendingSummaryReport");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
@@ -312,6 +261,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_PENDING", type = AccessType.VIEW)
     @GetMapping("fees-pending-total-report")
     public String totalFeePending(Model model){
+        log.info("Inside totalFeePending");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
@@ -327,6 +277,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_DEPOSITED", type = AccessType.VIEW)
     @GetMapping("fees-total-deposited-report")
     public String totalDepositedFee(Model model){
+        log.info("Inside totalDepositedFee");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
@@ -341,6 +292,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_PENDING", type = AccessType.VIEW)
     @GetMapping("fees-pending-report")
     public String feePendingReport(Model model){
+        log.info("Inside feePendingReport");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
@@ -356,6 +308,7 @@ public class FeeSubmissionController extends BaseController {
     @CheckAccess(screen = "FEE_REPORT_GRADEWISE_INCOME", type = AccessType.VIEW)
     @GetMapping("/fees-total-gradewise-income-report")
     public String gradeWiseFeeIncomeDetail(Model model){
+        log.info("Inside gradeWiseFeeIncomeDetail");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         List dataMap = feeSubmissionService.calculateTotalGradewiseFees(school.getId(), academicYear.getId());

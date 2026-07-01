@@ -14,8 +14,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class MonthmappingService {
+    private static final Logger log = LoggerFactory.getLogger(MonthmappingService.class);
+
     private final MonthmappingRepository monthmappingRepository;
     private final MonthMasterRepository monthMasterRepository;
     private final UserService userService;
@@ -28,10 +32,12 @@ public class MonthmappingService {
     }
 
     public List<MonthMapping> getAllMonthMapping(Long academicYear_id, Long school_id){
+        log.info("Inside getAllMonthMapping");
         return monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear_id, school_id);
     }
 
     public int monthDifference(Long academicYear_id, Long school_id, String monnm, String subdt){
+        log.info("Inside monthDifference");
         try {
             return monthmappingRepository.findMonthDifference(academicYear_id, school_id, monnm, subdt);
         } catch (Exception e) {
@@ -42,6 +48,7 @@ public class MonthmappingService {
     }
 
     public int currentDateDifference(String feeDate, String subDate){
+        log.info("Inside currentDateDifference");
         try {
             return monthmappingRepository.currentFeeDateDifference(feeDate, subDate);
         } catch (Exception e) {
@@ -52,6 +59,7 @@ public class MonthmappingService {
     }
 
     public int firstMonthDifference(String feeDate, Date subDate){
+        log.info("Inside firstMonthDifference");
         try {
             return monthmappingRepository.firstMonthDifference(feeDate, subDate);
         } catch (Exception e) {
@@ -62,6 +70,7 @@ public class MonthmappingService {
     }
 
     public int findMonthDifferenceToNullify(Long academicYear_id, Long school_id, String monnm){
+        log.info("Inside findMonthDifferenceToNullify");
         try {
             return monthmappingRepository.findMonthDifferenceToNullify(academicYear_id, school_id, monnm);
         } catch (Exception e) {
@@ -72,6 +81,7 @@ public class MonthmappingService {
     }
 
     public String save(MonthMaster startMonth, AcademicYear academicYear, School school){
+        log.info("Inside save");
         String msg = "fail";
         try{
             boolean checkExistingMapping = deleteExistingMapping(academicYear, school);
@@ -99,6 +109,7 @@ public class MonthmappingService {
     }
 
     public void saveMapping(AcademicYear academicYear, School school, int priority, Long monthId) throws RuntimeException{
+        log.info("Inside saveMapping");
         MonthMapping monthMapping = new MonthMapping();
         monthMapping.setMonthMaster(monthMasterRepository.findById(monthId).get());
         monthMapping.setPriority(priority);
@@ -109,6 +120,7 @@ public class MonthmappingService {
     }
 
     public boolean deleteExistingMapping(AcademicYear academicYear, School school){
+        log.info("Inside deleteExistingMapping");
         boolean flag = true;
         try{
             List<MonthMapping> monthMappings = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());

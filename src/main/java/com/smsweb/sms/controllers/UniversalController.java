@@ -17,10 +17,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/universal")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 public class UniversalController {
+    private static final Logger log = LoggerFactory.getLogger(UniversalController.class);
+
 
     private final MediumService mediumService;
     private GradeService gradeService;
@@ -51,6 +55,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.VIEW)
     @GetMapping("/medium")
     public String medium(Model model){
+        log.info("Inside medium");
         List<Medium> mediums = mediumService.getAllMediums();
         model.addAttribute("mediums", mediums);
         model.addAttribute("hasMediums", !mediums.isEmpty());
@@ -61,6 +66,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.CREATE)
     @GetMapping("/medium/add")
     public String addMediumForm(Model model) {
+        log.info("Inside addMediumForm");
         model.addAttribute("medium", new Medium());
         return "universal/add-medium";
     }
@@ -68,6 +74,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.CREATE)
     @PostMapping("/medium")
     public String saveMedium(@Valid @ModelAttribute("medium") Medium medium, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveMedium");
         if (result.hasErrors()) {
             return "universal/add-medium";
         }
@@ -90,6 +97,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.EDIT)
     @GetMapping("/medium/edit/{id}")
     public String editMediumForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editMediumForm");
         Medium medium = mediumService.getMediumById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid medium Id:" + id));
         model.addAttribute("medium", medium);
@@ -99,6 +107,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.EDIT)
     @PostMapping("/medium/{id}")
     public String updateMedium(@PathVariable("id") Long id, @Valid @ModelAttribute("medium") Medium medium, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateMedium");
         if (result.hasErrors()) {
             medium.setId(id);
             return "universal/edit-medium";
@@ -122,6 +131,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_MEDIUM", type = AccessType.DELETE)
     @PostMapping("/medium/delete/{id}")
     public String deleteMedium(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteMedium");
         try {
             mediumService.deleteMedium(id);
             redirectAttributes.addFlashAttribute("success", "Medium deleted successfully!");
@@ -135,6 +145,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.VIEW)
     @GetMapping("/grade")
     public String grade(Model model){
+        log.info("Inside grade");
         List<Grade> grades = gradeService.getAllGrades();
         model.addAttribute("grades", grades);
         model.addAttribute("hasGrades", !grades.isEmpty());
@@ -144,6 +155,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.CREATE)
     @GetMapping("/grade/add")
     public String addGradeForm(Model model) {
+        log.info("Inside addGradeForm");
         model.addAttribute("grade", new Grade());
         return "universal/add-grade";
     }
@@ -151,6 +163,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.CREATE)
     @PostMapping("/grade")
     public String saveGrade(@Valid @ModelAttribute("grade") Grade grade, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveGrade");
         if (result.hasErrors()) {
             return "universal/add-grade";
         }
@@ -173,6 +186,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.EDIT)
     @GetMapping("/grade/edit/{id}")
     public String editGradeForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editGradeForm");
         Grade grade = gradeService.getGradeById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid grade Id:" + id));
         model.addAttribute("grade", grade);
@@ -182,6 +196,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.EDIT)
     @PostMapping("/grade/{id}")
     public String updateGrade(@PathVariable("id") Long id, @Valid @ModelAttribute("grade") Grade grade, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateGrade");
         if (result.hasErrors()) {
             grade.setId(id);
             return "universal/edit-grade";
@@ -205,6 +220,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.DELETE)
     @DeleteMapping("/grade/delete/{id}")
     public String deleteObject(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteObject");
         try {
             gradeService.deleteGrade(id);
             redirectAttributes.addFlashAttribute("success", "Object deleted successfully!");
@@ -216,6 +232,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_GRADE", type = AccessType.DELETE)
     @PostMapping("/grade/delete/{id}")
     public String deleteGrade(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteGrade");
         try {
             gradeService.deleteGrade(id);
             redirectAttributes.addFlashAttribute("success", "Grade deleted successfully!");
@@ -231,6 +248,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.VIEW)
     @GetMapping("/section")
     public String section(Model model){
+        log.info("Inside section");
         List<Section> sections = sectionService.getAllSections();
         model.addAttribute("sections", sections);
         model.addAttribute("hasSections", !sections.isEmpty());
@@ -240,6 +258,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.CREATE)
     @GetMapping("/section/add")
     public String addSectionForm(Model model) {
+        log.info("Inside addSectionForm");
         model.addAttribute("section", new Section());
         return "universal/add-section";
     }
@@ -247,6 +266,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.CREATE)
     @PostMapping("/section")
     public String saveSection(@Valid @ModelAttribute("section") Section section, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveSection");
         if (result.hasErrors()) {
             return "universal/add-section";
         }
@@ -269,6 +289,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.EDIT)
     @GetMapping("/section/edit/{id}")
     public String editSectionForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editSectionForm");
         Section section = sectionService.getSectionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid section Id:" + id));
         model.addAttribute("section", section);
@@ -278,6 +299,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.EDIT)
     @PostMapping("/section/{id}")
     public String updateSection(@PathVariable("id") Long id, @Valid @ModelAttribute("section") Section section, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateSection");
         if (result.hasErrors()) {
             section.setId(id);
             return "universal/edit-section";
@@ -300,6 +322,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_SECTION", type = AccessType.DELETE)
     @PostMapping("/section/delete/{id}")
     public String deleteSection(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteSection");
         try {
             sectionService.deleteSection(id);
             redirectAttributes.addFlashAttribute("success", "Section deleted successfully!");
@@ -315,6 +338,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.VIEW)
     @GetMapping("/category")
     public String category(Model model){
+        log.info("Inside category");
         List<Category> categories = categoryService.getAllCategories();
         model.addAttribute("categories", categories);
         model.addAttribute("hasCategories", !categories.isEmpty());
@@ -324,6 +348,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.CREATE)
     @GetMapping("/category/add")
     public String addCategoryForm(Model model) {
+        log.info("Inside addCategoryForm");
         model.addAttribute("category", new Category());
         return "universal/add-category";
     }
@@ -331,6 +356,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.CREATE)
     @PostMapping("/category")
     public String saveCategory(@Valid @ModelAttribute("category") Category category, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveCategory");
         if (result.hasErrors()) {
             return "universal/add-category";
         }
@@ -353,6 +379,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.EDIT)
     @GetMapping("/category/edit/{id}")
     public String editCategoryForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editCategoryForm");
         Category category = categoryService.getCategoryById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid category Id:" + id));
         model.addAttribute("category", category);
@@ -362,6 +389,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.EDIT)
     @PostMapping("/category/{id}")
     public String updateCategory(@PathVariable("id") Long id, @Valid @ModelAttribute("category") Category category, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateCategory");
         if (result.hasErrors()) {
             category.setId(id);
             return "universal/edit-category";
@@ -384,6 +412,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CATEGORY", type = AccessType.DELETE)
     @PostMapping("/category/delete/{id}")
     public String deleteCategory(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteCategory");
         try {
             categoryService.deleteCategory(id);
             redirectAttributes.addFlashAttribute("success", "Category deleted successfully!");
@@ -399,6 +428,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.VIEW)
     @GetMapping("/bank")
     public String bank(Model model){
+        log.info("Inside bank");
         List<Bank> banks = bankService.getAllBanks();
         model.addAttribute("banks", banks);
         model.addAttribute("hasBanks", !banks.isEmpty());
@@ -408,6 +438,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.CREATE)
     @GetMapping("/bank/add")
     public String addBankForm(Model model) {
+        log.info("Inside addBankForm");
         model.addAttribute("bank", new Bank());
         return "universal/add-bank";
     }
@@ -415,6 +446,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.CREATE)
     @PostMapping("/bank")
     public String saveBank(@Valid @ModelAttribute("bank") Bank bank, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveBank");
         if (result.hasErrors()) {
             return "universal/add-bank";
         }
@@ -437,6 +469,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.EDIT)
     @GetMapping("/bank/edit/{id}")
     public String editBankForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editBankForm");
         Bank bank = bankService.getBankById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid bank Id:" + id));
         model.addAttribute("bank", bank);
@@ -446,6 +479,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.EDIT)
     @PostMapping("/bank/{id}")
     public String updateBank(@PathVariable("id") Long id, @Valid @ModelAttribute("bank") Bank bank, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateBank");
         if (result.hasErrors()) {
             bank.setId(id);
             return "universal/edit-bank";
@@ -468,6 +502,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_BANK", type = AccessType.DELETE)
     @PostMapping("/bank/delete/{id}")
     public String deleteBank(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteBank");
         try {
             bankService.deleteBank(id);
             redirectAttributes.addFlashAttribute("success", "Bank deleted successfully!");
@@ -483,6 +518,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.VIEW)
     @GetMapping("/cast")
     public String cast(Model model){
+        log.info("Inside cast");
         List<Cast> casts = castService.getAllCasts();
         model.addAttribute("casts", casts);
         model.addAttribute("hasCasts", !casts.isEmpty());
@@ -493,6 +529,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.CREATE)
     @GetMapping("/cast/add")
     public String addCastForm(Model model) {
+        log.info("Inside addCastForm");
         model.addAttribute("cast", new Cast());
         return "universal/add-cast";
     }
@@ -500,6 +537,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.CREATE)
     @PostMapping("/cast")
     public String saveCast(@Valid @ModelAttribute("cast") Cast cast, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveCast");
         if (result.hasErrors()) {
             return "universal/add-cast";
         }
@@ -522,6 +560,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.EDIT)
     @GetMapping("/cast/edit/{id}")
     public String editCastForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editCastForm");
         Cast cast = castService.getCastById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid cast Id:" + id));
         model.addAttribute("cast", cast);
@@ -531,6 +570,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.EDIT)
     @PostMapping("/cast/{id}")
     public String updateCast(@PathVariable("id") Long id, @Valid @ModelAttribute("cast") Cast cast, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateCast");
         if (result.hasErrors()) {
             cast.setId(id);
             return "universal/edit-cast";
@@ -553,6 +593,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_CAST", type = AccessType.DELETE)
     @PostMapping("/cast/delete/{id}")
     public String deleteCast(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteCast");
         try {
             castService.deleteCast(id);
             redirectAttributes.addFlashAttribute("success", "Cast deleted successfully!");
@@ -568,6 +609,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.VIEW)
     @GetMapping("/feehead")
     public String feehead(Model model){
+        log.info("Inside feehead");
         List<Feehead> feeheads = feeheadService.getAllFeeheads();
         model.addAttribute("feeheads", feeheads);
         model.addAttribute("hasFeeheads", !feeheads.isEmpty());
@@ -577,6 +619,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.CREATE)
     @GetMapping("/feehead/add")
     public String addFeeheadForm(Model model) {
+        log.info("Inside addFeeheadForm");
         model.addAttribute("feehead", new Feehead());
         return "universal/add-feehead";
     }
@@ -584,6 +627,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.CREATE)
     @PostMapping("/feehead")
     public String saveFeehead(@Valid @ModelAttribute("feehead") Feehead feehead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveFeehead");
         if (result.hasErrors()) {
             return "universal/add-feehead";
         }
@@ -606,6 +650,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.EDIT)
     @GetMapping("/feehead/edit/{id}")
     public String editFeeheadForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editFeeheadForm");
         Feehead feehead = feeheadService.getFeeheadById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee head Id:" + id));
         model.addAttribute("feehead", feehead);
@@ -615,6 +660,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.EDIT)
     @PostMapping("/feehead/{id}")
     public String updateFeehead(@PathVariable("id") Long id, @Valid @ModelAttribute("feehead") Feehead feehead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateFeehead");
         if (result.hasErrors()) {
             feehead.setId(id);
             return "universal/edit-feehead";
@@ -637,6 +683,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FEEHEAD", type = AccessType.DELETE)
     @PostMapping("/feehead/delete/{id}")
     public String deleteFeehead(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteFeehead");
         try {
             feeheadService.deleteFeehead(id);
             redirectAttributes.addFlashAttribute("success", "Fee Head deleted successfully!");
@@ -652,6 +699,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.VIEW)
     @GetMapping("/discounthead")
     public String discounthead(Model model){
+        log.info("Inside discounthead");
         List<Discounthead> discountheads = discountService.getAllDiscountheads();
         model.addAttribute("discountheads", discountheads);
         model.addAttribute("hasDiscountheads", !discountheads.isEmpty());
@@ -661,6 +709,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.CREATE)
     @GetMapping("/discounthead/add")
     public String addDiscountheadForm(Model model) {
+        log.info("Inside addDiscountheadForm");
         model.addAttribute("discounthead", new Discounthead());
         return "universal/add-discounthead";
     }
@@ -668,8 +717,9 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.CREATE)
     @PostMapping("/discounthead")
     public String saveDiscounthead(@Valid @ModelAttribute("discounthead") Discounthead discounthead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveDiscounthead");
         if (result.hasErrors()) {
-            System.out.println(">>>>>>>>>>>"+result);
+            log.debug("saveDiscounthead validation errors: {}", result.getErrorCount());
             return "universal/add-discounthead";
         }
         try{
@@ -691,6 +741,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.EDIT)
     @GetMapping("/discounthead/edit/{id}")
     public String editDiscountheadForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editDiscountheadForm");
         Discounthead discounthead = discountService.getDiscountheadById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount head Id:" + id));
         model.addAttribute("discounthead", discounthead);
@@ -700,6 +751,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.EDIT)
     @PostMapping("/discounthead/{id}")
     public String updateDiscounthead(@PathVariable("id") Long id, @Valid @ModelAttribute("discounthead") Discounthead discounthead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateDiscounthead");
         if (result.hasErrors()) {
             discounthead.setId(id);
             return "universal/edit-discounthead";
@@ -722,6 +774,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_DISCOUNTHEAD", type = AccessType.DELETE)
     @PostMapping("/discounthead/delete/{id}")
     public String deleteDiscounthead(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteDiscounthead");
         try {
             discountService.deleteDiscounthead(id);
             redirectAttributes.addFlashAttribute("success", "Discount Head deleted successfully!");
@@ -737,6 +790,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.VIEW)
     @GetMapping("/finehead")
     public String finehead(Model model){
+        log.info("Inside finehead");
         List<Finehead> fineheads = fineheadService.getAllFineHeads();
         model.addAttribute("fineheads", fineheads);
         model.addAttribute("hasFineheads", !fineheads.isEmpty());
@@ -746,6 +800,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.CREATE)
     @GetMapping("/finehead/add")
     public String addFineheadForm(Model model) {
+        log.info("Inside addFineheadForm");
         model.addAttribute("finehead", new Finehead());
         return "universal/add-finehead";
     }
@@ -753,8 +808,9 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.CREATE)
     @PostMapping("/finehead")
     public String saveFinehead(@Valid @ModelAttribute("finehead") Finehead finehead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside saveFinehead");
         if (result.hasErrors()) {
-            System.out.println(">>>>>>>>>>>"+result);
+            log.debug("saveFinehead validation errors: {}", result.getErrorCount());
             return "universal/add-finehead";
         }
         try{
@@ -776,6 +832,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.EDIT)
     @GetMapping("/finehead/edit/{id}")
     public String editFineheadForm(@PathVariable("id") Long id, Model model) {
+        log.info("Inside editFineheadForm");
         Finehead finehead = fineheadService.getFineheadById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fine head Id:" + id));
         model.addAttribute("finehead", finehead);
@@ -785,6 +842,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.EDIT)
     @PostMapping("/finehead/{id}")
     public String updateFinehead(@PathVariable("id") Long id, @Valid @ModelAttribute("finehead") Finehead finehead, BindingResult result, Model model, RedirectAttributes ra) {
+        log.info("Inside updateFinehead");
         if (result.hasErrors()) {
             finehead.setId(id);
             return "universal/edit-finehead";
@@ -807,6 +865,7 @@ public class UniversalController {
     @CheckAccess(screen = "GLOBAL_FINEHEAD", type = AccessType.DELETE)
     @PostMapping("/finehead/delete/{id}")
     public String deleteFinehead(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.info("Inside deleteFinehead");
         try {
             fineheadService.deleteFinehead(id);
             redirectAttributes.addFlashAttribute("success", "Fine Head deleted successfully!");

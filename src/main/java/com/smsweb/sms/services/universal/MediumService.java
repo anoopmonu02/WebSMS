@@ -12,8 +12,12 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class MediumService {
+    private static final Logger log = LoggerFactory.getLogger(MediumService.class);
+
 
     private final MediumRepository mediumRepository;
 
@@ -27,6 +31,7 @@ public class MediumService {
     }
 
     public Medium saveMedium(Medium medium) {
+        log.info("Inside saveMedium");
         try{
             return mediumRepository.save(medium);
         }catch(DataIntegrityViolationException de){
@@ -41,6 +46,7 @@ public class MediumService {
     }
 
     public void deleteMedium(Long id) {
+        log.info("Inside deleteMedium");
         mediumRepository.deleteById(id);
     }
 
