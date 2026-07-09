@@ -21,6 +21,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     Optional<Student> findByIdAndSchool_Id(Long id, Long school_id);
     Optional<Student> findByUuidAndStatusAndSchool_Id(UUID uuid, String status, Long school_id);
 
+    /** Diagnostic lookup (no school/status filter) — used to give a precise reason
+     * (not found vs. inactive vs. wrong school) when a Regional-Details upload row fails to match. */
+    Optional<Student> findByUuid(UUID uuid);
+
     public List<Student> findAllByStudentNameContainingIgnoreCaseAndSchool_IdAndStatus(String name, Long school_id, String status);
 
     public List<Student> findAllByStatus(String status);

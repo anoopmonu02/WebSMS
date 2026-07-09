@@ -29,7 +29,7 @@ public class GConfigurationController {
         this.configurationService = configurationService;
     }
 
-    @CheckAccess(screen = "ADMIN_REPORT_SETTINGS", type = AccessType.VIEW)
+    /*@CheckAccess(screen = "ADMIN_REPORT_SETTINGS", type = AccessType.VIEW)
     @GetMapping("/select-columns")
     public String getColumns(Model model) {
         log.info("Inside getColumns");
@@ -41,5 +41,5 @@ public class GConfigurationController {
 
         // Return the Thymeleaf template
         return "admin/selectColumns";
-    }
+    }*/
 }

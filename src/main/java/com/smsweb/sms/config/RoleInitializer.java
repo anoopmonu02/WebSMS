@@ -149,6 +149,16 @@ public class RoleInitializer {
                     "STUDENT_REPORT_GRADE",
                     "View grade-wise student list report");
 
+            // ID Card print for a class-section
+            seed(screenRepo, "Student", "ID Card Print",
+                    "STUDENT_ID_CARD",
+                    "Print ID cards for students by medium, grade and section");
+
+            // Birth certificate — search one student, print bilingual certificate
+            seed(screenRepo, "Student", "Birth Certificate",
+                    "STUDENT_BIRTH_CERTIFICATE",
+                    "Search a student and print their birth certificate (English + regional language)");
+
             // ── Attendance ───────────────────────────────────────────────────
 
             // View attendance summary dashboard
@@ -393,6 +403,10 @@ public class RoleInitializer {
             seed(screenRepo, "Admin", "School / Branch Management",
                     "ADMIN_SCHOOL",
                     "View, add, edit, delete school / branch records");
+
+            seed(screenRepo, "Admin", "Student Regional-Language Details",
+                    "ADMIN_STUDENT_REGIONAL",
+                    "Download/upload regional-language (e.g. Hindi) name & address details for students");
 
             // ════════════════════════════════════════════════════════════════
             // MODULE: MESSAGE / COMMUNICATION

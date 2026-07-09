@@ -16,6 +16,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
@@ -118,13 +122,27 @@ public class WebSecurityConfig {
     @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                // Cookie-based CSRF token (httpOnly=false so JS can read XSRF-TOKEN cookie).
+                // Mobile API chain (Order 1) keeps CSRF disabled — JWT in Authorization
+                // header is already CSRF-proof. This chain (Order 2) covers all web forms.
+                // Spring Security 6 fix:
+                // - Use CsrfTokenRequestAttributeHandler (not the default XOR handler).
+                //   The default XorCsrfTokenRequestAttributeHandler encodes the expected
+                //   token on each request, so the raw cookie value JS sends never matches.
+                //   CsrfTokenRequestAttributeHandler does a plain comparison: cookie == header.
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                // Eagerly load the deferred CSRF token so the XSRF-TOKEN cookie is written
+                // on every response (not lazily). Without this, Firefox can miss the cookie
+                // on the very first page load and the first form POST silently fails CSRF.
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         // Public assets
                         .requestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**",
                                 "/images/students/**", "/images/employees/**").permitAll()
                         .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll()
-                        .requestMatchers("/login", "/register").permitAll()
+                        .requestMatchers("/login").permitAll()
                         .requestMatchers("/error", "/error/**").permitAll()
 
                         // Student-only portal (blocked from employee areas)
@@ -150,6 +168,12 @@ public class WebSecurityConfig {
 
                         .anyRequest().authenticated()
                 )
+                // NullRequestCache: stops Spring Security from saving the pre-login URL in the session.
+                // Without this, navigating to /sms/ before login saves "/?continue" as a saved request.
+                // After login, SavedRequestAwareAuthenticationSuccessHandler finds that saved URL and
+                // redirects there (/?continue → /dashboard) creating a double-redirect that breaks on
+                // the first attempt. With NullRequestCache, login ALWAYS goes straight to /dashboard.
+                .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler(customAuthenticationSuccessHandler)

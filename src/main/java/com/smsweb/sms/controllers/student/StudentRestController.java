@@ -506,6 +506,51 @@ public class StudentRestController extends BaseController {
         return ResponseEntity.ok(receiptData);
     }
 
+    @CheckAccess(screen = "STUDENT_ID_CARD", type = AccessType.VIEW)
+    @PostMapping("/getStudentsForIdCard")
+    public ResponseEntity<?> getStudentsForIdCard(@RequestBody Map<String, String> requestBody, Model model) {
+        log.info("Inside getStudentsForIdCard");
+        try {
+            if (requestBody != null) {
+                Long mediumId  = Long.parseLong(requestBody.getOrDefault("medium",  "0"));
+                Long gradeId   = Long.parseLong(requestBody.getOrDefault("grade",   "0"));
+                Long sectionId = Long.parseLong(requestBody.getOrDefault("section", "0"));
+                School school = (School) model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                if (school == null || academicYear == null) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "School or academic year not found in session"));
+                }
+                List<AcademicStudent> students = studentService.getAllStudentsByGrade(
+                        mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+
+                // Map to a flat DTO — returning the full entity graph serializes School,
+                // AcademicYear, UserEntity and all their relations (~2 MB), which causes
+                // JSON.parse to fail on the client. We only send what the ID card needs.
+                List<Map<String, Object>> result = students.stream().map(as -> {
+                    Map<String, Object> stuMap = new HashMap<>();
+                    stuMap.put("studentName", as.getStudent().getStudentName());
+                    stuMap.put("fatherName",  as.getStudent().getFatherName());
+                    stuMap.put("motherName",  as.getStudent().getMotherName());
+                    stuMap.put("dob",         as.getStudent().getDob());
+                    stuMap.put("address",     as.getStudent().getAddress());
+                    stuMap.put("landmark",    as.getStudent().getLandmark());
+                    stuMap.put("mobile1",     as.getStudent().getMobile1());
+                    stuMap.put("pic",         as.getStudent().getPic());
+                    stuMap.put("classSrNo",   as.getClassSrNo());
+                    stuMap.put("gradeName",   as.getGrade()   != null ? as.getGrade().getGradeName()     : "");
+                    stuMap.put("sectionName", as.getSection() != null ? as.getSection().getSectionName() : "");
+                    return stuMap;
+                }).collect(java.util.stream.Collectors.toList());
+
+                return ResponseEntity.ok(result);
+            }
+        } catch (Exception e) {
+            log.error("Error fetching students for ID card", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getLocalizedMessage()));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "Invalid request"));
+    }
+
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @PostMapping("/downloadSampleFileToEnterExamResult")
     public ResponseEntity<?> downloadSampleFileToEnterExamResult(@RequestBody Map<String, String> requestBody, Model model) throws IOException {

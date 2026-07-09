@@ -165,9 +165,17 @@ public class MobileAuthController {
 
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            @RequestHeader("X-Parent-Mobile") String mobile,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            jakarta.servlet.http.HttpServletRequest request) {
         log.info("Inside changePassword");
+
+        // Derive identity from the authenticated JWT — never trust a client-supplied header.
+        // JwtAuthenticationFilter stores academicStudentId in request attribute on every call.
+        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
+        if (academicStudentId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Not authenticated"));
+        }
 
         String currentPassword = body.get("currentPassword");
         String newPassword     = body.get("newPassword");
@@ -177,10 +185,17 @@ public class MobileAuthController {
                     .body(ApiResponse.error("currentPassword and newPassword are required"));
         }
 
-        FamilyAccount account = familyAccountService.findActive(mobile).orElse(null);
+        // JWT → AcademicStudent → Student → FamilyAccount (no mobile header needed)
+        var optAs = academicStudentService.findById(academicStudentId);
+        if (optAs.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Student record not found"));
+        }
+
+        FamilyAccount account = optAs.get().getStudent().getFamilyAccount();
         if (account == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Account not found"));
+                    .body(ApiResponse.error("No family account linked to this student — contact school admin"));
         }
 
         String error = familyAccountService.changePassword(account, currentPassword, newPassword);

@@ -512,6 +512,16 @@ public class StudentController extends BaseController {
         return "student/all_students_grade";
     }
 
+    @CheckAccess(screen = "STUDENT_ID_CARD", type = AccessType.VIEW)
+    @GetMapping("/id-card-print")
+    public String idCardPrint(Model model) {
+        log.info("Inside idCardPrint");
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        return "reports/id-card-print";
+    }
+
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.VIEW)
     @GetMapping("/stu-exam-result")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")

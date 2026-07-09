@@ -10,7 +10,6 @@ import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,8 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
 
 @Component
 public class CustomAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
@@ -45,12 +42,11 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                                         Authentication authentication) throws IOException, ServletException {
         log.info("Inside onAuthenticationSuccess");
 
-        // ── Check if this is a STUDENT login ──────────────────────────────────────
+        // ── STUDENT login → restricted portal only ────────────────────────────────
         boolean isStudent = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"));
 
         if (isStudent) {
-            // Do NOT load dashboard — redirect to a restricted info-only page
             response.sendRedirect(request.getContextPath() + "/student-portal/home");
             return;
         }
@@ -89,6 +85,10 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             session.setAttribute("username", username);
         }
 
+        // Direct redirect — no SavedRequestAwareAuthenticationSuccessHandler complexity.
+        // We use NullRequestCache so there are no saved requests to restore anyway.
+        // response.sendRedirect() with a context-path-prefixed URL is the simplest and
+        // most reliable approach — no singleton state mutation, no redirect chain.
         response.sendRedirect(request.getContextPath() + "/dashboard");
     }
 

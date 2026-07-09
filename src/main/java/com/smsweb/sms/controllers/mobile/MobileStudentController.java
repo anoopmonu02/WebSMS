@@ -117,13 +117,43 @@ public class MobileStudentController {
     @GetMapping("/pic/{filename}")
     public ResponseEntity<Resource> getProfilePic(@PathVariable String filename) {
         log.info("Inside getProfilePic");
-        File file = new File(studentImagePath, filename);
-        if (!file.exists()) {
-            return ResponseEntity.notFound().build();
+
+        // Strip everything except letters, digits, hyphens, underscores, and a single dot.
+        // Blocks path traversal attempts like ../../etc/passwd or %2F encoded variants.
+        String safeName = filename.replaceAll("[^a-zA-Z0-9._-]", "");
+        if (safeName.isBlank()) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
-                .body(new FileSystemResource(file));
+
+        try {
+            File base = new File(studentImagePath).getCanonicalFile();
+            File file = new File(base, safeName).getCanonicalFile();
+
+            // Double-lock: even if the sanitised name somehow resolves outside the
+            // images folder, the canonical path check blocks it.
+            if (!file.getPath().startsWith(base.getPath() + File.separator)) {
+                log.warn("Path traversal attempt blocked: requested={} resolved={}", filename, file.getPath());
+                return ResponseEntity.status(403).build();
+            }
+
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Detect content type from file extension instead of assuming JPEG.
+            String lower = safeName.toLowerCase();
+            MediaType mediaType = lower.endsWith(".png")  ? MediaType.IMAGE_PNG
+                                : lower.endsWith(".gif")  ? MediaType.IMAGE_GIF
+                                : MediaType.IMAGE_JPEG;
+
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .body(new FileSystemResource(file));
+
+        } catch (java.io.IOException e) {
+            log.error("Error resolving profile pic path: {}", e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

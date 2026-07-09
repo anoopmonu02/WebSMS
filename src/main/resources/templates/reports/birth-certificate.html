@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>Birth Certificate</title>
+</head>
+<body>
+<section>
+
+    <div class="container-fluid px-3 px-lg-4">
+
+        <!-- ── Page header ── -->
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+            <div>
+                <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-medical text-success me-2"></i>Birth Certificate</h4>
+                <p class="text-muted small mb-0">Search a student, review the details, then print. Data is pulled directly from the student record — nothing is saved here.</p>
+            </div>
+        </div>
+        <hr class="mt-1 mb-3"/>
+
+        <!-- ── Search box ── -->
+        <div class="row justify-content-start mb-3">
+            <div class="col-md-6">
+                <input oninput="searchBcStudent()" type="text" class="form-control" id="bcSearchInput"
+                       placeholder="Search by student name, father's name, or SR No...">
+                <div class="search-result" id="bcSearchResult"></div>
+            </div>
+        </div>
+
+        <!-- ── Action bar (shown once a student is picked) ── -->
+        <div id="bcActionBar" class="mb-3" style="display:none;">
+            <button type="button" class="btn btn-success" onclick="printCertificate()">
+                <i class="bi bi-printer-fill"></i> Print Certificate
+            </button>
+            <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearCertificate()">
+                <i class="bi bi-x-lg"></i> Clear
+            </button>
+        </div>
+
+        <!-- ── Certificate preview ── -->
+        <div id="bcPreviewWrap" style="display:none;">
+            <div id="bcCertificate" class="bc-certificate mx-auto">
+                <!-- filled by JS -->
+            </div>
+        </div>
+
+    </div><!-- /container-fluid -->
+
+    <!-- ════════════════════════════════════════════════════
+         Styles — mirrors the approved school-format certificate exactly:
+         plain white letterhead, thin table rules, no colour accents.
+    ═════════════════════════════════════════════════════ -->
+    <style>
+        .search-result { max-height:320px; overflow-y:auto; border:1px solid #dee2e6; border-radius:8px; display:none; }
+        .search-result .list-group-item { cursor:pointer; }
+
+        .bc-certificate {
+            max-width: 820px;
+            background: #fff;
+            padding: 30px 45px 45px;
+            font-family: 'Times New Roman', Times, serif;
+            color: #000;
+        }
+        .bc-topline { display:flex; justify-content:space-between; align-items:flex-start; font-size:12px; }
+        .bc-topline .bc-recognized { flex:1; text-align:center; }
+        .bc-topline .bc-phone { text-align:right; white-space:nowrap; }
+
+        .bc-school-name { text-align:center; font-size:26px; font-weight:700; letter-spacing:0.5px; margin-top:6px; }
+        .bc-school-location { text-align:center; font-size:15px; letter-spacing:1px; margin-top:2px; }
+
+        .bc-date { text-align:right; font-size:13px; margin-top:14px; }
+
+        .bc-title { text-align:center; font-size:20px; font-weight:700; text-decoration:underline; margin:26px 0 22px; }
+
+        .bc-body-text { font-size:15px; line-height:1.9; text-align:left; }
+
+        .bc-table { width:100%; margin-top:26px; border-collapse:collapse; font-size:14px; }
+        .bc-table th, .bc-table td { border:1px solid #000; padding:8px 10px; text-align:left; vertical-align:middle; }
+        .bc-table th { font-weight:700; text-align:center; }
+        .bc-table td.bc-hindi-cell { font-family:'Nirmala UI','Mangal','Noto Sans Devanagari', 'Times New Roman', serif; }
+    </style>
+
+    <!-- ════════════════════════════════════════════════════
+         Scripts
+    ═════════════════════════════════════════════════════ -->
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+
+        const contextPath  = /*[[@{/}]]*/ '/';
+        const schoolName     = /*[[${school?.schoolName}]]*/ 'School Name';
+        const schoolLocation = /*[[${school?.address}]]*/ '';
+        const schoolPhone1   = /*[[${school?.mobile1}]]*/ '';
+        const schoolPhone2   = /*[[${school?.mobile2}]]*/ '';
+        const sessionLabel   = /*[[${academicYear?.sessionFormat}]]*/ '';
+
+        // Fixed boilerplate for this approved certificate format — not tied to any DB field.
+        const ESTABLISHED_TEXT = 'Established 1979';
+        const RECOGNIZED_TEXT  = 'Recognized by U.P. Government';
+
+        function showMsg(type, msg, header) {
+            toastr.options = {
+                closeButton: true, progressBar: false,
+                positionClass: 'toast-top-right',
+                timeOut: '4000', showMethod: 'fadeIn', hideMethod: 'fadeOut'
+            };
+            toastr[type](msg, header);
+        }
+
+        function escHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        /* ── Search — live typeahead + infinite scroll, same pattern used app-wide ── */
+        let _bcSearchQuery = '';
+        let _bcSearchPage = 0;
+        let _bcSearchMore = false;
+        let _bcSearchLoading = false;
+        let _bcSearchResults = [];
+        let _bcSelected = null;
+
+        const renderBcStudentRow = (s, idx) => {
+            const cls = (s.gradeName && s.sectionName) ? `${s.gradeName}-${s.sectionName}` : '-';
+            const sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+            return `<a data-idx="${idx}" onclick="selectBcStudent(${idx})" href="#" class="list-group-item list-group-item-action">${escHtml(s.studentName)} / ${escHtml(s.fatherName)} / ${escHtml(cls)}${sr}</a>`;
+        };
+
+        const fetchBcStudents = (query, page, append) => {
+            if (_bcSearchLoading) return;
+            _bcSearchLoading = true;
+            const url = `${contextPath}student/birth-certificate/search-student/${encodeURIComponent(query)}?page=${page}`;
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(async r => {
+                    const text = await r.text();
+                    let data;
+                    try { data = JSON.parse(text); } catch (e) { data = null; }
+                    return { ok: r.ok, status: r.status, data, raw: text };
+                })
+                .then(({ ok, status, data, raw }) => {
+                    _bcSearchLoading = false;
+                    if (!ok || data === null) {
+                        console.error('Student search failed', status, raw);
+                        showMsg('error', `Search request failed (HTTP ${status}). Check the browser console for details.`, 'Error');
+                        return;
+                    }
+                    if (data.error) { showMsg('error', data.error, 'Error'); return; }
+                    const students = data;
+                    _bcSearchMore = students.length === 10;
+                    if (!append) {
+                        _bcSearchResults = students;
+                        let html;
+                        if (students.length === 0) {
+                            html = `<div class="list-group-item text-muted small">No matching active students found.</div>`;
+                        } else {
+                            html = `<div class="list-group" id="bc-student-list-group">`;
+                            students.forEach((s, i) => { html += renderBcStudentRow(s, i); });
+                            html += `</div>`;
+                        }
+                        document.getElementById('bcSearchResult').innerHTML = html;
+                        document.getElementById('bcSearchResult').style.display = 'block';
+                    } else {
+                        const startIdx = _bcSearchResults.length;
+                        _bcSearchResults = _bcSearchResults.concat(students);
+                        const group = document.getElementById('bc-student-list-group');
+                        if (group) students.forEach((s, i) => { group.insertAdjacentHTML('beforeend', renderBcStudentRow(s, startIdx + i)); });
+                    }
+                })
+                .catch(err => {
+                    _bcSearchLoading = false;
+                    console.error('Student search network error', err);
+                    showMsg('error', 'Network error while searching — check the browser console.', 'Error');
+                });
+        };
+
+        function searchBcStudent() {
+            const query = document.getElementById('bcSearchInput').value;
+            if (query.trim().length > 2) {
+                if (query !== _bcSearchQuery) {
+                    _bcSearchQuery = query;
+                    _bcSearchPage = 0;
+                    fetchBcStudents(query, 0, false);
+                }
+            } else {
+                _bcSearchQuery = '';
+                document.getElementById('bcSearchResult').style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const resultBox = document.getElementById('bcSearchResult');
+            if (resultBox) {
+                resultBox.addEventListener('scroll', function () {
+                    if (!_bcSearchMore || _bcSearchLoading) return;
+                    if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+                        _bcSearchPage++;
+                        fetchBcStudents(_bcSearchQuery, _bcSearchPage, true);
+                    }
+                });
+            }
+        });
+
+        /* ── Build & show the certificate once a student is picked ── */
+        function selectBcStudent(idx) {
+            _bcSelected = _bcSearchResults[idx];
+            document.getElementById('bcSearchResult').style.display = 'none';
+            document.getElementById('bcSearchInput').value = '';
+            renderCertificate(_bcSelected);
+        }
+
+        function clearCertificate() {
+            _bcSelected = null;
+            document.getElementById('bcPreviewWrap').style.display = 'none';
+            document.getElementById('bcActionBar').style.display = 'none';
+            document.getElementById('bcCertificate').innerHTML = '';
+        }
+
+        function phoneLine() {
+            const parts = [schoolPhone1, schoolPhone2].filter(Boolean);
+            return parts.length ? 'Phone ' + parts.join(',') : '';
+        }
+
+        function certificateHtml(s) {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            const dateStr = `${dd}-${mm}-${yyyy}`;
+
+            const relation = (s.gender && s.gender.toUpperCase() === 'FEMALE') ? 'D/o' : 'S/o';
+            const cls = s.gradeName || '-';
+            const session = sessionLabel || '-';
+            const srNo = s.classSrNo || '-';
+
+            return `
+                <div class="bc-topline">
+                    <div class="bc-established">${escHtml(ESTABLISHED_TEXT)}</div>
+                    <div class="bc-recognized">${escHtml(RECOGNIZED_TEXT)}</div>
+                    <div class="bc-phone">${escHtml(phoneLine())}</div>
+                </div>
+
+                <div class="bc-school-name">${escHtml(schoolName)}</div>
+                <div class="bc-school-location">${escHtml(schoolLocation)}</div>
+
+                <div class="bc-date">Date : ${dateStr}</div>
+
+                <div class="bc-title">Certificate</div>
+
+                <div class="bc-body-text">
+                    This is to certify that ${escHtml(s.studentName) || '-'} ${relation} Mr. ${escHtml(s.fatherName) || '-'}
+                    studied in this school in class ${escHtml(cls)} for the session ${escHtml(session)},
+                    which is enrolled on S.R. No ${escHtml(srNo)}.
+                    <br/><br/>
+                    Full details are below as per our school's record.
+                </div>
+
+                <table class="bc-table">
+                    <thead>
+                        <tr>
+                            <th>Student's Name</th>
+                            <th>Father's Name</th>
+                            <th>Mother's Name</th>
+                            <th>Date of Birth</th>
+                            <th>Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${escHtml(s.studentName) || '-'}</td>
+                            <td>${escHtml(s.fatherName) || '-'}</td>
+                            <td>${escHtml(s.motherName) || '-'}</td>
+                            <td rowspan="2">${escHtml(s.dob) || '-'}</td>
+                            <td rowspan="2">${escHtml(s.address) || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td class="bc-hindi-cell">${escHtml(s.studentNameRegional)}</td>
+                            <td class="bc-hindi-cell">${escHtml(s.fatherNameRegional)}</td>
+                            <td class="bc-hindi-cell">${escHtml(s.motherNameRegional)}</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+        }
+
+        function renderCertificate(s) {
+            document.getElementById('bcCertificate').innerHTML = certificateHtml(s);
+            document.getElementById('bcPreviewWrap').style.display = 'block';
+            document.getElementById('bcActionBar').style.display = 'block';
+        }
+
+        /* ── Print in popup window (same pattern as id-card-print / fee-receipt) ── */
+        function printCertificate() {
+            const el = document.getElementById('bcCertificate');
+            if (!el || !el.innerHTML.trim()) {
+                showMsg('warning', 'Please select a student first', 'Warning');
+                return;
+            }
+
+            const printWindow = window.open('', 'PRINT', 'height=900,width=1100,top=50,left=100');
+            if (!printWindow) {
+                alert('Popup blocked! Please allow popups for this site.');
+                return;
+            }
+
+            printWindow.document.write('<html><head><title>Birth Certificate</title>');
+            printWindow.document.write(`<style>
+                @page { size: A4 portrait; margin: 16mm; }
+                * { box-sizing: border-box; }
+                body { margin:0; padding:0; font-family:'Times New Roman', Times, serif; color:#000; }
+                .bc-certificate { padding: 0; }
+                .bc-topline { display:flex; justify-content:space-between; align-items:flex-start; font-size:12px; }
+                .bc-topline .bc-recognized { flex:1; text-align:center; }
+                .bc-topline .bc-phone { text-align:right; white-space:nowrap; }
+                .bc-school-name { text-align:center; font-size:26px; font-weight:700; letter-spacing:0.5px; margin-top:6px; }
+                .bc-school-location { text-align:center; font-size:15px; letter-spacing:1px; margin-top:2px; }
+                .bc-date { text-align:right; font-size:13px; margin-top:14px; }
+                .bc-title { text-align:center; font-size:20px; font-weight:700; text-decoration:underline; margin:26px 0 22px; }
+                .bc-body-text { font-size:15px; line-height:1.9; text-align:left; }
+                .bc-table { width:100%; margin-top:26px; border-collapse:collapse; font-size:14px; }
+                .bc-table th, .bc-table td { border:1px solid #000; padding:8px 10px; text-align:left; vertical-align:middle; }
+                .bc-table th { font-weight:700; text-align:center; }
+                .bc-table td.bc-hindi-cell { font-family:'Nirmala UI','Mangal','Noto Sans Devanagari', 'Times New Roman', serif; }
+            </style>`);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<div class="bc-certificate">' + el.innerHTML + '</div>');
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        }
+
+    </script>
+
+</section>
+</body>
+</html>

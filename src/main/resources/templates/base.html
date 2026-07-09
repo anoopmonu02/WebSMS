@@ -8,6 +8,13 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+        Spring Security 6 lazy-CSRF fix: accessing _csrf.token here forces the
+        deferred CSRF token to be loaded and the XSRF-TOKEN cookie to be written
+        on EVERY page load — including AJAX-only pages that have no th:action forms.
+        Without this, the cookie is missing on first load and all JS POST calls fail.
+    -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
     <title>United Avadh-shiksha Portal</title>
 
     <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" crossorigin="anonymous"/>
@@ -814,6 +821,12 @@
                                 <span>Previous Balance</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" sms:access="ADMIN_STUDENT_REGIONAL:VIEW" th:href="@{/admin/student-regional}">
+                                <i class="bi bi-translate text-success"></i>
+                                <span>Regional Language Details</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -919,8 +932,8 @@
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_REPORT_SESSION:VIEW" th:href="@{'/student/sessions-total-students-detail'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Student List (Session)</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_REPORT_GRADE:VIEW" th:href="@{'/student/grade-total-students-detail'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Student List</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_SEARCH:VIEW" th:href="@{'/student/look-up-student'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Search Student</span></a></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Birth Certificate</span></a></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>ID Card Print</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_BIRTH_CERTIFICATE:VIEW" th:href="@{'/student/birth-certificate'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Birth Certificate</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_ID_CARD:VIEW" th:href="@{'/student/id-card-print'}" class="sidebar-link"><i class="bi bi-dot"></i><span>ID Card Print</span></a></li>
                             </ul>
                         </li>
                     </ul>
@@ -1090,6 +1103,59 @@
 </th:block>
 
 <!-- All sidebar/UI logic is in script.js -->
+
+<!--
+    CSRF protection — global JS patch (Issue 7 fix).
+
+    Spring Security stores the CSRF token in the XSRF-TOKEN cookie
+    (httpOnly=false so JS can read it). This IIFE patches:
+      • jQuery.ajaxSetup  — covers all 18 $.ajax / $.post / $.get calls
+      • window.fetch      — covers all fetch() calls
+    For state-changing methods (POST/PUT/PATCH/DELETE) it reads the cookie
+    and sends back the token as X-XSRF-TOKEN header.
+
+    Thymeleaf forms using th:action already receive the hidden _csrf field
+    automatically — no template changes needed there.
+-->
+<script th:inline="none">
+    (function () {
+        function getCsrf() {
+            var m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+            return m ? decodeURIComponent(m[1]) : null;
+        }
+        var HDR  = 'X-XSRF-TOKEN';
+        var SAFE = /^(GET|HEAD|OPTIONS|TRACE)$/i;
+
+        // ── jQuery ajax ──────────────────────────────────────────────────────
+        if (window.jQuery) {
+            jQuery.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    if (!SAFE.test(settings.type || 'GET')) {
+                        var token = getCsrf();
+                        if (token) { xhr.setRequestHeader(HDR, token); }
+                    }
+                }
+            });
+        }
+
+        // ── Fetch API ────────────────────────────────────────────────────────
+        var _fetch = window.fetch;
+        window.fetch = function (url, opts) {
+            opts = opts || {};
+            if (!SAFE.test(opts.method || 'GET')) {
+                var token = getCsrf();
+                if (token) {
+                    if (opts.headers instanceof Headers) {
+                        opts.headers.set(HDR, token);
+                    } else {
+                        opts.headers = Object.assign({}, opts.headers || {}, {[HDR]: token});
+                    }
+                }
+            }
+            return _fetch.call(this, url, opts);
+        };
+    })();
+</script>
 
 </body>
 </html>

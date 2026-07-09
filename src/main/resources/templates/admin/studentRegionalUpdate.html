@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>UAIC - Regional Language Details</title></head>
+<body>
+<section>
+<style>
+  .stat-pill { border-radius:50px; padding:5px 16px; font-size:.82rem; font-weight:600;
+               display:inline-flex; align-items:center; gap:6px; }
+  .preview-table { font-size:.82rem; }
+  .preview-table th { background:#f8fafc; font-weight:600; padding:8px 10px; white-space:nowrap; }
+  .preview-table td { padding:6px 8px; vertical-align:middle; }
+  .preview-table td.locked-col { background:#f4f5f7; color:#495057; }
+  .preview-table input.regional-input { font-size:.82rem; padding:3px 6px; border:1px solid #cfd4da; border-radius:5px; width:100%; background:#fffdf3; }
+  .preview-table input.regional-input:focus { outline:none; border-color:#0d6efd; box-shadow:0 0 0 .15rem rgba(13,110,253,.15); }
+  .status-badge { font-size:.7rem; font-weight:700; border-radius:4px; padding:3px 8px; }
+  .upload-card { border:1px dashed #c9ceD6; border-radius:14px; background:#fbfcfe; }
+  .search-result { max-height:320px; overflow-y:auto; border:1px solid #dee2e6; border-radius:8px; display:none; }
+  .search-result .list-group-item { cursor:pointer; }
+  .edit-card { border-radius:14px; border:1px solid #d7ecdf; background:#f7fdf9; }
+  .edit-card .form-label { font-size:.8rem; font-weight:600; color:#495057; margin-bottom:2px; }
+  .edit-card .form-label span#refStudentName, .edit-card .form-label span#refFatherName,
+  .edit-card .form-label span#refMotherName, .edit-card .form-label span#refAddress { font-weight:600; }
+  .regional-badge { font-size:.7rem; font-weight:700; border-radius:4px; padding:3px 8px; }
+  .student-info-box { background:#ffffff; border:1px solid #e3e8ee; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-translate text-success me-2"></i>Student Regional Language Details
+      </h4>
+      <p class="text-muted small mb-0">Fill Student/Father/Mother Name and Address in your regional language (e.g. Hindi) — one student at a time, or in bulk via Excel. Admin only.</p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.80);
+       backdrop-filter:blur(3px); z-index:9999; flex-direction:column;
+       align-items:center; justify-content:center;">
+    <div class="text-center">
+      <div class="spinner-border text-success" style="width:3.5rem;height:3.5rem;" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+      <div class="mt-3 fw-semibold text-success fs-5" id="overlay-message">Working…</div>
+      <div class="text-muted small mt-1">This may take a moment for large student lists</div>
+    </div>
+  </div>
+
+  <!-- Mode toggle -->
+  <ul class="nav nav-pills mb-4" id="modeTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-single-btn" onclick="switchMode('single')" type="button">
+        <i class="bi bi-person-fill me-1"></i>Single Student Update
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-bulk-btn" onclick="switchMode('bulk')" type="button">
+        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Bulk Upload (Excel)
+      </button>
+    </li>
+  </ul>
+
+  <!-- ═══════════════ SINGLE STUDENT MODE ═══════════════ -->
+  <div id="pane-single">
+    <p class="text-muted small mb-2">For a handful of new admissions or quick fixes — no need to touch the full Excel workflow.</p>
+    <div class="row justify-content-start mb-3">
+      <div class="col-md-6">
+        <input oninput="searchRegStudent()" type="text" class="form-control" id="regSearchInput"
+               placeholder="Search by student name, father's name, or SR No...">
+        <div class="search-result" id="regSearchResult"></div>
+      </div>
+    </div>
+
+    <div id="editCardWrap" style="display:none">
+      <div class="card edit-card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <h6 class="fw-bold mb-0"><i class="bi bi-person-vcard me-1"></i>Student Details</h6>
+            <span class="regional-badge" id="editExistingBadge"></span>
+          </div>
+
+          <!-- Full reference info — everything relevant, so there's no need to reopen the search results -->
+          <div class="row g-2 mb-3 p-3 rounded student-info-box">
+            <div class="col-6 col-md-3">
+              <div class="text-muted small">Student Name</div>
+              <div class="fw-semibold" id="infoStudentName">-</div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="text-muted small">Father Name</div>
+              <div class="fw-semibold" id="infoFatherName">-</div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="text-muted small">Mother Name</div>
+              <div class="fw-semibold" id="infoMotherName">-</div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="text-muted small">Class / Section</div>
+              <div class="fw-semibold" id="infoClass">-</div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="text-muted small">SR No</div>
+              <div class="fw-semibold" id="infoSrNo">-</div>
+            </div>
+            <div class="col-6 col-md-9">
+              <div class="text-muted small">Address</div>
+              <div class="fw-semibold" id="infoAddress">-</div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Student Name (Regional) <span class="text-muted fw-normal">— <span id="refStudentName"></span></span></label>
+              <input type="text" class="form-control" id="editStudentNameRegional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Father Name (Regional) <span class="text-muted fw-normal">— <span id="refFatherName"></span></span></label>
+              <input type="text" class="form-control" id="editFatherNameRegional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mother Name (Regional) <span class="text-muted fw-normal">— <span id="refMotherName"></span></span></label>
+              <input type="text" class="form-control" id="editMotherNameRegional">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Address (Regional) <span class="text-muted fw-normal">— <span id="refAddress"></span></span></label>
+              <input type="text" class="form-control" id="editAddressRegional">
+            </div>
+          </div>
+          <div class="mt-3 text-end">
+            <button class="btn btn-outline-secondary btn-sm me-2" type="button" onclick="cancelSingleEdit();"><i class="bi bi-x-circle me-1"></i>Cancel</button>
+            <button class="btn btn-success btn-sm" type="button" onclick="saveSingle();"><i class="bi bi-check2-circle me-1"></i>Save Student</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ BULK UPLOAD MODE ═══════════════ -->
+  <div id="pane-bulk" style="display:none">
+
+  <!-- Step 1 + 2: Download / Upload -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card upload-card h-100">
+        <div class="card-body">
+          <h6 class="fw-bold"><span class="badge bg-success rounded-pill me-2">1</span>Download Template</h6>
+          <p class="text-muted small mb-3">Real student data for your current school &amp; session, with any regional-language values already saved pre-filled. Only the yellow columns are editable in Excel.</p>
+          <a th:href="@{/admin/student-regional/download}" class="btn btn-success">
+            <i class="bi bi-download me-1"></i> Download Template
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card upload-card h-100">
+        <div class="card-body">
+          <h6 class="fw-bold"><span class="badge bg-success rounded-pill me-2">2</span>Upload Filled Template</h6>
+          <p class="text-muted small mb-2">Select the file you filled in, then preview before saving.</p>
+          <div class="input-group">
+            <input type="file" id="regionalFile" class="form-control" accept=".xlsx">
+            <button class="btn btn-primary" type="button" onclick="previewFile();"><i class="bi bi-eye me-1"></i>Preview</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview section -->
+  <div id="previewSection" style="display:none">
+    <div class="row g-2 mb-3">
+      <div class="col-auto"><span class="stat-pill bg-primary-subtle text-primary">Total: <span id="statTotal">0</span></span></div>
+      <div class="col-auto"><span class="stat-pill bg-success-subtle text-success">Matched: <span id="statMatched">0</span></span></div>
+      <div class="col-auto"><span class="stat-pill bg-warning-subtle text-warning-emphasis" id="warningsPill" style="display:none">Needs Review: <span id="statWarnings">0</span></span></div>
+      <div class="col-auto"><span class="stat-pill bg-danger-subtle text-danger">Skipped: <span id="statSkipped">0</span></span></div>
+      <div class="col ms-auto text-end">
+        <button class="btn btn-outline-secondary btn-sm me-2" type="button" onclick="cancelPreview();"><i class="bi bi-x-circle me-1"></i>Cancel</button>
+        <button class="btn btn-success btn-sm" type="button" id="confirmSaveBtn" onclick="confirmSave();"><i class="bi bi-check2-circle me-1"></i>Confirm &amp; Save Matched Rows</button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto; width:100%;">
+      <table class="table table-striped table-bordered preview-table">
+        <thead>
+          <tr>
+            <th>SNo</th>
+            <th>Student Name</th>
+            <th>Father Name</th>
+            <th>Mother Name</th>
+            <th>Address</th>
+            <th>Student Name (Regional)</th>
+            <th>Father Name (Regional)</th>
+            <th>Mother Name (Regional)</th>
+            <th>Address (Regional)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="previewTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  </div>
+  <!-- /pane-bulk -->
+
+</div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    let currentRows = [];
+
+    function switchMode(mode) {
+      const single = mode === 'single';
+      document.getElementById('pane-single').style.display = single ? 'block' : 'none';
+      document.getElementById('pane-bulk').style.display = single ? 'none' : 'block';
+      document.getElementById('tab-single-btn').classList.toggle('active', single);
+      document.getElementById('tab-bulk-btn').classList.toggle('active', !single);
+    }
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+        "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+        "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    function escHtml(str) {
+      if (str == null) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function showOverlay(message) {
+      document.getElementById('overlay-message').innerText = message;
+      document.getElementById('loading-overlay').style.display = 'flex';
+    }
+    function hideOverlay() {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+
+    function previewFile() {
+      const fileInput = document.getElementById('regionalFile');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showMsg('error', 'Please choose a file first.', 'Error');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      showOverlay('Reading & matching students…');
+      fetch(`${contextPath}admin/student-regional/preview`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          hideOverlay();
+          if (!ok || data.error) {
+            showMsg('error', data.error || 'Failed to preview file.', 'Error');
+            return;
+          }
+          currentRows = data.rows;
+          renderPreview(data);
+          if (data.warnings) {
+            showMsg('warning', `Parsed ${data.total} row(s) — ${data.matched} matched, ${data.warnings} need review (formula text detected and cleared — see yellow rows).`, 'Preview Ready');
+          } else {
+            showMsg('success', `Parsed ${data.total} row(s) — ${data.matched} matched.`, 'Preview Ready');
+          }
+        })
+        .catch(err => {
+          hideOverlay();
+          console.error(err);
+          showMsg('error', 'Something went wrong while previewing the file.', 'Error');
+        });
+    }
+
+    function renderPreview(data) {
+      document.getElementById('statTotal').innerText = data.total;
+      document.getElementById('statMatched').innerText = data.matched;
+      document.getElementById('statSkipped').innerText = data.skipped;
+      document.getElementById('statWarnings').innerText = data.warnings || 0;
+      document.getElementById('warningsPill').style.display = data.warnings ? 'inline-flex' : 'none';
+
+      let rows = '';
+      currentRows.forEach((row, idx) => {
+        const isMatched = row.matchStatus === 'MATCHED';
+        let badgeClass = isMatched ? 'text-bg-success' : 'text-bg-danger';
+        let badgeText = isMatched ? 'Matched' : (row.matchStatus === 'INACTIVE' ? 'Inactive' : 'Not Found');
+        if (isMatched && row.hasWarning) {
+          badgeClass = 'text-bg-warning';
+          badgeText = 'Needs Review';
+        }
+        const title = row.message ? ` title="${escHtml(row.message)}"` : '';
+        const rowClass = (isMatched && row.hasWarning) ? ' class="table-warning"' : '';
+
+        rows += `<tr data-idx="${idx}"${rowClass}>
+          <td class="locked-col">${row.sno}</td>
+          <td class="locked-col">${escHtml(row.studentName)}</td>
+          <td class="locked-col">${escHtml(row.fatherName)}</td>
+          <td class="locked-col">${escHtml(row.motherName)}</td>
+          <td class="locked-col">${escHtml(row.address)}</td>
+          <td><input class="regional-input" data-field="studentNameRegional" value="${escHtml(row.studentNameRegional)}" placeholder="${row.hasWarning ? 'cleared — retype' : ''}" ${isMatched ? '' : 'disabled'}></td>
+          <td><input class="regional-input" data-field="fatherNameRegional" value="${escHtml(row.fatherNameRegional)}" placeholder="${row.hasWarning ? 'cleared — retype' : ''}" ${isMatched ? '' : 'disabled'}></td>
+          <td><input class="regional-input" data-field="motherNameRegional" value="${escHtml(row.motherNameRegional)}" placeholder="${row.hasWarning ? 'cleared — retype' : ''}" ${isMatched ? '' : 'disabled'}></td>
+          <td><input class="regional-input" data-field="addressRegional" value="${escHtml(row.addressRegional)}" placeholder="${row.hasWarning ? 'cleared — retype' : ''}" ${isMatched ? '' : 'disabled'}></td>
+          <td${title}><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+        </tr>`;
+      });
+      document.getElementById('previewTbody').innerHTML = rows;
+      document.getElementById('previewSection').style.display = 'block';
+
+      // Keep currentRows in sync as the admin edits regional values before confirming
+      document.getElementById('previewTbody').querySelectorAll('input.regional-input').forEach(input => {
+        input.addEventListener('input', function () {
+          const tr = this.closest('tr');
+          const idx = parseInt(tr.getAttribute('data-idx'), 10);
+          currentRows[idx][this.getAttribute('data-field')] = this.value;
+        });
+      });
+    }
+
+    function cancelPreview() {
+      currentRows = [];
+      document.getElementById('previewSection').style.display = 'none';
+      document.getElementById('regionalFile').value = '';
+    }
+
+    function confirmSave() {
+      const matched = currentRows.filter(r => r.matchStatus === 'MATCHED');
+      if (matched.length === 0) {
+        showMsg('error', 'No matched rows to save.', 'Error');
+        return;
+      }
+      showOverlay('Saving regional-language details…');
+      fetch(`${contextPath}admin/student-regional/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(matched)
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          hideOverlay();
+          if (!ok || data.error) {
+            showMsg('error', data.error || 'Save failed.', 'Error');
+            return;
+          }
+          showMsg('success', `Saved ${data.saved} record(s)${data.skipped ? `, skipped ${data.skipped}` : ''}.`, 'Success');
+          cancelPreview();
+        })
+        .catch(err => {
+          hideOverlay();
+          console.error(err);
+          showMsg('error', 'Something went wrong while saving.', 'Error');
+        });
+    }
+
+    /* ── Single Student Update — search + edit + save one record ────────── */
+    let _regSearchQuery = '';
+    let _regSearchPage = 0;
+    let _regSearchMore = false;
+    let _regSearchLoading = false;
+    let _regSearchResults = [];
+    let _selectedStudent = null;
+
+    const renderRegStudentRow = (s, idx) => {
+      // Same single-line layout as the Fee Submission search: Name / Father Name / Grade-Section / SR No
+      const cls = (s.gradeName && s.sectionName) ? `${s.gradeName}-${s.sectionName}` : '-';
+      const sr = s.classSrNo ? ' / ' + s.classSrNo : ' / -';
+      const already = s.studentNameRegional ? ' <span class="badge bg-success-subtle text-success ms-1">filled</span>' : '';
+      return `<a data-idx="${idx}" onclick="selectRegStudent(${idx})" href="#" class="list-group-item list-group-item-action">${escHtml(s.studentName)} / ${escHtml(s.fatherName)} / ${escHtml(cls)}${sr}${already}</a>`;
+    };
+
+    const fetchRegStudents = (query, page, append) => {
+      if (_regSearchLoading) return;
+      _regSearchLoading = true;
+      const url = `${contextPath}admin/student-regional/search-student/${encodeURIComponent(query)}?page=${page}`;
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(async r => {
+          const text = await r.text();
+          let data;
+          try { data = JSON.parse(text); } catch (e) { data = null; }
+          return { ok: r.ok, status: r.status, data, raw: text };
+        })
+        .then(({ ok, status, data, raw }) => {
+          _regSearchLoading = false;
+          if (!ok || data === null) {
+            console.error('Student search failed', status, raw);
+            showMsg('error', `Search request failed (HTTP ${status}). Check the browser console for details.`, 'Error');
+            document.getElementById('regSearchResult').innerHTML =
+              `<div class="list-group-item text-danger small">Search failed (HTTP ${status}) — see console.</div>`;
+            document.getElementById('regSearchResult').style.display = 'block';
+            return;
+          }
+          if (data.error) { showMsg('error', data.error, 'Error'); return; }
+          const students = data;
+          _regSearchMore = students.length === 10;
+          if (!append) {
+            _regSearchResults = students;
+            let html;
+            if (students.length === 0) {
+              html = `<div class="list-group-item text-muted small">No matching active students found.</div>`;
+            } else {
+              html = `<div class="list-group" id="reg-student-list-group">`;
+              students.forEach((s, i) => { html += renderRegStudentRow(s, i); });
+              html += `</div>`;
+            }
+            document.getElementById('regSearchResult').innerHTML = html;
+            document.getElementById('regSearchResult').style.display = 'block';
+          } else {
+            const startIdx = _regSearchResults.length;
+            _regSearchResults = _regSearchResults.concat(students);
+            const group = document.getElementById('reg-student-list-group');
+            if (group) students.forEach((s, i) => { group.insertAdjacentHTML('beforeend', renderRegStudentRow(s, startIdx + i)); });
+          }
+        })
+        .catch(err => {
+          _regSearchLoading = false;
+          console.error('Student search network error', err);
+          showMsg('error', 'Network error while searching — check the browser console.', 'Error');
+        });
+    };
+
+    function searchRegStudent() {
+      const query = document.getElementById('regSearchInput').value;
+      if (query.trim().length > 2) {
+        if (query !== _regSearchQuery) {
+          _regSearchQuery = query;
+          _regSearchPage = 0;
+          fetchRegStudents(query, 0, false);
+        }
+      } else {
+        _regSearchQuery = '';
+        document.getElementById('regSearchResult').style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const resultBox = document.getElementById('regSearchResult');
+      if (resultBox) {
+        resultBox.addEventListener('scroll', function () {
+          if (!_regSearchMore || _regSearchLoading) return;
+          if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+            _regSearchPage++;
+            fetchRegStudents(_regSearchQuery, _regSearchPage, true);
+          }
+        });
+      }
+    });
+
+    function selectRegStudent(idx) {
+      _selectedStudent = _regSearchResults[idx];
+      document.getElementById('regSearchResult').style.display = 'none';
+      document.getElementById('regSearchInput').value = '';
+
+      const s = _selectedStudent;
+      const cls = (s.gradeName && s.sectionName) ? `${s.gradeName}-${s.sectionName}` : '-';
+
+      // Full reference info panel
+      document.getElementById('infoStudentName').innerText = s.studentName || '-';
+      document.getElementById('infoFatherName').innerText = s.fatherName || '-';
+      document.getElementById('infoMotherName').innerText = s.motherName || '-';
+      document.getElementById('infoClass').innerText = cls;
+      document.getElementById('infoSrNo').innerText = s.classSrNo || '-';
+      document.getElementById('infoAddress').innerText = s.address || '-';
+
+      // Quick English reference shown right next to each regional field
+      document.getElementById('refStudentName').innerText = s.studentName || '-';
+      document.getElementById('refFatherName').innerText = s.fatherName || '-';
+      document.getElementById('refMotherName').innerText = s.motherName || '-';
+      document.getElementById('refAddress').innerText = s.address || '-';
+
+      const badge = document.getElementById('editExistingBadge');
+      if (s.studentNameRegional || s.fatherNameRegional || s.motherNameRegional || s.addressRegional) {
+        badge.className = 'regional-badge text-bg-success';
+        badge.innerText = 'Existing data — will update';
+      } else {
+        badge.className = 'regional-badge text-bg-secondary';
+        badge.innerText = 'New entry';
+      }
+
+      document.getElementById('editStudentNameRegional').value = s.studentNameRegional || '';
+      document.getElementById('editFatherNameRegional').value = s.fatherNameRegional || '';
+      document.getElementById('editMotherNameRegional').value = s.motherNameRegional || '';
+      document.getElementById('editAddressRegional').value = s.addressRegional || '';
+
+      document.getElementById('editCardWrap').style.display = 'block';
+    }
+
+    function cancelSingleEdit() {
+      _selectedStudent = null;
+      document.getElementById('editCardWrap').style.display = 'none';
+    }
+
+    function saveSingle() {
+      if (!_selectedStudent) {
+        showMsg('error', 'Please search and select a student first.', 'Error');
+        return;
+      }
+      const payload = {
+        studentUuid: _selectedStudent.studentUuid,
+        studentNameRegional: document.getElementById('editStudentNameRegional').value,
+        fatherNameRegional: document.getElementById('editFatherNameRegional').value,
+        motherNameRegional: document.getElementById('editMotherNameRegional').value,
+        addressRegional: document.getElementById('editAddressRegional').value
+      };
+      showOverlay('Saving...');
+      fetch(`${contextPath}admin/student-regional/save-one`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          hideOverlay();
+          if (!ok || data.error) {
+            showMsg('error', data.error || 'Save failed.', 'Error');
+            return;
+          }
+          showMsg('success', 'Regional details saved.', 'Success');
+          cancelSingleEdit();
+        })
+        .catch(err => {
+          hideOverlay();
+          console.error(err);
+          showMsg('error', 'Something went wrong while saving.', 'Error');
+        });
+    }
+  </script>
+</section>
+</body>
+</html>

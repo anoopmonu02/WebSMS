@@ -33,6 +33,18 @@
             </div>
             <hr/>
         </div>
+        <!-- Loading overlay — shown while fetch is in progress -->
+        <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.80);
+             backdrop-filter:blur(3px); z-index:9999; flex-direction:column;
+             align-items:center; justify-content:center;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" style="width:3.5rem;height:3.5rem;" role="status">
+                    <span class="visually-hidden">Loading…</span>
+                </div>
+                <div class="mt-3 fw-semibold text-primary fs-5">Fetching student list…</div>
+                <div class="text-muted small mt-1">This may take a moment for large classes</div>
+            </div>
+        </div>
         <div class="row " id="printable-div" style="display: none">
             <div class="card-header fs-3">All Student Data(Academic-Year)</div><hr/>
             <div class="row" id="graph-div">
@@ -113,6 +125,13 @@
                 medium: medium
             };
             let url = `${contextPath}getTotalStudentDetails`;
+
+            // Show spinner, disable button
+            const overlay = document.getElementById('loading-overlay');
+            const getListBtn = document.querySelector('button[onclick="validateAndSubmit();"]');
+            overlay.style.display = 'flex';
+            if (getListBtn) { getListBtn.disabled = true; }
+
             fetch(url, {
                 method: 'POST',
                 headers: {
@@ -128,6 +147,10 @@
                     return response.json();  // Parse response as JSON
                 })
                 .then(data => {
+                    // Hide spinner, re-enable button
+                    overlay.style.display = 'none';
+                    if (getListBtn) { getListBtn.disabled = false; }
+
                     if (!data.finalData) {
                         showMsg("error", data.error || "Server error while fetching student list", "Error");
                         return;
@@ -162,6 +185,7 @@
                     <tr>
                         <th>SNo</th>
                         <th>Grade</th>
+                        <th>Sec</th>
                         <th>SR No</th>
                         <th>Student Name</th>
                         <th>Father Name</th>
@@ -195,7 +219,7 @@
                     let borderColors = [];
                     feeData.forEach(academicStudent =>{
                         let srno = academicStudent.classSrNo ? academicStudent.classSrNo.trim() : '';
-                        let grd = academicStudent.grade.gradeName + ' - ' + academicStudent.section.sectionName;
+                        let grd = academicStudent.grade.gradeName;
                         let landmark = academicStudent.student.landmark;
                         let address = academicStudent.student.address ? (academicStudent.student.address.trim() + (landmark ? ' ' + landmark.trim() : '')) : '';
                         let dt = academicStudent.migrationDate
@@ -238,6 +262,7 @@
                         tblData += `<tr ${statusClass}>
                             <td>${counter}</td>
                             <td>${grd}</td>
+                            <td>${academicStudent.section.sectionName}</td>
                             <td>${srno}</td>
                             <td>${academicStudent.student.studentName}</td>
                             <td>${academicStudent.student.fatherName}</td>
@@ -273,7 +298,7 @@
                     });
                     tblData+=`</tbody></table>`;
                     $("#student-collection-data").html(tblData);
-                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27];
+                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28];
                     const columnDefs = [{ "orderable": false, "targets": [0] }];
                     $("#studentTable").DataTable({
                         scrollX: true,
@@ -335,6 +360,10 @@
                     generateChart(["Aadhar","No Aadhar"],aadharAmts, backgroundColors, borderColors, "Aadhar Availability", "no-aadhar-div","aadharChart");
                 })
                 .catch(error => {
+                    // Hide spinner, re-enable button
+                    overlay.style.display = 'none';
+                    if (getListBtn) { getListBtn.disabled = false; }
+
                     console.error('Error:', error);  // Handle error response
                     const errorMsg = '';//(error.includes('error#####'))?error.split("#####")[1]:error;
                     $("#student-collection-data").empty();
