@@ -1065,6 +1065,18 @@ public class FeeSubmissionService {
                             for (FeeSubmission fs : todayFeeCollectionDetails) leanList.add(toLeanMap(fs));
                             finalDataMap.put("todayFeeCollectionDetails", leanList);
                         }
+
+                        // Cancelled Fee Summary — same date, status = Inactive
+                        List<Object[]> cancelledFeeSummary = feeSubmissionRepository.findCancelledFeeAggregatesForCurrentDate(currentDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("cancelledFeeSummary", (CollectionUtils.isEmpty(cancelledFeeSummary))? "No Data found": cancelledFeeSummary);
+                        List<FeeSubmission> todayCancelledFeeDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Inactive", school.getId(), academicYear.getId(), currentDate, null, null);
+                        if (CollectionUtils.isEmpty(todayCancelledFeeDetails)) {
+                            finalDataMap.put("todayCancelledFeeDetails", "No cancelled Fee details found for current date:" + currentDate);
+                        } else {
+                            List<Map<String, Object>> cancelledLeanList = new ArrayList<>();
+                            for (FeeSubmission fs : todayCancelledFeeDetails) cancelledLeanList.add(toLeanMap(fs));
+                            finalDataMap.put("todayCancelledFeeDetails", cancelledLeanList);
+                        }
                     } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
                         String startDate = paramsMap.get("startDate");
                         String endDate = paramsMap.get("endDate");
@@ -1072,6 +1084,68 @@ public class FeeSubmissionService {
                         List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findFeeSubmissionAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
                         finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
                         List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Active", school.getId(), academicYear.getId(),  null, startDate, endDate);
+                        if (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails)) {
+                            finalDataMap.put("dateRangeFeeCollectionDetails", "No Fee details found for dates:" + startDate + " and " + endDate);
+                        } else {
+                            List<Map<String, Object>> leanList = new ArrayList<>();
+                            for (FeeSubmission fs : dateRangeFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                            finalDataMap.put("dateRangeFeeCollectionDetails", leanList);
+                        }
+
+                        // Cancelled Fee Summary — same date range, status = Inactive
+                        List<Object[]> cancelledFeeSummary = feeSubmissionRepository.findCancelledFeeAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId());
+                        finalDataMap.put("cancelledFeeSummary", (CollectionUtils.isEmpty(cancelledFeeSummary))? "No Data found": cancelledFeeSummary);
+                        List<FeeSubmission> dateRangeCancelledFeeDetails = feeSubmissionRepository.findAllFeeDetailsByUser("Inactive", school.getId(), academicYear.getId(), null, startDate, endDate);
+                        if (CollectionUtils.isEmpty(dateRangeCancelledFeeDetails)) {
+                            finalDataMap.put("dateRangeCancelledFeeDetails", "No cancelled Fee details found for dates:" + startDate + " and " + endDate);
+                        } else {
+                            List<Map<String, Object>> cancelledLeanList = new ArrayList<>();
+                            for (FeeSubmission fs : dateRangeCancelledFeeDetails) cancelledLeanList.add(toLeanMap(fs));
+                            finalDataMap.put("dateRangeCancelledFeeDetails", cancelledLeanList);
+                        }
+                    }
+                }
+            }
+            responseMap.put("finalData", finalDataMap);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMap.put("error", e.getLocalizedMessage());
+        }
+        return responseMap;
+    }
+
+    /**
+     * Self-service "My Collection" report (FEE_REPORT_OWN_COLLECTION) — same shape as
+     * calculateFeeSubmissionUserWise, but scoped to a single logged-in user's own Active
+     * fee submissions only. Returns just Collection Summary + Collection Data (no cancelled-fee section).
+     */
+    public Map calculateFeeSubmissionForLoggedInUser(Map<String, String> paramsMap, School school, AcademicYear academicYear, Long createdById){
+        log.info("Inside calculateFeeSubmissionForLoggedInUser");
+        Map responseMap  = new HashMap();
+        try{
+            Map<String, Object> finalDataMap = new HashMap<>();
+            if(paramsMap!=null && !paramsMap.isEmpty()){
+                if(paramsMap.containsKey("selectedOption")){
+                    if(paramsMap.get("selectedOption").equalsIgnoreCase("today")){
+                        String currentDate = paramsMap.get("todayDate");
+                        log.debug("currentDate={}", currentDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findOwnFeeSubmissionAggregatesForCurrentDate(currentDate, school.getId(), academicYear.getId(), createdById);
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                        List<FeeSubmission> todayFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUserAndCreatedBy("Active", school.getId(), academicYear.getId(), currentDate, null, null, createdById);
+                        if (CollectionUtils.isEmpty(todayFeeCollectionDetails)) {
+                            finalDataMap.put("todayFeeCollectionDetails", "No Fee details found for current date:" + currentDate);
+                        } else {
+                            List<Map<String, Object>> leanList = new ArrayList<>();
+                            for (FeeSubmission fs : todayFeeCollectionDetails) leanList.add(toLeanMap(fs));
+                            finalDataMap.put("todayFeeCollectionDetails", leanList);
+                        }
+                    } else if(paramsMap.get("selectedOption").equalsIgnoreCase("range")){
+                        String startDate = paramsMap.get("startDate");
+                        String endDate = paramsMap.get("endDate");
+                        log.debug("dateRange start={}, end={}", startDate, endDate);
+                        List<Object[]> userWiseFeeCollection = feeSubmissionRepository.findOwnFeeSubmissionAggregatesForDateRange(startDate, endDate, school.getId(), academicYear.getId(), createdById);
+                        finalDataMap.put("userWiseFeeCollection", (CollectionUtils.isEmpty(userWiseFeeCollection))? "No Data found": userWiseFeeCollection);
+                        List<FeeSubmission> dateRangeFeeCollectionDetails = feeSubmissionRepository.findAllFeeDetailsByUserAndCreatedBy("Active", school.getId(), academicYear.getId(), null, startDate, endDate, createdById);
                         if (CollectionUtils.isEmpty(dateRangeFeeCollectionDetails)) {
                             finalDataMap.put("dateRangeFeeCollectionDetails", "No Fee details found for dates:" + startDate + " and " + endDate);
                         } else {

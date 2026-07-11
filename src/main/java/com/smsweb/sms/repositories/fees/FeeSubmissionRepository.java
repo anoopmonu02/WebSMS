@@ -87,6 +87,35 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("schoolId") Long schoolId,
             @Param("academicYearId") Long academicYearId);
 
+    @Query(
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Inactive' " +
+                    "  AND DATE(fs.fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "GROUP BY fs.created_by ",
+            nativeQuery = true)
+    List<Object[]> findCancelledFeeAggregatesForCurrentDate(
+            @Param("date") String date,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId);
+
+    @Query(
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Inactive' " +
+                    "  AND DATE(fs.fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "GROUP BY fs.created_by ",
+            nativeQuery = true)
+    List<Object[]> findCancelledFeeAggregatesForDateRange(
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId);
+
     @Query("SELECT DISTINCT f FROM FeeSubmission f LEFT JOIN FETCH f.createdBy u" +
             "       LEFT JOIN FETCH u.employee " +
             "       LEFT JOIN FETCH u.student " +
@@ -105,6 +134,62 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             @Param("feeDate") String feeDate,
             @Param("startDate") String startDate,
             @Param("endDate") String endDate);
+
+    // ── Self-service "My Collection" (FEE_REPORT_OWN_COLLECTION) — scoped to a single createdById ──
+
+    @Query(
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Active' " +
+                    "  AND DATE(fs.fee_submission_date) = STR_TO_DATE(:date, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "  AND fs.created_by = :createdById " +
+                    "GROUP BY fs.created_by ",
+            nativeQuery = true)
+    List<Object[]> findOwnFeeSubmissionAggregatesForCurrentDate(
+            @Param("date") String date,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("createdById") Long createdById);
+
+    @Query(
+            value = "SELECT SUM(fs.paid_amount) AS totalPaid, COUNT(fs.id) AS totalCount, fs.created_by as createdBy, u.username AS createdByUser " +
+                    "FROM fee_submission fs INNER JOIN users u ON u.id = fs.created_by " +
+                    "WHERE fs.status = 'Active' " +
+                    "  AND DATE(fs.fee_submission_date) BETWEEN STR_TO_DATE(:startDate, '%d/%b/%Y') AND STR_TO_DATE(:endDate, '%d/%b/%Y') " +
+                    "  AND fs.school_id = :schoolId " +
+                    "  AND fs.academic_year_id = :academicYearId " +
+                    "  AND fs.created_by = :createdById " +
+                    "GROUP BY fs.created_by ",
+            nativeQuery = true)
+    List<Object[]> findOwnFeeSubmissionAggregatesForDateRange(
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("createdById") Long createdById);
+
+    @Query("SELECT DISTINCT f FROM FeeSubmission f LEFT JOIN FETCH f.createdBy u" +
+            "       LEFT JOIN FETCH u.employee " +
+            "       LEFT JOIN FETCH u.student " +
+            "WHERE f.status = :status " +
+            "  AND f.school.id = :schoolId " +
+            "  AND f.academicYear.id = :academicYearId " +
+            "  AND f.createdBy.id = :createdById " +
+            "  AND ((:startDate IS NOT NULL AND :endDate IS NOT NULL " +
+            "        AND function('DATE', f.feeSubmissionDate) BETWEEN function('STR_TO_DATE', :startDate, '%d/%b/%Y') " +
+            "                                                   AND function('STR_TO_DATE', :endDate, '%d/%b/%Y')) " +
+            "       OR (:startDate IS NULL AND :endDate IS NULL " +
+            "           AND function('DATE', f.feeSubmissionDate) = function('STR_TO_DATE', :feeDate, '%d/%b/%Y')))")
+    List<FeeSubmission> findAllFeeDetailsByUserAndCreatedBy(
+            @Param("status") String status,
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("feeDate") String feeDate,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate,
+            @Param("createdById") Long createdById);
 
     @Query("SELECT f FROM FeeSubmission f " +
             "WHERE f.status = :status " +
@@ -163,7 +248,7 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
                 AND fcm.grade_id IN (:gradeIds)
                 AND LOWER(mm.month_name) = LOWER(MONTHNAME(CURDATE()))
                 AND fmm.is_applicable = true
-                AND LOWER(fh.fee_head_name) = 'tuition fee'
+                AND LOWER(fh.fee_head_name) = 'monthly fee'
             GROUP BY fcm.grade_id, g.grade_name
             """, nativeQuery = true)
     List<Object[]> getGradewiseTutionFeesCurrentMonth(@Param("school") Long school,

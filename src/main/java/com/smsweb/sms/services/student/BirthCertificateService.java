@@ -68,7 +68,7 @@ public class BirthCertificateService {
         dto.setStudentName(student.getStudentName());
         dto.setFatherName(student.getFatherName());
         dto.setMotherName(student.getMotherName());
-        dto.setAddress(student.getAddress());
+        dto.setAddress(buildFullAddress(student));
         dto.setGender(student.getGender());
         dto.setNationality(student.getNationality());
         dto.setReligion(student.getReligion());
@@ -85,5 +85,27 @@ public class BirthCertificateService {
             dto.setAddressRegional(regional.getAddressRegional());
         }
         return dto;
+    }
+
+    /**
+     * Full address (street address + city, in caps to match the rest of the address)
+     * shown on the certificate. Skips appending the city if that name is already
+     * present somewhere in the free-text address (common when the address was
+     * originally typed as "village, district") to avoid showing the same place name twice.
+     */
+    private String buildFullAddress(Student student) {
+        if (student == null) return "";
+        String rawAddress = student.getAddress() != null ? student.getAddress().trim() : "";
+        String addressLower = rawAddress.toLowerCase();
+        StringBuilder sb = new StringBuilder(rawAddress);
+
+        if (student.getCity() != null && student.getCity().getCityName() != null && !student.getCity().getCityName().isBlank()) {
+            String cityName = student.getCity().getCityName().trim();
+            if (!addressLower.contains(cityName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(cityName.toUpperCase());
+            }
+        }
+        return sb.toString();
     }
 }

@@ -374,7 +374,7 @@ public class ExcelFileHandler {
                 setCell(row, 2, student.getStudentName(), lockedStyle);
                 setCell(row, 3, student.getFatherName(), lockedStyle);
                 setCell(row, 4, student.getMotherName(), lockedStyle);
-                setCell(row, 5, student.getAddress(), lockedStyle);
+                setCell(row, 5, buildFullAddress(student), lockedStyle);
                 setCell(row, 6, existing != null ? existing.getStudentNameRegional() : "", editableStyle);
                 setCell(row, 7, existing != null ? existing.getFatherNameRegional() : "", editableStyle);
                 setCell(row, 8, existing != null ? existing.getMotherNameRegional() : "", editableStyle);
@@ -404,6 +404,37 @@ public class ExcelFileHandler {
         Cell cell = row.createCell(colIndex);
         cell.setCellValue(value == null ? "" : value);
         cell.setCellStyle(style);
+    }
+
+    /**
+     * Full reference address for the regional-language template — street address plus
+     * city + state (province) appended, so whoever fills in the translated column has
+     * the complete address to work from, not just the free-text street portion.
+     * Skips appending city/province if that name is already present somewhere in the
+     * free-text address (common when the address was originally typed as
+     * "village, district") to avoid showing the same place name twice.
+     */
+    private String buildFullAddress(Student student) {
+        if (student == null) return "";
+        String rawAddress = student.getAddress() != null ? student.getAddress().trim() : "";
+        String addressLower = rawAddress.toLowerCase();
+        StringBuilder sb = new StringBuilder(rawAddress);
+
+        if (student.getCity() != null && student.getCity().getCityName() != null && !student.getCity().getCityName().isBlank()) {
+            String cityName = student.getCity().getCityName().trim();
+            if (!addressLower.contains(cityName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(cityName);
+            }
+        }
+        if (student.getProvince() != null && student.getProvince().getProvinceName() != null && !student.getProvince().getProvinceName().isBlank()) {
+            String provinceName = student.getProvince().getProvinceName().trim();
+            if (!addressLower.contains(provinceName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(provinceName);
+            }
+        }
+        return sb.toString();
     }
 
     /**

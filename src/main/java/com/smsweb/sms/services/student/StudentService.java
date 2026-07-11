@@ -1268,7 +1268,7 @@ public class StudentService {
             stuMap.put("mobile1",               s.getMobile1()               != null ? s.getMobile1()               : "");
             stuMap.put("mobile2",               s.getMobile2()               != null ? s.getMobile2()               : "");
             stuMap.put("religion",              s.getReligion()              != null ? s.getReligion()              : "");
-            stuMap.put("address",               s.getAddress()               != null ? s.getAddress()               : "");
+            stuMap.put("address",               buildFullAddress(s));
             stuMap.put("landmark",              s.getLandmark()              != null ? s.getLandmark()              : "");
             stuMap.put("distanceFromSchool",    s.getDistanceFromSchool()!=null ? s.getDistanceFromSchool() : 0 );
             stuMap.put("aadharNo",              s.getAadharNo()              != null ? s.getAadharNo()              : "");
@@ -1289,6 +1289,29 @@ public class StudentService {
             aMap.put("student", stuMap);
         }
         return aMap;
+    }
+
+    /**
+     * Full address (street address + city, in caps) shown in the "Student List (Session)"
+     * report — same composition as the birth certificate. Skips appending the city if
+     * that name is already present somewhere in the free-text address (common when the
+     * address was originally typed as "village, district") to avoid showing the same
+     * place name twice.
+     */
+    private String buildFullAddress(Student student) {
+        if (student == null) return "";
+        String rawAddress = student.getAddress() != null ? student.getAddress().trim() : "";
+        String addressLower = rawAddress.toLowerCase();
+        StringBuilder sb = new StringBuilder(rawAddress);
+
+        if (student.getCity() != null && student.getCity().getCityName() != null && !student.getCity().getCityName().isBlank()) {
+            String cityName = student.getCity().getCityName().trim();
+            if (!addressLower.contains(cityName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(cityName.toUpperCase());
+            }
+        }
+        return sb.toString();
     }
 
 }

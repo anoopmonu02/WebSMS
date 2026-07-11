@@ -1,9 +1,11 @@
 package com.smsweb.sms.controllers.smsmessage;
 
 import com.smsweb.sms.config.permission.CheckAccess;
+import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.UserEntity;
+import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/message")
 @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
-public class SmsMessageController {
+public class SmsMessageController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(SmsMessageController.class);
 
 
@@ -376,6 +378,45 @@ public class SmsMessageController {
 
 
 
+    /**
+     * Fee Reminder "Send Reminder Notification" button. Reuses the exact amount/months/heads
+     * already computed and shown by /getFeeReminderDetails (no recalculation here) — the admin
+     * reviews the on-screen figures, this persists exactly what was reviewed. Ownership of each
+     * academicStudentId is still validated server-side against the current school + session.
+     */
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
+    @PostMapping("/sendFeeReminderNotifications")
+    public ResponseEntity<?> sendFeeReminderNotifications(@RequestBody Map<String, Object> payload, Model model) {
+        log.info("Inside sendFeeReminderNotifications");
+        try {
+            String language = (String) payload.get("language");
+            String lastdate = (String) payload.get("lastdate");
+            Object studentsObj = payload.get("students");
+            if (language == null || language.isBlank() || !(studentsObj instanceof List)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Missing language or students list."));
+            }
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> students = (List<Map<String, Object>>) studentsObj;
+            if (students.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No students to notify."));
+            }
+
+            School school = (School) model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            if (school == null || academicYear == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "No school/session selected."));
+            }
+
+            Map<String, Object> result = smsMessageService.sendFeeReminderNotifications(
+                    students, language, lastdate, school, academicYear, userService.getLoggedInUser());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("sendFeeReminderNotifications failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error sending reminder notifications: " + e.getMessage()));
+        }
+    }
+
     @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
     @GetMapping("/getActivitiesByStudent/{studentId}")
     public ResponseEntity<List<Map<String, Object>>> getActivitiesByStudent(@PathVariable Long studentId) {
@@ -387,6 +428,7 @@ public class SmsMessageController {
             m.put("id", msg.getId());
             m.put("title", msg.getSmsHeading() != null ? msg.getSmsHeading() : "");
             m.put("createdAt", msg.getCreatedAt());
+            m.put("dueDate", msg.getDueDate());
             // Get description from first conversation
             String description = "";
             if (msg.getConversations() != null && !msg.getConversations().isEmpty()) {
@@ -399,6 +441,33 @@ public class SmsMessageController {
         return ResponseEntity.ok(leanList);
     }
 
+    /** Reschedule an activity's follow-up/due date. Only ever touches ACTIVITIES rows — enforced in the repository query. */
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
+    @PostMapping("/updateActivityDueDate/{id}")
+    public ResponseEntity<Map<String, Object>> updateActivityDueDate(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        log.info("Inside updateActivityDueDate");
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String dueDateStr = (String) payload.get("dueDate");
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Due date is required"));
+            }
+            // Frontend now uses flatpickr with dateFormat "d/M/Y" (dd/MMM/yyyy), same as every other date field in the app.
+            Date dueDate = new SimpleDateFormat("dd/MMM/yyyy").parse(dueDateStr);
+            int updated = smsMessageService.updateActivityDueDate(id, dueDate);
+            if (updated > 0) {
+                response.put("success", true);
+                response.put("dueDate", dueDate);
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Activity not found"));
+            }
+        } catch (Exception e) {
+            log.error("Failed to update activity due date", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error updating due date: " + e.getMessage()));
+        }
+    }
+
     @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
     @PostMapping("/saveActivity")
     public ResponseEntity<Map<String, Object>> saveActivity(@RequestBody Map<String, Object> payload) {
@@ -408,6 +477,7 @@ public class SmsMessageController {
             String title = (String) payload.get("title");
             String description = (String) payload.get("description");
             Long studentId = Long.valueOf(payload.get("studentId").toString());
+            String dueDateStr = (String) payload.get("dueDate");
 
             if (title == null || title.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Title is required"));
@@ -415,12 +485,23 @@ public class SmsMessageController {
             if (description == null || description.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Description is required"));
             }
+            if (dueDateStr == null || dueDateStr.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Due date is required"));
+            }
 
             Optional<AcademicStudent> studentOpt = academicStudentService.findById(studentId);
             if (studentOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid studentId"));
             }
             AcademicStudent student = studentOpt.get();
+
+            Date dueDate;
+            try {
+                // Frontend now uses flatpickr with dateFormat "d/M/Y" (dd/MMM/yyyy), same as every other date field in the app.
+                dueDate = new SimpleDateFormat("dd/MMM/yyyy").parse(dueDateStr);
+            } catch (Exception ex) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid due date format"));
+            }
 
             SmsConversation conversation = new SmsConversation();
             conversation.setContent(description);
@@ -438,6 +519,7 @@ public class SmsMessageController {
             smsMessage.setSchool(student.getSchool());
             smsMessage.setCreatedBy(userService.getLoggedInUser());
             smsMessage.setCreatedAt(new java.util.Date());
+            smsMessage.setDueDate(dueDate);
             smsMessage.setRecipients(Collections.singletonList(student));
             smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
 
@@ -448,6 +530,7 @@ public class SmsMessageController {
             response.put("title", smsMessage.getSmsHeading());
             response.put("description", description);
             response.put("createdAt", smsMessage.getCreatedAt());
+            response.put("dueDate", smsMessage.getDueDate());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             e.printStackTrace();

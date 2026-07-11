@@ -45,4 +45,10 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Query("SELECT m FROM SmsMessage m JOIN m.recipients r WHERE r.id = :studentId AND m.messageType = :messageType ORDER BY m.createdAt DESC")
     List<SmsMessage> findByRecipients_IdAndMessageType(@Param("studentId") Long studentId, @Param("messageType") String messageType);
 
+    /** Reschedule an activity's follow-up date. Scoped to ACTIVITIES rows only so it can never touch a complaint/notification row. */
+    @Modifying
+    @Transactional
+    @Query("UPDATE SmsMessage m SET m.dueDate = :dueDate WHERE m.id = :id AND m.messageType = '" + SmsMessage.MESSAGE_TYPE_ACTIVITIES + "'")
+    int updateActivityDueDate(@Param("id") Long id, @Param("dueDate") Date dueDate);
+
 }
