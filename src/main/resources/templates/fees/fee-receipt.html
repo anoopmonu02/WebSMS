@@ -318,6 +318,10 @@
         if(id>0){
             console.log("id::::"+id);
             $('#feetable > tbody').empty();
+            // Clear the printable receipt block too — it's only populated when the printer
+            // icon on a specific row is clicked, so without this it kept showing whichever
+            // previous student's receipt was last printed, even after switching students.
+            $('#disp-receipt').empty();
             let url = `${contextPath}getStudentFeeDetails/${id}`;
             fetch(url).then(response => {
                 return response.json();

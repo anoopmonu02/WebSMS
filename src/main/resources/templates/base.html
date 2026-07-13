@@ -935,6 +935,8 @@
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_SEARCH:VIEW" th:href="@{'/student/look-up-student'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Search Student</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_BIRTH_CERTIFICATE:VIEW" th:href="@{'/student/birth-certificate'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Birth Certificate</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_ID_CARD:VIEW" th:href="@{'/student/id-card-print'}" class="sidebar-link"><i class="bi bi-dot"></i><span>ID Card Print</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_GRADEWISE_IMAGE_DOWNLOAD:VIEW" th:href="@{'/student/grade-wise-image-download'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade-wise Images Download</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_BOARD_REGISTRATION_CLASS9:VIEW" th:href="@{'/student/board-registration-class9'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Board Registration (Class 9)</span></a></li>
                             </ul>
                         </li>
                     </ul>

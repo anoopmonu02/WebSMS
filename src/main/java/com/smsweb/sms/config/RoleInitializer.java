@@ -154,6 +154,16 @@ public class RoleInitializer {
                     "STUDENT_ID_CARD",
                     "Print ID cards for students by medium, grade and section");
 
+            // Grade-wise bulk photo download (images + matching Excel sheet, zipped)
+            seed(screenRepo, "Student", "Grade-wise Images Download",
+                    "STUDENT_GRADEWISE_IMAGE_DOWNLOAD",
+                    "Download student photos and a matching Excel sheet for a medium/grade/section, bundled as a zip");
+
+            // Board Registration data prep for Class 9 (government-format export)
+            seed(screenRepo, "Student", "Board Registration (Class 9)",
+                    "STUDENT_BOARD_REGISTRATION_CLASS9",
+                    "Preview and export Class 9 board registration data in the government-required column format");
+
             // Birth certificate — search one student, print bilingual certificate
             seed(screenRepo, "Student", "Birth Certificate",
                     "STUDENT_BIRTH_CERTIFICATE",

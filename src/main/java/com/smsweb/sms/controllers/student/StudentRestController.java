@@ -8,10 +8,15 @@ import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.ExamResultSummary;
 import com.smsweb.sms.models.student.StudentDiscount;
+import com.smsweb.sms.models.student.StudentRegionalDetail;
+import com.smsweb.sms.helper.GradeWiseImageDownloadHelper;
+import com.smsweb.sms.helper.BoardRegistrationHelper;
+import com.smsweb.sms.repositories.student.StudentRegionalDetailRepository;
 import com.smsweb.sms.services.globalaccess.ExcelService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,12 +44,21 @@ public class StudentRestController extends BaseController {
     private final StudentService studentService;
     private final AcademicStudentService academicStudentService;
     private final StudentDiscountService studentDiscountService;
+    private final GradeWiseImageDownloadHelper gradeWiseImageDownloadHelper;
+    private final BoardRegistrationHelper boardRegistrationHelper;
+    private final StudentRegionalDetailRepository studentRegionalDetailRepository;
 
-    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService, StudentDiscountService studentDiscountService) {
+    @Value("${student.image.storage.path}")
+    private String studentImageDirectory;
+
+    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService, StudentDiscountService studentDiscountService, GradeWiseImageDownloadHelper gradeWiseImageDownloadHelper, BoardRegistrationHelper boardRegistrationHelper, StudentRegionalDetailRepository studentRegionalDetailRepository) {
         this.excelService = excelService;
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.studentDiscountService = studentDiscountService;
+        this.gradeWiseImageDownloadHelper = gradeWiseImageDownloadHelper;
+        this.boardRegistrationHelper = boardRegistrationHelper;
+        this.studentRegionalDetailRepository = studentRegionalDetailRepository;
     }
 
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
@@ -198,6 +213,128 @@ public class StudentRestController extends BaseController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An unexpected error occurred: " + e.getMessage());
         }
+    }
+
+    @CheckAccess(screen = "STUDENT_GRADEWISE_IMAGE_DOWNLOAD", type = AccessType.VIEW)
+    @PostMapping("/downloadGradeWiseImages")
+    public ResponseEntity<?> downloadGradeWiseImages(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside downloadGradeWiseImages");
+        try{
+            if(requestBody == null){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Request body is missing or invalid."));
+            }
+            String medium = requestBody.getOrDefault("mediumId","0");
+            String grade = requestBody.getOrDefault("gradeId","0");
+            String section = requestBody.getOrDefault("sectionId","0");
+            Long mediumId = (medium!=null && !medium.isEmpty())?Long.parseLong(medium):0L;
+            Long gradeId = (grade!=null && !grade.isEmpty())?Long.parseLong(grade):0L;
+            Long sectionId = (section!=null && !section.isEmpty())?Long.parseLong(section):0L;
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+
+            List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+            if(academicStudents == null || academicStudents.isEmpty()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "No students found for the given criteria."));
+            }
+
+            String gradeName = academicStudents.get(0).getGrade().getGradeName();
+            String sectionName = academicStudents.get(0).getSection().getSectionName();
+
+            GradeWiseImageDownloadHelper.ZipBuildResult result = gradeWiseImageDownloadHelper.buildDownloadZip(academicStudents, gradeName, sectionName, studentImageDirectory);
+            String zipFileName = gradeWiseImageDownloadHelper.buildZipFileName(gradeName, sectionName);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=\""+zipFileName+"\"")
+                    .header("X-Total-Student-Count", String.valueOf(academicStudents.size()))
+                    .header("X-With-Image-Count", String.valueOf(result.withImageCount))
+                    .header("X-Without-Image-Count", String.valueOf(result.withoutImageCount))
+                    .header("Access-Control-Expose-Headers", "X-Total-Student-Count, X-With-Image-Count, X-Without-Image-Count, Content-Disposition")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(result.zipBytes);
+        }catch(Exception e){
+            log.error("Error building grade-wise image download zip", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    @CheckAccess(screen = "STUDENT_BOARD_REGISTRATION_CLASS9", type = AccessType.VIEW)
+    @PostMapping("/previewBoardRegistrationClass9")
+    public ResponseEntity<?> previewBoardRegistrationClass9(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside previewBoardRegistrationClass9");
+        try{
+            List<Map<String, Object>> rows = buildBoardRegistrationRows(requestBody, model);
+            return ResponseEntity.ok(rows);
+        }catch(IllegalArgumentException iae){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", iae.getMessage()));
+        }catch(Exception e){
+            log.error("Error building board registration preview", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    @CheckAccess(screen = "STUDENT_BOARD_REGISTRATION_CLASS9", type = AccessType.VIEW)
+    @PostMapping("/exportBoardRegistrationClass9")
+    public ResponseEntity<?> exportBoardRegistrationClass9(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside exportBoardRegistrationClass9");
+        try{
+            List<Map<String, Object>> rows = buildBoardRegistrationRows(requestBody, model);
+            byte[] excelBytes = boardRegistrationHelper.buildExcel(rows);
+            String fileName = "BoardRegistration_Class9_" + new SimpleDateFormat("ddMMyyyy").format(new Date()) + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=\""+fileName+"\"")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(excelBytes);
+        }catch(IllegalArgumentException iae){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", iae.getMessage()));
+        }catch(Exception e){
+            log.error("Error building board registration export", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Shared by both the preview and export endpoints so they can never disagree: same students,
+     * same field mapping, same order. gradeId is expected to already be Grade 9's resolved id,
+     * passed through from the page (which resolved it once in StudentController).
+     */
+    private List<Map<String, Object>> buildBoardRegistrationRows(Map<String, String> requestBody, Model model) {
+        if (requestBody == null) {
+            throw new IllegalArgumentException("Request body is missing or invalid.");
+        }
+        String medium = requestBody.getOrDefault("mediumId", "0");
+        String gradeIdStr = requestBody.getOrDefault("gradeId", "0");
+        String section = requestBody.getOrDefault("sectionId", "0");
+        Long mediumId = (medium != null && !medium.isEmpty()) ? Long.parseLong(medium) : 0L;
+        Long gradeId = (gradeIdStr != null && !gradeIdStr.isEmpty()) ? Long.parseLong(gradeIdStr) : 0L;
+        Long sectionId = (section != null && !section.isEmpty()) ? Long.parseLong(section) : 0L;
+
+        if (gradeId == 0L) {
+            throw new IllegalArgumentException("Grade 9 could not be resolved. Check that the Grade master has a record named exactly \"9\".");
+        }
+
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+
+        List<AcademicStudent> academicStudents = studentService.getAllStudentsByGrade(mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+        if (academicStudents == null || academicStudents.isEmpty()) {
+            throw new IllegalArgumentException("No students found for the given criteria.");
+        }
+
+        Map<Long, StudentRegionalDetail> regionalByStudentId = new HashMap<>();
+        for (AcademicStudent as : academicStudents) {
+            if (as.getStudent() != null) {
+                studentRegionalDetailRepository.findByStudent_Id(as.getStudent().getId())
+                        .ifPresent(rd -> regionalByStudentId.put(as.getStudent().getId(), rd));
+            }
+        }
+
+        return boardRegistrationHelper.buildRows(academicStudents, regionalByStudentId);
     }
 
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.CREATE)

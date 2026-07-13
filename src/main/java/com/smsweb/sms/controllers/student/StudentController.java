@@ -13,6 +13,7 @@ import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.universal.City;
+import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.repositories.admin.ExamDetailsRepository;
 import com.smsweb.sms.repositories.admin.ExaminationRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
@@ -364,6 +365,34 @@ public class StudentController extends BaseController {
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
         return "student/assign-srno";
+    }
+
+    @CheckAccess(screen = "STUDENT_GRADEWISE_IMAGE_DOWNLOAD", type = AccessType.VIEW)
+    @GetMapping("/grade-wise-image-download")
+    public String gradeWiseImageDownloadForm(Model model){
+        log.info("Inside gradeWiseImageDownloadForm");
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        return "student/grade-wise-image-download";
+    }
+
+    @CheckAccess(screen = "STUDENT_BOARD_REGISTRATION_CLASS9", type = AccessType.VIEW)
+    @GetMapping("/board-registration-class9")
+    public String boardRegistrationClass9Form(Model model){
+        log.info("Inside boardRegistrationClass9Form");
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("sections", dropdownService.getSections());
+        // Grade 9 is resolved once here (not a free dropdown) — the exact Grade master
+        // record whose name equals "9". If the school's Grade master doesn't have a record
+        // named exactly "9", grade9 stays null and the page shows a clear setup error
+        // instead of silently querying the wrong grade.
+        Grade grade9 = dropdownService.getGrades().stream()
+                .filter(g -> g.getGradeName() != null && g.getGradeName().trim().equalsIgnoreCase("9"))
+                .findFirst().orElse(null);
+        model.addAttribute("grade9", grade9);
+        model.addAttribute("page", "datatable");
+        return "student/board-registration-class9";
     }
 
     @CheckAccess(screen = "STUDENT_INACTIVE_LIST", type = AccessType.VIEW)
