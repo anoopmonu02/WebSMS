@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Board Registration (Class 9)</div>
+                <hr/>
+            </div>
+
+            <div class="col-12" th:if="${grade9 == null}">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Grade "9" was not found in the Grade master (looked for a grade named exactly "9").
+                    Please add/rename a Grade record to "9" under Configuration &rarr; Global Settings before using this page.
+                </div>
+            </div>
+
+            <div class="row justify-content-center" th:if="${grade9 != null}">
+                <div class="row align-items-end mb-3">
+                    <div class="col-md-2">
+                        <label for="medium" class="form-label">Medium</label>
+                        <select name="medium" id="medium" class="form-select">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Grade</label>
+                        <input type="text" class="form-control" th:value="${grade9.gradeName}" disabled/>
+                        <input type="hidden" id="gradeId" th:value="${grade9.id}"/>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="section" class="form-label">Section</label>
+                        <select name="section" id="section" class="form-select">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="col-sm-12">
+                            <button type="button" class="btn btn-outline-primary" id="previewBtn">
+                                <span class="normal-state"><i class="bi bi-eye"></i> Preview</span>
+                                <span class="loading-state d-none">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Loading&hellip;
+                                </span>
+                            </button>
+                            <button type="button" class="btn btn-primary ms-2" id="exportBtn" disabled>
+                                <span class="normal-state"><i class="bi bi-file-earmark-excel"></i> Export</span>
+                                <span class="loading-state d-none">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Preparing&hellip;
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+
+                <div class="col-12">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Preview shows exactly what the exported file will contain, in the government-required column
+                        order. Rows highlighted <span class="badge bg-warning text-dark">amber</span> have a value that
+                        couldn't be mapped automatically (hover the row for the reason) — the columns your school fills
+                        in manually (Subjects, UniqueIDClass08, SrNumber, Address2-4) are always blank by design, not an error.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-2" id="previewSummary" style="display:none;">
+                    <span class="badge bg-primary fs-6" id="previewCountBadge"></span>
+                    <span class="ms-2 text-danger fw-bold" id="previewRemarkText"></span>
+                </div>
+
+                <div class="col-12" id="previewTableWrapper" style="display:none;">
+                    <div id="previewTableContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        const HEADER_COLUMNS = [
+            "SerialNumber","CandidateName","FatherName","MotherName","CandidateName_HIN",
+            "FatherName_HIN","MotherName_HIN","DD","MM","YYYY","Sex","CasteCode","IsMinorityCode",
+            "CandidateType1Code","CandidateType2Code","MediumCode","Subject01Code","Subject02Code",
+            "Subject03Code","Subject04Code","Subject05Code","Subject06Code","Subject07Code",
+            "SubjectVOCCode","SubjectRevVOCCode","MobileNumber","AadhaarNumber","EMAILID",
+            "Address1","Address2","Address3","Address4","District","PinCode","State",
+            "UniqueIDClass08","Nationality","NationalityOther","ApaarId","PenNumber","SrNumber"
+        ];
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const validateMandatoryValues = () => {
+            const medium = $('#medium').val();
+            const grade = $('#gradeId').val();
+            const section = $('#section').val();
+            if(medium === '' || section === ''){
+                showMsg('error','Medium/Section is mandatory',"Warning");
+                return null;
+            }
+            return { medium, grade, section };
+        }
+
+        const setLoading = (btnId, isLoading) => {
+            const btn = document.getElementById(btnId);
+            btn.disabled = isLoading;
+            btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+            btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+        }
+
+        function escapeHtml(value){
+            const div = document.createElement('div');
+            div.textContent = value !== undefined && value !== null ? value : '';
+            return div.innerHTML;
+        }
+
+        function renderPreviewTable(rows){
+            let flaggedCount = 0;
+
+            let html = '<table class="table table-bordered table-sm" id="previewTable" style="width:100%">';
+            html += '<thead><tr>';
+            HEADER_COLUMNS.forEach(col => { html += `<th>${col}</th>`; });
+            html += '</tr></thead><tbody>';
+
+            rows.forEach(row => {
+                let rowClass = '';
+                let rowTitle = '';
+                if(row._flagged){
+                    flaggedCount++;
+                    rowClass = ' class="table-warning"';
+                    rowTitle = ` title="${escapeHtml(row._flagReasons)}"`;
+                }
+                html += `<tr${rowClass}${rowTitle}>`;
+                HEADER_COLUMNS.forEach(col => {
+                    html += `<td>${escapeHtml(row[col])}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            document.getElementById('previewTableContainer').innerHTML = html;
+
+            // No DataTable export buttons here on purpose — Export (our own button, top of the
+            // page) is the single source of truth for the downloadable file. This table is for
+            // reviewing/searching/paging the same data on screen, not a second export path.
+            $('#previewTable').DataTable({
+                scrollX: true,
+                scrollCollapse: true,
+                layout: {
+                    bottomEnd: {
+                        paging: { firstLast: false }
+                    }
+                },
+                lengthMenu: [ [5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, 'All'] ],
+                pageLength: 25
+            });
+
+            document.getElementById('previewTableWrapper').style.display = '';
+            document.getElementById('previewSummary').style.display = '';
+            document.getElementById('previewCountBadge').textContent = `${rows.length} student(s) previewed`;
+            document.getElementById('previewRemarkText').textContent = flaggedCount > 0
+                ? `Remark: ${flaggedCount} row(s) flagged for review (hover an amber row for the reason).`
+                : '';
+        }
+
+        document.getElementById('previewBtn').onclick = function(){
+            const selection = validateMandatoryValues();
+            if(!selection){
+                return;
+            }
+            setLoading('previewBtn', true);
+            document.getElementById('exportBtn').disabled = true;
+
+            fetch(`${contextPath}previewBoardRegistrationClass9`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mediumId: selection.medium.toString(),
+                    gradeId: selection.grade.toString(),
+                    sectionId: selection.section.toString()
+                })
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if(!ok){
+                    throw new Error((data && data.error) ? data.error : 'Unable to build the preview.');
+                }
+                renderPreviewTable(data);
+                document.getElementById('exportBtn').disabled = false;
+                showMsg("success","Preview ready","Success");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMsg("error", (error && error.message) ? error.message : "An error occurred while building the preview", "Error");
+            })
+            .finally(() => setLoading('previewBtn', false));
+        };
+
+        document.getElementById('exportBtn').onclick = function(){
+            const selection = validateMandatoryValues();
+            if(!selection){
+                return;
+            }
+            setLoading('exportBtn', true);
+
+            fetch(`${contextPath}exportBoardRegistrationClass9`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mediumId: selection.medium.toString(),
+                    gradeId: selection.grade.toString(),
+                    sectionId: selection.section.toString()
+                })
+            })
+            .then(response => {
+                const disposition = response.headers.get('Content-Disposition');
+                if(response.ok){
+                    return response.blob().then(blob => ({ blob, disposition }));
+                }
+                return response.json().then(data => {
+                    throw new Error((data && data.error) ? data.error : 'Unable to build the export.');
+                });
+            })
+            .then(({ blob, disposition }) => {
+                let fileName = 'BoardRegistration_Class9.xlsx';
+                if(disposition && disposition.indexOf('filename=') !== -1){
+                    fileName = disposition.split('filename=')[1].replace(/"/g,'').trim();
+                }
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showMsg("success","Excel file exported successfully","Success");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMsg("error", (error && error.message) ? error.message : "An error occurred while preparing the export", "Error");
+            })
+            .finally(() => setLoading('exportBtn', false));
+        };
+    </script>
+</section>
+</body>
+</html>

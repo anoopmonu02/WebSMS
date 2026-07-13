@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Grade-wise Images Download</div>
+                <hr/>
+            </div>
+            <div class="row justify-content-center">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="medium" class="form-label">Medium</label>
+                                <select name="medium" id="medium" class="form-select">
+                                    <option value="">Select Medium</option>
+                                    <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="grade" class="form-label">Grade</label>
+                                <select name="grade" id="grade" class="form-select">
+                                    <option value="">Select Grade</option>
+                                    <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="section" class="form-label">Section</label>
+                                <select name="section" id="section" class="form-select">
+                                    <option value="">Select Section</option>
+                                    <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 align-self-end">
+                        <div class="col-sm-12 mb-3">
+                            <button type="button" class="btn btn-primary" id="downloadBtn">
+                                <span class="normal-state"><i class="bi bi-download"></i> Download</span>
+                                <span class="loading-state d-none">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Preparing files, please wait&hellip;
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+            </div>
+            <div class="col-12">
+                <div class="alert alert-info small mb-0">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    Downloads a single .zip containing every student's photo (renamed for easy matching against
+                    the sheet) plus one Excel sheet listing all students for the selected Medium, Grade and Section.
+                    Students without a saved photo are still listed, at the bottom of the sheet.
+                </div>
+            </div>
+            <div class="col-12 mt-3 d-none" id="resultSummary">
+                <div class="alert alert-success small mb-0">
+                    <i class="bi bi-check-circle-fill me-1"></i>
+                    <span id="resultSummaryText"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        const validateMandatoryValues = () => {
+            const medium = $('#medium').val();
+            const grade = $('#grade').val();
+            const section = $('#section').val();
+            if(medium === '' || grade === '' || section === ''){
+                showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+                return null;
+            }
+            return { medium, grade, section };
+        }
+
+        const setLoading = (isLoading) => {
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = isLoading;
+            btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+            btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+        }
+
+        document.getElementById('downloadBtn').onclick = function(){
+            const selection = validateMandatoryValues();
+            if(!selection){
+                return;
+            }
+
+            document.getElementById('resultSummary').classList.add('d-none');
+
+            setLoading(true);
+            const url = `${contextPath}downloadGradeWiseImages`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mediumId: selection.medium.toString(),
+                    gradeId: selection.grade.toString(),
+                    sectionId: selection.section.toString()
+                })
+            })
+            .then(response => {
+                const disposition = response.headers.get('Content-Disposition');
+                const withImageCount = response.headers.get('X-With-Image-Count');
+                const withoutImageCount = response.headers.get('X-Without-Image-Count');
+                const totalCount = response.headers.get('X-Total-Student-Count');
+                if(response.ok){
+                    return response.blob().then(blob => ({ blob, disposition, withImageCount, withoutImageCount, totalCount }));
+                }
+                return response.json().then(data => {
+                    throw new Error((data && data.error) ? data.error : 'Unable to build the download.');
+                });
+            })
+            .then(({ blob, disposition, withImageCount, withoutImageCount, totalCount }) => {
+                let fileName = 'grade-wise-images.zip';
+                if(disposition && disposition.indexOf('filename=') !== -1){
+                    fileName = disposition.split('filename=')[1].replace(/"/g,'').trim();
+                }
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                let summaryText = `${totalCount} student(s) found — ${withImageCount} with a photo (included in the zip), ${withoutImageCount} without a photo (listed at the bottom of the sheet only).`;
+                document.getElementById('resultSummaryText').textContent = summaryText;
+                document.getElementById('resultSummary').classList.remove('d-none');
+
+                showMsg("success", `Downloaded — ${withImageCount} with photo, ${withoutImageCount} without photo`, "Success");
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMsg("error", (error && error.message) ? error.message : "An error occurred while preparing the download", "Error");
+            })
+            .finally(() => setLoading(false));
+        };
+    </script>
+</section>
+</body>
+</html>
