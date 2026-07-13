@@ -234,7 +234,7 @@
                         if (dob) {
                             let dateObj = new Date(dob);
                             dob = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                            dob = dt.replaceAll(" ","/");
+                            dob = dob.replaceAll(" ","/");
                         }
                         if(academicStudent.student.gender==='Male'){
                             maleCounter++;

@@ -17,7 +17,7 @@
           <form th:action="@{/universal/feehead/{id}(id=${feehead.id})}" th:object="${feehead}" method="post">
             <div class="mb-3">
               <label for="fee_name" class="form-label">Feehead Name</label>
-              <input type="text" class="form-control" id="fee_name" placeholder="Tuition Fee" name="fee_name" th:field="*{feeHeadName}" />
+              <input type="text" class="form-control" id="fee_name" placeholder="Monthly Fee" name="fee_name" th:field="*{feeHeadName}" />
               <p class="text-danger" th:if="${#fields.hasErrors('feeHeadName')}" th:errors="*{feeHeadName}">Name Error</p>
             </div>
             <div class="mb-3">

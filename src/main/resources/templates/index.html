@@ -133,6 +133,61 @@
         color: #6366f1; transform: translateX(2px);
     }
 
+    /* ── Pending Grievances strip ────────────────────────────────── */
+    .grievance-strip-empty {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 14px 16px; font-size: 12.5px; color: #94a3b8;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .grievance-strip {
+        display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px;
+    }
+    .grievance-card {
+        flex: 0 0 260px;
+        border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 12px 14px; background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .grievance-card:hover {
+        border-color: #fecdd3; box-shadow: 0 4px 14px rgba(0,0,0,.07);
+    }
+    .grievance-card-top {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 2px;
+    }
+    .grievance-student {
+        font-size: 13px; font-weight: 700; color: #0f172a;
+    }
+    .grievance-manage-btn {
+        width: 26px; height: 26px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        background: #eef2ff; color: #4f46e5; font-size: 12px;
+        flex-shrink: 0; text-decoration: none;
+        transition: background .15s;
+    }
+    .grievance-manage-btn:hover { background: #e0e7ff; color: #4338ca; }
+    .grievance-meta {
+        font-size: 11px; color: #94a3b8; margin-bottom: 4px;
+    }
+    .grievance-title {
+        font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 2px;
+    }
+    .grievance-desc {
+        font-size: 11.5px; color: #64748b; margin-bottom: 10px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .grievance-due-row {
+        display: flex; align-items: center; gap: 6px;
+    }
+    .grievance-due-label {
+        font-size: 11px; color: #94a3b8; margin-bottom: 0; flex-shrink: 0;
+    }
+    .grievance-due-input {
+        font-size: 11.5px; padding: 2px 6px; height: 28px;
+    }
+
     /* ── Chart cards ─────────────────────────────────────────────── */
     .chart-card {
         background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
@@ -300,7 +355,7 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         ROW 2 — QUICK ACTIONS
+         ROW 2 — QUICK ACTIONS (3×2, full width)
     ══════════════════════════════════════════════════════════════ -->
     <div class="dash-section-hd">
         <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;" aria-hidden="true"></i>
@@ -386,6 +441,47 @@
             </a>
         </div>
 
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ROW 2B — PENDING GRIEVANCES (horizontal scroll strip)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="dash-section-hd">
+        <i class="bi bi-exclamation-octagon-fill" style="color:#e11d48;" aria-hidden="true"></i>
+        Pending Grievances
+        <span class="badge rounded-pill" style="background:#fee2e2; color:#b91c1c; font-size:10px;" th:text="${#lists.size(pendingGrievances)}">0</span>
+    </div>
+    <div class="mb-4">
+        <div th:if="${#lists.isEmpty(pendingGrievances)}" class="grievance-strip-empty">
+            <i class="bi bi-check2-circle" style="font-size:20px; color:#86efac;" aria-hidden="true"></i>
+            No pending grievances due today.
+        </div>
+        <div th:unless="${#lists.isEmpty(pendingGrievances)}" class="grievance-strip">
+            <div th:each="g : ${pendingGrievances}" class="grievance-card" th:attr="data-grievance-id=${g.id}">
+                <div class="grievance-card-top">
+                    <div class="grievance-student" th:text="${g.studentName}">Student</div>
+                    <a class="grievance-manage-btn" title="Manage in Send Message"
+                       th:href="@{/message/sendMessage(studentId=${g.academicStudentId}, type='grievance')}">
+                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="grievance-meta">
+                    <span th:if="${g.srNo != null and g.srNo != ''}">SR: <span th:text="${g.srNo}"></span> &middot; </span>
+                    <span th:text="${g.classSection}"></span>
+                </div>
+                <div class="grievance-title" th:text="${g.title}">Title</div>
+                <div class="grievance-desc" th:text="${g.description}">Description</div>
+                <div class="grievance-due-row">
+                    <label class="grievance-due-label">Due:</label>
+                    <input type="text" class="form-control form-control-sm grievance-due-input" autocomplete="off"
+                           th:value="${g.dueDateDisplay}" placeholder="dd/MMM/yyyy">
+                    <button type="button" class="btn btn-sm btn-outline-success" title="Save due date"
+                            th:attr="onclick=|saveDashboardDueDate(${g.id}, this)|">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -618,8 +714,56 @@
 <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
 <script th:src="@{/js/toastr.min.js}"></script>
 <script th:src="@{/js/chart.js}"></script>
+<link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+<script th:src="@{/js/flatpickr.js}"></script>
 
 <script type="text/javascript" th:inline="javascript">
+
+    /* ── Pending Grievances panel: due-date editor ─────────────────
+       Same "d/M/Y" (dd/MMM/yyyy) flatpickr format used app-wide. */
+    const grievanceContextPath = /*[[@{/}]]*/ '/';
+    flatpickr(".grievance-due-input", { dateFormat: "d/M/Y" });
+
+    function showDashboardMsg(msgType, msg, headerValue) {
+        toastr.options = {
+            closeButton: true, debug: false, newestOnTop: false, progressBar: false,
+            positionClass: "toast-top-right", preventDuplicates: false,
+            showDuration: "600", hideDuration: "1000", timeOut: "5000",
+            extendedTimeOut: "1000", showEasing: "swing", hideEasing: "linear",
+            showMethod: "fadeIn", hideMethod: "fadeOut"
+        };
+        toastr[msgType](msg, headerValue);
+    }
+
+    function saveDashboardDueDate(grievanceId, btn) {
+        const card = btn.closest('.grievance-card');
+        const input = card.querySelector('.grievance-due-input');
+        const newDate = input.value;
+        if (!newDate) {
+            showDashboardMsg("warning", "Please choose a date.", "Warning");
+            return;
+        }
+        btn.disabled = true;
+        const url = `${grievanceContextPath}grievance/updateGrievanceDueDate/${grievanceId}`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dueDate: newDate })
+        })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                btn.disabled = false;
+                if (!ok || data.error) {
+                    showDashboardMsg("error", data.error || "Failed to update due date.", "Error");
+                    return;
+                }
+                showDashboardMsg("success", "Due date updated.", "Success");
+            })
+            .catch(err => {
+                btn.disabled = false;
+                showDashboardMsg("error", "Error updating due date: " + err.message, "Error");
+            });
+    }
 
     /* ── Fee reveal toggle ──────────────────────────────────────── */
     const feeRaw = /*[[${totalFeeSubmittedToday}]]*/ '0';

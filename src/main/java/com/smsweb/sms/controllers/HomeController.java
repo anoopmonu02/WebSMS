@@ -10,6 +10,7 @@ import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.HolidayService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
+import com.smsweb.sms.services.grievance.GrievanceService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,9 +44,10 @@ public class HomeController {
     private final StudentService studentService;
     private final EmployeeService employeeService;
     private final FeeSubmissionService feeSubmissionService;
+    private final GrievanceService grievanceService;
 
 
-    public HomeController(HttpSession httpSession, AcademicyearService academicyearService, SchoolService schoolService, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService, StudentService studentService, EmployeeService employeeService, FeeSubmissionService feeSubmissionService) {
+    public HomeController(HttpSession httpSession, AcademicyearService academicyearService, SchoolService schoolService, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService, StudentService studentService, EmployeeService employeeService, FeeSubmissionService feeSubmissionService, GrievanceService grievanceService) {
         this.session = httpSession;
         this.academicyearService = academicyearService;
         this.schoolService = schoolService;
@@ -55,6 +57,7 @@ public class HomeController {
         this.studentService = studentService;
         this.employeeService = employeeService;
         this.feeSubmissionService = feeSubmissionService;
+        this.grievanceService = grievanceService;
     }
 
     @GetMapping("/dashboard")
@@ -153,6 +156,10 @@ public class HomeController {
             //Fetch fee submitted today
             BigDecimal totalFeeSubmittedAmount = feeSubmissionService.getTodayFeeCollection(school.getId(), academicYear.getId());
             model.addAttribute("totalFeeSubmittedToday", totalFeeSubmittedAmount.toString());
+
+            //Fetch pending grievances (due today or overdue, not yet closed) for the dashboard panel
+            List<Map<String, Object>> pendingGrievances = grievanceService.getPendingDueTodayOrOverdue(school.getId(), academicYear.getId());
+            model.addAttribute("pendingGrievances", pendingGrievances);
         }
         return "index";
 

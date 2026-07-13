@@ -251,6 +251,10 @@ public class RoleInitializer {
                     "FEE_REPORT_USER_WISE",
                     "View fee collection report grouped by user/accountant");
 
+            seed(screenRepo, "Fees", "My Collection Report",
+                    "FEE_REPORT_OWN_COLLECTION",
+                    "View own fee collection report (self-service, logged-in user only)");
+
             seed(screenRepo, "Fees", "Fee Submitted (By Grade)",
                     "FEE_REPORT_GRADE_WISE",
                     "View total fee submitted report grouped by grade");

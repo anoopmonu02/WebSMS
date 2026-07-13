@@ -10,6 +10,7 @@ import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.models.universal.MonthMaster;
+import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.admin.FineService;
@@ -20,6 +21,7 @@ import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.SiblingGroupService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.users.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -58,6 +60,7 @@ public class FeeSubmissionRestController extends BaseController {
     private final FeeReceiptService receiptService;
     private final MonthmappingService mmService;
     private final SiblingGroupService siblingGroupService;
+    private final UserService userService;
 
     @Autowired
     private TemplateEngine templateEngine;
@@ -66,7 +69,7 @@ public class FeeSubmissionRestController extends BaseController {
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
                                        FeeSubmissionService feeSubmissionService, FeedateService feedateService, StudentDiscountService studentDiscountService,
                                        FineService fineService, MonthmappingService monthmappingService, FeeReceiptService receiptService,
-                                       MonthmappingService mmService, SiblingGroupService siblingGroupService) {
+                                       MonthmappingService mmService, SiblingGroupService siblingGroupService, UserService userService) {
         this.studentService = studentService;
         this.academicyearService = academicyearService;
         this.academicStudentService = academicStudentService;
@@ -78,6 +81,7 @@ public class FeeSubmissionRestController extends BaseController {
         this.receiptService = receiptService;
         this.mmService = mmService;
         this.siblingGroupService = siblingGroupService;
+        this.userService = userService;
     }
 
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
@@ -821,6 +825,32 @@ public class FeeSubmissionRestController extends BaseController {
                 School school = (School)model.getAttribute("school");
                 AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
                 Map result = feeSubmissionService.calculateFeeSubmissionUserWise(requestBody, school, academicYear);
+                return ResponseEntity.ok(result);
+            }
+        }catch(Exception e){
+            receiptData.put("error","error#####"+e.getLocalizedMessage());
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(receiptData);
+    }
+
+    @CheckAccess(screen = "FEE_REPORT_OWN_COLLECTION", type = AccessType.VIEW)
+    @PostMapping("/getFeeCollectionDetailsOwn")
+    public ResponseEntity<?> getFeeCollectionDetailsOwn(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getFeeCollectionDetailsOwn");
+        Map<String, Object> receiptData = new HashMap<>();
+        try{
+            log.debug("requestBody={}", requestBody);
+            if(requestBody!=null){
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+                UserEntity currentUser = userService.getLoggedInUser();
+                if(currentUser == null){
+                    receiptData.put("error","Unable to resolve logged-in user.");
+                    return ResponseEntity.ok(receiptData);
+                }
+                Map result = feeSubmissionService.calculateFeeSubmissionForLoggedInUser(requestBody, school, academicYear, currentUser.getId());
                 return ResponseEntity.ok(result);
             }
         }catch(Exception e){

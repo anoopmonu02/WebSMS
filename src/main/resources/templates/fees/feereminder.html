@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
     <meta charset="UTF-8">
     <title>UAIC - Student</title>
@@ -43,7 +43,15 @@
                             <label for="section" class="form-label">Last Date</label>
                             <input type="text" class="form-control" name="lastdate" id="lastdate"/>
                         </div>
-                        <div class="col-md-3 align-self-end">
+                        <div class="col-md-2">
+                            <label for="section" class="form-label">Reminder Language</label>
+                            <select name="reminder_language" id="reminder_language" class="form-select">
+                                <option value="">Select Language</option>
+                                <option value="hi">हिंदी</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 align-self-end">
                             <div class="col-sm-5">
                                 <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get List </button>
                             </div>
@@ -52,20 +60,56 @@
                     <hr/>
                 </div>
 
+                <!-- Loading overlay — shown while fetch is in progress -->
+                <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.80);
+                     backdrop-filter:blur(3px); z-index:9999; flex-direction:column;
+                     align-items:center; justify-content:center;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" style="width:3.5rem;height:3.5rem;" role="status">
+                            <span class="visually-hidden">Loading…</span>
+                        </div>
+                        <div class="mt-3 fw-semibold text-primary fs-5">Fetching reminder list…</div>
+                        <div class="text-muted small mt-1">This may take a moment for large classes</div>
+                    </div>
+                </div>
+
                 <div>
                     <div class="row show-data mb-5" style="display: none;">
-                        <div class="col-md-3">
+                        <div class="col-auto">
                             <button class="btn btn-success" id="printreceipt" onclick="printDiv('contentToExport','receipt')" data-div-id="contentToExport"><i class="bi bi-printer-fill"></i> Print</button>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary" id="sendReminderNotification" sms:access="MESSAGE_SEND:CREATE"><i class="bi bi-bell-fill"></i> Send Reminder Notification</button>
                         </div>
                     </div>
 
-                    <div class="row fetch-class-value mb-5" id="contentToExport">
+                    <div class="fetch-class-value mb-5" id="contentToExport" style="display:grid; grid-template-columns: 1fr 1fr; grid-auto-rows: min-content; column-gap: 24px; row-gap: 24px;">
 
                     </div>
                 </div>
 
 
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm modal for "Send Reminder Notification" — static backdrop + no ESC dismiss,
+         must be explicitly closed or cancelled/confirmed. -->
+    <div class="modal fade" id="sendReminderConfirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="sendReminderConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendReminderConfirmModalLabel"><i class="bi bi-bell-fill text-primary"></i> Send Reminder Notification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="sendReminderConfirmText" class="mb-0"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="sendReminderConfirmBtn"><i class="bi bi-send-fill"></i> Send</button>
+                </div>
             </div>
         </div>
     </div>
@@ -79,6 +123,79 @@
 
     <script type="text/javascript" th:inline="javascript">
         const contextPath = /*[[@{/}]]*/ '/';
+        const schoolName = /*[[${school.schoolName}]]*/ '';
+        const schoolAddress = /*[[${school.address}]]*/ '';
+
+        // Cache of the last "Get List" result — reused as-is by "Send Reminder Notification"
+        // (no recalculation on send, so the notification always matches exactly what was reviewed on screen).
+        let lastReminderMap = null;
+        let lastReminderLang = '';
+        let lastReminderLastdate = '';
+
+        const reminderLabels = {
+            hi: {
+                title: "मासिक शुल्क सूचना",
+                student: "छात्र का नाम", father: "पिता का नाम", mother: "माता का नाम", cls: "कक्षा", section: "वर्ग",
+                para: function(lastdate){
+                    return "अभिभावक महोदय, आपके पाल्य/पाल्या का निम्नलिखित शुल्क जमा होना शेष है| अतः दिनांकः " + lastdate + " तक विद्यालय समय में निर्धारित शुल्क जमा कराने का कष्ट करें| उपरोक्त तिथि के बाद जमा होने वाला शुल्क बिना विलम्ब शुल्क के जमा नहीं किया जायेगा|";
+                },
+                total: "इस माह तक जमा होने वाला कुल मासिक शुल्क", months: "सम्मिलित माह", heads: "सम्मिलित मद",
+                date: "दिनांक", principal: "प्रधानाचार्य",
+                amount: function(amt){ return "₹ " + amt; }
+            },
+            en: {
+                title: "Monthly Fees Reminder",
+                student: "Student's Name", father: "Father's Name", mother: "Mother's Name", cls: "Class", section: "Section",
+                para: function(lastdate){
+                    return "Dear Parent/Guardian, the following fee for your ward is currently outstanding. Therefore, you are requested to kindly deposit the due amount during school hours by " + lastdate + ". Any payment made after this deadline will not be accepted without a late fee.";
+                },
+                total: "Total Outstanding Monthly Fees", months: "Applicable Months", heads: "Fee Components Included",
+                date: "Date", principal: "Principal",
+                amount: function(amt){ return "₹ " + amt; }
+            }
+        };
+
+        function escHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildReminderCard(lang, studentData, lastdate, formattedDate){
+            const student = studentData.academicStudent.student;
+            const grade = studentData.academicStudent.grade.gradeName;
+            const section = studentData.academicStudent.section.sectionName;
+            const L = reminderLabels[lang] || reminderLabels.hi;
+            return '<div style="padding-bottom:18px;border-bottom:0.5px solid #ccc;display:flex;flex-direction:column;gap:6px;break-inside:avoid;page-break-inside:avoid;">'
+                + '<div style="text-align:center;">'
+                + '<div style="font-weight:bold;font-size:15px;">' + escHtml(schoolName) + '</div>'
+                + '<div style="font-size:12px;font-weight:bold;color:#555;">' + escHtml(schoolAddress) + '</div>'
+                + '<div style="font-size:13px;font-weight:bold;margin-top:4px;">' + L.title + '</div>'
+                + '</div>'
+                + '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;">'
+                + '<span><b>' + L.student + ':</b> ' + escHtml(student.studentName) + '</span>'
+                + '<span><b>' + L.father + ':</b> ' + escHtml(student.fatherName) + '</span>'
+                + '<span><b>' + L.mother + ':</b> ' + escHtml(student.motherName) + '</span>'
+                + '<span><b>' + L.cls + ':</b> ' + escHtml(grade) + '</span>'
+                + '<span><b>' + L.section + ':</b> ' + escHtml(section) + '</span>'
+                + '</div>'
+                + '<div style="font-size:12px;line-height:1.4;">' + L.para(lastdate) + '</div>'
+                + '<div style="font-size:12px;">'
+                + '<div><b>' + L.total + ':</b> ' + L.amount(studentData.amount) + '</div>'
+                + '<div style="overflow-wrap:break-word;"><b>' + L.months + ':</b> ' + escHtml(studentData.monthsList) + '</div>'
+                + '<div style="overflow-wrap:break-word;"><b>' + L.heads + ':</b> ' + escHtml(studentData.headList) + '</div>'
+                + '</div>'
+                + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold;">'
+                + '<span>' + L.date + ': ' + formattedDate + '</span>'
+                + '<span>' + L.principal + '</span>'
+                + '</div>'
+                + '</div>';
+        }
+
         flatpickr("#lastdate", {
             dateFormat: "d/M/Y",  // Equivalent to dd/MMM/yyyy
         });
@@ -111,9 +228,10 @@
             const grade = $('#grade').val();
             const section = $('#section').val();
             const lastdate = $('#lastdate').val();
+            const rem_lang = $('#reminder_language').val();
 
-            if(medium === '' || grade === '' || section === '' || lastdate === ''){
-                showWarningMsg('error','Medium/Grade/Section/Last Date all are mandatory',"Warning");
+            if(medium === '' || grade === '' || section === '' || lastdate === '' || rem_lang===''){
+                showWarningMsg('error','Please select Medium, Grade, Section, Last Date, and Reminder Language.',"Warning");
                 return;
             }
             let counter = 0;
@@ -134,6 +252,12 @@
                 showWarningMsg('error','Month(s) not selected',"Warning");
                 return;
             }
+
+            // Show spinner, disable button
+            const overlay = document.getElementById('loading-overlay');
+            const getFeeBtn = document.getElementById('getfee');
+            overlay.style.display = 'flex';
+            getFeeBtn.disabled = true;
 
             let url = `${contextPath}getFeeReminderDetails`;
             try{
@@ -161,9 +285,13 @@
                 console.log("res: "+data.STUDENT_NOT_FOUND);
                 if(data.STUDENT_NOT_FOUND!=null){
                     $('.fetch-class-value').html('<p class="text-center">No data found.</p>');
+                    lastReminderMap = null;
                 } else{
                     if(data.finalData!=null){
                         let stulist = data.finalData;
+                        lastReminderMap = stulist;
+                        lastReminderLang = rem_lang;
+                        lastReminderLastdate = lastdate;
                         console.log(stulist);
                         console.log(stulist.length);
                         let divStr = '';
@@ -176,26 +304,10 @@
 
                         const formattedDate = `${day}/${month}/${year}`;
                         for (let key in stulist) {
-                            let dtStr = '';
                             if (stulist.hasOwnProperty(key)) {
                                 let studentData = stulist[key];
-                                console.log("Key (Student ID): " + key);
-                                console.log("Amount: " + studentData.amount);
-                                console.log("Head List: " + studentData.headList);
-                                console.log("Months List: " + studentData.monthsList);
-                                console.log("Fine Amount: " + studentData.fineAmount);
-                                dtStr+='<div class="col-md-12"><div class="text-center"><h4>United Avadh Inter College</h4><h4>Mahmudabad, Sitapur</h4></div><div class="text-center"><h5><hr/><strong>मासिक शुल्क सूचना</strong></h5></div>';
-                                dtStr+='<table class="mb-5"><tr><td><b>छात्र का नाम: </b></td><td>'+ studentData.academicStudent.student.studentName +'</td><td><b>पिता का नाम: </b></td><td>'+ studentData.academicStudent.student.fatherName +'</td><td><b>माता का नाम: </b></td><td>'+studentData.academicStudent.student.motherName+'</td>';
-                                dtStr+='<td><b>कक्षा: </b></td><td>'+studentData.academicStudent.grade.gradeName+'</td><td><b>वर्ग: </b></td><td>'+studentData.academicStudent.section.sectionName+'</td></tr>';
-                                dtStr+='<tr><td colspan="12"><p>अभिभावक महोदय, आपके पाल्य/पाल्या का निम्नलिखित शुल्क जमा होना शेष है| अतः दिनांकः '+lastdate+' तक विद्यालय समय में निर्धारित शुल्क जमा कराने का कष्ट करें| उपरोक्त तिथि के बाद जमा होने वाला शुल्क बिना विलम्ब शुल्क के जमा नहीं किया जायेगा|</p>';
-                                dtStr+='<br/><b>इस माह तक जमा होने वाले शुल्क की कुल धनराशि: </b>'+studentData.amount;
-                                dtStr+='<br/><b>सम्मिलित माह: </b>'+studentData.monthsList;
-                                dtStr+='<br/><b>सम्मिलित मद: </b>'+studentData.headList;
-                                dtStr+='</p></td></tr><tr><td colspan="6"><p><b>दिनांक: </b>'+ formattedDate +'</p></td><td colspan="6"><p class="text-end"><b>प्रधानाचार्य</b></p></td></tr>';
-                                dtStr+='</table></div>';
+                                divStr += buildReminderCard(rem_lang, studentData, lastdate, formattedDate);
                             }
-                            //console.log("dtstr: "+dtStr);
-                            divStr+=dtStr;
                         }
                         /*console.log("div----"+divStr);
                         console.log("div----"+divStr.length);*/
@@ -204,6 +316,7 @@
                             $('.show-data').show();
                         } else{
                             $('.fetch-class-value').html('<p class="text-center">No data found.</p>');
+                            lastReminderMap = null;
                         }
 
                     }
@@ -217,6 +330,81 @@
                 /*console.error('There was a problem with the fetch operation:', error);
                 toastr["error"]("There was a problem with the fetch operation: " + error, "Error");*/
                 showWarningMsg('error', "There was a problem with the fetch operation: " + error, "Error");
+            } finally {
+                overlay.style.display = 'none';
+                getFeeBtn.disabled = false;
+            }
+        });
+
+        // Students collected for the pending send — populated when the button is clicked,
+        // consumed when the modal's "Send" button is confirmed.
+        let pendingReminderStudents = [];
+        let sendReminderModalInstance = null;
+
+        $('#sendReminderNotification').click(function() {
+            if (!lastReminderMap || Object.keys(lastReminderMap).length === 0) {
+                showWarningMsg('error', 'Please click "Get List" first — no reminder data to send.', 'Warning');
+                return;
+            }
+
+            pendingReminderStudents = [];
+            for (let key in lastReminderMap) {
+                if (lastReminderMap.hasOwnProperty(key)) {
+                    let studentData = lastReminderMap[key];
+                    pendingReminderStudents.push({
+                        academicStudentId: studentData.academicStudent.id,
+                        amount: studentData.amount,
+                        monthsList: studentData.monthsList,
+                        headList: studentData.headList
+                    });
+                }
+            }
+
+            $('#sendReminderConfirmText').text(`Send this fee reminder as a notification to ${pendingReminderStudents.length} student(s)?`);
+            sendReminderModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('sendReminderConfirmModal'));
+            sendReminderModalInstance.show();
+        });
+
+        $('#sendReminderConfirmBtn').click(async function() {
+            const students = pendingReminderStudents;
+            if (sendReminderModalInstance) sendReminderModalInstance.hide();
+
+            const overlay = document.getElementById('loading-overlay');
+            const overlayText = overlay.querySelector('.fw-semibold');
+            const originalOverlayText = overlayText.textContent;
+            overlayText.textContent = 'Sending reminder notifications…';
+            const sendBtn = document.getElementById('sendReminderNotification');
+            overlay.style.display = 'flex';
+            sendBtn.disabled = true;
+
+            try {
+                const url = `${contextPath}message/sendFeeReminderNotifications`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        language: lastReminderLang,
+                        lastdate: lastReminderLastdate,
+                        students: students
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    showWarningMsg('error', data.error || 'Failed to send reminder notifications.', 'Error');
+                    return;
+                }
+                if (data.skipped > 0) {
+                    showWarningMsg('warning', `Sent to ${data.saved} student(s). ${data.skipped} skipped — check console for reasons.`, 'Partially Sent');
+                    console.warn('Skipped reminder notifications:', data.skippedReasons);
+                } else {
+                    showWarningMsg('success', `Reminder notification sent to ${data.saved} student(s).`, 'Success');
+                }
+            } catch (error) {
+                showWarningMsg('error', 'There was a problem sending the reminder notifications: ' + error, 'Error');
+            } finally {
+                overlay.style.display = 'none';
+                overlayText.textContent = originalOverlayText;
+                sendBtn.disabled = false;
             }
         });
 
@@ -231,8 +419,9 @@
             //<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
             mywindow.document.write('<html><head><title>' + title + '</title>');
             mywindow.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>');
-            mywindow.document.write('</head><body >');
-            mywindow.document.write(document.getElementById(divId).innerHTML);
+            mywindow.document.write('<style>@page { size: A4 portrait; margin: 10mm; }</style>');
+            mywindow.document.write('</head><body>');
+            mywindow.document.write(document.getElementById(divId).outerHTML);
             mywindow.document.write('</body></html>');
 
             mywindow.document.close(); // necessary for IE >= 10

@@ -71,7 +71,7 @@ public class StudentRegionalDetailService {
             dto.setStudentName(student.getStudentName());
             dto.setFatherName(student.getFatherName());
             dto.setMotherName(student.getMotherName());
-            dto.setAddress(student.getAddress());
+            dto.setAddress(buildFullAddress(student));
             dto.setClassSrNo(as.getClassSrNo());
             dto.setGradeName(as.getGrade() != null ? as.getGrade().getGradeName() : null);
             dto.setSectionName(as.getSection() != null ? as.getSection().getSectionName() : null);
@@ -150,7 +150,7 @@ public class StudentRegionalDetailService {
                 dto.setStudentName(student.getStudentName());
                 dto.setFatherName(student.getFatherName());
                 dto.setMotherName(student.getMotherName());
-                dto.setAddress(student.getAddress());
+                dto.setAddress(buildFullAddress(student));
                 dto.setMatchStatus("MATCHED");
             } else {
                 // Give a precise reason without leaking data across schools
@@ -219,5 +219,36 @@ public class StudentRegionalDetailService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Full reference address (street address + city + state) shown as the read-only
+     * "current address" on the search/preview screens — same composition used in the
+     * downloadable template, so the translator always sees the complete address.
+     * Skips appending city/province if that name is already present somewhere in the
+     * free-text address (common when the address was originally typed as
+     * "village, district") to avoid showing the same place name twice.
+     */
+    private String buildFullAddress(Student student) {
+        if (student == null) return "";
+        String rawAddress = student.getAddress() != null ? student.getAddress().trim() : "";
+        String addressLower = rawAddress.toLowerCase();
+        StringBuilder sb = new StringBuilder(rawAddress);
+
+        if (student.getCity() != null && student.getCity().getCityName() != null && !student.getCity().getCityName().isBlank()) {
+            String cityName = student.getCity().getCityName().trim();
+            if (!addressLower.contains(cityName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(cityName);
+            }
+        }
+        if (student.getProvince() != null && student.getProvince().getProvinceName() != null && !student.getProvince().getProvinceName().isBlank()) {
+            String provinceName = student.getProvince().getProvinceName().trim();
+            if (!addressLower.contains(provinceName.toLowerCase())) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(provinceName);
+            }
+        }
+        return sb.toString();
     }
 }

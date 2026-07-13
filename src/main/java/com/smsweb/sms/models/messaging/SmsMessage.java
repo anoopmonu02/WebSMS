@@ -94,4 +94,13 @@ public class SmsMessage {
 
     @Column(nullable = true)
     private Date updatedAt;
+
+    /**
+     * Only meaningful for messageType = ACTIVITIES: the target/follow-up date the
+     * staff member set for taking action. Null for complaint/notification rows.
+     * Editable — if the date passes without action being taken, it can be
+     * rescheduled to a new future date (see updateActivityDueDate()).
+     */
+    @Column(nullable = true)
+    private Date dueDate;
 }

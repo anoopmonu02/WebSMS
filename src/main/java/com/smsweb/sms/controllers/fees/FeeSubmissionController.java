@@ -173,6 +173,7 @@ public class FeeSubmissionController extends BaseController {
     @GetMapping("/fees-user-wise-collection")
     public String userwiseCollection(Model model){
         log.info("Inside userwiseCollection");
+        model.addAttribute("monthOrder", new LinkedHashMap<String, Integer>());
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             boolean isAdmin = authentication.getAuthorities()
@@ -180,10 +181,46 @@ public class FeeSubmissionController extends BaseController {
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
             model.addAttribute("isAdmin", isAdmin);
+
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+            Map<String, Integer> monthOrder = new LinkedHashMap<>();
+            for (MonthMapping mm : monthMappingList) {
+                monthOrder.put(mm.getMonthMaster().getMonthName(), mm.getPriority());
+            }
+            model.addAttribute("monthOrder", monthOrder);
         }catch(Exception e){
             e.printStackTrace();        }
 
         return "fees/fees_user_collection";
+    }
+
+    @CheckAccess(screen = "FEE_REPORT_OWN_COLLECTION", type = AccessType.VIEW)
+    @GetMapping("/fees-users_own-collection")
+    public String ownCollection(Model model){
+        log.info("Inside ownCollection");
+        model.addAttribute("monthOrder", new LinkedHashMap<String, Integer>());
+        try{
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication.getAuthorities()
+                    .stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+            model.addAttribute("isAdmin", isAdmin);
+
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+            Map<String, Integer> monthOrder = new LinkedHashMap<>();
+            for (MonthMapping mm : monthMappingList) {
+                monthOrder.put(mm.getMonthMaster().getMonthName(), mm.getPriority());
+            }
+            model.addAttribute("monthOrder", monthOrder);
+        }catch(Exception e){
+            e.printStackTrace();        }
+
+        return "fees/fees_own_collection";
     }
 
     @CheckAccess(screen = "FEE_REPORT_HEAD_WISE", type = AccessType.VIEW)
