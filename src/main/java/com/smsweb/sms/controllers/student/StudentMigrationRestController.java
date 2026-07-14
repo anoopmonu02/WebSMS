@@ -191,6 +191,8 @@ public class StudentMigrationRestController extends BaseController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Select at least one student to migrate"));
             }
 
+
+
             Long destSchoolId = Long.valueOf(String.valueOf(body.get("destSchoolId")));
             Long destAcademicYearId = Long.valueOf(String.valueOf(body.get("destAcademicYearId")));
             Long destMediumId = Long.valueOf(String.valueOf(body.get("destMediumId")));
