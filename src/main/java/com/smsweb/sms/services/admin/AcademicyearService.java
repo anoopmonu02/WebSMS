@@ -64,7 +64,12 @@ public class AcademicyearService {
     }
 
     public AcademicYear getCurrentAcademicYear(Long schoolid){
-        return academicyearRepository.findActiveBySchoolId(schoolid);
+        // Bounded to the single most recent match (findTopBy... = LIMIT 1) so this can never
+        // throw NonUniqueResultException, even if a school ends up with more than one
+        // AcademicYear row marked active. Checks both status casings, same as the no-arg overload above.
+        AcademicYear ay = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active", schoolid);
+        if (ay == null) ay = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("Active", schoolid);
+        return ay;
     }
 
     public String delete(Long id) {

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Migrate Student</div>
+                <hr/>
+            </div>
+
+            <div class="col-12" th:if="${sourceAcademicYear == null}">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    This school needs at least 2 academic years on record to migrate students (a previous session
+                    to migrate from, and the current session). Add another academic year under Configuration
+                    &rarr; Global Settings before using this page.
+                </div>
+            </div>
+
+            <div class="col-12" th:if="${sourceAcademicYear != null}">
+                <h5 class="mb-0">Source: Previous Year Students List</h5>
+            </div>
+            <div class="col-12 mt-2 mb-3" th:if="${sourceAcademicYear != null}">&nbsp;</div>
+
+            <div class="col-12" th:if="${sourceAcademicYear != null}">
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label for="sourceSession" class="form-label">Academic Year</label>
+                        <select id="sourceSession" class="form-select" style="width:200px;">
+                            <option th:value="${sourceAcademicYear.id}" th:text="${sourceAcademicYear.sessionFormat}">Academic Year</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sourceMedium" class="form-label">Medium *</label>
+                        <select id="sourceMedium" class="form-select" style="width:200px;">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sourceGrade" class="form-label">Grade *</label>
+                        <select id="sourceGrade" class="form-select" style="width:200px;">
+                            <option value="">Select Grade</option>
+                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="sourceSection" class="form-label">Section *</label>
+                        <select id="sourceSection" class="form-select" style="width:200px;">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" id="getStudentsBtn">
+                            <span class="normal-state"><i class="bi bi-search"></i> Get Students</span>
+                            <span class="loading-state d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Fetching&hellip;
+                            </span>
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary" id="calculatePendingFeeBtn">
+                            <span class="normal-state"><i class="bi bi-calculator"></i> Calculate Pending Fee</span>
+                            <span class="loading-state d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Calculating&hellip;
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                    <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width:32px;"><input type="checkbox" class="form-check form-check-input" id="selectAllSource"></th>
+                            <th>Student Name</th>
+                            <th>Father's Name</th>
+                            <th>Mother's Name</th>
+                            <th>SR No</th>
+                            <th>Pending Fee</th>
+                        </tr>
+                        </thead>
+                        <tbody id="sourceTableBody">
+                        <tr id="sourceEmptyRow"><td colspan="6" class="text-muted small">Select medium/grade/section and click Get Students.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small text-muted mt-2 mb-0" id="sourceSelectedCount"></p>
+            </div>
+
+            <div class="col-12" th:if="${sourceAcademicYear != null}">
+                <div class="d-flex align-items-center justify-content-center py-3">
+                    <button type="button" class="btn btn-primary" id="moveBtn">
+                        <i class="bi bi-arrow-down-circle me-1"></i>Move selected students
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12" th:if="${sourceAcademicYear != null}">
+                <h5 class="mb-0">Destination: Current Academic Year Students List</h5>
+            </div>
+            <div class="col-12 mt-2 mb-3" th:if="${sourceAcademicYear != null}">&nbsp;</div>
+
+            <div class="col-12" th:if="${sourceAcademicYear != null}">
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label for="destSchool" class="form-label">School *</label>
+                        <select id="destSchool" class="form-select" style="width:200px;">
+                            <option value="">Select School</option>
+                            <option th:each="sch : ${schools}" th:value="${sch.id}" th:text="${sch.schoolName}">School</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12" id="destSessionError" style="display:none;">
+                    <div class="alert alert-danger py-2 small" id="destSessionErrorText"></div>
+                </div>
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label for="destSession" class="form-label">Academic Year</label>
+                        <select id="destSession" class="form-select" style="width:200px;">
+                            <option value="">Select school first</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destMedium" class="form-label">Medium *</label>
+                        <select id="destMedium" class="form-select" style="width:200px;">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destGrade" class="form-label">Grade *</label>
+                        <select id="destGrade" class="form-select" style="width:200px;">
+                            <option value="">Select Grade</option>
+                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destSection" class="form-label">Section *</label>
+                        <select id="destSection" class="form-select" style="width:200px;">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success" id="saveBtn">
+                            <span class="normal-state"><i class="bi bi-check-lg"></i> Save</span>
+                            <span class="loading-state d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height:230px; overflow-y:auto;">
+                    <table class="table table-bordered table-hover table-sm align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Father's Name</th>
+                            <th>Mother's Name</th>
+                            <th>SR No</th>
+                            <th>Pending Fee</th>
+                            <th style="width:32px;"></th>
+                        </tr>
+                        </thead>
+                        <tbody id="stagedTableBody">
+                        <tr id="stagedEmptyRow"><td colspan="6" class="text-muted small">No students staged yet. Move students from the panel above.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="migrateConfirmModal" tabindex="-1" aria-labelledby="migrateConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="migrateConfirmModalLabel"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Confirm Migration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Please review before continuing:</p>
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Students</span>
+                            <span class="fw-bold fs-5 text-primary" id="migrateConfirmCount">-</span>
+                        </div>
+                        <hr class="my-1"/>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Destination School</span>
+                            <span class="fw-bold text-end" id="migrateConfirmSchool">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Academic Year</span>
+                            <span class="fw-bold" id="migrateConfirmYear">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Medium / Grade / Section</span>
+                            <span class="fw-bold text-end" id="migrateConfirmClass">-</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mb-0 small d-flex align-items-start">
+                        <i class="bi bi-exclamation-octagon-fill me-2 mt-1"></i>
+                        <span>This action <strong>cannot be undone</strong>. Migrated students cannot be moved back automatically.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSaveBtn">
+                        <span class="normal-state"><i class="bi bi-check-lg"></i> Yes, Migrate</span>
+                        <span class="loading-state d-none">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+        const currentSchoolId = /*[[${currentSchoolId}]]*/ null;
+
+        let sourceRows = [];
+        let stagedRows = [];
+        let pendingFeeCalculated = false;
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        function escapeHtml(value){
+            const div = document.createElement('div');
+            div.textContent = value !== undefined && value !== null ? value : '';
+            return div.innerHTML;
+        }
+
+        function setLoading(btnId, isLoading){
+            const btn = document.getElementById(btnId);
+            btn.disabled = isLoading;
+            btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+            btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+        }
+
+        function formatPendingFee(value){
+            const n = (value === undefined || value === null || value === '') ? 0 : Number(value);
+            return '₹' + (isNaN(n) ? '0.0' : n.toFixed(1));
+        }
+
+        function renderSourceTable(){
+            const body = document.getElementById('sourceTableBody');
+            if(sourceRows.length === 0){
+                body.innerHTML = '<tr id="sourceEmptyRow"><td colspan="6" class="text-muted small">Select medium/grade/section and click Get Students.</td></tr>';
+                document.getElementById('sourceSelectedCount').textContent = '';
+                return;
+            }
+            let html = '';
+            sourceRows.forEach(row => {
+                const srNo = row.classSrNo || row.rollNo || '-';
+                html += `<tr>
+                    <td><input type="checkbox" class="form-check form-check-input source-row-check" value="${row.academicStudentId}"></td>
+                    <td>${escapeHtml(row.studentName)}</td>
+                    <td>${escapeHtml(row.fatherName)}</td>
+                    <td>${escapeHtml(row.motherName)}</td>
+                    <td>${escapeHtml(srNo)}</td>
+                    <td>${formatPendingFee(row.pendingFee)}</td>
+                </tr>`;
+            });
+            body.innerHTML = html;
+            updateSourceSelectedCount();
+        }
+
+        function updateSourceSelectedCount(){
+            const checked = document.querySelectorAll('.source-row-check:checked').length;
+            document.getElementById('sourceSelectedCount').textContent = checked > 0 ? `${checked} selected` : '';
+        }
+
+        function renderStagedTable(){
+            const body = document.getElementById('stagedTableBody');
+            if(stagedRows.length === 0){
+                body.innerHTML = '<tr id="stagedEmptyRow"><td colspan="6" class="text-muted small">No students staged yet. Move students from the panel above.</td></tr>';
+                return;
+            }
+            let html = '';
+            stagedRows.forEach(row => {
+                const srNo = row.classSrNo || row.rollNo || '-';
+                html += `<tr>
+                    <td>${escapeHtml(row.studentName)}</td>
+                    <td>${escapeHtml(row.fatherName)}</td>
+                    <td>${escapeHtml(row.motherName)}</td>
+                    <td>${escapeHtml(srNo)}</td>
+                    <td>${formatPendingFee(row.pendingFee)}</td>
+                    <td><i class="bi bi-x-lg text-danger" style="cursor:pointer;" data-id="${row.academicStudentId}" title="Remove from staging"></i></td>
+                </tr>`;
+            });
+            body.innerHTML = html;
+            document.querySelectorAll('#stagedTableBody i[data-id]').forEach(icon => {
+                icon.addEventListener('click', function(){
+                    const id = Number(this.getAttribute('data-id'));
+                    const removed = stagedRows.find(r => r.academicStudentId === id);
+                    stagedRows = stagedRows.filter(r => r.academicStudentId !== id);
+                    if(removed){
+                        sourceRows.push(removed);
+                    }
+                    renderSourceTable();
+                    renderStagedTable();
+                });
+            });
+        }
+
+        const sourceTableBodyEl = document.getElementById('sourceTableBody');
+        if(sourceTableBodyEl){
+            sourceTableBodyEl.addEventListener('change', function(e){
+                if(e.target.classList.contains('source-row-check')){
+                    updateSourceSelectedCount();
+                }
+            });
+        }
+
+        const selectAllSourceEl = document.getElementById('selectAllSource');
+        if(selectAllSourceEl){
+            selectAllSourceEl.addEventListener('change', function(){
+                document.querySelectorAll('.source-row-check').forEach(cb => cb.checked = this.checked);
+                updateSourceSelectedCount();
+            });
+        }
+
+        const getStudentsBtnEl = document.getElementById('getStudentsBtn');
+        if(getStudentsBtnEl){
+            getStudentsBtnEl.onclick = function(){
+                const sessionId = $('#sourceSession').val();
+                const mediumId = $('#sourceMedium').val();
+                const gradeId = $('#sourceGrade').val();
+                const sectionId = $('#sourceSection').val();
+                if(!sessionId || !mediumId || !gradeId || !sectionId){
+                    showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+                    return;
+                }
+                setLoading('getStudentsBtn', true);
+                fetch(`${contextPath}getMigrationSourceStudents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ academicYearId: sessionId, mediumId, gradeId, sectionId })
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        throw new Error((data && data.error) ? data.error : 'Unable to fetch students.');
+                    }
+                    const stagedIds = new Set(stagedRows.map(r => r.academicStudentId));
+                    sourceRows = data.filter(r => !stagedIds.has(r.academicStudentId));
+                    pendingFeeCalculated = false;
+                    document.getElementById('selectAllSource').checked = false;
+                    renderSourceTable();
+                    showMsg('success', `${data.length} student(s) fetched — click "Calculate Pending Fee" before moving them`, 'Success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while fetching students', 'Error');
+                })
+                .finally(() => setLoading('getStudentsBtn', false));
+            };
+        }
+
+        const moveBtnEl = document.getElementById('moveBtn');
+        if(moveBtnEl){
+            moveBtnEl.onclick = function(){
+                const checkedIds = Array.from(document.querySelectorAll('.source-row-check:checked')).map(cb => Number(cb.value));
+                if(checkedIds.length === 0){
+                    showMsg('error','Select at least one student to move',"Warning");
+                    return;
+                }
+                if(!pendingFeeCalculated){
+                    showMsg('error','Click "Calculate Pending Fee" first — pending fee must be calculated before moving students',"Warning");
+                    return;
+                }
+                const moving = sourceRows.filter(r => checkedIds.includes(r.academicStudentId));
+                stagedRows = stagedRows.concat(moving);
+                sourceRows = sourceRows.filter(r => !checkedIds.includes(r.academicStudentId));
+                document.getElementById('selectAllSource').checked = false;
+                renderSourceTable();
+                renderStagedTable();
+            };
+        }
+
+        const calculatePendingFeeBtnEl = document.getElementById('calculatePendingFeeBtn');
+        if(calculatePendingFeeBtnEl){
+            calculatePendingFeeBtnEl.onclick = function(){
+                if(sourceRows.length === 0){
+                    showMsg('error','Click "Get Students" first — no students to calculate pending fee for',"Warning");
+                    return;
+                }
+                setLoading('calculatePendingFeeBtn', true);
+                fetch(`${contextPath}calculateMigrationPendingFee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ academicStudentIds: sourceRows.map(r => r.academicStudentId) })
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        throw new Error((data && data.error) ? data.error : 'Unable to calculate pending fee.');
+                    }
+                    const pendingFees = data.pendingFees || {};
+                    sourceRows.forEach(row => {
+                        const amount = pendingFees[String(row.academicStudentId)];
+                        row.pendingFee = (amount !== undefined) ? amount : 0;
+                    });
+                    pendingFeeCalculated = true;
+                    renderSourceTable();
+                    showMsg('success', 'Pending fee calculated — you can now move students', 'Success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while calculating pending fee', 'Error');
+                })
+                .finally(() => setLoading('calculatePendingFeeBtn', false));
+            };
+        }
+
+        const destSchoolEl = document.getElementById('destSchool');
+        if(destSchoolEl){
+            destSchoolEl.addEventListener('change', function(){
+                const schoolId = this.value;
+                const sessionEl = document.getElementById('destSession');
+                const errorBox = document.getElementById('destSessionError');
+                const errorText = document.getElementById('destSessionErrorText');
+                errorBox.style.display = 'none';
+                errorText.textContent = '';
+
+                if(!schoolId){
+                    sessionEl.innerHTML = '<option value="">Select school first</option>';
+                    return;
+                }
+                sessionEl.innerHTML = '<option value="">Loading…</option>';
+                fetch(`${contextPath}getSchoolSessionsForMigration?schoolId=${schoolId}`)
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        sessionEl.innerHTML = '<option value="">Not available</option>';
+                        errorText.textContent = (data && data.error) ? data.error : 'Unable to determine the current academic year for this school.';
+                        errorBox.style.display = '';
+                        throw new Error(errorText.textContent);
+                    }
+                    sessionEl.innerHTML = `<option value="${data.id}">${escapeHtml(data.sessionFormat)}</option>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while fetching the academic year', 'Error');
+                });
+            });
+        }
+
+        let pendingMigrationPayload = null;
+        let migrateConfirmModalInstance = null;
+
+        const saveBtnEl = document.getElementById('saveBtn');
+        if(saveBtnEl){
+            saveBtnEl.onclick = function(){
+                if(stagedRows.length === 0){
+                    showMsg('error','Move at least one student to the destination before saving',"Warning");
+                    return;
+                }
+                const destSchoolId = $('#destSchool').val();
+                const destAcademicYearId = $('#destSession').val();
+                const destMediumId = $('#destMedium').val();
+                const destGradeId = $('#destGrade').val();
+                const destSectionId = $('#destSection').val();
+                if(!destSchoolId || !destAcademicYearId || !destMediumId || !destGradeId || !destSectionId){
+                    showMsg('error','School/Academic Year/Medium/Grade/Section is mandatory for the destination',"Warning");
+                    return;
+                }
+
+                pendingMigrationPayload = {
+                    sourceStudents: stagedRows.map(r => ({
+                        academicStudentId: r.academicStudentId,
+                        pendingFee: r.pendingFee || 0
+                    })),
+                    destSchoolId, destAcademicYearId, destMediumId, destGradeId, destSectionId
+                };
+
+                const destSchoolText = $('#destSchool option:selected').text();
+                const destSessionText = $('#destSession option:selected').text();
+                const destMediumText = $('#destMedium option:selected').text();
+                const destGradeText = $('#destGrade option:selected').text();
+                const destSectionText = $('#destSection option:selected').text();
+                const count = stagedRows.length;
+
+                document.getElementById('migrateConfirmCount').textContent = `${count} student${count === 1 ? '' : 's'}`;
+                document.getElementById('migrateConfirmSchool').textContent = destSchoolText;
+                document.getElementById('migrateConfirmYear').textContent = destSessionText;
+                document.getElementById('migrateConfirmClass').textContent = `${destMediumText} / ${destGradeText} / ${destSectionText}`;
+
+                if(!migrateConfirmModalInstance){
+                    migrateConfirmModalInstance = new bootstrap.Modal(document.getElementById('migrateConfirmModal'));
+                }
+                migrateConfirmModalInstance.show();
+            };
+        }
+
+        const confirmSaveBtnEl = document.getElementById('confirmSaveBtn');
+        if(confirmSaveBtnEl){
+            confirmSaveBtnEl.onclick = function(){
+                if(!pendingMigrationPayload){
+                    return;
+                }
+                setLoading('confirmSaveBtn', true);
+                fetch(`${contextPath}saveStudentMigration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pendingMigrationPayload)
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        throw new Error((data && data.error) ? data.error : 'Unable to save the migration.');
+                    }
+                    stagedRows = [];
+                    renderStagedTable();
+                    if(migrateConfirmModalInstance){
+                        migrateConfirmModalInstance.hide();
+                    }
+                    pendingMigrationPayload = null;
+
+                    const total = data.totalMoved || 0;
+                    let summary = `${total} student${total === 1 ? '' : 's'} migrated successfully`;
+                    if(data.sameSchoolCount || data.crossSchoolCount){
+                        summary += ` (${data.sameSchoolCount} same-branch, ${data.crossSchoolCount} cross-branch)`;
+                    }
+                    showMsg('success', summary, 'Migration complete');
+
+                    if(data.failures && data.failures.length){
+                        showMsg('warning', data.failures.join('; '), `${data.failures.length} student(s) skipped`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while saving the migration', 'Error');
+                })
+                .finally(() => setLoading('confirmSaveBtn', false));
+            };
+        }
+    </script>
+</section>
+</body>
+</html>

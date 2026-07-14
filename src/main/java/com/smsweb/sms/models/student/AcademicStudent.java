@@ -79,6 +79,16 @@ public class AcademicStudent {
     @Column(nullable = false)
     private String status = "Active";
 
+    /**
+     * True once this exact enrollment row has been migrated out via the Migrate Student
+     * feature (either same-branch or cross-branch). Kept separate from `status` because
+     * same-branch migration deliberately leaves `status` as "Active" on the old row (matches
+     * the previous system's behaviour). Only read by the Migrate Student "Get Students" fetch,
+     * so a migrated-out student never reappears as a migration candidate a second time.
+     */
+    @Column(nullable = false)
+    private Boolean isMigrated = false;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Date creationDate;

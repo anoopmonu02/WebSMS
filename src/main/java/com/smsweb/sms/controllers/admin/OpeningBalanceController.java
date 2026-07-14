@@ -59,7 +59,8 @@ public class OpeningBalanceController {
     public Map<String, Object> getActiveYear(@RequestParam Long schoolId) {
         log.info("Inside getActiveYear");
         log.info("Inside getActiveYear");
-        AcademicYear ay = academicyearRepository.findActiveBySchoolId(schoolId);
+        AcademicYear ay = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active", schoolId);
+        if (ay == null) ay = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("Active", schoolId);
         if (ay == null) return Map.of();
         return Map.of("id", ay.getId(), "sessionFormat", ay.getSessionFormat());
     }

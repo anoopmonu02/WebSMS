@@ -169,6 +169,11 @@ public class RoleInitializer {
                     "STUDENT_BIRTH_CERTIFICATE",
                     "Search a student and print their birth certificate (English + regional language)");
 
+            // Migrate a student to a new session/grade/section, or to a different school entirely
+            seed(screenRepo, "Student", "Migrate Student",
+                    "STUDENT_MIGRATE",
+                    "Move active students to a new session, grade or section, or transfer them to a different school");
+
             // ── Attendance ───────────────────────────────────────────────────
 
             // View attendance summary dashboard
