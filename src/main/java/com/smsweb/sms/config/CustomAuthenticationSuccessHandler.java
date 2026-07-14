@@ -73,7 +73,12 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             session.setAttribute("school", school);
 
             if (school != null) {
-                AcademicYear academicYear = academicyearRepository.findActiveBySchoolId(school.getId());
+                // Bounded to LIMIT 1 (findTopBy...) so a school with more than one AcademicYear
+                // row marked active can never throw NonUniqueResultException here.
+                AcademicYear academicYear = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("active", school.getId());
+                if (academicYear == null) {
+                    academicYear = academicyearRepository.findTopByStatusAndSchool_IdOrderByIdDesc("Active", school.getId());
+                }
                 if (academicYear == null) {
                     academicYear = academicYearService.saveAcademicYearIfNotFound();
                 }
