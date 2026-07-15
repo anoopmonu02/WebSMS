@@ -67,6 +67,20 @@ public class FeeSubmission {
     @JoinColumn(name = "discounthead_id")
     private Discounthead discounthead;
 
+    /**
+     * "Mid Year Migration Discount" — deliberately a separate column from discountAmount /
+     * discounthead above (those stay wired to the existing automatic sibling/staff/etc.
+     * discount calculation). Kept independent so a student who qualifies for both a regular
+     * discount and this manually-entered one in the same submission never has one silently
+     * overwrite the other. Only ever shown/editable when the system_config toggle is on AND
+     * the logged-in user is ROLE_ADMIN/ROLE_SUPERADMIN - see
+     * FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser. Not tied to any
+     * specific student or to Mid Session Migration - an eligible admin can enter it on any
+     * student's any fee submission.
+     */
+    @Digits(integer = 10, fraction = 2)
+    private BigDecimal migrationDiscountAmount = BigDecimal.ZERO;
+
     @Digits(integer = 10, fraction = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
     @Digits(integer = 10, fraction = 2)

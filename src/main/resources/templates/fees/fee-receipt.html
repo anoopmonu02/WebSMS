@@ -532,6 +532,13 @@
                             <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.previousFeeBalanceRemark}</div>
                         </div>
                         <hr/>` : ''}
+                    ${data.feeSubmission.migrationDiscountAmount && Number(data.feeSubmission.migrationDiscountAmount) > 0 ? `
+                         <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4"><strong>Special Discount (Admin): </strong></div>
+                            <div class="col-md-4 text-end">&#8377; ${data.feeSubmission.migrationDiscountAmount}</div>
+                        </div>
+                        <hr/>` : ''}
                     <div class="row">
                         <div class="col-md-4"></div>
                         <div class="col-md-4"><strong>Total Amount: </strong></div>

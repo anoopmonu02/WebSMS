@@ -174,6 +174,12 @@ public class RoleInitializer {
                     "STUDENT_MIGRATE",
                     "Move active students to a new session, grade or section, or transfer them to a different school");
 
+            // Mid-session (mid-year) branch transfer — ROLE_ADMIN/ROLE_SUPERADMIN only, see
+            // @PreAuthorize on MidSessionMigrationController/MidSessionMigrationRestController
+            seed(screenRepo, "Student", "Mid Session Migration",
+                    "STUDENT_MIDSESSION_MIGRATE",
+                    "Transfer a single student to a different branch/school mid-session, carrying forward pending dues as the opening balance");
+
             // ── Attendance ───────────────────────────────────────────────────
 
             // View attendance summary dashboard

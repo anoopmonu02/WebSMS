@@ -119,6 +119,15 @@ public class StudentMigrationService {
         public int sameSchoolCount = 0;
         public int crossSchoolCount = 0;
         public List<String> failures = new ArrayList<>();
+
+        /**
+         * IDs of the newly-created destination AcademicStudent rows, in the same order they
+         * were migrated. Purely additive - existing callers (StudentMigrationRestController)
+         * never read this field, so this doesn't change any existing behaviour. Added so
+         * MidSessionMigrationService can look up the specific record it just created (to flag
+         * it isMidSessionMigration=true) without duplicating the copy/deactivate logic above.
+         */
+        public List<Long> newAcademicStudentIds = new ArrayList<>();
     }
 
     /**
@@ -227,6 +236,7 @@ public class StudentMigrationService {
                     newRecord.setOpeningBalanceRemark(openingBalanceRemark);
                     newRecord.setCreatedBy(loggedInUser);
                     academicStudentRepository.save(newRecord);
+                    result.newAcademicStudentIds.add(newRecord.getId());
 
                     // Old AcademicStudent row's status is intentionally left untouched - stays
                     // Active, exactly as instructed (matches the previous system's behaviour).
@@ -263,6 +273,7 @@ public class StudentMigrationService {
                         newRecord.setOpeningBalance(pendingFee);
                         newRecord.setOpeningBalanceRemark(openingBalanceRemark);
                         academicStudentRepository.save(newRecord);
+                        result.newAcademicStudentIds.add(newRecord.getId());
                     } else {
                         log.warn("New AcademicStudent record not found right after saveStudent() for student id={}", saved.getId());
                     }

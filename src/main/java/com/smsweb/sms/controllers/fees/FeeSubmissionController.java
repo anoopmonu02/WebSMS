@@ -74,6 +74,10 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("monthmapping", monthMappingList);
         model.addAttribute("feesubmissionobj", new FeeSubmission());
         model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+        // Mid Year Migration Discount field - one check at page load (system_config toggle +
+        // ROLE_ADMIN/ROLE_SUPERADMIN), not tied to any specific student. See
+        // FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser for the full rule.
+        model.addAttribute("migrationDiscountEnabled", feeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser());
         return "fees/feesubmitform";
     }
 
