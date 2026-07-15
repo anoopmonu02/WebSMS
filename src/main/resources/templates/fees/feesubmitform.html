@@ -187,6 +187,28 @@
                         </div>
                     </div>
 
+                    <!--
+                        Mid Year Migration Discount - rendered only when the server-side check
+                        (system_config toggle ON + logged-in user is ROLE_ADMIN/ROLE_SUPERADMIN,
+                        see FeeSubmissionController.getFeeSubmissionForm /
+                        FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser)
+                        passes - computed once at page load, not per student. For every other
+                        user/role this block is never rendered at all - zero change to the
+                        existing Fee Submission flow for them.
+                    -->
+                    <div class="row" id="migrationDiscountRow" th:if="${migrationDiscountEnabled}">
+                        <div class="col-12 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                                    <i class="bi bi-info-circle-fill text-warning fs-4"></i>
+                                    <label for="migrationDiscountAmount" class="col-form-label mb-0"><b>Special Discount (Admin)</b></label>
+                                    <input type="text" inputmode="numeric" class="form-control" id="migrationDiscountAmount" name="migrationDiscountAmount" style="max-width:220px;" placeholder="0" autocomplete="off">
+                                    <span class="text-muted small">Tick the month(s) above as usual - this amount is deducted from the total due.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <hr/>
                     <div class="row">
                         <div class="col-md-5">
@@ -245,6 +267,33 @@
         $(document).on('click', '.dynamic-btn', function() {
             $('#myModal').modal('show');
         });
+
+        /* ── Mid Year Migration Discount (admin-only, config-gated field) ────────── */
+        let baseTotalBeforeMigrationDiscount = 0;
+
+        function applyMigrationDiscount(){
+            const row = document.getElementById('migrationDiscountRow');
+            if(!row) return; // not rendered at all for this user (th:if was false server-side)
+            let discountVal = parseFloat($('#migrationDiscountAmount').val());
+            if(isNaN(discountVal) || discountVal < 0) discountVal = 0;
+            let newTotal = baseTotalBeforeMigrationDiscount - discountVal;
+            if(newTotal < 0) newTotal = 0;
+            $('#totalAmount').val(newTotal);
+            $('#balanceAmount').val('0');
+            $('#paidAmount').val(newTotal);
+        }
+
+        // Numeric-only (digits + a single decimal point)
+        $('#migrationDiscountAmount').on('keypress', function(e){
+            const char = String.fromCharCode(e.which);
+            if(e.which !== 8 && e.which !== 0 && !/[0-9.]/.test(char)){
+                return false;
+            }
+            if(char === '.' && $(this).val().indexOf('.') !== -1){
+                return false;
+            }
+        });
+        $('#migrationDiscountAmount').on('input', applyMigrationDiscount);
 
         $("#paidAmount").keypress(function (e) {
             //if the letter is not digit then display error and don't type anything
@@ -425,6 +474,7 @@
                 } else{
                     $("#previousBalance").removeClass("text-bg-warning");
                 }
+                baseTotalBeforeMigrationDiscount = 0;
             } else{
                 $(".studname").html(`<strong>Student Name:</strong>`);
                 $(".fname").html(`<strong>Father Name:</strong> `);
@@ -441,6 +491,7 @@
                 $('#gradeId').val('');
                 $("#previousBalance").val('');
                 $("#previousBalance").addClass("");
+                baseTotalBeforeMigrationDiscount = 0;
             }
         }
 
@@ -496,6 +547,18 @@
             await calculateDiscount(requestBody);
             await calculateFine(requestBody);
 
+            // Mid Year Migration Discount subtracts from the total the same way the other
+            // discounts above already do - captured here (after fee+discount+fine are all in)
+            // so re-typing the amount doesn't compound across repeated keystrokes.
+            baseTotalBeforeMigrationDiscount = parseFloat($('#totalAmount').val()) || 0;
+            applyMigrationDiscount();
+
+            // resetFeeFields(1) above unconditionally strips the orange "balance due" styling
+            // from Previous Balance on every month click and nothing puts it back - restore it
+            // here based on the same value that was already loaded for this student.
+            if(parseFloat($('#previousBalance').val()) > 0){
+                $('#previousBalance').addClass('text-bg-warning');
+            }
         });
 
         async function calculateFee(requestBody){
@@ -700,6 +763,13 @@
             $('#msgAmount').html('').hide();
             $('#fullPaymentAmount').val('');
             $('#previousBalance').removeClass("text-bg-warning");
+            if(flag === 0){
+                // Only clear the migration-discount value on a full reset (new student being
+                // loaded), not on every month re-check - the admin's entered amount should
+                // persist while they're still adjusting months for the same student.
+                $('#migrationDiscountAmount').val('');
+                baseTotalBeforeMigrationDiscount = 0;
+            }
         }
 
         function resetMonthCheckBoxes(){
@@ -842,7 +912,6 @@
             }
             toastr[msgType](msg,headerValue);
         }
-
 
     </script>
 

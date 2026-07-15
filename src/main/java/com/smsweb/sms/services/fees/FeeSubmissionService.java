@@ -23,6 +23,8 @@ import com.smsweb.sms.repositories.universal.GradeRepository;
 import com.smsweb.sms.repositories.universal.MonthMasterRepository;
 import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -113,6 +115,33 @@ public class FeeSubmissionService {
 
     public List<FeeSubmission> getAllActiveFeeSubmissionByAcademicStudent(Long academic_stu_id){
         return feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(academic_stu_id, "Active");
+    }
+
+    /**
+     * Whether the "Mid Year Migration Discount" field should be shown on Fee Submission for the
+     * currently logged-in user: the system_config toggle is on AND the user is ROLE_ADMIN/
+     * ROLE_SUPERADMIN. Deliberately not tied to any specific student or submission - once both
+     * gates are true, the admin can apply this discount on any student's any fee submission, as
+     * many times as they want (a general admin-discretion discount, not a one-time migration-
+     * only field). Read-only - never mutates anything. Called once per Fee Submission page load
+     * from FeeSubmissionController.getFeeSubmissionForm.
+     */
+    public boolean isMigrationDiscountFieldEnabledForCurrentUser(){
+        log.info("Inside isMigrationDiscountFieldEnabledForCurrentUser");
+        try{
+            boolean configEnabled = systemConfigRepository.findByConfigName("MID_YEAR_MIGRATION_DISCOUNT_ENABLED")
+                    .map(cfg -> "true".equalsIgnoreCase(cfg.getConfigValue()))
+                    .orElse(false);
+            if(!configEnabled) return false;
+
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if(auth == null) return false;
+            return auth.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPERADMIN"));
+        }catch(Exception e){
+            log.error("isMigrationDiscountFieldEnabledForCurrentUser check failed", e);
+            return false;
+        }
     }
     public FeeSubmission getLastFeeSubmissionOfStudentForBalance(Long school_id, Long academic_id, Long academic_stu_id){
         log.info("Inside getLastFeeSubmissionOfStudentForBalance");
@@ -455,7 +484,7 @@ public class FeeSubmissionService {
             if(paramsMap!=null && !paramsMap.isEmpty()) {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyyhhmmss");
                 List<String> feeSubmissionModelColumns = Arrays.asList("feesubmissiondate", "academicStudent.id", "fullPaymentAmount", "fineAmount", "fineRemark", "discountAmount", "discountHead", "totalAmount",
-                        "paidAmount", "balanceAmount", "feeRemark", "headName", "months","previousBalance","paymentType");
+                        "paidAmount", "balanceAmount", "feeRemark", "headName", "months","previousBalance","paymentType", "migrationDiscountAmount");
                 AcademicStudent student;// = academicStudentRepository.findById(Long.parseLong("0")).orElse(null);
                 String schoolCodeVal = getCodeValue(school.getSchoolName());
                 //Saving fee submission object
@@ -504,6 +533,12 @@ public class FeeSubmissionService {
                             feeSubmission.setFullPaymentAmount(feeMap.containsKey("fullPaymentAmount")?new BigDecimal(feeMap.get("fullPaymentAmount").toString()):BigDecimal.ZERO);
                             feeSubmission.setPaidAmount(feeMap.containsKey("paidAmount")?new BigDecimal(feeMap.get("paidAmount").toString()):BigDecimal.ZERO);
                             feeSubmission.setTotalAmount(feeMap.containsKey("totalAmount")?new BigDecimal(feeMap.get("totalAmount").toString()):BigDecimal.ZERO);
+                            // Mid Year Migration Discount - only ever non-zero for a student
+                            // migrated via Students > Mid Session Migration, on their first
+                            // submission, entered by an admin. Additive only - defaults to
+                            // ZERO for every other submission, exactly like before this field
+                            // existed.
+                            feeSubmission.setMigrationDiscountAmount(feeMap.containsKey("migrationDiscountAmount")?new BigDecimal(feeMap.get("migrationDiscountAmount").toString()):BigDecimal.ZERO);
                             if(feeMap.containsKey("discountHead")){
                                 Object value = feeMap.get("discountHead");
                                 if (value instanceof Discounthead) {
@@ -613,6 +648,7 @@ public class FeeSubmissionService {
                                     case "totalAmount":
                                     case "paidAmount":
                                     case "balanceAmount":
+                                    case "migrationDiscountAmount":
                                         feeMap.put(key, new BigDecimal(value));
                                         break;
                                     case "discountHead":
@@ -990,6 +1026,7 @@ public class FeeSubmissionService {
                 fsMap.put("paidAmount", feeSubmission.getPaidAmount());
                 fsMap.put("balanceAmount", feeSubmission.getBalanceAmount());
                 fsMap.put("previousFeeBalanceRemark", feeSubmission.getPreviousFeeBalanceRemark() != null ? feeSubmission.getPreviousFeeBalanceRemark() : "");
+                fsMap.put("migrationDiscountAmount", feeSubmission.getMigrationDiscountAmount() != null ? feeSubmission.getMigrationDiscountAmount() : BigDecimal.ZERO);
                 fsMap.put("status", feeSubmission.getStatus() != null ? feeSubmission.getStatus() : "");
                 if (feeSubmission.getDiscounthead() != null) {
                     fsMap.put("discounthead", Map.of("discountName", feeSubmission.getDiscounthead().getDiscountName() != null ? feeSubmission.getDiscounthead().getDiscountName() : ""));

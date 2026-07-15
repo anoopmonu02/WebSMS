@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Mid Session Migration</div>
+                <hr/>
+            </div>
+
+            <div class="col-12" th:if="${noOtherSchools}">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    There is no other branch/school set up yet to migrate a student to.
+                    Add another school under Admin &rarr; School / Branch Management first.
+                </div>
+            </div>
+
+            <div class="col-12" th:if="${!noOtherSchools}">
+                <p class="text-muted mb-2">Search the student who is moving to a different branch/school mid-session. Selecting them will fill in their current details below.</p>
+                <div class="search-container my-3">
+                    <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                    <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
+                    </div>
+                </div>
+
+                <!--Student Details-->
+                <div class="student-detail mb-3">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="card border-success">
+                                <h5 class="card-header">Student Detail</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item studname"><strong>Student Name:</strong></li>
+                                    <li class="list-group-item fname"><strong>Father Name:</strong></li>
+                                    <li class="list-group-item mname"><strong>Mother Name:</strong></li>
+                                    <li class="list-group-item contactno"><strong>Contact No:</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card border-success">
+                                <h5 class="card-header">Current Academic Detail</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item cmedium"><strong>Medium: </strong></li>
+                                    <li class="list-group-item cgrade"><strong>Class: </strong></li>
+                                    <li class="list-group-item csection"><strong>Section: </strong></li>
+                                    <li class="list-group-item csr"><strong>SR No: </strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="academicStudentId" value="">
+                    <input type="hidden" id="currentSchoolId" th:value="${currentSchoolId}">
+                </div>
+
+                <hr/>
+                <h5 class="mb-0">Destintion: Migrate Student</h5>
+                <hr/>
+                <div class="col-12 mt-2 mb-3">&nbsp;</div>
+
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                    <div>
+                        <label for="destSchool" class="form-label">School *</label>
+                        <select id="destSchool" class="form-select" style="width:220px;">
+                            <option value="">Select School</option>
+                            <option th:each="sch : ${schools}" th:value="${sch.id}" th:text="${sch.schoolName}">School</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destSession" class="form-label">Academic Year</label>
+                        <select id="destSession" class="form-select" style="width:200px;">
+                            <option value="">Select school first</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destMedium" class="form-label">Medium *</label>
+                        <select id="destMedium" class="form-select" style="width:200px;">
+                            <option value="">Select Medium</option>
+                            <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destGrade" class="form-label">Grade *</label>
+                        <select id="destGrade" class="form-select" style="width:200px;">
+                            <option value="">Select Grade</option>
+                            <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="destSection" class="form-label">Section *</label>
+                        <select id="destSection" class="form-select" style="width:200px;">
+                            <option value="">Select Section</option>
+                            <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success" id="saveBtn">
+                            <span class="normal-state"><i class="bi bi-check-lg"></i> Save</span>
+                            <span class="loading-state d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12" id="destSessionError" style="display:none;">
+                    <div class="alert alert-danger py-2 small" id="destSessionErrorText"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="migrateConfirmModal" tabindex="-1" aria-labelledby="migrateConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="migrateConfirmModalLabel"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Confirm Mid Session Migration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Please review before continuing:</p>
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Student</span>
+                            <span class="fw-bold fs-5 text-primary" id="migrateConfirmName">-</span>
+                        </div>
+                        <hr class="my-1"/>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Destination School</span>
+                            <span class="fw-bold text-end" id="migrateConfirmSchool">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Academic Year</span>
+                            <span class="fw-bold" id="migrateConfirmYear">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Medium / Grade / Section</span>
+                            <span class="fw-bold text-end" id="migrateConfirmClass">-</span>
+                        </div>
+                        <hr class="my-1"/>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Pending Dues Carried Forward</span>
+                            <span class="fw-bold" id="migrateConfirmPending">Calculating&hellip;</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mb-0 small d-flex align-items-start">
+                        <i class="bi bi-exclamation-octagon-fill me-2 mt-1"></i>
+                        <span>This action <strong>cannot be undone</strong>. The student's current-school record will be deactivated and a new record created at the destination.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSaveBtn">
+                        <span class="normal-state"><i class="bi bi-check-lg"></i> Yes, Migrate</span>
+                        <span class="loading-state d-none">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        let _searchQuery = '';
+        let _searchPage  = 0;
+        let _searchMore  = false;
+        let _searchLoading = false;
+        let selectedStudentName = '';
+
+        function showMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+                "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+                "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+                "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+                "showMethod": "fadeIn", "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+        function escapeHtml(value){
+            const div = document.createElement('div');
+            div.textContent = value !== undefined && value !== null ? value : '';
+            return div.innerHTML;
+        }
+
+        function setLoading(btnId, isLoading){
+            const btn = document.getElementById(btnId);
+            btn.disabled = isLoading;
+            btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+            btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+        }
+
+        const renderStudentRow = (as) => {
+            const srval = as.classSrNo != null && as.classSrNo !== '' ? ' / ' + as.classSrNo : '';
+            const grade = as.grade ? as.grade.gradeName : '';
+            const section = as.section ? as.section.sectionName : '';
+            const stu = as.student || {};
+            return `<a onclick="loadStudentData(${as.id})" href="#" class='list-group-item list-group-item-action'>${escapeHtml(stu.studentName)} / ${escapeHtml(stu.fatherName)} / ${escapeHtml(grade)}-${escapeHtml(section)}${srval}</a>`;
+        };
+
+        const fetchStudents = (query, page, append) => {
+            if (_searchLoading) return;
+            _searchLoading = true;
+            let url = `${contextPath}student/mid-session-migration/search-student/${encodeURIComponent(query)}?page=${page}`;
+            fetch(url).then(r => r.json()).then(students => {
+                _searchLoading = false;
+                _searchMore = Array.isArray(students) && students.length === 10;
+                if (!append) {
+                    let html = `<div class='list-group' id='student-list-group'>`;
+                    (students || []).forEach(s => { html += renderStudentRow(s); });
+                    html += `</div>`;
+                    $(".search-result").html(html).show();
+                } else {
+                    (students || []).forEach(s => { $('#student-list-group').append(renderStudentRow(s)); });
+                }
+            }).catch(() => { _searchLoading = false; });
+        };
+
+        const searchStuName = () => {
+            let query = $("#search-input").val();
+            if (query.trim().length > 2) {
+                if (query !== _searchQuery) {
+                    _searchQuery = query;
+                    _searchPage  = 0;
+                    fetchStudents(query, 0, false);
+                }
+            } else {
+                _searchQuery = '';
+                $(".search-result").hide();
+            }
+        };
+
+        document.querySelector('.search-result') && document.querySelector('.search-result').addEventListener('scroll', function() {
+            if (!_searchMore || _searchLoading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+                _searchPage++;
+                fetchStudents(_searchQuery, _searchPage, true);
+            }
+        });
+
+        const loadStudentData = (id) => {
+            $(".search-result").hide();
+            $("#search-input").val('');
+            $('#academicStudentId').val(id);
+            // Reuses the existing getStudentDetailForFee endpoint (already scoped to the
+            // admin's current school/session) purely to fetch the card display fields -
+            // no new endpoint needed for this.
+            fetch(`${contextPath}getStudentDetailForFee/${id}`).then(r => r.json()).then(data => {
+                if (data && data.student) {
+                    selectedStudentName = data.student.studentName || '';
+                    $(".studname").html(`<strong>Student Name: </strong> ${escapeHtml(data.student.studentName)}`);
+                    $(".fname").html(`<strong>Father Name: </strong> ${escapeHtml(data.student.fatherName)}`);
+                    $(".mname").html(`<strong>Mother Name: </strong> ${escapeHtml(data.student.motherName)}`);
+                    $(".contactno").html(`<strong>Contact No: </strong> ${escapeHtml(data.student.mobile1)}`);
+                    $(".cmedium").html(`<strong>Medium: </strong> ${escapeHtml(data.student.medium)}`);
+                    $(".cgrade").html(`<strong>Class: </strong> ${escapeHtml(data.student.grade)}`);
+                    $(".csection").html(`<strong>Section: </strong> ${escapeHtml(data.student.section)}`);
+                    $(".csr").html(`<strong>SR No: </strong> ${data.student.classSrNo == null ? '' : escapeHtml(data.student.classSrNo)}`);
+                    $(".cschool").html(`<strong>School: </strong> Current Branch`);
+                }
+            });
+        };
+
+        const destSchoolEl = document.getElementById('destSchool');
+        if (destSchoolEl) {
+            destSchoolEl.addEventListener('change', function(){
+                const schoolId = this.value;
+                const sessionEl = document.getElementById('destSession');
+                const errorBox = document.getElementById('destSessionError');
+                const errorText = document.getElementById('destSessionErrorText');
+                errorBox.style.display = 'none';
+                errorText.textContent = '';
+
+                if(!schoolId){
+                    sessionEl.innerHTML = '<option value="">Select school first</option>';
+                    return;
+                }
+                sessionEl.innerHTML = '<option value="">Loading…</option>';
+                fetch(`${contextPath}getSchoolSessionsForMigration?schoolId=${schoolId}`)
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        sessionEl.innerHTML = '<option value="">Not available</option>';
+                        errorText.textContent = (data && data.error) ? data.error : 'Unable to determine the current academic year for this school.';
+                        errorBox.style.display = '';
+                        throw new Error(errorText.textContent);
+                    }
+                    sessionEl.innerHTML = `<option value="${data.id}">${escapeHtml(data.sessionFormat)}</option>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while fetching the academic year', 'Error');
+                });
+            });
+        }
+
+        let pendingMigrationPayload = null;
+        let pendingDestSchoolText = '';
+        let migrateConfirmModalInstance = null;
+
+        const saveBtnEl = document.getElementById('saveBtn');
+        if (saveBtnEl) {
+            saveBtnEl.onclick = function(){
+                const academicStudentId = $('#academicStudentId').val();
+                if(!academicStudentId){
+                    showMsg('error','Search and select a student first',"Warning");
+                    return;
+                }
+                const destSchoolId = $('#destSchool').val();
+                const destAcademicYearId = $('#destSession').val();
+                const destMediumId = $('#destMedium').val();
+                const destGradeId = $('#destGrade').val();
+                const destSectionId = $('#destSection').val();
+                if(!destSchoolId || !destAcademicYearId || !destMediumId || !destGradeId || !destSectionId){
+                    showMsg('error','School/Academic Year/Medium/Grade/Section is mandatory for the destination',"Warning");
+                    return;
+                }
+
+                pendingMigrationPayload = { academicStudentId, destSchoolId, destAcademicYearId, destMediumId, destGradeId, destSectionId };
+
+                const destSchoolText = $('#destSchool option:selected').text();
+                const destSessionText = $('#destSession option:selected').text();
+                const destMediumText = $('#destMedium option:selected').text();
+                const destGradeText = $('#destGrade option:selected').text();
+                const destSectionText = $('#destSection option:selected').text();
+                pendingDestSchoolText = destSchoolText;
+
+                document.getElementById('migrateConfirmName').textContent = selectedStudentName || '-';
+                document.getElementById('migrateConfirmSchool').textContent = destSchoolText;
+                document.getElementById('migrateConfirmYear').textContent = destSessionText;
+                document.getElementById('migrateConfirmClass').textContent = `${destMediumText} / ${destGradeText} / ${destSectionText}`;
+                document.getElementById('migrateConfirmPending').textContent = 'Calculating…';
+
+                if(!migrateConfirmModalInstance){
+                    migrateConfirmModalInstance = new bootstrap.Modal(document.getElementById('migrateConfirmModal'));
+                }
+                migrateConfirmModalInstance.show();
+
+                fetch(`${contextPath}student/mid-session-migration/calculate-pending-fee`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ academicStudentId })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const amt = (data && data.pendingDue != null) ? Number(data.pendingDue) : 0;
+                    document.getElementById('migrateConfirmPending').textContent = '₹' + amt.toFixed(2);
+                })
+                .catch(() => {
+                    document.getElementById('migrateConfirmPending').textContent = 'Unable to calculate';
+                });
+            };
+        }
+
+        const confirmSaveBtnEl = document.getElementById('confirmSaveBtn');
+        if (confirmSaveBtnEl) {
+            confirmSaveBtnEl.onclick = function(){
+                if(!pendingMigrationPayload){
+                    return;
+                }
+                setLoading('confirmSaveBtn', true);
+                fetch(`${contextPath}student/mid-session-migration/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pendingMigrationPayload)
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if(!ok){
+                        throw new Error((data && data.error) ? data.error : 'Unable to save the migration.');
+                    }
+                    if(migrateConfirmModalInstance){
+                        migrateConfirmModalInstance.hide();
+                    }
+                    // No auto-redirect to Fee Submission: an admin's login is locked to a single
+                    // branch for the whole session (no in-session branch switch exists in this
+                    // app), so this student's first fee has to be submitted by logging in as an
+                    // admin of the destination branch - not from here.
+                    const studentLabel = data.studentName || 'Student';
+                    const schoolLabel = pendingDestSchoolText || 'the destination school';
+                    showMsg('success', `${studentLabel} migrated to ${schoolLabel}. Log in as an admin of that branch to submit their first fee.`, 'Migration complete');
+                    resetPageForNextMigration();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMsg('error', (error && error.message) ? error.message : 'An error occurred while saving the migration', 'Error');
+                })
+                .finally(() => setLoading('confirmSaveBtn', false));
+            };
+        }
+
+        function resetPageForNextMigration(){
+            selectedStudentName = '';
+            pendingMigrationPayload = null;
+            pendingDestSchoolText = '';
+            $('#academicStudentId').val('');
+            $('#search-input').val('');
+            $(".search-result").hide();
+            $(".studname").html('<strong>Student Name:</strong>');
+            $(".fname").html('<strong>Father Name:</strong>');
+            $(".mname").html('<strong>Mother Name:</strong>');
+            $(".contactno").html('<strong>Contact No:</strong>');
+            $(".cschool").html('<strong>School: </strong>');
+            $(".cmedium").html('<strong>Medium: </strong>');
+            $(".cgrade").html('<strong>Class: </strong>');
+            $(".csection").html('<strong>Section: </strong>');
+            $(".csr").html('<strong>SR No: </strong>');
+            $('#destSchool').val('');
+            $('#destSession').html('<option value="">Select school first</option>');
+            $('#destMedium').val('');
+            $('#destGrade').val('');
+            $('#destSection').val('');
+        }
+    </script>
+</section>
+</body>
+</html>

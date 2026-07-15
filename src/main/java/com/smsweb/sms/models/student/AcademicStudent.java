@@ -89,6 +89,19 @@ public class AcademicStudent {
     @Column(nullable = false)
     private Boolean isMigrated = false;
 
+    /**
+     * Permanent marker: true means this specific enrollment row was created by the
+     * Students > Mid Session Migration flow (as opposed to a normal new admission or the
+     * existing Migrate Student year-end flow). Never reset back to false once set - it's a
+     * historical fact about how this record was created, kept for reporting/audit purposes.
+     *
+     * Not currently read by the Fee Submission "Mid Year Migration Discount" field - that
+     * field's visibility is a simple system_config + role check, independent of this flag or
+     * of any specific student (see FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser).
+     */
+    @Column(nullable = false)
+    private Boolean isMidSessionMigration = false;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Date creationDate;

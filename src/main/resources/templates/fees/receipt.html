@@ -154,6 +154,14 @@
                             </div>
                             <hr/>
                         </th:block>
+                        <th:block th:if="${feeSubmission['migrationDiscountAmount'] != null and feeSubmission['migrationDiscountAmount'].compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                            <div class="row">
+                                <div class="col-md-4"></div>
+                                <div class="col-md-4"><strong>Special Discount (Admin): </strong></div>
+                                <div class="col-md-4 text-end" th:text="'&#8377; ' + ${feeSubmission['migrationDiscountAmount']}"></div>
+                            </div>
+                            <hr/>
+                        </th:block>
 
                         <div class="row">
                             <div class="col-md-4"></div>
