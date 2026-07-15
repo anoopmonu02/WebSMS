@@ -109,15 +109,17 @@
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                     <tr>
-                                        <th width="10%">SNo.</th>
+                                        <th width="8%">SNo.</th>
                                         <th>Head Name</th>
-                                        <th width="25%">Amount</th>
+                                        <th width="20%">Unit</th>
+                                        <th width="20%">Amount</th>
                                     </tr>
                                     </thead>
                                     <tbody class="table-group-divider">
                                         <tr th:each="fsub, iter: ${feesublist}">
                                             <td th:text="${iter.index + 1}+'.'"></td>
                                             <td th:text="${fsub.feehead.feeHeadName}"></td>
+                                            <td th:text="${fsub.quantity != null ? fsub.rate + ' x ' + fsub.quantity : '-'}"></td>
                                             <td class="text-end" th:text="'&#8377; '+${fsub.amount}"></td>
                                         </tr>
                                     </tbody>
