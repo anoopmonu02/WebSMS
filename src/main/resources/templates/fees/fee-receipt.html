@@ -495,9 +495,10 @@
                             <table class="table table-bordered table-striped">
                                 <thead>
                                 <tr>
-                                    <th width="10%">SNo.</th>
+                                    <th width="8%">SNo.</th>
                                     <th>Head Name</th>
-                                    <th width="25%">Amount</th>
+                                    <th width="20%">Unit</th>
+                                    <th width="20%">Amount</th>
                                 </tr>
                                 </thead>
                                 <tbody class="table-group-divider">
@@ -580,12 +581,14 @@
           feeSubmittedMonths.forEach(feeList => {
               const index = rowIndex++ + '.';
               const headName = feeList.feehead.feeHeadName;
+              const unit = (feeList.quantity != null) ? `${feeList.rate} x ${feeList.quantity}` : '-';
               const amount = feeList.amount;
 
               feeMonthHTML += `
                 <tr>
                     <td>${index}</td>
                     <td>${headName}</td>
+                    <td>${unit}</td>
                     <td class="text-end">&#8377; ${amount}</td>
                 </tr>
                 `;

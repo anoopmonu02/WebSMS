@@ -1056,7 +1056,7 @@ public class FeeSubmissionService {
                     i++;
                 }
                 modelData.put("feeSubmittedMonths", slipDateList);
-                modelData.put("feesublist", feeSubmission.getFeeSubmissionSub());
+                modelData.put("feesublist", buildFeeHeadBreakdownForReceipt(feeSubmission, academicStudent, school, academicYear));
             } else {
                 modelData.put("feeSubmissionError", "Fee not found for: " + academicStudent.getStudent().getStudentName() + "!");
             }
@@ -1066,6 +1066,67 @@ public class FeeSubmissionService {
         }
         log.debug("getFeeReceiptDataForModel result keys={}", modelData.keySet());
         return modelData;
+    }
+
+    /**
+     * Builds the fee-head breakdown shown on the receipt, adding a (rate x qty) hint next to
+     * each head's stored total when we can safely re-derive the quantity.
+     *
+     * No new persistence: the stored {@code FeeSubmissionSub.amount} always remains the
+     * authoritative total. Quantity is recomputed from this submission's own
+     * {@code FeeSubmissionMonths} (already persisted per-submission) joined against the
+     * existing fee_class_map/fee_month_map config via {@code findAmountAndFeeHeadNames}
+     * (its own SUM(amount) column is ignored - only the per-head month COUNT is used).
+     * rate = amount / quantity, rounded HALF_UP to 2 decimals.
+     *
+     * If a head has no matching quantity (config changed since, head not in fee_class_map
+     * for this grade/months, quantity 0, etc.) we simply fall back to showing the plain
+     * stored amount - same as before this feature existed.
+     */
+    private List<Map<String, Object>> buildFeeHeadBreakdownForReceipt(FeeSubmission feeSubmission, AcademicStudent academicStudent, School school, AcademicYear academicYear) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Map<Long, Integer> quantityByFeeheadId = new HashMap<>();
+        try {
+            Grade grade = academicStudent.getGrade();
+            List<Long> monthIds = feeSubmission.getFeeSubmissionMonths().stream()
+                    .map(fsm -> fsm.getMonthMaster().getId())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (grade != null && !monthIds.isEmpty()) {
+                List<Object[]> feeData = feeclassmapRepository.findAmountAndFeeHeadNames(
+                        academicYear.getId(), school.getId(), monthIds, grade.getId());
+                for (Object[] row : feeData) {
+                    try {
+                        Long feeheadId = ((Number) row[3]).longValue();
+                        int qty = Integer.parseInt(row[2].toString());
+                        quantityByFeeheadId.put(feeheadId, qty);
+                    } catch (Exception rowEx) {
+                        log.warn("buildFeeHeadBreakdownForReceipt - skipping unreadable row: {}", rowEx.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("buildFeeHeadBreakdownForReceipt - quantity lookup failed, falling back to plain amounts: {}", e.getMessage());
+        }
+
+        for (FeeSubmissionSub sub : feeSubmission.getFeeSubmissionSub()) {
+            Map<String, Object> map = new HashMap<>();
+            String feeHeadName = sub.getFeehead() != null && sub.getFeehead().getFeeHeadName() != null
+                    ? sub.getFeehead().getFeeHeadName() : "";
+            map.put("feehead", Map.of("feeHeadName", feeHeadName));
+            map.put("amount", sub.getAmount());
+
+            Long feeheadId = sub.getFeehead() != null ? sub.getFeehead().getId() : null;
+            Integer qty = feeheadId != null ? quantityByFeeheadId.get(feeheadId) : null;
+            if (qty != null && qty > 0 && sub.getAmount() != null) {
+                BigDecimal rate = sub.getAmount().divide(BigDecimal.valueOf(qty), 2, RoundingMode.HALF_UP);
+                map.put("quantity", qty);
+                map.put("rate", rate);
+            }
+            result.add(map);
+        }
+        return result;
     }
 
     public FeeSubmission getFeeDetailsForReceipt(String receipt_no, School school, AcademicYear academicYear){
