@@ -26,6 +26,7 @@ import com.smsweb.sms.repositories.universal.GradeRepository;
 import com.smsweb.sms.repositories.universal.MediumRepository;
 import com.smsweb.sms.repositories.universal.SectionRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.mobile.StudentHealthInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,7 @@ public class StudentMigrationService {
     private final FeeclassmapRepository feeclassmapRepository;
     private final DiscountclassmapRepository discountclassmapRepository;
     private final StudentDiscountRepository studentDiscountRepository;
+    private final StudentHealthInfoService studentHealthInfoService; // new, mobile-only — feature: student health info
 
     @Autowired
     public StudentMigrationService(AcademicStudentRepository academicStudentRepository,
@@ -98,7 +100,8 @@ public class StudentMigrationService {
                                     MonthmappingRepository monthmappingRepository,
                                     FeeclassmapRepository feeclassmapRepository,
                                     DiscountclassmapRepository discountclassmapRepository,
-                                    StudentDiscountRepository studentDiscountRepository) {
+                                    StudentDiscountRepository studentDiscountRepository,
+                                    StudentHealthInfoService studentHealthInfoService) {
         this.academicStudentRepository = academicStudentRepository;
         this.studentRepository = studentRepository;
         this.userRepository = userRepository;
@@ -113,6 +116,7 @@ public class StudentMigrationService {
         this.feeclassmapRepository = feeclassmapRepository;
         this.discountclassmapRepository = discountclassmapRepository;
         this.studentDiscountRepository = studentDiscountRepository;
+        this.studentHealthInfoService = studentHealthInfoService;
     }
 
     public static class MigrationResult {
@@ -237,6 +241,8 @@ public class StudentMigrationService {
                     newRecord.setCreatedBy(loggedInUser);
                     academicStudentRepository.save(newRecord);
                     result.newAcademicStudentIds.add(newRecord.getId());
+                    // Year-end promotion, same school → blank health-info row (feature: student health info)
+                    studentHealthInfoService.createBlank(newRecord, loggedInUser);
 
                     // Old AcademicStudent row's status is intentionally left untouched - stays
                     // Active, exactly as instructed (matches the previous system's behaviour).
@@ -274,6 +280,19 @@ public class StudentMigrationService {
                         newRecord.setOpeningBalanceRemark(openingBalanceRemark);
                         academicStudentRepository.save(newRecord);
                         result.newAcademicStudentIds.add(newRecord.getId());
+
+                        // Cross-school move — saveStudent() already auto-created a blank
+                        // health-info row for newRecord. If the destination academic year
+                        // is the SAME as the source (i.e. this is a same-session branch
+                        // transfer — today, only the Mid Session Migration flow produces
+                        // this), overwrite that blank row with the source's existing
+                        // height/weight/health values instead of leaving it blank. A
+                        // genuine year-end cross-branch migration (different year) leaves
+                        // the blank row as-is. (feature: student health info)
+                        if (sourceRecord.getAcademicYear() != null
+                                && sourceRecord.getAcademicYear().getId().equals(destAcademicYear.getId())) {
+                            studentHealthInfoService.copyForward(sourceRecord, newRecord, loggedInUser);
+                        }
                     } else {
                         log.warn("New AcademicStudent record not found right after saveStudent() for student id={}", saved.getId());
                     }

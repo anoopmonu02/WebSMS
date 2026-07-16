@@ -1,9 +1,12 @@
 package com.smsweb.sms.controllers.mobile;
 
 import com.smsweb.sms.dto.mobile.ApiResponse;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
+import com.smsweb.sms.services.mobile.MobileAcademicYearService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,57 +17,57 @@ import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 /**
  * Attendance endpoints for the student mobile app.
  *
- * GET /api/v1/attendance/monthly?year=2025&month=4  — calendar view (day-by-day)
- * GET /api/v1/attendance/yearly                      — 12-month summary for bar chart
+ * GET /api/v1/attendance/monthly?year=2025&month=4[&academicStudentId=..]
+ * GET /api/v1/attendance/yearly[?academicStudentId=..]
  *
- * Uses StudentService (existing service) — methods added to StudentService
- * call the AttendanceRepository queries added for mobile.
+ * academicStudentId is optional on both — omit it for "current year" (JWT
+ * default), or pass a value from GET /api/v1/student/academic-years to view a
+ * different enrollment year. See MobileAcademicYearService.resolveTargetAcademicStudent
+ * for the ownership check that makes this safe.
  */
 @RestController
 @RequestMapping("/api/v1/attendance")
 public class MobileAttendanceController {
     private static final Logger log = LoggerFactory.getLogger(MobileAttendanceController.class);
 
+    private final StudentService studentService;                  // existing, unchanged
+    private final MobileAcademicYearService academicYearService;  // new, mobile-only
 
-    private final StudentService studentService;
-
-    public MobileAttendanceController(StudentService studentService) {
+    public MobileAttendanceController(StudentService studentService,
+                                       MobileAcademicYearService academicYearService) {
         this.studentService = studentService;
+        this.academicYearService = academicYearService;
     }
 
     // ── GET /api/v1/attendance/monthly ───────────────────────────────────────
 
-    /**
-     * Day-by-day attendance for a requested month.
-     *
-     * Query params:
-     *   year  — e.g. 2025
-     *   month — 1-based (1=Jan … 12=Dec)
-     *
-     * Response: {
-     *   year, month, monthName,
-     *   totalWorkingDays, presentDays, absentDays, attendancePercent,
-     *   days: [ { date, dayOfWeek, isPresent, remark } ]
-     * }
-     */
     @GetMapping("/monthly")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getMonthlyAttendance(
             @RequestParam int year,
             @RequestParam int month,
+            @RequestParam(required = false) Long academicStudentId,
             HttpServletRequest request) {
         log.info("Inside getMonthlyAttendance");
 
-        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
+
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        Long resolvedId = target.get().getId();
 
         LocalDate startLocal = LocalDate.of(year, month, 1);
         LocalDate endLocal   = startLocal.withDayOfMonth(startLocal.lengthOfMonth());
 
-        // Uses StudentService.getStudentAttendanceForMonth() — added to StudentService
         List<Attendance> records = studentService.getStudentAttendanceForMonth(
-                academicStudentId,
+                resolvedId,
                 toDate(startLocal),
                 toDate(endLocal.plusDays(1))); // exclusive upper bound
 
@@ -75,7 +78,6 @@ public class MobileAttendanceController {
             LocalDate day = a.getAttendanceDate().toInstant()
                     .atZone(ZoneId.systemDefault()).toLocalDate();
 
-            // isHoliday: remark contains "holiday" (case-insensitive) or status is "Holiday"
             String remark = a.getRemark() != null ? a.getRemark() : "";
             boolean isHoliday = remark.toLowerCase().contains("holiday")
                              || "Holiday".equalsIgnoreCase(a.getStatus());
@@ -96,6 +98,7 @@ public class MobileAttendanceController {
                 ? Math.round(present * 100.0 / working * 10.0) / 10.0 : 0.0;
 
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("academicStudentId", resolvedId);
         result.put("year",              year);
         result.put("month",             month);
         result.put("monthName",         startLocal.getMonth()
@@ -111,28 +114,27 @@ public class MobileAttendanceController {
 
     // ── GET /api/v1/attendance/yearly ────────────────────────────────────────
 
-    /**
-     * 12-month attendance summary for the current academic year.
-     *
-     * Response: {
-     *   academicYearId,
-     *   totalWorkingDays, totalPresent, totalAbsent, overallPercent,
-     *   months: [ { month, monthName, present, absent, total, percent } ]
-     * }
-     */
     @GetMapping("/yearly")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getYearlyAttendance(
+            @RequestParam(required = false) Long academicStudentId,
             HttpServletRequest request) {
         log.info("Inside getYearlyAttendance");
 
-        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
-        Long academicYearId    = (Long) request.getAttribute("academicYearId");
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
 
-        // Uses StudentService.getStudentAttendanceForYear() — added to StudentService
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        AcademicStudent resolved = target.get();
+        Long resolvedId       = resolved.getId();
+        Long resolvedYearId   = resolved.getAcademicYear().getId();
+
         List<Attendance> records = studentService.getStudentAttendanceForYear(
-                academicStudentId, academicYearId);
+                resolvedId, resolvedYearId);
 
-        // Group by calendar month
         Map<Integer, int[]> stats = new TreeMap<>(); // month → [present, absent]
         for (Attendance a : records) {
             int m = a.getAttendanceDate().toInstant()
@@ -167,7 +169,8 @@ public class MobileAttendanceController {
                 ? Math.round(totalPresent * 100.0 / totalDays * 10.0) / 10.0 : 0.0;
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("academicYearId",   academicYearId);
+        result.put("academicStudentId", resolvedId);
+        result.put("academicYearId",   resolvedYearId);
         result.put("totalWorkingDays", totalDays);
         result.put("totalPresent",     totalPresent);
         result.put("totalAbsent",      totalAbsent);

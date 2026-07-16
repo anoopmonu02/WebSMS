@@ -12,6 +12,7 @@ import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import com.smsweb.sms.repositories.universal.*;
 import com.smsweb.sms.repositories.users.UserRepository;
+import com.smsweb.sms.services.mobile.StudentHealthInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,6 +52,7 @@ public class StudentRowSaverService {
     private final StudentRepository          studentRepository;
     private final AcademicStudentRepository  academicStudentRepository;
     private final PasswordEncoder            passwordEncoder;
+    private final StudentHealthInfoService   studentHealthInfoService; // new, mobile-only — feature: student health info
 
     public StudentRowSaverService(CastRepository castRepository,
                                   CategoryRepository categoryRepository,
@@ -59,7 +61,8 @@ public class StudentRowSaverService {
                                   UserRepository userRepository,
                                   StudentRepository studentRepository,
                                   AcademicStudentRepository academicStudentRepository,
-                                  PasswordEncoder passwordEncoder) {
+                                  PasswordEncoder passwordEncoder,
+                                  StudentHealthInfoService studentHealthInfoService) {
         this.castRepository            = castRepository;
         this.categoryRepository        = categoryRepository;
         this.cityRepository            = cityRepository;
@@ -68,6 +71,7 @@ public class StudentRowSaverService {
         this.studentRepository         = studentRepository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder           = passwordEncoder;
+        this.studentHealthInfoService  = studentHealthInfoService;
     }
 
     /**
@@ -185,6 +189,8 @@ public class StudentRowSaverService {
         as.setDescription("Imported from legacy XLS data.");
         as.setCreatedBy(loggedInUser);
         academicStudentRepository.save(as);
+        // Legacy bulk import → blank health-info row (feature: student health info)
+        studentHealthInfoService.createBlank(as, loggedInUser);
 
         importRow.setStatus(StudentImportRow.STATUS_READY);
         importRow.getMessages().add("✅ Saved. RegNo: " + regNo);

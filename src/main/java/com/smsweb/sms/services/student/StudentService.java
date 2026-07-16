@@ -21,6 +21,7 @@ import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.ExaminationService;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
+import com.smsweb.sms.services.mobile.StudentHealthInfoService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -63,9 +64,10 @@ public class StudentService {
     private final UserRepository userRepository;
     private final FamilyAccountService familyAccountService;
     private final RoleRepository roleRepository;
+    private final StudentHealthInfoService studentHealthInfoService; // new, mobile-only — feature: student health info
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -77,6 +79,7 @@ public class StudentService {
         this.userRepository = userRepository;
         this.familyAccountService = familyAccountService;
         this.roleRepository = roleRepository;
+        this.studentHealthInfoService = studentHealthInfoService;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -179,6 +182,8 @@ public class StudentService {
                 academicStudent.setStudent(savedStudent);
                 academicStudent.setCreatedBy(loggedInUser);
                 academicStudentRepository.save(academicStudent);
+                // New registration → blank health-info row (feature: student health info)
+                studentHealthInfoService.createBlank(academicStudent, loggedInUser);
             }
             boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
             if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
