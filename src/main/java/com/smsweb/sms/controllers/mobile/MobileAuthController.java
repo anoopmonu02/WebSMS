@@ -5,6 +5,7 @@ import com.smsweb.sms.dto.mobile.*;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
+import com.smsweb.sms.services.mobile.MobileRefreshTokenService;
 import com.smsweb.sms.services.mobile.ParentSessionStore;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -38,19 +40,22 @@ public class MobileAuthController {
 
     private static final Logger log = LoggerFactory.getLogger(MobileAuthController.class);
 
-    private final FamilyAccountService   familyAccountService;
-    private final AcademicStudentService academicStudentService;
-    private final JwtTokenProvider       jwtTokenProvider;
-    private final ParentSessionStore     parentSessionStore;
+    private final FamilyAccountService     familyAccountService;
+    private final AcademicStudentService   academicStudentService;
+    private final JwtTokenProvider         jwtTokenProvider;
+    private final ParentSessionStore       parentSessionStore;
+    private final MobileRefreshTokenService refreshTokenService;   // new, mobile-only (feature #10)
 
     public MobileAuthController(FamilyAccountService familyAccountService,
                                 AcademicStudentService academicStudentService,
                                 JwtTokenProvider jwtTokenProvider,
-                                ParentSessionStore parentSessionStore) {
+                                ParentSessionStore parentSessionStore,
+                                MobileRefreshTokenService refreshTokenService) {
         this.familyAccountService   = familyAccountService;
         this.academicStudentService = academicStudentService;
         this.jwtTokenProvider       = jwtTokenProvider;
         this.parentSessionStore     = parentSessionStore;
+        this.refreshTokenService    = refreshTokenService;
     }
 
     // ── POST /api/v1/auth/login ───────────────────────────────────────────────
@@ -95,7 +100,8 @@ public class MobileAuthController {
         if (students.size() == 1) {
             AcademicStudent as = students.get(0);
             String token = buildJwt(as);
-            MobileLoginResponse resp = buildLoginResponse(as, token, account.isMustChangePassword());
+            String refreshToken = refreshTokenService.issueToken(as);
+            MobileLoginResponse resp = buildLoginResponse(as, token, refreshToken, account.isMustChangePassword());
             log.info("Mobile login (single): academicStudentId={}", as.getId());
             return ResponseEntity.ok(ApiResponse.success("Login successful", resp));
         }
@@ -154,7 +160,8 @@ public class MobileAuthController {
                 .orElse(false);
 
         String token = buildJwt(chosen);
-        MobileLoginResponse resp = buildLoginResponse(chosen, token, mustChange);
+        String refreshToken = refreshTokenService.issueToken(chosen);
+        MobileLoginResponse resp = buildLoginResponse(chosen, token, refreshToken, mustChange);
 
         log.info("Child selected: academicStudentId={}", chosen.getId());
         return ResponseEntity.ok(ApiResponse.success("Login successful", resp));
@@ -204,6 +211,60 @@ public class MobileAuthController {
         }
 
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully", null));
+    }
+
+    // ── POST /api/v1/auth/refresh ─────────────────────────────────────────────
+    // No JWT required — the whole point is to get a new access token once the
+    // old one has expired. Trades a valid, not-yet-used refresh token for a
+    // new access token + a new (rotated) refresh token.
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> refresh(
+            @RequestBody Map<String, String> body) {
+        log.info("Inside refresh");
+
+        String rawRefreshToken = body.get("refreshToken");
+        Optional<MobileRefreshTokenService.RotationResult> result = refreshTokenService.rotate(rawRefreshToken);
+
+        if (result.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Session expired — please login again"));
+        }
+
+        AcademicStudent as = result.get().academicStudent;
+        String newAccessToken = buildJwt(as);
+
+        Map<String, Object> data = Map.of(
+                "token", newAccessToken,
+                "refreshToken", result.get().newRawRefreshToken,
+                "tokenType", "Bearer"
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    // ── POST /api/v1/auth/logout ──────────────────────────────────────────────
+    // Requires a valid access token (proves who's logging out). Revokes the
+    // refresh token server-side immediately instead of relying on it expiring
+    // naturally — important for a lost/shared device. If no refreshToken is
+    // supplied in the body, every active session for this student is revoked.
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestBody(required = false) Map<String, String> body,
+            jakarta.servlet.http.HttpServletRequest request) {
+        log.info("Inside logout");
+
+        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
+        String rawRefreshToken = body != null ? body.get("refreshToken") : null;
+
+        if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
+            refreshTokenService.revoke(rawRefreshToken);
+        } else if (academicStudentId != null) {
+            refreshTokenService.revokeAllForStudent(academicStudentId);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     // ── POST /api/v1/auth/switch-child ───────────────────────────────────────
@@ -268,8 +329,14 @@ public class MobileAuthController {
                 .map(FamilyAccount::isMustChangePassword)
                 .orElse(false);
 
+        // Revoke the previous child's active sessions for cleanliness — switching
+        // child is effectively a new login for a different identity, so the old
+        // refresh-token rows would otherwise sit around unused until they expire.
+        refreshTokenService.revokeAllForStudent(currentAcademicStudentId);
+
         String token = buildJwt(chosen);
-        MobileLoginResponse resp = buildLoginResponse(chosen, token, mustChange);
+        String refreshToken = refreshTokenService.issueToken(chosen);
+        MobileLoginResponse resp = buildLoginResponse(chosen, token, refreshToken, mustChange);
 
         log.info("Child switched: from={} to={}", currentAcademicStudentId, chosen.getId());
         return ResponseEntity.ok(ApiResponse.success("Switched successfully", resp));
@@ -330,10 +397,12 @@ public class MobileAuthController {
 
     private MobileLoginResponse buildLoginResponse(AcademicStudent as,
                                                     String token,
+                                                    String refreshToken,
                                                     boolean mustChangePassword) {
         return MobileLoginResponse.builder()
                 .loginType("SINGLE")
                 .token(token)
+                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .mustChangePassword(mustChangePassword)
                 .academicStudentId(as.getId())

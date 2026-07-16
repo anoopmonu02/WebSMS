@@ -4,8 +4,11 @@ import com.smsweb.sms.dto.mobile.ApiResponse;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.fees.FeeSubmissionMonths;
 import com.smsweb.sms.models.fees.FeeSubmissionSub;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
+import com.smsweb.sms.services.mobile.MobileAcademicYearService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,44 +17,51 @@ import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 /**
  * Fee endpoints for the student mobile app.
  *
- * GET /api/v1/fees/submissions   — all active fee submissions (with months + breakdown)
- * GET /api/v1/fees/summary       — pie-chart totals
- * GET /api/v1/fees/receipt/{id}  — single receipt detail
- *
- * Uses FeeSubmissionService (existing service):
- *  - getActiveFeeSubmissionsForYear()  ← new method added to service
- *  - getFeeSubmissionById()            ← already existed in service
+ * GET /api/v1/fees/submissions[?academicStudentId=..]
+ * GET /api/v1/fees/summary[?academicStudentId=..]
+ * GET /api/v1/fees/receipt/{id}
  */
 @RestController
 @RequestMapping("/api/v1/fees")
 public class MobileFeesController {
     private static final Logger log = LoggerFactory.getLogger(MobileFeesController.class);
 
+    private final FeeSubmissionService feeSubmissionService;       // existing, unchanged
+    private final MobileAcademicYearService academicYearService;  // new, mobile-only
 
-    private final FeeSubmissionService feeSubmissionService;
-
-    public MobileFeesController(FeeSubmissionService feeSubmissionService) {
+    public MobileFeesController(FeeSubmissionService feeSubmissionService,
+                                 MobileAcademicYearService academicYearService) {
         this.feeSubmissionService = feeSubmissionService;
+        this.academicYearService = academicYearService;
     }
 
     // ── GET /api/v1/fees/submissions ─────────────────────────────────────────
 
     @GetMapping("/submissions")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSubmissions(
+            @RequestParam(required = false) Long academicStudentId,
             HttpServletRequest request) {
         log.info("Inside getSubmissions");
 
-        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
-        Long academicYearId    = (Long) request.getAttribute("academicYearId");
-        Long schoolId          = (Long) request.getAttribute("schoolId");
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
 
-        // Uses FeeSubmissionService.getActiveFeeSubmissionsForYear() — added to service
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        AcademicStudent resolved = target.get();
+
         List<FeeSubmission> submissions =
                 feeSubmissionService.getActiveFeeSubmissionsForYear(
-                        schoolId, academicYearId, academicStudentId);
+                        resolved.getSchool().getId(),
+                        resolved.getAcademicYear().getId(),
+                        resolved.getId());
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (FeeSubmission fs : submissions) {
@@ -64,16 +74,25 @@ public class MobileFeesController {
 
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSummary(
+            @RequestParam(required = false) Long academicStudentId,
             HttpServletRequest request) {
         log.info("Inside getSummary");
 
-        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
-        Long academicYearId    = (Long) request.getAttribute("academicYearId");
-        Long schoolId          = (Long) request.getAttribute("schoolId");
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
+
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        AcademicStudent resolved = target.get();
 
         List<FeeSubmission> submissions =
                 feeSubmissionService.getActiveFeeSubmissionsForYear(
-                        schoolId, academicYearId, academicStudentId);
+                        resolved.getSchool().getId(),
+                        resolved.getAcademicYear().getId(),
+                        resolved.getId());
 
         BigDecimal totalPaid     = BigDecimal.ZERO;
         BigDecimal totalBalance  = BigDecimal.ZERO;
@@ -98,6 +117,8 @@ public class MobileFeesController {
     }
 
     // ── GET /api/v1/fees/receipt/{id} ─────────────────────────────────────────
+    // Unchanged from the previous file — receipt ids are globally unique and
+    // already carry their own ownership check.
 
     @GetMapping("/receipt/{id}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getReceipt(
@@ -107,7 +128,6 @@ public class MobileFeesController {
 
         Long academicStudentId = (Long) request.getAttribute("academicStudentId");
 
-        // Uses FeeSubmissionService.getFeeSubmissionById() — already existed in service
         Optional<FeeSubmission> optFs = feeSubmissionService.getFeeSubmissionById(id);
         if (optFs.isEmpty()) {
             return ResponseEntity.status(404).body(ApiResponse.error("Receipt not found"));
@@ -115,7 +135,6 @@ public class MobileFeesController {
 
         FeeSubmission fs = optFs.get();
 
-        // Security: student can only view their own receipts
         if (!fs.getAcademicStudent().getId().equals(academicStudentId)) {
             return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
         }
@@ -125,7 +144,6 @@ public class MobileFeesController {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Builds a full fee submission map including months covered and head breakdown. */
     private Map<String, Object> toSubmissionMap(FeeSubmission fs) {
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("id",             fs.getId());
@@ -144,7 +162,6 @@ public class MobileFeesController {
         entry.put("status",         fs.getStatus());
         entry.put("createdByName",  fs.getCreatedByName());
 
-        // Months covered in this payment
         List<String> months = new ArrayList<>();
         if (fs.getFeeSubmissionMonths() != null) {
             for (FeeSubmissionMonths m : fs.getFeeSubmissionMonths()) {
@@ -155,7 +172,6 @@ public class MobileFeesController {
         }
         entry.put("monthsCovered", months);
 
-        // Fee head breakdown
         List<Map<String, Object>> breakdown = new ArrayList<>();
         if (fs.getFeeSubmissionSub() != null) {
             for (FeeSubmissionSub sub : fs.getFeeSubmissionSub()) {

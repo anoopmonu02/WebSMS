@@ -1,9 +1,12 @@
 package com.smsweb.sms.controllers.mobile;
 
 import com.smsweb.sms.dto.mobile.ApiResponse;
+import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.ExamResultSummary;
+import com.smsweb.sms.services.mobile.MobileAcademicYearService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,73 +14,62 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 /**
  * Exam result endpoints for the student mobile app.
  *
- * GET /api/v1/results   — all exam results for the current academic year
- *
- * Uses StudentService.getStudentExamResults() — added to StudentService for mobile.
+ * GET /api/v1/results[?academicStudentId=..]
  */
 @RestController
 @RequestMapping("/api/v1/results")
 public class MobileResultsController {
     private static final Logger log = LoggerFactory.getLogger(MobileResultsController.class);
 
+    private final StudentService studentService;                  // existing, unchanged
+    private final MobileAcademicYearService academicYearService;  // new, mobile-only
 
-    private final StudentService studentService;
-
-    public MobileResultsController(StudentService studentService) {
+    public MobileResultsController(StudentService studentService,
+                                    MobileAcademicYearService academicYearService) {
         this.studentService = studentService;
+        this.academicYearService = academicYearService;
     }
 
     // ── GET /api/v1/results ───────────────────────────────────────────────────
 
-    /**
-     * Returns all exam results for the authenticated student.
-     *
-     * Each entry: {
-     *   "examId":        1,
-     *   "examName":      "Half Yearly",
-     *   "examDate":      "2024-11-15",
-     *   "resultDate":    "2024-12-01",
-     *   "result":        "PASS",
-     *   "totalMarks":    400,
-     *   "obtainedMarks": 345,
-     *   "percentage":    86.25,
-     *   "division":      "FIRST DIVISION",
-     *   "remarks":       "",
-     *   "isDeclared":    true
-     * }
-     */
     @GetMapping
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getResults(
+            @RequestParam(required = false) Long academicStudentId,
             HttpServletRequest request) {
         log.info("Inside getResults");
 
-        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
-        Long schoolId          = (Long) request.getAttribute("schoolId");
-        Long academicYearId    = (Long) request.getAttribute("academicYearId");
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
 
-        // Uses StudentService.getStudentExamResults() — added to StudentService
-        List<ExamResultSummary> results =
-                studentService.getStudentExamResults(academicStudentId, schoolId, academicYearId);
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        AcademicStudent resolved = target.get();
+
+        List<ExamResultSummary> results = studentService.getStudentExamResults(
+                resolved.getId(), resolved.getSchool().getId(), resolved.getAcademicYear().getId());
 
         List<Map<String, Object>> response = new ArrayList<>();
 
         for (ExamResultSummary r : results) {
             Map<String, Object> entry = new LinkedHashMap<>();
 
-            // Exam details (name, declared date)
             boolean hasExam = r.getExamDetails() != null;
             entry.put("examId",        hasExam ? r.getExamDetails().getId() : null);
             entry.put("examName",      hasExam && r.getExamDetails().getExamination() != null
                                            ? r.getExamDetails().getExamination().getExaminationName() : "N/A");
             entry.put("examDate",      hasExam ? r.getExamDetails().getExamDeclaredDate() : null);
 
-            // Result data
             entry.put("resultDate",    r.getExamResultDate());
             entry.put("result",        r.getResult());
             entry.put("totalMarks",    r.getTotalMarks());

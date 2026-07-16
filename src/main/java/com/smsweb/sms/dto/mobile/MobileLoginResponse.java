@@ -17,6 +17,7 @@ public class MobileLoginResponse {
     private boolean mustChangePassword;
     private String token;
     private String tokenType;           // Always "Bearer"
+    private String refreshToken;        // feature #10 — long-lived, single-use, rotated on each refresh
 
     // Student identity
     private Long   academicStudentId;

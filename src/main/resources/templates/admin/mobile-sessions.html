@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Mobile Sessions</title>
+</head>
+<body>
+<section>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Mobile App Sessions (Refresh Tokens)</div>
+        <p class="text-muted mb-3">
+          Every mobile login creates one refresh-token record so the app can
+          silently renew its session without asking a parent to log in every day. Rows are
+          rotated (replaced) on each renewal, and revoked on logout. This page shows the
+          current counts and lets you run the cleanup job on demand instead of waiting for
+          its automatic daily run.
+        </p>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <div class="fs-4 fw-bold text-primary" th:text="${total}">0</div>
+                <div class="text-muted small">Total rows</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <div class="fs-4 fw-bold text-success" th:text="${active}">0</div>
+                <div class="text-muted small">Active sessions</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <div class="fs-4 fw-bold text-warning" th:text="${expired}">0</div>
+                <div class="text-muted small">Expired, not yet cleaned</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <div class="fs-4 fw-bold text-secondary" th:text="${revoked}">0</div>
+                <div class="text-muted small">Revoked (logout / rotated)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i>
+          A row is only deleted once it has been expired or revoked for at least
+          <strong th:text="${graceDays}">7</strong> day(s) — this grace period keeps recent
+          history around in case a session needs to be investigated. This same cleanup
+          already runs automatically every night; the button below just lets you trigger
+          it immediately instead of waiting.
+        </div>
+
+        <form th:action="@{/admin/mobile-sessions/cleanup}" method="post"
+              onsubmit="return confirm('Run cleanup now? This permanently deletes stale session records older than the grace period.');">
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash3-fill"></i> Run Cleanup Now
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      toastr["success"](successMessage, "Success");
+    }
+  </script>
+</section>
+</body>
+</html>
