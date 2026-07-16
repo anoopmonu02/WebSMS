@@ -763,7 +763,7 @@
                 </li>
 
                 <!-- Admin Configuration -->
-                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                     <a href="#" class="sidebar-link has-dropdown collapsed" data-bs-toggle="collapse"
                        data-bs-target="#asetting" aria-expanded="false" aria-controls="asetting"
                        data-tip="Admin Config">
@@ -821,7 +821,7 @@
                                 <span>Previous Balance</span>
                             </a>
                         </li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" sms:access="ADMIN_STUDENT_REGIONAL:VIEW" th:href="@{/admin/student-regional}">
                                 <i class="bi bi-translate text-success"></i>
                                 <span>Regional Language Details</span>

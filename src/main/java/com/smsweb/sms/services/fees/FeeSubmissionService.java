@@ -1422,6 +1422,27 @@ public class FeeSubmissionService {
                                             }
                                         }
 
+                                        // NEW — independent of discountAppliedForMonth above, which only ever reacts to
+                                        // feeSubmission.discountAmount/discounthead. migrationDiscountAmount ("Special
+                                        // Discount (Admin)") is a separate, admin-entered flat amount with no per-month
+                                        // config table behind it, so instead of looking anything up, we split it equally
+                                        // across this submission's own months — the last month absorbs the rounding
+                                        // remainder so the total always adds back to the exact stored amount.
+                                        BigDecimal migrationDiscountAppliedForMonth = BigDecimal.ZERO;
+                                        BigDecimal totalMigrationDiscount = feeSubmission.getMigrationDiscountAmount();
+                                        if (totalMigrationDiscount != null && totalMigrationDiscount.compareTo(BigDecimal.ZERO) > 0) {
+                                            int totalMonthsInSubmission = monthMasterIds.size();
+                                            BigDecimal equalShare = totalMigrationDiscount.divide(
+                                                    BigDecimal.valueOf(totalMonthsInSubmission), 0, RoundingMode.DOWN);
+                                            if (feeSubmissionMonthCounter == totalMonthsInSubmission) {
+                                                BigDecimal distributedSoFar = equalShare.multiply(BigDecimal.valueOf(totalMonthsInSubmission - 1));
+                                                migrationDiscountAppliedForMonth = totalMigrationDiscount.subtract(distributedSoFar);
+                                            } else {
+                                                migrationDiscountAppliedForMonth = equalShare;
+                                            }
+                                            feeDetailMap.put("migrationDiscountApplied", migrationDiscountAppliedForMonth);
+                                        }
+
                                         List<Object[]> feesBasedOnMonths = feeclassmapRepository.findAmountAndFeeHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade));
                                         BigDecimal amt = BigDecimal.ZERO;
                                         if(feesBasedOnMonths!=null && !feesBasedOnMonths.isEmpty()) {
@@ -1434,10 +1455,10 @@ public class FeeSubmissionService {
                                             }
                                             //BigDecimal feesubmitformonth = (feesBasedOnMonths.get(0)[0] != null) ? new BigDecimal("" + feesBasedOnMonths.get(0)[0]) : BigDecimal.valueOf(0.0);
                                             if (amt.compareTo(amountSubmitted) >= 0) {
-                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth).subtract(migrationDiscountAppliedForMonth));
                                             } else {
                                                 amountSubmitted = paidAmount.subtract(amt);
-                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth).subtract(migrationDiscountAppliedForMonth));
                                             }
                                         }
 

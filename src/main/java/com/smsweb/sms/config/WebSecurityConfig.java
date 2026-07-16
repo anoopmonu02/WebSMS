@@ -148,6 +148,12 @@ public class WebSecurityConfig {
                         // Student-only portal (blocked from employee areas)
                         .requestMatchers("/student-portal/**").hasRole("STUDENT")
 
+                        // Regional Language Details — deliberately opened to STAFF too (Single Student
+                        // Update path only; the bulk-Excel endpoints keep their own method-level
+                        // @PreAuthorize restricting them back to ADMIN/SUPERADMIN). Must come before
+                        // the general /admin/** rule below since Spring Security matches top-to-bottom.
+                        .requestMatchers("/admin/student-regional/**").hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
+
                         // Admin-only paths — STAFF excluded intentionally (no school config access)
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
 
