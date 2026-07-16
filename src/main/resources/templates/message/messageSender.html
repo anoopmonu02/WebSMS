@@ -1195,6 +1195,7 @@
                         <th>Date</th>
                         <th>Due Date</th>
                         <th>Status</th>
+                        <th>Closing Remark</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -1233,6 +1234,9 @@
                     const actionCell = isClosed
                         ? ''
                         : `<button type="button" class="btn btn-sm btn-outline-danger" title="Close" onclick="openCloseGrievanceModal(${g.id}, '${(g.title || '').replace(/'/g, "\\'")}')"><i class="bi bi-x-circle"></i></button>`;
+                    const closingRemarkCell = isClosed
+                        ? (g.closerStatementRemark || '')
+                        : '<span class="text-muted">&mdash;</span>';
                     tableHtml += `<tr>
                         <td>${idx + 1}</td>
                         <td>${g.title || ''}</td>
@@ -1240,6 +1244,7 @@
                         <td>${dt}</td>
                         <td>${dueDateCell}</td>
                         <td>${statusCell}</td>
+                        <td>${closingRemarkCell}</td>
                         <td>${actionCell}</td>
                     </tr>`;
                 });
@@ -1265,7 +1270,7 @@
                                 text: '<i class="bi bi-file-excel-fill text-success"></i>',
                                 titleAttr: 'Excel',
                                 title: 'Student Grievances',
-                                exportOptions: { columns: [0,1,2,3,4,5] }
+                                exportOptions: { columns: [0,1,2,3,4,5,6] }
                             },
                             {
                                 extend: 'csvHtml5',
@@ -1278,7 +1283,7 @@
                                 text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
                                 titleAttr: 'PDF',
                                 title: 'Student Grievances',
-                                exportOptions: { columns: [0,1,2,3,4,5] }
+                                exportOptions: { columns: [0,1,2,3,4,5,6] }
                             },
                             'colvis'
                         ]
@@ -1286,7 +1291,7 @@
                 },
                 lengthMenu: [ [5, 10, 25, 50, -1], [5, 10, 25, 50, 'All'] ],
                 pageLength: 10,
-                columnDefs: [{ orderable: false, targets: [0, 4, 6] }],
+                columnDefs: [{ orderable: false, targets: [0, 4, 7] }],
                 order: []
             });
 

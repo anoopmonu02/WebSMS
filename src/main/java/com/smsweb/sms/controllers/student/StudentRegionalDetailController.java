@@ -34,11 +34,16 @@ import java.util.Map;
  * Only Student Name/Father Name/Mother Name/Address (Regional) columns are ever
  * written — every other field on `students` is untouched.
  *
- * ROLE_ADMIN / ROLE_SUPERADMIN only (mirrors every other Admin Config screen).
+ * Access is split per method (no class-level @PreAuthorize):
+ *   - Page load + Single Student Update (search-student, save-one) — also open to
+ *     ROLE_STAFF (subject to the ADMIN_STUDENT_REGIONAL permission still being
+ *     explicitly granted to that user via User Permissions).
+ *   - Bulk Excel workflow (download, preview, save) — stays ROLE_ADMIN/ROLE_SUPERADMIN
+ *     only. The Bulk Upload tab itself is hidden from Staff in the template, but these
+ *     endpoints are also locked server-side in case of a direct call.
  */
 @Controller
 @RequestMapping("/admin/student-regional")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class StudentRegionalDetailController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(StudentRegionalDetailController.class);
@@ -49,6 +54,7 @@ public class StudentRegionalDetailController extends BaseController {
         this.regionalDetailService = regionalDetailService;
     }
 
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.VIEW)
     @GetMapping
     public String showPage(Model model) {
@@ -58,6 +64,7 @@ public class StudentRegionalDetailController extends BaseController {
     }
 
     /** Step 1 — Download the pre-filled template for the current school/session. */
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.VIEW)
     @GetMapping("/download")
     public ResponseEntity<?> download(Model model) {
@@ -86,6 +93,7 @@ public class StudentRegionalDetailController extends BaseController {
     }
 
     /** Step 2 — Upload & preview (AJAX, nothing saved yet). */
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.VIEW)
     @PostMapping("/preview")
     @ResponseBody
@@ -130,6 +138,7 @@ public class StudentRegionalDetailController extends BaseController {
     }
 
     /** Step 3 — Confirm & save the matched rows. */
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.EDIT)
     @PostMapping("/save")
     @ResponseBody
@@ -166,6 +175,7 @@ public class StudentRegionalDetailController extends BaseController {
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Live search (name / father name / mother name / SR no) — same behaviour as the Fee Submission form's search. */
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.VIEW)
     @GetMapping("/search-student/{query}")
     @ResponseBody
@@ -191,6 +201,7 @@ public class StudentRegionalDetailController extends BaseController {
     }
 
     /** Insert/update exactly one student's regional details — no bulk file involved. */
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
     @CheckAccess(screen = "ADMIN_STUDENT_REGIONAL", type = AccessType.EDIT)
     @PostMapping("/save-one")
     @ResponseBody

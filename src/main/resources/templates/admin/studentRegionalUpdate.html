@@ -59,7 +59,7 @@
         <i class="bi bi-person-fill me-1"></i>Single Student Update
       </button>
     </li>
-    <li class="nav-item">
+    <li class="nav-item" sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')">
       <button class="nav-link" id="tab-bulk-btn" onclick="switchMode('bulk')" type="button">
         <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Bulk Upload (Excel)
       </button>
