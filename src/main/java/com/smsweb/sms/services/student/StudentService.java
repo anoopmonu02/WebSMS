@@ -636,10 +636,18 @@ public class StudentService {
                 studentAttendance.put("studentName", student.getStudent().getStudentName());
                 studentAttendance.put("studentObj", toLeanAcademicStudentMap(student));
 
-                // Initialize all dates as "A" (Absent) except Sundays
+                // Initialize all dates as "A" (Absent) except Sundays. Dates that
+                // haven't happened yet (later than today) are left as "N" (not
+                // yet occurred) instead — a day that hasn't happened can't have
+                // an attendance record, so it shouldn't be counted as Absent.
+                // Without this, every future date in the current month showed
+                // as Absent for every student, badly skewing the Present/Absent/
+                // Holiday summary and pie chart until the month was actually over.
+                LocalDate today = LocalDate.now();
                 for (int i = 1; i <= lastDay.getDayOfMonth(); i++) {
                     if (!sundays.contains(i)) {  // Exclude Sundays
-                        studentAttendance.put(String.valueOf(i), "A"); // Default: Absent
+                        boolean isFutureDate = firstDay.withDayOfMonth(i).isAfter(today);
+                        studentAttendance.put(String.valueOf(i), isFutureDate ? "N" : "A"); // Default: Absent (past/today only)
                     } else{
                         studentAttendance.put(String.valueOf(i), "S");
                     }

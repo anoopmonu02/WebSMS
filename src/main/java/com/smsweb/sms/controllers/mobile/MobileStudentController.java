@@ -182,13 +182,23 @@ public class MobileStudentController {
         if (optAs.isEmpty()) {
             return ResponseEntity.status(404).body(ApiResponse.error("Student record not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(profileService.getEditableProfile(optAs.get())));
+        try {
+            return ResponseEntity.ok(ApiResponse.success(profileService.getEditableProfile(optAs.get())));
+        } catch (Exception e) {
+            log.error("getEditableProfile failed", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Could not load profile"));
+        }
     }
 
     @GetMapping("/banks")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBanks(HttpServletRequest request) {
         log.info("Inside getBanks");
-        return ResponseEntity.ok(ApiResponse.success(profileService.getBankList()));
+        try {
+            return ResponseEntity.ok(ApiResponse.success(profileService.getBankList()));
+        } catch (Exception e) {
+            log.error("getBanks failed", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Could not load bank list"));
+        }
     }
 
     @PutMapping("/profile")

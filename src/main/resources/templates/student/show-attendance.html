@@ -206,9 +206,13 @@
             attendanceIcon = `<span id="date-wise-att-A-${i}"><i class="bi bi-dot text-danger"></i></span>`;
             absentCount++;
             absentDateCount[i]++;
+          } else if (attendanceVal === "N") {
+            // Date hasn't happened yet this month — leave the cell blank and
+            // don't count it toward Present/Absent/Holiday at all.
+            attendanceIcon = `<span id="date-wise-att-N-${i}"></span>`;
           } else {
             holidayCount++;
-            attendanceIcon = `<span id="date-wise-att-S-${i}">S</span>`; // Other statuses, if any
+            attendanceIcon = `<span id="date-wise-att-S-${i}">S</span>`; // Sunday/holiday
             holidayDateCount[i]++;
           }
           tbl += `<td>${attendanceIcon}</td>`;

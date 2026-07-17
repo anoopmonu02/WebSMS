@@ -9,6 +9,21 @@
 <body>
 <section>
 
+  <style>
+    /* Slightly smaller text for the (wide, many-column) student list table only —
+       does not affect any other table/page. Placed inside <section> (not <head>)
+       because this page's <head> is discarded by the base::Layout th:replace —
+       only the <section> contents get rendered into the final page. */
+    #student-list, #student-list th, #student-list td { font-size: 0.82rem; }
+    /* Safety net alongside DataTables' scrollX:true — guarantees a horizontal
+       scrollbar shows up instead of the table squashing/overflowing whenever
+       it's wider than the viewport (narrow screens, many visible columns). */
+    #student-list_wrapper .dataTables_scrollBody { overflow-x: auto !important; }
+    /* Keep the edit/delete action buttons on one line instead of wrapping
+       onto two rows when the Actions column is narrow. */
+    #student-list td.text-nowrap { white-space: nowrap; }
+  </style>
+
   <!-- Page-level loading overlay — visible until DataTable fires initComplete -->
   <div id="studentListLoader" style="
       position:fixed; inset:0; background:rgba(255,255,255,.85);
@@ -108,7 +123,7 @@
       const actionsColumn = {
         data: null,
         orderable: false,
-        className: 'text-center',
+        className: 'text-center text-nowrap',
         render: function(data, type, row) {
           return '<a class="btn btn-primary btn-sm me-1" href="' + editBase + row.uuid + '">' +
                  '<i class="bi bi-pencil-square"></i></a>' +
