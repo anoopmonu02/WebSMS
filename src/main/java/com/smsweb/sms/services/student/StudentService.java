@@ -10,6 +10,8 @@ import com.smsweb.sms.models.admin.ExamDetails;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
+import com.smsweb.sms.models.student.AttendanceConfirmation;
+import com.smsweb.sms.repositories.student.AttendanceConfirmationRepository;
 import com.smsweb.sms.models.student.ExamResultSummary;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
@@ -65,9 +67,10 @@ public class StudentService {
     private final FamilyAccountService familyAccountService;
     private final RoleRepository roleRepository;
     private final StudentHealthInfoService studentHealthInfoService; // new, mobile-only — feature: student health info
+    private final AttendanceConfirmationRepository attendanceConfirmationRepository; // new — Confirm Attendance feature
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -80,6 +83,7 @@ public class StudentService {
         this.familyAccountService = familyAccountService;
         this.roleRepository = roleRepository;
         this.studentHealthInfoService = studentHealthInfoService;
+        this.attendanceConfirmationRepository = attendanceConfirmationRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -500,6 +504,116 @@ public class StudentService {
         return new ArrayList<>();
     }
 
+    /** Backs the "Absent Students Today" drill-down page linked from the Attendance List —
+     *  flat list of absent students today across every grade-section, for the export table. */
+    public List<Map<String, Object>> getAbsentStudentsToday(Long school, Long academic){
+        log.info("Inside getAbsentStudentsToday");
+        List<Map<String, Object>> result = new ArrayList<>();
+        try{
+            List<Attendance> absentList = attendanceRepository.findAllAbsentTodayBySchoolAndAcademicYear(school, academic);
+            int i = 1;
+            for (Attendance a : absentList) {
+                AcademicStudent as = a.getAcademicStudent();
+                Map<String, Object> row = new HashMap<>();
+                row.put("sno", i++);
+                row.put("studentName", as.getStudent() != null ? as.getStudent().getStudentName() : "");
+                row.put("classSrNo", as.getClassSrNo() != null ? as.getClassSrNo() : "");
+                row.put("fatherName", as.getStudent() != null ? as.getStudent().getFatherName() : "");
+                row.put("mediumName", as.getMedium() != null ? as.getMedium().getMediumName() : "");
+                row.put("gradeSection", (as.getGrade() != null ? as.getGrade().getGradeName() : "")
+                        + (as.getSection() != null ? " - " + as.getSection().getSectionName() : ""));
+                row.put("contactNo", as.getStudent() != null ? as.getStudent().getMobile1() : "");
+                result.add(row);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    /** Whole-school present/absent totals for today plus current confirmation status —
+     *  backs both the Confirm Attendance popup summary and the "Last confirmed by X at
+     *  HH:mm" note. A single aggregate query, not a per-record scan. */
+    public Map<String, Object> getTodaysAttendanceSummary(Long school, Long academic){
+        log.info("Inside getTodaysAttendanceSummary");
+        Map<String, Object> summary = new HashMap<>();
+        long present = 0, absent = 0;
+        try{
+            List<Object[]> totalsRows = attendanceRepository.getTodaysAttendanceTotals(school, academic);
+            if (totalsRows != null && !totalsRows.isEmpty()) {
+                Object[] totals = totalsRows.get(0);
+                if (totals != null && totals.length == 2) {
+                    present = totals[0] != null ? ((Number) totals[0]).longValue() : 0;
+                    absent = totals[1] != null ? ((Number) totals[1]).longValue() : 0;
+                }
+            }
+        }catch(Exception e){
+            log.error("Failed to compute today's attendance totals for school={} academic={}", school, academic, e);
+        }
+        summary.put("presentCount", present);
+        summary.put("absentCount", absent);
+        summary.put("totalCount", present + absent);
+
+        AttendanceConfirmation confirmation = attendanceConfirmationRepository
+                .findBySchool_IdAndAcademicYear_IdAndAttendanceDate(school, academic, LocalDate.now())
+                .orElse(null);
+        applyConfirmationStatus(summary, confirmation);
+        return summary;
+    }
+
+    /** Marks today's attendance for this school/academic-year as confirmed — i.e. safe
+     *  to publish to parents in the mobile app once MobileAttendanceController is wired
+     *  to respect this flag. Upsert: at most one row per day (unique constraint on the
+     *  table), a repeat confirm just overwrites who/when on the same row. */
+    @Transactional
+    public Map<String, Object> confirmTodaysAttendance(School school, AcademicYear academic){
+        log.info("Inside confirmTodaysAttendance");
+        LocalDate today = LocalDate.now();
+        UserEntity loggedInUser = userService.getLoggedInUser();
+
+        AttendanceConfirmation confirmation = attendanceConfirmationRepository
+                .findBySchool_IdAndAcademicYear_IdAndAttendanceDate(school.getId(), academic.getId(), today)
+                .orElseGet(AttendanceConfirmation::new);
+
+        boolean isNew = confirmation.getId() == null;
+        confirmation.setSchool(school);
+        confirmation.setAcademicYear(academic);
+        confirmation.setAttendanceDate(today);
+        confirmation.setConfirmed(true);
+        if (isNew) {
+            confirmation.setCreatedBy(loggedInUser);
+        }
+        confirmation.setUpdatedBy(loggedInUser);
+        confirmation = attendanceConfirmationRepository.save(confirmation);
+
+        Map<String, Object> result = new HashMap<>();
+        applyConfirmationStatus(result, confirmation);
+        return result;
+    }
+
+    /** Shared formatting for "who/when confirmed" — a server-side formatted display
+     *  string, deliberately not a raw timestamp, so the client never parses a Date
+     *  itself (see the +5:30 display bug fixed earlier this session). */
+    private void applyConfirmationStatus(Map<String, Object> target, AttendanceConfirmation confirmation){
+        boolean confirmed = confirmation != null && confirmation.isConfirmed();
+        target.put("alreadyConfirmed", confirmed);
+        // Always put these two keys, even when null — Thymeleaf's SpEL map-property
+        // access (unlike OGNL) throws EL1008E if a key was never put at all, rather
+        // than returning null, so a conditional put here would break the page on
+        // first load (before anyone has confirmed today's attendance).
+        String confirmedByName = null;
+        String confirmedAtDisplay = null;
+        if (confirmed) {
+            SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy HH:mm");
+            sf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
+            UserEntity confirmedBy = confirmation.getUpdatedBy() != null ? confirmation.getUpdatedBy() : confirmation.getCreatedBy();
+            confirmedByName = confirmedBy != null ? confirmedBy.getDisplayName() : "-";
+            confirmedAtDisplay = confirmation.getLastUpdated() != null ? sf.format(confirmation.getLastUpdated()) : "-";
+        }
+        target.put("confirmedByName", confirmedByName);
+        target.put("confirmedAtDisplay", confirmedAtDisplay);
+    }
+
     public Map getAllStudentsAttendanceByGrade(Long medium, Long gradeId, Long sectionId, Long academicYearId, Long schoolId){
         log.info("Inside getAllStudentsAttendanceByGrade");
         List<Attendance> attendanceList = attendanceRepository.findAllAttendanceSummaryForSchoolAndAcademicAndGrade(gradeId, sectionId, schoolId, academicYearId, medium);
@@ -530,16 +644,6 @@ public class StudentService {
         }
         return academicAttendanceMap;
     }
-    private Date truncateTime(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTime();
-    }
-
     @Transactional
     public String saveStudentsAttendance(List<Map<String, Object>> studentData, AcademicYear academic, School school){
         log.info("Inside saveStudentsAttendance");
@@ -547,7 +651,6 @@ public class StudentService {
         int failCounter = 0;
         int passCounter = 0;
         try{
-            Date truncatedDate = truncateTime(new Date());
             UserEntity loggedInUser = userService.getLoggedInUser();
             for (Map<String, Object> record : studentData){
                 boolean isChecked = (Boolean) record.get("isChecked");
@@ -557,18 +660,23 @@ public class StudentService {
                     AcademicStudent academicStudent = academicStudentRepository.findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(
                             UUID.fromString(uuid), "Active", academic.getId(), school.getId()).orElse(null);
                     if (academicStudent != null){
-                        Attendance attendanceExist = attendanceRepository.findByAcademicStudentAndAttendanceDate(academicStudent, truncatedDate).orElse(null);
+                        // "Today" is resolved on the DB server (CURDATE()-range), not via a
+                        // Java Date built off the JVM's default timezone — see the Javadoc on
+                        // findTodaysAttendanceByAcademicStudentId for why that used to matter.
+                        Attendance attendanceExist = attendanceRepository.findTodaysAttendanceByAcademicStudentId(academicStudent.getId()).orElse(null);
                         if(attendanceExist!=null){
                             if(attendanceExist.isPresent() != isChecked){
                                 attendanceExist.setPresent(isChecked);
                                 attendanceExist.setRemark(remark);
                                 attendanceExist.setUpdatedBy(loggedInUser);
                                 studentsToSave.add(attendanceExist);
-                                passCounter++;
                             }
+                            // Already recorded for today with the same value — nothing to save,
+                            // but still counts as "captured" so the confirmation count matches
+                            // what the user actually submitted.
+                            passCounter++;
                         } else{
                             Attendance attendance = new Attendance();
-                            attendance.setAttendanceDate(new Date());
                             attendance.setSchool(school);
                             attendance.setAcademicYear(academic);
                             attendance.setAcademicStudent(academicStudent);

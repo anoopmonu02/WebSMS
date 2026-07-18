@@ -197,6 +197,13 @@ public class RoleInitializer {
                     "STUDENT_ATTENDANCE_REPORT",
                     "View monthly attendance report for a class");
 
+            // Confirm today's attendance so it becomes visible to parents in the mobile
+            // app — deliberately separate from STUDENT_ATTENDANCE_MARK so it can be
+            // granted to a specific assigned user independent of who marks attendance
+            seed(screenRepo, "Student", "Confirm Attendance",
+                    "STUDENT_ATTENDANCE_CONFIRM",
+                    "Confirm today's attendance so it becomes visible to parents in the mobile app");
+
             // Exam results
             seed(screenRepo, "Student", "Exam Results",
                     "STUDENT_EXAM_RESULT",

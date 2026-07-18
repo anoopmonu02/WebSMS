@@ -20,6 +20,10 @@ public interface MobileRefreshTokenRepository extends JpaRepository<MobileRefres
 
     List<MobileRefreshToken> findAllByAcademicStudent_IdAndRevokedFalse(Long academicStudentId);
 
+    /** Used by the Mobile Users admin screen to compute session status / last-active
+     *  across every child linked to one family account in a single query. */
+    List<MobileRefreshToken> findAllByAcademicStudent_IdIn(List<Long> academicStudentIds);
+
     // ── Stats for the admin cleanup page ────────────────────────────────────
 
     long countByRevokedFalseAndExpiresAtAfter(LocalDateTime now);   // active sessions

@@ -40,12 +40,23 @@ public interface AttendanceRepository extends JpaRepository<Attendance,Long> {
     List<Attendance> findAllAttendanceSummaryForSchoolAndAcademicAndGrade(@Param("gradeId") Long gradeId, @Param("sectionId") Long sectionId, @Param("schoolId") Long schoolId,
                                                                           @Param("academicYearId") Long academicYearId, @Param("medium") Long medium);
 
-    @Query("SELECT a FROM Attendance a WHERE a.academicStudent = :academicStudent " +
-            "AND FUNCTION('DATE', a.attendanceDate) = FUNCTION('DATE', :attendanceDate)")
-    Optional<Attendance> findByAcademicStudentAndAttendanceDate(
-            @Param("academicStudent") AcademicStudent academicStudent,
-            @Param("attendanceDate") Date attendanceDate
-    );
+    /**
+     * Does this student already have an attendance row for TODAY?
+     * Deliberately native + CURDATE()-range based (no Java Date / FUNCTION('DATE', ...)
+     * comparison) so "today" is resolved entirely on the DB server, same as
+     * existsAnyAttendanceForToday below. The previous JPQL version compared
+     * FUNCTION('DATE', a.attendanceDate) against FUNCTION('DATE', :attendanceDate) where
+     * :attendanceDate was a Java Date built via Calendar.getInstance() (JVM-timezone-based
+     * midnight) — that instant gets re-interpreted through the JDBC serverTimezone=UTC
+     * setting, silently shifting which calendar day "today" meant and causing already-saved
+     * students to be mismatched/skipped on resubmission. See saveStudentsAttendance().
+     */
+    @Query(value = "SELECT * FROM attendance a " +
+            "WHERE a.academic_student_id = :academicStudentId " +
+            "AND a.attendance_date >= CURDATE() AND a.attendance_date < DATE_ADD(CURDATE(), INTERVAL 1 DAY) " +
+            "ORDER BY a.id DESC LIMIT 1",
+            nativeQuery = true)
+    Optional<Attendance> findTodaysAttendanceByAcademicStudentId(@Param("academicStudentId") Long academicStudentId);
 
     List<Attendance> findByAcademicStudentInAndAttendanceDateBetween(List<AcademicStudent> students, Date startDate, Date endDate);
 
@@ -87,6 +98,29 @@ public interface AttendanceRepository extends JpaRepository<Attendance,Long> {
                                           @Param("academicYearId") Long academic,
                                           @Param("status") String status,
                                           @Param("gender") String gender);
+
+    /**
+     * All absent students for TODAY, across every grade-section (not scoped to one
+     * grade/section like findAllAttendanceSummaryForSchoolAndAcademicAndGrade) — backs
+     * the "Absent Students Today" drill-down page linked from the Attendance List.
+     */
+    @Query("SELECT a FROM Attendance a WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId " +
+           "AND a.isPresent = false AND a.academicStudent.status = 'ACTIVE' " +
+           "AND FUNCTION('DATE', a.attendanceDate) = current_date " +
+           "ORDER BY a.academicStudent.grade.gradeName, a.academicStudent.section.sectionName, a.academicStudent.student.studentName")
+    List<Attendance> findAllAbsentTodayBySchoolAndAcademicYear(@Param("schoolId") Long schoolId,
+                                                                @Param("academicYearId") Long academicYearId);
+
+    /**
+     * Whole-school present/absent totals for TODAY — backs the Confirm Attendance
+     * popup summary on the Absent Students Today page. Index [0]=present, [1]=absent.
+     */
+    @Query("SELECT SUM(CASE WHEN a.isPresent = true THEN 1 ELSE 0 END), " +
+           "       SUM(CASE WHEN a.isPresent = false THEN 1 ELSE 0 END) " +
+           "FROM Attendance a WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId " +
+           "AND a.academicStudent.status = 'ACTIVE' AND FUNCTION('DATE', a.attendanceDate) = current_date")
+    List<Object[]> getTodaysAttendanceTotals(@Param("schoolId") Long schoolId,
+                                              @Param("academicYearId") Long academicYearId);
 
     /**
      * Fast existence check for any attendance rows for TODAY for the given school & academic year.

@@ -241,6 +241,9 @@
                                             feeLbl = ``;
                                         } else{
                                             feeLbl = `Receipt No: ${studentObj.receipt}<br>Date: ${studentObj.submitDate}<br>Amount: &#8377; ${studentObj.feeSubmitted}<br>Late Fee: &#8377; ${studentObj.fineAmount}`;
+                                            if(studentObj.adminSpecialDiscountAmount){
+                                                feeLbl+=`<br><strong style="color:red;">Admin Discount: &#8377; ${studentObj.adminSpecialDiscountAmount}</strong>`;
+                                            }
                                         }
                                         console.log("studentObj.balanceAmount----------------------"+balanceAmount + " i: "+(i+1) + " studentData.length: "+studentData.length);
                                         console.log("checkVal.split('####')[1] "+checkVal.split('####')[1] + "------flag: "+flag)

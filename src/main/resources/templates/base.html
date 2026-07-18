@@ -827,6 +827,12 @@
                                 <span>Mobile Sessions Cleanup</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/mobile-users}">
+                                <i class="bi bi-phone text-info"></i>
+                                <span>Mobile Users</span>
+                            </a>
+                        </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" sms:access="ADMIN_STUDENT_REGIONAL:VIEW" th:href="@{/admin/student-regional}">
                                 <i class="bi bi-translate text-success"></i>

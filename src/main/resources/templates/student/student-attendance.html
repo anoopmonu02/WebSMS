@@ -22,6 +22,7 @@
                     <div class="col-md-6 text-end">
                         <a sms:access="STUDENT_ATTENDANCE_MARK:CREATE" class="btn btn-success" th:href="@{/student/student-submit-attendance}"><i class="bi bi-person-bounding-box"></i> Submit Attendance</a>
                         <a class="btn btn-outline-success" th:href="@{/student/student-show-attendance}"><i class="bi bi-person-lines-fill"></i> Show Attendance</a>
+                        <a th:if="${hasAttendance}" class="btn btn-outline-danger" th:href="@{/student/student-absent-today}"><i class="bi bi-person-x-fill"></i> Absent Students Today</a>
                     </div>
                 </div>
                 <hr/>

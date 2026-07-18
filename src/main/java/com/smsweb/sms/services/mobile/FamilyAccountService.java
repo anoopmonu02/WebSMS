@@ -1,6 +1,8 @@
 package com.smsweb.sms.services.mobile;
 
 import com.smsweb.sms.dto.FamilyGroupPreview;
+import com.smsweb.sms.dto.MobileUserRowDto;
+import com.smsweb.sms.dto.MobileUserStatsDto;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.models.student.Student;
@@ -11,6 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,15 +46,28 @@ public class FamilyAccountService {
     private final StudentRepository        studentRepository;
     private final AcademicStudentRepository academicStudentRepository;
     private final PasswordEncoder          encoder;
+    private final MobileRefreshTokenService refreshTokenService;
+
+    private static final SecureRandom RNG = new SecureRandom();
+    // Excludes ambiguous characters (0/O, 1/l/I) so a temp password is easy to
+    // read aloud or copy off a slip of paper without a parent mistyping it.
+    private static final String TEMP_PASSWORD_CHARS =
+            "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    // Formats LocalDateTime server-side into a plain display string — deliberately
+    // NOT sent as a raw ISO timestamp for the browser to re-parse via `new Date()`,
+    // which would misinterpret an offset-less string as UTC and shift it by +5:30.
+    private static final DateTimeFormatter LAST_ACTIVE_FORMAT = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm");
 
     public FamilyAccountService(FamilyAccountRepository repo,
                                  StudentRepository studentRepository,
                                  AcademicStudentRepository academicStudentRepository,
-                                 PasswordEncoder encoder) {
+                                 PasswordEncoder encoder,
+                                 MobileRefreshTokenService refreshTokenService) {
         this.repo                     = repo;
         this.studentRepository        = studentRepository;
         this.academicStudentRepository = academicStudentRepository;
         this.encoder                  = encoder;
+        this.refreshTokenService      = refreshTokenService;
     }
 
     // ── Lookup ────────────────────────────────────────────────────────────────
@@ -62,6 +80,11 @@ public class FamilyAccountService {
     public Optional<FamilyAccount> findByMobile(String mobile) {
         log.info("Inside findByMobile");
         return repo.findByMobile(mobile);
+    }
+
+    public Optional<FamilyAccount> findById(Long id) {
+        log.info("Inside findById");
+        return repo.findById(id);
     }
 
     // ── Password verification ─────────────────────────────────────────────────
@@ -222,5 +245,128 @@ public class FamilyAccountService {
         account.setPasswordHash(encoder.encode(newRawPassword));
         account.setMustChangePassword(true);
         repo.save(account);
+    }
+
+    /** Generates a temp password an admin can hand to a parent — 8 chars, mixed
+     *  case + digits, no ambiguous characters. Used by the Mobile Users screen's
+     *  "Generate" button; the admin can still overwrite it before saving. */
+    public String generateTempPassword() {
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            sb.append(TEMP_PASSWORD_CHARS.charAt(RNG.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
+
+    // ── Mobile Users admin screen ────────────────────────────────────────────
+
+    /**
+     * Builds one row per FamilyAccount in the system (global, not scoped to a
+     * school/session, since one mobile number can span branches). Does the only
+     * DB-heavy pass for this screen — callers should reuse the returned list for
+     * both the searchable table and the summary-stat cards rather than calling
+     * this twice.
+     */
+    public List<MobileUserRowDto> getAllMobileUserRows() {
+        log.info("Inside getAllMobileUserRows");
+        List<MobileUserRowDto> result = new ArrayList<>();
+        List<FamilyAccount> accounts = repo.findAll();
+        for (FamilyAccount account : accounts) {
+            MobileUserRowDto dto = new MobileUserRowDto();
+            dto.setFamilyAccountId(account.getId());
+            dto.setMobile(account.getMobile());
+            dto.setStatus(account.getStatus());
+            dto.setMustChangePassword(account.isMustChangePassword());
+
+            List<String> studentLines = new ArrayList<>();
+            List<Long> academicStudentIds = new ArrayList<>();
+            for (Student s : account.getStudents()) {
+                try {
+                    List<AcademicStudent> asList =
+                            academicStudentRepository.findAllByStudent_IdAndStatus(s.getId(), "Active");
+                    if (!asList.isEmpty()) {
+                        AcademicStudent as = asList.get(0);
+                        String grade = as.getGrade() != null ? as.getGrade().getGradeName() : "";
+                        String section = as.getSection() != null ? as.getSection().getSectionName() : "";
+                        String school = as.getSchool() != null ? as.getSchool().getSchoolName() : "";
+                        String classPart = grade.isEmpty() ? "" : (section.isEmpty() ? grade : grade + "-" + section);
+                        String label = s.getStudentName()
+                                + (classPart.isEmpty() ? "" : " (" + classPart + (school.isEmpty() ? "" : ", " + school) + ")");
+                        studentLines.add(label);
+                        academicStudentIds.add(as.getId());
+                    } else {
+                        studentLines.add(s.getStudentName() + " (inactive)");
+                    }
+                } catch (Exception e) {
+                    log.warn("getAllMobileUserRows - could not resolve academic details for studentId={}: {}", s.getId(), e.getMessage());
+                    studentLines.add(s.getStudentName());
+                }
+            }
+            dto.setStudents(studentLines);
+            dto.setAcademicStudentIds(academicStudentIds);
+
+            MobileRefreshTokenService.SessionSummary summary = refreshTokenService.getSessionSummary(academicStudentIds);
+            dto.setEverLoggedIn(summary.everLoggedIn);
+            dto.setHasValidSession(summary.hasValidSession);
+            dto.setLastActive(summary.lastActive);
+            dto.setLastActiveDisplay(summary.lastActive != null
+                    ? summary.lastActive.format(LAST_ACTIVE_FORMAT) : "Never");
+
+            result.add(dto);
+        }
+        return result;
+    }
+
+    /** Pure in-memory filter over an already-built row list — no DB access.
+     *  Matches on mobile number or any linked student's display line. */
+    public List<MobileUserRowDto> filterMobileUserRows(List<MobileUserRowDto> allRows, String search) {
+        String q = search == null ? "" : search.trim().toLowerCase();
+        List<MobileUserRowDto> filtered;
+        if (q.isEmpty()) {
+            filtered = new ArrayList<>(allRows);
+        } else {
+            filtered = allRows.stream().filter(row -> {
+                if (row.getMobile() != null && row.getMobile().toLowerCase().contains(q)) return true;
+                for (String line : row.getStudents()) {
+                    if (line.toLowerCase().contains(q)) return true;
+                }
+                return false;
+            }).collect(Collectors.toList());
+        }
+        // Most recently active first; never-logged-in rows sort last.
+        filtered.sort((a, b) -> {
+            if (a.getLastActive() == null && b.getLastActive() == null) return 0;
+            if (a.getLastActive() == null) return 1;
+            if (b.getLastActive() == null) return -1;
+            return b.getLastActive().compareTo(a.getLastActive());
+        });
+        return filtered;
+    }
+
+    /** Admin "Force Logout" — revokes every active session across every child
+     *  linked to this family, via MobileRefreshTokenService.revokeAllForFamily(). */
+    @Transactional
+    public void forceLogoutFamily(FamilyAccount account) {
+        log.info("Inside forceLogoutFamily - familyAccountId={}", account.getId());
+        List<Long> academicStudentIds = new ArrayList<>();
+        for (Student s : account.getStudents()) {
+            List<AcademicStudent> asList = academicStudentRepository.findAllByStudent_IdAndStatus(s.getId(), "Active");
+            for (AcademicStudent as : asList) {
+                academicStudentIds.add(as.getId());
+            }
+        }
+        refreshTokenService.revokeAllForFamily(academicStudentIds);
+    }
+
+    /** Pure in-memory aggregate over an already-built row list — no DB access. */
+    public MobileUserStatsDto computeMobileUserStats(List<MobileUserRowDto> allRows) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+        long total = allRows.size();
+        long everLoggedIn = allRows.stream().filter(MobileUserRowDto::isEverLoggedIn).count();
+        long activeLast30Days = allRows.stream()
+                .filter(r -> r.getLastActive() != null && r.getLastActive().isAfter(cutoff))
+                .count();
+        long validSessionNow = allRows.stream().filter(MobileUserRowDto::isHasValidSession).count();
+        return new MobileUserStatsDto(total, everLoggedIn, activeLast30Days, validSessionNow);
     }
 }

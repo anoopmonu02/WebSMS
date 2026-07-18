@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>UAIC - Mobile Users</title></head>
+<body>
+<section>
+<style>
+  .session-badge { font-size:.72rem; font-weight:700; border-radius:4px; padding:3px 8px; }
+  .students-col { max-width:280px; }
+  .mu-stat-card { border:0 } .mu-stat-card .card-body { padding:.9rem 1rem }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-phone text-info me-2"></i>Mobile Users</h4>
+      <p class="text-muted small mb-0">
+        Parent app accounts (one per unique mobile number, across all branches). See who's
+        actually using the app, reset a forgotten password, or force-log-out a family's devices.
+        Admin only.
+      </p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" style="display:none; position:fixed; inset:0; background:rgba(255,255,255,0.80);
+       backdrop-filter:blur(3px); z-index:9999; flex-direction:column;
+       align-items:center; justify-content:center;">
+    <div class="text-center">
+      <div class="spinner-border text-info" style="width:3.5rem;height:3.5rem;" role="status">
+        <span class="visually-hidden">Loading…</span>
+      </div>
+      <div class="mt-3 fw-semibold text-info fs-5" id="overlay-message">Working…</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-3" id="statsRow">
+    <div class="col-md-3">
+      <div class="card mu-stat-card bg-body-tertiary">
+        <div class="card-body text-center">
+          <div class="fs-4 fw-bold" id="statTotal">0</div>
+          <div class="text-muted small">Family accounts</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card mu-stat-card bg-body-tertiary">
+        <div class="card-body text-center">
+          <div class="fs-4 fw-bold text-primary" id="statEverLoggedIn">0</div>
+          <div class="text-muted small">Ever logged in</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card mu-stat-card bg-body-tertiary">
+        <div class="card-body text-center">
+          <div class="fs-4 fw-bold text-success" id="statActive30">0</div>
+          <div class="text-muted small">Active last 30 days</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card mu-stat-card bg-body-tertiary">
+        <div class="card-body text-center">
+          <div class="fs-4 fw-bold text-info" id="statValidNow">0</div>
+          <div class="text-muted small">Valid session now</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <input type="text" class="form-control" id="searchInput"
+             placeholder="Search by mobile number, student or father name" oninput="onSearchInput()">
+    </div>
+  </div>
+
+  <div style="overflow-x:auto; width:100%;">
+    <table id="mobileUsersTable" class="table table-striped table-bordered align-middle">
+      <thead>
+        <tr>
+          <th>Mobile</th>
+          <th class="students-col">Linked Students</th>
+          <th>Must Change Pwd</th>
+          <th>Last Active</th>
+          <th>Session</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rowsBody">
+        <tr><td colspan="6" class="text-center text-muted">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-key-fill me-1"></i>Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Mobile: <strong id="resetMobileLabel"></strong></p>
+          <label class="form-label small fw-semibold">New password</label>
+          <div class="input-group mb-2">
+            <input type="text" class="form-control" id="resetPasswordInput">
+            <button class="btn btn-outline-secondary" type="button" onclick="regeneratePassword()" title="Regenerate">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()" title="Copy">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+          <p class="text-muted small mb-0">
+            The parent will be asked to set their own password the next time they log in with this one.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" onclick="submitResetPassword()">
+            <i class="bi bi-check2-circle me-1"></i>Save New Password
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Force Logout Modal -->
+  <div class="modal fade" id="forceLogoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-box-arrow-right me-1"></i>Force Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>This will log out every device for <strong id="logoutMobileLabel"></strong>.</p>
+          <p class="text-muted small mb-0">
+            They won't be kicked out instantly — their current session stays usable for up to
+            2 hours, then the app will ask them to sign in again with their existing password.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="submitForceLogout()">
+            <i class="bi bi-box-arrow-right me-1"></i>Force Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    let allRows = [];
+    let currentFamilyAccountId = null;
+    let searchDebounceTimer = null;
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+        "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+        "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    function escHtml(str) {
+      if (str == null) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function showOverlay(message) {
+      document.getElementById('overlay-message').innerText = message;
+      document.getElementById('loading-overlay').style.display = 'flex';
+    }
+    function hideOverlay() {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+
+    function formatLastActive(displayValue) {
+      // Pre-formatted server-side (FamilyAccountService) — deliberately not parsed
+      // as a Date on the client, since an offset-less ISO string would get
+      // misread as UTC by the browser and shift by +5:30 on display.
+      if (!displayValue || displayValue === 'Never') return '<span class="text-muted">Never</span>';
+      return escHtml(displayValue);
+    }
+
+    function sessionBadge(row) {
+      if (row.hasValidSession) return '<span class="session-badge text-bg-success">Valid</span>';
+      if (row.everLoggedIn) return '<span class="session-badge text-bg-warning">Expired</span>';
+      return '<span class="session-badge text-bg-secondary">Never logged in</span>';
+    }
+
+    function renderRows(rows) {
+      if ($.fn.DataTable.isDataTable('#mobileUsersTable')) {
+        $('#mobileUsersTable').DataTable().destroy();
+      }
+      if (!rows || rows.length === 0) {
+        document.getElementById('rowsBody').innerHTML =
+          '<tr><td colspan="6" class="text-center text-muted">No mobile users found.</td></tr>';
+        return;
+      }
+      let html = '';
+      rows.forEach(row => {
+        const studentsHtml = (row.students || []).map(s => escHtml(s)).join('<br>');
+        const mustChange = row.mustChangePassword
+          ? '<span class="text-danger">Yes</span>' : '<span class="text-muted">No</span>';
+        html += `<tr>
+          <td>${escHtml(row.mobile)}</td>
+          <td class="students-col">${studentsHtml || '<span class="text-muted">No students linked</span>'}</td>
+          <td>${mustChange}</td>
+          <td>${formatLastActive(row.lastActiveDisplay)}</td>
+          <td>${sessionBadge(row)}</td>
+          <td class="text-nowrap">
+            <button class="btn btn-sm btn-outline-primary me-1" title="Reset password"
+                    onclick="openResetPasswordModal(${row.familyAccountId}, '${escHtml(row.mobile)}')">
+              <i class="bi bi-key-fill"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" title="Force logout"
+                    ${row.hasValidSession ? '' : 'disabled'}
+                    onclick="openForceLogoutModal(${row.familyAccountId}, '${escHtml(row.mobile)}')">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+          </td>
+        </tr>`;
+      });
+      document.getElementById('rowsBody').innerHTML = html;
+
+      // Search is already handled server-side (debounced call to /list?search=),
+      // so the table's own filter box is switched off — this just adds paging on
+      // top of whatever rows the server returned (was rendering all 3000+ rows
+      // on one page with no limit before).
+      const pageSizeValues = [10, 25, 50, 100, -1];
+      const pageSizeLabels = [10, 25, 50, 100, 'All'];
+      $('#mobileUsersTable').DataTable({
+        searching: false,
+        ordering: false,
+        info: true,
+        lengthMenu: [pageSizeValues, pageSizeLabels],
+        pageLength: 25
+      });
+    }
+
+    function renderStats(stats) {
+      document.getElementById('statTotal').innerText = stats.totalFamilies;
+      document.getElementById('statEverLoggedIn').innerText = stats.everLoggedIn;
+      document.getElementById('statActive30').innerText = stats.activeLast30Days;
+      document.getElementById('statValidNow').innerText = stats.validSessionNow;
+    }
+
+    function loadMobileUsers(search) {
+      showOverlay(search ? 'Searching…' : 'Loading mobile users…');
+      const url = `${contextPath}admin/mobile-users/list?search=${encodeURIComponent(search || '')}`;
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok || data.error) {
+            showMsg('error', (data && data.error) || 'Failed to load mobile users.', 'Error');
+            return;
+          }
+          allRows = data.rows || [];
+          renderStats(data.stats);
+          renderRows(allRows);
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'Something went wrong while loading mobile users.', 'Error');
+        })
+        .finally(() => hideOverlay());
+    }
+
+    function onSearchInput() {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        loadMobileUsers(document.getElementById('searchInput').value);
+      }, 300);
+    }
+
+    /* ── Reset password ─────────────────────────────────────────────────── */
+
+    function openResetPasswordModal(familyAccountId, mobile) {
+      currentFamilyAccountId = familyAccountId;
+      document.getElementById('resetMobileLabel').innerText = mobile;
+      document.getElementById('resetPasswordInput').value = '';
+      new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+      regeneratePassword();
+    }
+
+    function regeneratePassword() {
+      fetch(`${contextPath}admin/mobile-users/generate-password`, { headers: { 'Accept': 'application/json' } })
+        .then(res => res.json())
+        .then(data => { document.getElementById('resetPasswordInput').value = data.password || ''; })
+        .catch(err => console.error(err));
+    }
+
+    function copyPassword() {
+      const input = document.getElementById('resetPasswordInput');
+      input.select();
+      navigator.clipboard?.writeText(input.value);
+      showMsg('info', 'Password copied.', 'Copied');
+    }
+
+    function submitResetPassword() {
+      const newPassword = document.getElementById('resetPasswordInput').value;
+      if (!newPassword || newPassword.trim().length < 6) {
+        showMsg('error', 'Password must be at least 6 characters.', 'Error');
+        return;
+      }
+      showOverlay('Resetting password…');
+      fetch(`${contextPath}admin/mobile-users/${currentFamilyAccountId}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          hideOverlay();
+          if (!ok || data.error) {
+            showMsg('error', (data && data.error) || 'Reset failed.', 'Error');
+            return;
+          }
+          bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'))?.hide();
+          showMsg('success', 'Password reset. Share it with the parent — they\'ll be asked to set a new one on next login.', 'Success');
+          loadMobileUsers(document.getElementById('searchInput').value);
+        })
+        .catch(err => {
+          hideOverlay();
+          console.error(err);
+          showMsg('error', 'Something went wrong while resetting the password.', 'Error');
+        });
+    }
+
+    /* ── Force logout ───────────────────────────────────────────────────── */
+
+    function openForceLogoutModal(familyAccountId, mobile) {
+      currentFamilyAccountId = familyAccountId;
+      document.getElementById('logoutMobileLabel').innerText = mobile;
+      new bootstrap.Modal(document.getElementById('forceLogoutModal')).show();
+    }
+
+    function submitForceLogout() {
+      showOverlay('Logging out all sessions…');
+      fetch(`${contextPath}admin/mobile-users/${currentFamilyAccountId}/force-logout`, { method: 'POST' })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          hideOverlay();
+          if (!ok || data.error) {
+            showMsg('error', (data && data.error) || 'Force logout failed.', 'Error');
+            return;
+          }
+          bootstrap.Modal.getInstance(document.getElementById('forceLogoutModal'))?.hide();
+          showMsg('success', 'All sessions revoked for this family.', 'Success');
+          loadMobileUsers(document.getElementById('searchInput').value);
+        })
+        .catch(err => {
+          hideOverlay();
+          console.error(err);
+          showMsg('error', 'Something went wrong while logging out this family.', 'Error');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadMobileUsers('');
+    });
+  </script>
+</section>
+</body>
+</html>

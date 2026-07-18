@@ -477,6 +477,29 @@ public class StudentController extends BaseController {
         model.addAttribute("page", "datatable");
         return "student/student-attendance";
     }
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_VIEW", type = AccessType.VIEW)
+    @GetMapping("/student-absent-today")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
+    public String studentAbsentTodayForm(Model model){
+        log.info("Inside studentAbsentTodayForm");
+        SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+        model.addAttribute("todayDate", sf.format(new Date()));
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            List<Map<String, Object>> absentList = studentService.getAbsentStudentsToday(school.getId(), academicYear.getId());
+            model.addAttribute("absentList", absentList);
+            model.addAttribute("hasAbsent", !absentList.isEmpty());
+
+            Map<String, Object> attendanceSummary = studentService.getTodaysAttendanceSummary(school.getId(), academicYear.getId());
+            model.addAttribute("attendanceSummary", attendanceSummary);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        model.addAttribute("page", "datatable");
+        return "student/student-absent-today";
+    }
+
     @CheckAccess(screen = "STUDENT_ATTENDANCE_MARK", type = AccessType.CREATE)
     @GetMapping("/student-submit-attendance")
     public String studentAttendanceSave(Model model){

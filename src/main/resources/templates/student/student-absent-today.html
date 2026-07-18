@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Absent Students Today</title>
+</head>
+<body>
+<section>
+
+    <div class="container-fluid px-3">
+        <div class="row mt-2 ">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Absent Students Today</div>
+                <hr/>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <strong>Date: </strong><span th:text="${todayDate}"></span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <a class="btn btn-info" th:href="@{/student/student-attendance}"><i class="bi bi-arrow-left-circle-fill"></i> Back to Attendance List</a>
+                    </div>
+                </div>
+                <hr/>
+
+                <table th:if="${hasAbsent}" id="absent-list" class="table table-bordered table-striped table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>SNo.</th>
+                            <th>Student Name</th>
+                            <th>SR</th>
+                            <th>Grade-Section</th>
+                            <th>Father Name</th>
+                            <th>Medium</th>
+                            <th>Contact No</th>
+                        </tr>
+                    </thead>
+                    <tbody class="table-group-divider">
+                        <tr th:each="row : ${absentList}">
+                            <td th:text="${row.sno}">1</td>
+                            <td th:text="${row.studentName}"></td>
+                            <td th:text="${row.classSrNo}"></td>
+                            <td th:text="${row.gradeSection}"></td>
+                            <td th:text="${row.fatherName}"></td>
+                            <td th:text="${row.mediumName}"></td>
+                            <td th:text="${row.contactNo}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div th:if="${!hasAbsent}">
+                    <p class="text-center">No absent students today.</p>
+                </div>
+
+                <hr/>
+                <div class="row mt-2">
+                    <div class="col-md-8">
+                        <button sms:access="STUDENT_ATTENDANCE_CONFIRM:EDIT" type="button" class="btn btn-primary"
+                                id="confirmAttendanceBtn" onclick="openConfirmAttendanceModal()">
+                            <i class="bi bi-check2-circle"></i> Confirm Attendance
+                        </button>
+                        <div class="mt-2 small text-muted" id="lastConfirmedNote" style="display:none;">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            Last confirmed by <strong id="lastConfirmedBy">-</strong> at <strong id="lastConfirmedAt">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Attendance Modal -->
+    <div class="modal fade" id="confirmAttendanceModal" tabindex="-1" aria-labelledby="confirmAttendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmAttendanceModalLabel"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Confirm Today's Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Please review before continuing:</p>
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Date</span>
+                            <span class="fw-bold" th:text="${todayDate}">-</span>
+                        </div>
+                        <hr class="my-1"/>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Total Students Marked</span>
+                            <span class="fw-bold" th:text="${attendanceSummary != null ? attendanceSummary.totalCount : 0}">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Present</span>
+                            <span class="fw-bold text-success" th:text="${attendanceSummary != null ? attendanceSummary.presentCount : 0}">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Total Absent</span>
+                            <span class="fw-bold text-danger" th:text="${attendanceSummary != null ? attendanceSummary.absentCount : 0}">0</span>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger py-2 mb-0 small d-flex align-items-start">
+                        <i class="bi bi-exclamation-octagon-fill me-2 mt-1"></i>
+                        <span>This will make today's attendance <strong>visible to parents</strong> in the mobile app.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmAttendanceSaveBtn" onclick="submitConfirmAttendance()">
+                        <span class="normal-state"><i class="bi bi-check-lg"></i> Yes, Confirm</span>
+                        <span class="loading-state d-none">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Confirming&hellip;
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+        const initiallyConfirmed = /*[[${attendanceSummary != null ? attendanceSummary.alreadyConfirmed : false}]]*/ false;
+        const initialConfirmedBy = /*[[${attendanceSummary != null ? attendanceSummary.confirmedByName : null}]]*/ null;
+        const initialConfirmedAt = /*[[${attendanceSummary != null ? attendanceSummary.confirmedAtDisplay : null}]]*/ null;
+
+        function showMsg(msgType, msg, headerValue) {
+            toastr.options = {
+                "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+                "positionClass": "toast-top-right", "preventDuplicates": false,
+                "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+                "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+                "showMethod": "fadeIn", "hideMethod": "fadeOut"
+            };
+            toastr[msgType](msg, headerValue);
+        }
+
+        function showLastConfirmedNote(by, at) {
+            document.getElementById('lastConfirmedBy').innerText = by || '-';
+            document.getElementById('lastConfirmedAt').innerText = at || '-';
+            document.getElementById('lastConfirmedNote').style.display = '';
+        }
+
+        function openConfirmAttendanceModal() {
+            new bootstrap.Modal(document.getElementById('confirmAttendanceModal')).show();
+        }
+
+        function setConfirmLoading(loading) {
+            const btn = document.getElementById('confirmAttendanceSaveBtn');
+            btn.disabled = loading;
+            btn.querySelector('.normal-state').classList.toggle('d-none', loading);
+            btn.querySelector('.loading-state').classList.toggle('d-none', !loading);
+        }
+
+        function submitConfirmAttendance() {
+            setConfirmLoading(true);
+            fetch(`${contextPath}confirmTodaysAttendance`, { method: 'POST' })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || data.error) {
+                        showMsg('error', (data && data.error) || 'Confirm failed.', 'Error');
+                        return;
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('confirmAttendanceModal'))?.hide();
+                    showMsg('success', "Today's attendance is confirmed and visible to parents.", 'Confirmed');
+                    showLastConfirmedNote(data.confirmedByName, data.confirmedAtDisplay);
+                })
+                .catch(err => {
+                    console.error(err);
+                    showMsg('error', 'Something went wrong while confirming attendance.', 'Error');
+                })
+                .finally(() => setConfirmLoading(false));
+        }
+
+        $(document).ready(function() {
+            if (initiallyConfirmed) {
+                showLastConfirmedNote(initialConfirmedBy, initialConfirmedAt);
+            }
+
+            const exportColumns = [0, 1, 2, 3, 4, 5, 6];
+            const columnDefs = [{ "orderable": false, "targets": [0] }];
+
+            $('#absent-list').DataTable({
+                layout: {
+                    bottomEnd: {
+                        paging: {
+                            firstLast: false
+                        }
+                    },
+                    top1Start: {
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                                titleAttr: 'Excel',
+                                title: 'Absent Students Today',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            {
+                                extend: 'csvHtml5',
+                                text: '<i class="bi bi-filetype-csv text-info"></i>',
+                                titleAttr: 'CSV',
+                                title: 'Absent Students Today'
+                            },
+                            {
+                                extend: 'pdfHtml5',
+                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                                titleAttr: 'PDF',
+                                title: 'Absent Students Today',
+                                exportOptions: {
+                                    columns: exportColumns
+                                }
+                            },
+                            'colvis'
+                        ]
+                    }
+                },
+                lengthMenu: [
+                    [5, 10, 25, 50, 100, -1],
+                    [5, 10, 25, 50, 100, 'All']
+                ],
+                pageLength: 25,
+                columnDefs: columnDefs
+            });
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+                $(this).removeClass("btn-secondary");
+            });
+        });
+    </script>
+
+</section>
+</body>
+</html>

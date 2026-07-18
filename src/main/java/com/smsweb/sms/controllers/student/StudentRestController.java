@@ -452,6 +452,29 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    /**
+     * Confirms today's attendance for the current school/academic-year so it's safe to
+     * publish to parents in the mobile app (once MobileAttendanceController is wired to
+     * respect this flag). Gated by its own STUDENT_ATTENDANCE_CONFIRM screen — deliberately
+     * separate from STUDENT_ATTENDANCE_MARK — so it can be granted to a specific assigned
+     * user independent of who's allowed to mark attendance day-to-day.
+     */
+    @CheckAccess(screen = "STUDENT_ATTENDANCE_CONFIRM", type = AccessType.EDIT)
+    @PostMapping("/confirmTodaysAttendance")
+    public ResponseEntity<?> confirmTodaysAttendance(Model model){
+        log.info("Inside confirmTodaysAttendance");
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            Map<String, Object> result = studentService.confirmTodaysAttendance(school, academicYear);
+            return ResponseEntity.ok(result);
+        }catch(Exception e){
+            log.error("Failed to confirm today's attendance", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Confirm failed: " + e.getMessage()));
+        }
+    }
+
     @CheckAccess(screen = "STUDENT_ATTENDANCE_REPORT", type = AccessType.VIEW)
     @PostMapping("/getStudentsMonthlyAttendance")
     public ResponseEntity<?> getStudentsMonthlyAttendance(@RequestBody Map<String, String> requestBody, Model model){
