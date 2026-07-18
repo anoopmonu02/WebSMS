@@ -159,6 +159,65 @@ public class MobileRefreshTokenService {
         refreshTokenRepository.saveAll(active);
     }
 
+    /**
+     * Admin "Force Logout" for a whole family — revokes every active session across
+     * every child linked to that mobile number. Deliberately just loops the existing,
+     * already-exercised revokeAllForStudent() rather than writing new revoke logic, so
+     * this reuses the exact same tested behaviour as self-logout/theft-detection.
+     */
+    @Transactional
+    public void revokeAllForFamily(List<Long> academicStudentIds) {
+        if (academicStudentIds == null) return;
+        for (Long id : academicStudentIds) {
+            revokeAllForStudent(id);
+        }
+    }
+
+    // ── Session summary for the Mobile Users admin screen ───────────────────
+
+    public static class SessionSummary {
+        public final boolean hasValidSession;
+        public final boolean everLoggedIn;
+        public final LocalDateTime lastActive; // null if never logged in
+        public SessionSummary(boolean hasValidSession, boolean everLoggedIn, LocalDateTime lastActive) {
+            this.hasValidSession = hasValidSession;
+            this.everLoggedIn = everLoggedIn;
+            this.lastActive = lastActive;
+        }
+    }
+
+    /**
+     * Builds a session summary across every child linked to one family, using only
+     * existing MobileRefreshToken data — no new tracking.
+     *   hasValidSession = at least one row that's neither revoked nor expired.
+     *   lastActive      = latest known activity across all rows: a row's lastUsedAt
+     *                      if it's been rotated at least once, otherwise its issuedAt
+     *                      (a not-yet-rotated row has no lastUsedAt yet, but its
+     *                      issuedAt is still the most recent thing we know happened).
+     */
+    public SessionSummary getSessionSummary(List<Long> academicStudentIds) {
+        if (academicStudentIds == null || academicStudentIds.isEmpty()) {
+            return new SessionSummary(false, false, null);
+        }
+        List<MobileRefreshToken> tokens = refreshTokenRepository.findAllByAcademicStudent_IdIn(academicStudentIds);
+        if (tokens.isEmpty()) {
+            return new SessionSummary(false, false, null);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasValidSession = false;
+        LocalDateTime lastActive = null;
+        for (MobileRefreshToken row : tokens) {
+            if (!row.isRevoked() && row.getExpiresAt() != null && row.getExpiresAt().isAfter(now)) {
+                hasValidSession = true;
+            }
+            LocalDateTime activityMoment = row.getLastUsedAt() != null ? row.getLastUsedAt() : row.getIssuedAt();
+            if (activityMoment != null && (lastActive == null || activityMoment.isAfter(lastActive))) {
+                lastActive = activityMoment;
+            }
+        }
+        return new SessionSummary(hasValidSession, true, lastActive);
+    }
+
     // ── Cleanup — called by the scheduler AND the admin "Run Now" button ────
 
     @Transactional

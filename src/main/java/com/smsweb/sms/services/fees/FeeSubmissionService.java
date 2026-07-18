@@ -471,6 +471,8 @@ public class FeeSubmissionService {
             return "UC";
         } else if (lowerCaseName.contains("school")) {
             return "US";
+        } else if (lowerCaseName.contains("demo")) {
+            return "DM";
         }
 
         return ""; // Return an empty string or throw an exception if no match is found
@@ -618,6 +620,7 @@ public class FeeSubmissionService {
         Map<String, MonthMaster> feeMonMap = new HashMap();
         try{
             SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy HH:mm:ss");
+            sf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
             for (Map.Entry<String, String[]> entry : paramsMap.entrySet()) {
                 String key = entry.getKey();
                 String[] values = entry.getValue();
@@ -984,6 +987,7 @@ public class FeeSubmissionService {
         Map<String, Object> modelData = new HashMap<>();
         try {
             SimpleDateFormat sf = new SimpleDateFormat("dd-MMM-yyyy");
+            sf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
             FeeSubmission feeSubmission = getFeeSubmissionById(id).orElse(null);
 
             if (feeSubmission == null) {
@@ -1355,6 +1359,7 @@ public class FeeSubmissionService {
                     academicId = Long.valueOf(acadmeicVal);
                 }
                 SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+                sf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
                 List<MonthMapping> mmList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicId, school.getId());
                 List<String> monthNamesList = mmList.stream()
                         .map(mm -> mm.getMonthMaster().getMonthName())
@@ -1422,25 +1427,13 @@ public class FeeSubmissionService {
                                             }
                                         }
 
-                                        // NEW — independent of discountAppliedForMonth above, which only ever reacts to
-                                        // feeSubmission.discountAmount/discounthead. migrationDiscountAmount ("Special
-                                        // Discount (Admin)") is a separate, admin-entered flat amount with no per-month
-                                        // config table behind it, so instead of looking anything up, we split it equally
-                                        // across this submission's own months — the last month absorbs the rounding
-                                        // remainder so the total always adds back to the exact stored amount.
-                                        BigDecimal migrationDiscountAppliedForMonth = BigDecimal.ZERO;
+                                        // Admin Special Discount (feeSubmission.migrationDiscountAmount) — NOT split or
+                                        // subtracted month-by-month. Shown as a one-line callout on the last month of
+                                        // the submission it belongs to, using the exact stored amount as entered.
                                         BigDecimal totalMigrationDiscount = feeSubmission.getMigrationDiscountAmount();
-                                        if (totalMigrationDiscount != null && totalMigrationDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                                            int totalMonthsInSubmission = monthMasterIds.size();
-                                            BigDecimal equalShare = totalMigrationDiscount.divide(
-                                                    BigDecimal.valueOf(totalMonthsInSubmission), 0, RoundingMode.DOWN);
-                                            if (feeSubmissionMonthCounter == totalMonthsInSubmission) {
-                                                BigDecimal distributedSoFar = equalShare.multiply(BigDecimal.valueOf(totalMonthsInSubmission - 1));
-                                                migrationDiscountAppliedForMonth = totalMigrationDiscount.subtract(distributedSoFar);
-                                            } else {
-                                                migrationDiscountAppliedForMonth = equalShare;
-                                            }
-                                            feeDetailMap.put("migrationDiscountApplied", migrationDiscountAppliedForMonth);
+                                        if (totalMigrationDiscount != null && totalMigrationDiscount.compareTo(BigDecimal.ZERO) > 0
+                                                && feeSubmissionMonthCounter == monthMasterIds.size()) {
+                                            feeDetailMap.put("adminSpecialDiscountAmount", totalMigrationDiscount);
                                         }
 
                                         List<Object[]> feesBasedOnMonths = feeclassmapRepository.findAmountAndFeeHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade));
@@ -1455,10 +1448,10 @@ public class FeeSubmissionService {
                                             }
                                             //BigDecimal feesubmitformonth = (feesBasedOnMonths.get(0)[0] != null) ? new BigDecimal("" + feesBasedOnMonths.get(0)[0]) : BigDecimal.valueOf(0.0);
                                             if (amt.compareTo(amountSubmitted) >= 0) {
-                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth).subtract(migrationDiscountAppliedForMonth));
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
                                             } else {
                                                 amountSubmitted = paidAmount.subtract(amt);
-                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth).subtract(migrationDiscountAppliedForMonth));
+                                                feeDetailMap.put("feeSubmitted", amt.subtract(discountAppliedForMonth));
                                             }
                                         }
 

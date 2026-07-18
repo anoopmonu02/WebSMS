@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * One login record per unique parent mobile number.
@@ -56,4 +58,17 @@ public class FamilyAccount {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * Read-only inverse side of Student.familyAccount — no new column, the FK
+     * (family_account_id) already lives on the students table. Added purely so
+     * the admin-facing "Mobile Users" screen can look up which students belong
+     * to a family account without a separate query. Nothing existing reads this
+     * field, so it can't change any current behaviour; @Builder.Default keeps
+     * FamilyAccountService.createIfAbsent()'s builder-based construction safe
+     * (without it, Lombok's builder would leave this null instead of empty).
+     */
+    @OneToMany(mappedBy = "familyAccount", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Student> students = new ArrayList<>();
 }
