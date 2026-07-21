@@ -10,7 +10,7 @@
 
 
     <div class="container-fluid px-3">
-        <div class="offset-1 mt-2 gy-5 mb-5">
+        <div class="mt-2 gy-5 mb-5">
             <div class="card-header fs-3">Student Detail</div>
             <hr/>
             <div class="row g-3">
@@ -48,7 +48,8 @@
                     <input type="text" readonly disabled  id="fatherOccupation" class="form-control" th:field="*{student.fatherOccupation}">
                 </div>
                 <div class="col-md-3">
-
+                    <label for="fatherQualification" class="form-label">Father Qualification</label>
+                    <input type="text" readonly disabled id="fatherQualification" class="form-control" th:field="*{student.fatherQualification}">
                 </div>
 
                 <div class="col-md-6">
@@ -61,7 +62,8 @@
                     <input type="text" readonly disabled  id="motherOccupation" class="form-control" th:field="*{student.motherOccupation}">
                 </div>
                 <div class="col-md-3">
-
+                    <label for="motherQualification" class="form-label">Mother Qualification</label>
+                    <input type="text" readonly disabled id="motherQualification" class="form-control" th:field="*{student.motherQualification}">
                 </div>
 
                 <div class="col-md-3">
