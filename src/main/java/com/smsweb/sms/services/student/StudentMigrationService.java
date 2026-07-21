@@ -346,8 +346,10 @@ public class StudentMigrationService {
         copy.setDescription(source.getDescription());
         copy.setPic(source.getPic());
         copy.setReligion(source.getReligion());
-        copy.setHeight(source.getHeight());
-        copy.setWeight(source.getWeight());
+        // Height/weight intentionally NOT copied — student_health_info (keyed by
+        // AcademicStudent) is the sole source of truth; the copyForward()/createBlank()
+        // calls elsewhere in this migration flow already handle it correctly (feature:
+        // student health info).
         copy.setBloodGroup(source.getBloodGroup());
         copy.setBodyType(source.getBodyType());
         copy.setAddress(source.getAddress());

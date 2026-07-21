@@ -25,6 +25,9 @@ import com.smsweb.sms.services.admin.ExaminationService;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
 import com.smsweb.sms.services.mobile.StudentHealthInfoService;
 import com.smsweb.sms.services.users.UserService;
+import com.smsweb.sms.models.messaging.SmsMessage;
+import com.smsweb.sms.models.messaging.SmsConversation;
+import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -68,9 +71,10 @@ public class StudentService {
     private final RoleRepository roleRepository;
     private final StudentHealthInfoService studentHealthInfoService; // new, mobile-only — feature: student health info
     private final AttendanceConfirmationRepository attendanceConfirmationRepository; // new — Confirm Attendance feature
+    private final SmsMessageService smsMessageService; // new — Confirm Attendance absent-student notifications
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository, SmsMessageService smsMessageService) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -84,6 +88,7 @@ public class StudentService {
         this.roleRepository = roleRepository;
         this.studentHealthInfoService = studentHealthInfoService;
         this.attendanceConfirmationRepository = attendanceConfirmationRepository;
+        this.smsMessageService = smsMessageService;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -143,6 +148,15 @@ public class StudentService {
         try{
             boolean proceedFlag = false;
             UserEntity loggedInUser = userService.getLoggedInUser();
+            // student_health_info (keyed by AcademicStudent) is now the sole source of
+            // truth for height/weight. Capture whatever was submitted on the form here,
+            // then null it out on the Student entity itself so it never gets persisted
+            // there — applies to both brand-new registrations and re-saves of an
+            // existing student that route back through this same method.
+            Integer submittedHeight = student.getHeight();
+            Integer submittedWeight = student.getWeight();
+            student.setHeight(null);
+            student.setWeight(null);
             //Saving Student Data
             if(existingStudent==null){
                 String regisNo = "SRN-"+fileNameOrSchoolCode;
@@ -186,8 +200,9 @@ public class StudentService {
                 academicStudent.setStudent(savedStudent);
                 academicStudent.setCreatedBy(loggedInUser);
                 academicStudentRepository.save(academicStudent);
-                // New registration → blank health-info row (feature: student health info)
-                studentHealthInfoService.createBlank(academicStudent, loggedInUser);
+                // New registration → health-info row seeded with the height/weight
+                // captured from the registration form (feature: student health info)
+                studentHealthInfoService.createBlank(academicStudent, loggedInUser, submittedHeight, submittedWeight);
             }
             boolean foundImageResponse = (imageResponse!=null && imageResponse!="")?true:false;
             if(foundImageResponse && imageResponse.equalsIgnoreCase("Success_no_image")){
@@ -266,7 +281,8 @@ public class StudentService {
     }
 
     @Transactional
-    public Student editStudentDetails(Student student, MultipartFile logo, String fileNameOrSchoolCode) throws IOException {
+    public Student editStudentDetails(Student student, MultipartFile logo, String fileNameOrSchoolCode,
+                                       Boolean haveHealthIssues, Boolean haveEyeIssue, String healthIssueDescription) throws IOException {
         log.info("Inside editStudentDetails");
         try{
             Student existingStudent = null;
@@ -309,8 +325,9 @@ public class StudentService {
                 existingStudent.setCategory(student.getCategory());
                 existingStudent.setCast(student.getCast());
                 existingStudent.setDescription(student.getDescription());
-                existingStudent.setHeight(student.getHeight());
-                existingStudent.setWeight(student.getWeight());
+                // Height/weight are NOT written to Student anymore — student_health_info
+                // (keyed by AcademicStudent) is the sole source of truth (feature: student
+                // health info). See the health-info update block below.
                 existingStudent.setBloodGroup(student.getBloodGroup());
                 existingStudent.setBodyType(student.getBodyType());
                 existingStudent.setAddress(student.getAddress());
@@ -332,6 +349,24 @@ public class StudentService {
                 if (existingStudent.getMobile1() != null && !existingStudent.getMobile1().isBlank()) {
                     familyAccountService.createIfAbsent(existingStudent.getMobile1());
                 }
+                // student_health_info update — resolve the student's current (latest
+                // active) enrollment and write height/weight/health-issue fields there
+                // instead of onto Student (feature: student health info).
+                List<AcademicStudent> activeEnrollments =
+                        academicStudentRepository.findAllActiveByStudentIdOrderByIdDesc(existingStudent.getId());
+                if (!activeEnrollments.isEmpty()) {
+                    studentHealthInfoService.updateForStudent(
+                            activeEnrollments.get(0),
+                            student.getHeight(),
+                            student.getWeight(),
+                            Boolean.TRUE.equals(haveHealthIssues),
+                            Boolean.TRUE.equals(haveEyeIssue),
+                            healthIssueDescription,
+                            userService.getLoggedInUser());
+                } else {
+                    log.warn("editStudentDetails: no active AcademicStudent enrollment found for studentId={}, skipped student_health_info update",
+                            existingStudent.getId());
+                }
                 return existingStudent;
             }
 
@@ -340,6 +375,36 @@ public class StudentService {
             throw new ObjectNotSaveException("Unable to update student: "+student.getStudentName()+". Error: " + e.getLocalizedMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * Resolves the display values for the Edit/Show Student pages' "Physical
+     * Information"/"Health Information" sections — height, weight and the
+     * health-issue fields all now live in student_health_info (feature:
+     * student health info), so this looks them up via the student's latest
+     * active AcademicStudent enrollment instead of reading them off Student.
+     * Always returns a fully-populated map (defaults when no health-info row
+     * exists yet) so callers/templates never have to null-check.
+     */
+    public Map<String, Object> getStudentHealthInfoForDisplay(Long studentId) {
+        log.info("Inside getStudentHealthInfoForDisplay");
+        Map<String, Object> map = new HashMap<>();
+        map.put("height", null);
+        map.put("weight", null);
+        map.put("haveHealthIssues", false);
+        map.put("haveEyeIssue", false);
+        map.put("healthIssueDescription", null);
+        List<AcademicStudent> activeEnrollments = academicStudentRepository.findAllActiveByStudentIdOrderByIdDesc(studentId);
+        if (!activeEnrollments.isEmpty()) {
+            studentHealthInfoService.getByAcademicStudentId(activeEnrollments.get(0).getId()).ifPresent(info -> {
+                map.put("height", info.getHeight());
+                map.put("weight", info.getWeight());
+                map.put("haveHealthIssues", Boolean.TRUE.equals(info.getHaveHealthIssues()));
+                map.put("haveEyeIssue", Boolean.TRUE.equals(info.getHaveEyeIssue()));
+                map.put("healthIssueDescription", info.getHealthIssueDescription());
+            });
+        }
+        return map;
     }
 
     public List<AcademicStudent> getAllStudentsByGrade(Long medium, Long grade, Long section, Long academic, Long school){
@@ -591,9 +656,82 @@ public class StudentService {
         confirmation.setUpdatedBy(loggedInUser);
         confirmation = attendanceConfirmationRepository.save(confirmation);
 
+        // Notify each absent student's parent once attendance is confirmed (feature: absent
+        // student notifications). Only on the FIRST confirm of the day (isNew) — Confirm
+        // Attendance is deliberately re-clickable (upserts the same row), and re-sending an
+        // absence notice every time an admin re-confirms would spam parents. If attendance
+        // gets corrected and re-confirmed later the same day, a newly-absent student added
+        // after the first confirm won't get a fresh notice — acceptable trade-off for the
+        // common case of confirming once after attendance is finalized.
+        if (isNew) {
+            sendAbsentStudentNotifications(school, academic, today, loggedInUser);
+        }
+
         Map<String, Object> result = new HashMap<>();
         applyConfirmationStatus(result, confirmation);
         return result;
+    }
+
+    /**
+     * Sends one bilingual (English + Hindi) absence notice per student marked absent today,
+     * saved via the same SmsMessage/SmsConversation mechanism used elsewhere (STUDENT
+     * recipient type, MESSAGE_TYPE_NOTIFICATION) — this is what backs the mobile app's
+     * Notice/Notification list, same as fee reminders. Best-effort per student: a failure
+     * building/saving one student's notice is logged and skipped, it never fails the whole
+     * Confirm Attendance action or the confirmation that already got saved above.
+     */
+    private void sendAbsentStudentNotifications(School school, AcademicYear academic, LocalDate today, UserEntity actor){
+        log.info("Inside sendAbsentStudentNotifications");
+        try {
+            List<Attendance> absentList = attendanceRepository.findAllAbsentTodayBySchoolAndAcademicYear(school.getId(), academic.getId());
+            if (absentList == null || absentList.isEmpty()) return;
+
+            String formattedDate = today.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH));
+
+            for (Attendance attendance : absentList) {
+                try {
+                    AcademicStudent academicStudent = attendance.getAcademicStudent();
+                    if (academicStudent == null || academicStudent.getStudent() == null) continue;
+
+                    String studentName = academicStudent.getStudent().getStudentName() != null
+                            ? academicStudent.getStudent().getStudentName() : "";
+                    String gradeName = academicStudent.getGrade() != null
+                            ? academicStudent.getGrade().getGradeName() : "";
+
+                    String content =
+                            "Dear parent, your child " + studentName + " of class " + gradeName
+                                    + " is absent on " + formattedDate + ". Please send your child regularly.\n"
+                                    + "प्रिय अभिभावक आपका पाल्य " + studentName + " कक्षा " + gradeName
+                                    + " दिनांक " + formattedDate + " को अनुपस्थित है। कृपया अपने बच्चे को नियमित रूप से विद्यालय भेजें।";
+
+                    SmsConversation conversation = new SmsConversation();
+                    conversation.setContent(content);
+                    conversation.setInitiatedBy(SmsConversation.INITIATED_BY_SCHOOL);
+                    conversation.setSeen(true);
+                    conversation.setIsDeleted(false);
+                    conversation.setSentAt(new Date());
+                    conversation.setHasAttachment(false);
+                    conversation.setHaveDocAttachment(false);
+
+                    SmsMessage smsMessage = new SmsMessage();
+                    smsMessage.setSmsHeading("Absent Notice");
+                    smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_NOTIFICATION);
+                    smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
+                    smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
+                    smsMessage.setSchool(school);
+                    smsMessage.setCreatedBy(actor);
+                    smsMessage.setCreatedAt(new Date());
+                    smsMessage.setRecipients(Collections.singletonList(academicStudent));
+                    smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
+
+                    smsMessageService.saveSmsMessage(smsMessage);
+                } catch (Exception perStudentEx) {
+                    log.error("Failed to save absent notification for attendance id={}", attendance.getId(), perStudentEx);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to send absent-student notifications for school={}, academic={}, date={}", school.getId(), academic.getId(), today, e);
+        }
     }
 
     /** Shared formatting for "who/when confirmed" — a server-side formatted display
@@ -1401,8 +1539,12 @@ public class StudentService {
             stuMap.put("apaarNo",               s.getApaarId()               != null ? s.getApaarId()               : "");
             stuMap.put("penNo",                 s.getPenNo()                 != null ? s.getPenNo()                 : "");
             stuMap.put("bloodGroup",            s.getBloodGroup()            != null ? s.getBloodGroup()            : "");
-            stuMap.put("height",                s.getHeight());
-            stuMap.put("weight",                s.getWeight());
+            // Height/weight are sourced from student_health_info (keyed by this exact
+            // AcademicStudent enrollment, "as"), NOT from Student, which no longer
+            // carries these values (feature: student health info).
+            Optional<com.smsweb.sms.models.mobile.StudentHealthInfo> healthInfo = studentHealthInfoService.getByAcademicStudentId(as.getId());
+            stuMap.put("height", healthInfo.map(com.smsweb.sms.models.mobile.StudentHealthInfo::getHeight).orElse(null));
+            stuMap.put("weight", healthInfo.map(com.smsweb.sms.models.mobile.StudentHealthInfo::getWeight).orElse(null));
             stuMap.put("fatherQualification",   s.getFatherQualification()   != null ? s.getFatherQualification()   : "");
             stuMap.put("motherQualification",   s.getMotherQualification()   != null ? s.getMotherQualification()   : "");
             stuMap.put("accountNo",             s.getAccountNo()             != null ? s.getAccountNo()             : "");

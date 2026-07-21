@@ -835,11 +835,33 @@ public class FeeSubmissionService {
                 //AcademicYear academicYear = academicyearRepository.findById(14L).orElse(null);
                 if(academicStudentList!=null && !academicStudentList.isEmpty()){
                     log.debug("calculateFeeReminder - academicStudentList size={}", academicStudentList.size());
+
+                    // Batch (once for the whole grade/section, not per student): which students
+                    // have >=1 Active fee-submission this year, and their latest submission's
+                    // balance (only present when that balance is > 0). Replaces what used to be
+                    // two separate per-student queries (a COUNT check, then a single-row lookup)
+                    // with two queries total for the entire list.
+                    List<Long> studentIdsInList = academicStudentList.stream()
+                            .map(AcademicStudent::getId).collect(Collectors.toList());
+                    Set<Long> studentsWithAnySubmission = new HashSet<>(
+                            feeSubmissionRepository.findAcademicStudentIdsWithAnySubmission(
+                                    school.getId(), academicYear.getId(), studentIdsInList));
+                    Map<Long, BigDecimal> latestBalanceById = new HashMap<>();
+                    List<Object[]> balancePairs = feeSubmissionRepository
+                            .getLatestBalanceAmountsForStudents(school.getId(), academicYear.getId(), studentIdsInList);
+                    if (balancePairs != null) {
+                        for (Object[] bp : balancePairs) {
+                            Long stuId = ((Number) bp[0]).longValue();
+                            BigDecimal bal = bp[1] != null ? new BigDecimal(bp[1].toString()) : BigDecimal.ZERO;
+                            latestBalanceById.put(stuId, bal);
+                        }
+                    }
+
                     for(AcademicStudent academicStudent: academicStudentList){
                         Map stuMap = new HashMap<>();
                         BigDecimal balanceAmount = BigDecimal.ZERO;
-                        int noOfFeeSubmitted = feeSubmissionRepository.countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(academicYear.getId(), school.getId(), academicStudent.getId(), "Active");
-                        if(noOfFeeSubmitted>0){
+                        boolean hasAnySubmission = studentsWithAnySubmission.contains(academicStudent.getId());
+                        if(hasAnySubmission){
                             //Atleast 1 feesubmission happen for this student
                             //Get all submitted months
                             List<MonthMaster> submittedMonthsList = new ArrayList<>();
@@ -850,9 +872,15 @@ public class FeeSubmissionService {
                                     for(FeeSubmissionMonths submissionMonths : submission.getFeeSubmissionMonths()){
                                         submittedMonthsList.add(submissionMonths.getMonthMaster());
                                     }
-                                    balanceAmount = submission.getFeeSubmissionBalance().getBalanceAmount();
                                 }
                             }
+                            // Balance comes from the batched latest-balance map above (keyed by
+                            // student, computed once for the whole list via getLatestBalanceAmountsForStudents,
+                            // which itself picks the highest-id/most-recent submission per student —
+                            // same source of truth the Fee Submission screen's "Previous Balance"
+                            // field uses). Absent from the map simply means their latest submission's
+                            // balance is 0 (fully paid off), which is exactly what BigDecimal.ZERO means here.
+                            balanceAmount = latestBalanceById.getOrDefault(academicStudent.getId(), BigDecimal.ZERO);
                             log.debug("submittedMonthsList size={}", submittedMonthsList == null ? 0 : submittedMonthsList.size());
                             if(submittedMonthsList!=null && !submittedMonthsList.isEmpty()){
                                 if(submittedMonthsList.containsAll(selectedMonthsList)){
@@ -948,6 +976,14 @@ public class FeeSubmissionService {
                         } else{
                             //No fee submission happen till
                             log.debug("No fee submitted yet for student id={}", academicStudent.getId());
+                            // Zero fee-submissions this year — fall back to the student's opening
+                            // balance (dues carried in from a previous year/system via migration or
+                            // Excel upload), matching the exact same rule the Fee Submission screen's
+                            // "Previous Balance" field already uses. Without this, balanceAmount stays
+                            // at its BigDecimal.ZERO initial value and previous-year dues silently
+                            // disappear from the reminder total.
+                            balanceAmount = academicStudent.getOpeningBalance() != null
+                                    ? academicStudent.getOpeningBalance() : BigDecimal.ZERO;
                             BigDecimal amt = BigDecimal.ZERO;
                             BigDecimal fineAmount = BigDecimal.ZERO;
                             BigDecimal discountAmount = BigDecimal.ZERO;
@@ -2033,6 +2069,12 @@ public class FeeSubmissionService {
                 }
 
                 // ── 6c2. Batch: latest carry-forward balance per student ───────
+                // getLatestBalanceAmountsForStudents only returns a row when balance_amount > 0,
+                // so a student absent from this map is ambiguous on its own: either they've
+                // submitted this year and are fully paid up (balance genuinely 0), or they've
+                // never submitted at all this year (in which case their opening balance — dues
+                // carried from a previous year/system — still applies and must not be dropped).
+                // findAcademicStudentIdsWithAnySubmission disambiguates the two below.
                 List<Object[]> balancePairs = feeSubmissionRepository
                         .getLatestBalanceAmountsForStudents(school.getId(), academicYear.getId(), studentIds);
                 Map<Long, BigDecimal> studentBalance = new HashMap<>();
@@ -2043,6 +2085,9 @@ public class FeeSubmissionService {
                         studentBalance.put(stuId, bal);
                     }
                 }
+                Set<Long> studentsWithAnySubmission = new HashSet<>(
+                        feeSubmissionRepository.findAcademicStudentIdsWithAnySubmission(
+                                school.getId(), academicYear.getId(), studentIds));
 
                 // ── 6d. Per-student accurate calculation ──────────────────────
                 long pendingStudents  = 0;
@@ -2052,7 +2097,17 @@ public class FeeSubmissionService {
                     Set<Long> paid = studentPaidMonths.getOrDefault(stu.getId(), Collections.emptySet());
                     List<Long> unpaidMonthIds = selectedMonthIds.stream()
                             .filter(m -> !paid.contains(m)).collect(Collectors.toList());
-                    BigDecimal stuBalance = studentBalance.getOrDefault(stu.getId(), BigDecimal.ZERO);
+                    BigDecimal stuBalance;
+                    if (studentBalance.containsKey(stu.getId())) {
+                        stuBalance = studentBalance.get(stu.getId());
+                    } else if (studentsWithAnySubmission.contains(stu.getId())) {
+                        // Has submitted this year already, just fully paid up — genuinely 0, not opening balance.
+                        stuBalance = BigDecimal.ZERO;
+                    } else {
+                        // Never submitted this year — fall back to opening balance (dues carried
+                        // from a previous year/system), same rule as the Fee Submission screen.
+                        stuBalance = stu.getOpeningBalance() != null ? stu.getOpeningBalance() : BigDecimal.ZERO;
+                    }
 
                     if (unpaidMonthIds.isEmpty()) {
                         // All selected months paid — count only if carry-forward balance exists
