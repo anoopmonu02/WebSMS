@@ -29,6 +29,22 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
 
     int countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(Long academic_id, Long school_id, Long astudent_id, String status);
 
+    /**
+     * Batch existence check: which of these students have AT LEAST ONE Active fee-submission
+     * row this academic year (regardless of month or current balance). Used to distinguish
+     * "has submitted, latest balance is genuinely 0" from "never submitted this year — the
+     * opening balance carried from a previous year/system still applies" — see
+     * calculatePendingFeeSummary()'s use of this alongside getLatestBalanceAmountsForStudents,
+     * which only returns rows with balance_amount > 0 and so can't tell those two cases apart
+     * on its own.
+     */
+    @Query("SELECT DISTINCT fs.academicStudent.id FROM FeeSubmission fs " +
+            "WHERE fs.school.id = :schoolId AND fs.academicYear.id = :academicYearId " +
+            "AND fs.academicStudent.id IN :studentIds AND LOWER(fs.status) = 'active'")
+    List<Long> findAcademicStudentIdsWithAnySubmission(@Param("schoolId") Long schoolId,
+                                                        @Param("academicYearId") Long academicYearId,
+                                                        @Param("studentIds") List<Long> studentIds);
+
     @Query("SELECT MAX(f.feeSubmissionDate) FROM FeeSubmission f")
     Date findMaxSubmissionDate();
 

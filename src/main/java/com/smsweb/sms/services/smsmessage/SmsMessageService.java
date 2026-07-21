@@ -99,6 +99,27 @@ public class SmsMessageService {
         return smsMessageRepository.findByRecipientId(studentId);
     }
 
+    /**
+     * Materializes one sms_message_recipients row per currently-Active student in the
+     * given grade+section of the given school, for a CLASS-recipient notification that
+     * was just saved (messageId must already exist). See SmsMessageRepository.insertClassRecipients
+     * for why this is a plain INSERT...SELECT rather than a stored procedure.
+     */
+    public int materializeClassRecipients(Long messageId, Long schoolId, Long gradeId, Long sectionId) {
+        log.info("Inside materializeClassRecipients — messageId={}, schoolId={}, gradeId={}, sectionId={}",
+                messageId, schoolId, gradeId, sectionId);
+        return smsMessageRepository.insertClassRecipients(messageId, schoolId, gradeId, sectionId);
+    }
+
+    /**
+     * Same as materializeClassRecipients, but for an ALL-recipient ("whole school")
+     * notification — one row per currently-Active student in the given school.
+     */
+    public int materializeSchoolRecipients(Long messageId, Long schoolId) {
+        log.info("Inside materializeSchoolRecipients — messageId={}, schoolId={}", messageId, schoolId);
+        return smsMessageRepository.insertSchoolRecipients(messageId, schoolId);
+    }
+
     public List<SmsMessage> getActivitiesByStudentId(Long studentId) {
         return smsMessageRepository.findByRecipients_IdAndMessageType(studentId, SmsMessage.MESSAGE_TYPE_ACTIVITIES);
     }
@@ -239,52 +260,38 @@ public class SmsMessageService {
         return result;
     }
 
-    /** Plain-text (non-HTML) rendering of the same reminder content shown/printed on the Fee Reminder screen. */
+    /**
+     * Content saved into the notification/conversation record for a fee reminder.
+     * Deliberately does NOT include the school name/address, the student/father/
+     * mother/class/section line, or a "Principal"/"प्रधानाचार्य" signature — those
+     * belong to the printed/on-screen reminder slip (built separately, client-side,
+     * in feereminder.html) and are personalized per student there; this method only
+     * builds the generic message body that gets stored once per notification.
+     */
     private String buildFeeReminderContent(String language, AcademicStudent as, String amount, String monthsList,
                                             String headList, String lastdate, School school) {
         boolean hindi = "hi".equalsIgnoreCase(language);
-        Student student = as.getStudent();
-        String studentName = student != null && student.getStudentName() != null ? student.getStudentName() : "";
-        String fatherName = student != null && student.getFatherName() != null ? student.getFatherName() : "";
-        String motherName = student != null && student.getMotherName() != null ? student.getMotherName() : "";
-        String grade = as.getGrade() != null ? as.getGrade().getGradeName() : "";
-        String section = as.getSection() != null ? as.getSection().getSectionName() : "";
-        String schoolName = school != null && school.getSchoolName() != null ? school.getSchoolName() : "";
-        String schoolAddress = school != null && school.getAddress() != null ? school.getAddress() : "";
         String formattedDate = new SimpleDateFormat("dd/MMM/yyyy").format(new Date());
 
         StringBuilder sb = new StringBuilder();
-        sb.append(schoolName).append("\n");
-        if (!schoolAddress.isBlank()) sb.append(schoolAddress).append("\n");
-
         if (hindi) {
             sb.append("मासिक शुल्क सूचना\n\n");
-            sb.append("छात्र का नाम: ").append(studentName)
-                    .append("   पिता का नाम: ").append(fatherName)
-                    .append("   माता का नाम: ").append(motherName)
-                    .append("   कक्षा: ").append(grade)
-                    .append("   वर्ग: ").append(section).append("\n\n");
             sb.append("अभिभावक महोदय, आपके पाल्य/पाल्या का निम्नलिखित शुल्क जमा होना शेष है| अतः दिनांकः ")
                     .append(lastdate)
-                    .append(" तक विद्यालय समय में निर्धारित शुल्क जमा कराने का कष्ट करें| उपरोक्त तिथि के बाद जमा होने वाला शुल्क बिना विलम्ब शुल्क के जमा नहीं किया जायेगा|\n\n");
+                    .append(" तक विद्यालय समय में निर्धारित शुल्क जमा कराने का कष्ट करें| उपरोक्त तिथि के बाद जमा होने वाला शुल्क बिना विलम्ब शुल्क के जमा नहीं किया जायेगा|\n");
             sb.append("इस माह तक जमा होने वाला कुल मासिक शुल्क: ₹ ").append(amount).append("\n");
             sb.append("सम्मिलित माह: ").append(monthsList).append("\n");
-            sb.append("सम्मिलित मद: ").append(headList).append("\n\n");
-            sb.append("दिनांक: ").append(formattedDate).append("                    प्रधानाचार्य");
+            sb.append("सम्मिलित मद: ").append(headList).append("\n");
+            sb.append("दिनांक: ").append(formattedDate);
         } else {
             sb.append("Monthly Fees Reminder\n\n");
-            sb.append("Student's Name: ").append(studentName)
-                    .append("   Father's Name: ").append(fatherName)
-                    .append("   Mother's Name: ").append(motherName)
-                    .append("   Class: ").append(grade)
-                    .append("   Section: ").append(section).append("\n\n");
             sb.append("Dear Parent/Guardian, the following fee for your ward is currently outstanding. Therefore, you are requested to kindly deposit the due amount during school hours by ")
                     .append(lastdate)
-                    .append(". Any payment made after this deadline will not be accepted without a late fee.\n\n");
+                    .append(". Any payment made after this deadline will not be accepted without a late fee.\n");
             sb.append("Total Outstanding Monthly Fees: ₹ ").append(amount).append("\n");
             sb.append("Applicable Months: ").append(monthsList).append("\n");
-            sb.append("Fee Components Included: ").append(headList).append("\n\n");
-            sb.append("Date: ").append(formattedDate).append("                    Principal");
+            sb.append("Fee Components Included: ").append(headList).append("\n");
+            sb.append("Date: ").append(formattedDate);
         }
         return sb.toString();
     }

@@ -26,18 +26,60 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     int resolveSmsMessage(@Param("id") Long id, @Param("updatedBy") UserEntity updatedBy, @Param("updatedAt") Date updatedAt);
     // Returns number of rows updated
 
+    /**
+     * NOTE ON THE TWO BRANCHES BELOW: CLASS/ALL notifications sent AFTER the
+     * recipient-materialization change (see insertClassRecipients/insertSchoolRecipients)
+     * now have real rows in sms_message_recipients, exactly like STUDENT always has —
+     * so `r.id = :studentId` alone correctly (and safely, school-scoped) matches them.
+     * The second half of the OR is a backward-compat fallback ONLY for messages sent
+     * BEFORE that change, which have an empty recipients collection and were matched
+     * purely by grade/section (CLASS) or unconditionally (ALL) — kept so historical
+     * notifications don't silently disappear from a student's notification list.
+     * New sends never hit this fallback since m.recipients is never empty for them.
+     */
     @Query("SELECT DISTINCT m FROM SmsMessage m " +
             "LEFT JOIN m.recipients r " +
             "WHERE m.messageType = '" + SmsMessage.MESSAGE_TYPE_NOTIFICATION + "' " +
             "AND ( " +
-            "    (m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_STUDENT + "' AND r.id = :studentId) " +
-            "    OR (m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_CLASS + "' " +
+            "    r.id = :studentId " +
+            "    OR (m.recipients IS EMPTY AND m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_CLASS + "' " +
             "        AND m.grade.id = (SELECT s.grade.id FROM AcademicStudent s WHERE s.id = :studentId) " +
             "        AND m.section.id = (SELECT s.section.id FROM AcademicStudent s WHERE s.id = :studentId)) " +
-            "    OR m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_ALL + "' " +
+            "    OR (m.recipients IS EMPTY AND m.recipientType = '" + SmsMessage.RECIPIENT_TYPE_ALL + "') " +
             ") " +
             "ORDER BY m.createdAt DESC")
     List<SmsMessage> findByRecipientId(@Param("studentId") Long studentId);
+
+    /**
+     * Materializes one sms_message_recipients row per currently-Active student in the
+     * given grade+section of the given school — a single set-based INSERT...SELECT,
+     * not a stored procedure (see design discussion: no perf benefit to a proc here,
+     * this is already one round-trip either way). Fixes the cross-branch leak that a
+     * grade/section-only match would have (Grade/Section are shared lookup tables
+     * across schools) by scoping the SELECT to school_id explicitly.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO sms_message_recipients (sms_message_id, academic_student_id) " +
+            "SELECT :messageId, a.id FROM academic_students a " +
+            "WHERE a.school_id = :schoolId AND a.grade_id = :gradeId AND a.section_id = :sectionId " +
+            "AND a.status = 'Active'",
+            nativeQuery = true)
+    int insertClassRecipients(@Param("messageId") Long messageId, @Param("schoolId") Long schoolId,
+                              @Param("gradeId") Long gradeId, @Param("sectionId") Long sectionId);
+
+    /**
+     * Same idea as insertClassRecipients, but for the "All" recipient type — one row
+     * per currently-Active student in the sending school only (this is what makes
+     * "All" mean "all students of this school", not "every student on the platform").
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO sms_message_recipients (sms_message_id, academic_student_id) " +
+            "SELECT :messageId, a.id FROM academic_students a " +
+            "WHERE a.school_id = :schoolId AND a.status = 'Active'",
+            nativeQuery = true)
+    int insertSchoolRecipients(@Param("messageId") Long messageId, @Param("schoolId") Long schoolId);
 
     @Query("SELECT m FROM SmsMessage m WHERE m.grade.id = ?1 AND m.section.id = ?2 AND m.messageType = ?3")
     List<SmsMessage> findByGradeIdAndSectionIdAndMessageType(Long gradeId, Long sectionId, String messageType);

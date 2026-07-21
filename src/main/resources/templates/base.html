@@ -967,7 +967,7 @@
                     <ul id="message" class="sidebar-dropdown list-unstyled collapse">
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="MESSAGE_SEND:VIEW" th:href="@{'/message/sendMessage'}"><i class="bi bi-dot"></i><span>Send Message</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a class="sidebar-link" sms:access="MESSAGE_VIEW:VIEW" th:href="@{'/message/viewNotification'}"><i class="bi bi-dot"></i><span>View Notification</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Message History</span></a></li>
+                       <!-- <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a href="#" class="sidebar-link"><i class="bi bi-dot"></i><span>Message History</span></a></li>-->
                     </ul>
                 </li>
                 <li class="sidebar-item">

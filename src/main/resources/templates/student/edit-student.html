@@ -181,6 +181,32 @@
         <div class="col-md-3">
         </div>
 
+        <!-- Health Info (feature: student health info — sourced from student_health_info, not Student) -->
+        <div class="col-12">
+          <h4>Health Information</h4>
+        </div>
+        <div class="col-md-3">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="haveHealthIssues" name="haveHealthIssues" value="true" th:checked="${haveHealthIssues}">
+            <label class="form-check-label" for="haveHealthIssues">Have Health Issues</label>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="haveEyeIssue" name="haveEyeIssue" value="true" th:checked="${haveEyeIssue}">
+            <label class="form-check-label" for="haveEyeIssue">Have Eye Issue</label>
+          </div>
+        </div>
+        <div class="col-md-6">
+        </div>
+        <div class="col-md-7">
+          <label for="healthIssueDescription" class="form-label">Health Issue Description</label>
+          <div class="form-floating">
+            <textarea id="healthIssueDescription" name="healthIssueDescription" placeholder="Describe the health/eye issue here" class="form-control" style="height: 100px;" rows="4" cols="50" th:text="${healthIssueDescription}"></textarea>
+            <label for="healthIssueDescription">Add Health Issue Description</label>
+          </div>
+        </div>
+
         <!-- Contact Info -->
         <div class="col-12">
           <h4>Contact Information</h4>

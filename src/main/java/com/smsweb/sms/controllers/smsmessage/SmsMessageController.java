@@ -316,7 +316,11 @@ public class SmsMessageController extends BaseController {
             smsMessage.setCreatedBy(loggedInUser);
             smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
 
-            // Set recipient type early
+            // Set recipient type early. classGradeId/classSectionId are captured here
+            // (rather than re-read from the payload later) so the materialization call
+            // below can reuse the exact same, already-validated IDs.
+            Long classGradeId = null;
+            Long classSectionId = null;
             switch (recipientType.toUpperCase()) {
                 case "CLASS":
                     smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_CLASS);
@@ -331,6 +335,8 @@ public class SmsMessageController extends BaseController {
 
                         smsMessage.setGrade(grade);
                         smsMessage.setSection(section);
+                        classGradeId = gradeId;
+                        classSectionId = sectionId;
                     } catch (NumberFormatException e) {
                         return ResponseEntity.badRequest().body("Invalid classId or sectionId format.");
                     }
@@ -367,6 +373,17 @@ public class SmsMessageController extends BaseController {
 
             smsMessage.setConversations(Collections.singletonList(conversation));
             smsMessageService.saveSmsMessage(smsMessage);
+
+            // Materialize one sms_message_recipients row per targeted student — same
+            // mechanism STUDENT already gets, now also for CLASS/ALL (feature: notification
+            // recipient materialization). Must run AFTER save so smsMessage.getId() exists.
+            // Scoped to this school's students only, so "All" means this school, not the
+            // whole platform, and "Class" can't leak across branches that share a grade/section name.
+            if (SmsMessage.RECIPIENT_TYPE_CLASS.equals(smsMessage.getRecipientType())) {
+                smsMessageService.materializeClassRecipients(smsMessage.getId(), school.getId(), classGradeId, classSectionId);
+            } else if (SmsMessage.RECIPIENT_TYPE_ALL.equals(smsMessage.getRecipientType())) {
+                smsMessageService.materializeSchoolRecipients(smsMessage.getId(), school.getId());
+            }
 
             return ResponseEntity.ok("Notification sent successfully.");
         } catch (Exception ex) {

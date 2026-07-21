@@ -33,6 +33,18 @@ public class StudentHealthInfoService {
      */
     @Transactional
     public StudentHealthInfo createBlank(AcademicStudent academicStudent, UserEntity actor) {
+        return createBlank(academicStudent, actor, null, null);
+    }
+
+    /**
+     * Same as createBlank(academicStudent, actor), but seeds the initial
+     * height/weight captured from the registration form at the moment the
+     * enrollment is created (student_health_info is now the sole source of
+     * truth for these fields — Student.height/weight are left null/blank
+     * going forward).
+     */
+    @Transactional
+    public StudentHealthInfo createBlank(AcademicStudent academicStudent, UserEntity actor, Integer height, Integer weight) {
         if (repository.existsByAcademicStudent_Id(academicStudent.getId())) {
             log.warn("createBlank called but a health-info row already exists for academicStudentId={}",
                     academicStudent.getId());
@@ -42,6 +54,8 @@ public class StudentHealthInfoService {
         info.setAcademicStudent(academicStudent);
         info.setAcademicYearId(academicStudent.getAcademicYear().getId());
         info.setSchoolId(academicStudent.getSchool().getId());
+        info.setHeight(height);
+        info.setWeight(weight);
         info.setHaveHealthIssues(false);
         info.setHaveEyeIssue(false);
         info.setCreatedBy(actor);

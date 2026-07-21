@@ -273,11 +273,42 @@ public class StudentController extends BaseController {
         log.info("Inside showSchoolForm");
         log.info("Inside showSchoolForm");
         School school = (School)model.getAttribute("school");
-        Optional<Student> student = studentService.getStudentDetail(uuid, school.getId());
+        Student studentEntity = studentService.getStudentDetail(uuid, school.getId()).get();
         model = getAllGlobalModels(model);
-        model.addAttribute("student", student.get());
+        applyHealthInfoForDisplay(studentEntity, model);
+        model.addAttribute("student", studentEntity);
         model.addAttribute("fromDelete",false);
         return "student/show-student";
+    }
+
+    /**
+     * Height/weight/health-issue fields now live in student_health_info, not
+     * Student (feature: student health info). This resolves the current
+     * values and (a) sets height/weight transiently onto the in-memory
+     * Student object so the existing *{height}/*{weight} template bindings
+     * keep working unchanged, and (b) adds the 3 new fields as separate
+     * model attributes since Student has no home for them. Nothing here is
+     * persisted — display only.
+     */
+    private void applyHealthInfoForDisplay(Student studentEntity, Model model){
+        Map<String, Object> healthInfo = studentService.getStudentHealthInfoForDisplay(studentEntity.getId());
+        studentEntity.setHeight((Integer) healthInfo.get("height"));
+        studentEntity.setWeight((Integer) healthInfo.get("weight"));
+        model.addAttribute("haveHealthIssues", healthInfo.get("haveHealthIssues"));
+        model.addAttribute("haveEyeIssue", healthInfo.get("haveEyeIssue"));
+        model.addAttribute("healthIssueDescription", healthInfo.get("healthIssueDescription"));
+    }
+
+    /**
+     * On a save error, re-render edit-student.html with whatever health-issue
+     * values the user had just submitted (height/weight survive automatically
+     * via the *{height}/*{weight} bindings on the posted "student" object —
+     * only these 3 fields need to be re-added since they aren't part of Student).
+     */
+    private void reapplyHealthInfoOnError(Model model, Boolean haveHealthIssues, Boolean haveEyeIssue, String healthIssueDescription){
+        model.addAttribute("haveHealthIssues", Boolean.TRUE.equals(haveHealthIssues));
+        model.addAttribute("haveEyeIssue", Boolean.TRUE.equals(haveEyeIssue));
+        model.addAttribute("healthIssueDescription", healthIssueDescription);
     }
 
     @CheckAccess(screen = "STUDENT_INACTIVE_LIST", type = AccessType.VIEW)
@@ -286,9 +317,10 @@ public class StudentController extends BaseController {
         log.info("Inside showSchoolDeletedStudents");
         log.info("Inside showSchoolDeletedStudents");
         School school = (School)model.getAttribute("school");
-        Optional<Student> student = studentService.getDeletedStudentDetail(uuid, school.getId());
+        Student studentEntity = studentService.getDeletedStudentDetail(uuid, school.getId()).get();
         model = getAllGlobalModels(model);
-        model.addAttribute("student", student.get());
+        applyHealthInfoForDisplay(studentEntity, model);
+        model.addAttribute("student", studentEntity);
         model.addAttribute("fromDelete",true);
         return "student/show-student";
     }
@@ -308,6 +340,7 @@ public class StudentController extends BaseController {
             model.addAttribute("page", "datatable");
             return "redirect:/student/student";
         }
+        applyHealthInfoForDisplay(student, model);
         model.addAttribute("student", student);
         model = getAllGlobalModels(model);
         return "student/edit-student";
@@ -316,6 +349,9 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT", type = AccessType.EDIT)
     @PostMapping("/edit-details")
     public String editStudentDetails(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
+                                     @RequestParam(value = "haveHealthIssues", required = false) Boolean haveHealthIssues,
+                                     @RequestParam(value = "haveEyeIssue", required = false) Boolean haveEyeIssue,
+                                     @RequestParam(value = "healthIssueDescription", required = false) String healthIssueDescription,
                                      Model model, RedirectAttributes redirectAttribute){
         log.info("Inside editStudentDetails");
         log.info("Inside editStudentDetails");
@@ -328,28 +364,33 @@ public class StudentController extends BaseController {
             //School school = schoolService.getSchoolById(3L).get();
             student.setAcademicYear(academicYear);
             student.setSchool(school);
-            Student existingStudent = studentService.editStudentDetails(student, customerPic, fileNameOrSchoolCode);
+            Student existingStudent = studentService.editStudentDetails(student, customerPic, fileNameOrSchoolCode,
+                    haveHealthIssues, haveEyeIssue, healthIssueDescription);
             String msg = "Student " + student.getStudentName() + " updated successfully";
             redirectAttribute.addFlashAttribute("success", msg);
             return "redirect:/student/student";
         }catch(FileFormatException ffe){
             model = getAllGlobalModels(model);
+            reapplyHealthInfoOnError(model, haveHealthIssues, haveEyeIssue, healthIssueDescription);
             model.addAttribute("error", ffe.getMessage());
             ffe.printStackTrace();
             return "student/edit-student";
         } catch(FileSizeLimitExceededException ffle){
             model.addAttribute("error", ffle.getMessage());
             model = getAllGlobalModels(model);
+            reapplyHealthInfoOnError(model, haveHealthIssues, haveEyeIssue, healthIssueDescription);
             ffle.printStackTrace();
             return "student/edit-student";
         } catch(UniqueConstraintsException ue){
             model.addAttribute("error", ue.getMessage());
             model = getAllGlobalModels(model);
+            reapplyHealthInfoOnError(model, haveHealthIssues, haveEyeIssue, healthIssueDescription);
             ue.printStackTrace();
             return "student/edit-student";
         } catch(Exception ex){
             model.addAttribute("error", ex.getMessage());
             model = getAllGlobalModels(model);
+            reapplyHealthInfoOnError(model, haveHealthIssues, haveEyeIssue, healthIssueDescription);
             model.addAttribute("error", "Error in updating student!"+ex.getMessage());
             ex.printStackTrace();
             return "student/edit-student";
