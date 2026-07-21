@@ -15,7 +15,7 @@
                 <hr/>
                 <!--Search box-->
                 <div class="search-container my-3">
-                    <input onkeyup="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                    <input oninput="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
                     <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
                     </div>
                 </div>
@@ -317,6 +317,7 @@
         let _searchPage  = 0;
         let _searchMore  = false;
         let _searchLoading = false;
+        let _searchDebounceTimer = null;
 
         const renderStudentRow = (student) => {
             let srval = student.classSrNo != null && student.classSrNo != '' ? ' / ' + student.classSrNo : ' / -';
@@ -347,14 +348,18 @@
         };
 
         const searchStuName = () => {
+            clearTimeout(_searchDebounceTimer);
             let query = $("#search-input").val();
             if (query.trim().length > 2) {
-                if (query !== _searchQuery) {
-                    // New search — reset state
+                // Debounced — fires once 300ms after the last change (typed or pasted),
+                // instead of hitting the DB on every keystroke. No "already searched this
+                // value" guard — always re-fetch once the debounce settles, so retyping
+                // back to an earlier value still works.
+                _searchDebounceTimer = setTimeout(() => {
                     _searchQuery = query;
                     _searchPage  = 0;
                     fetchStudents(query, 0, false);
-                }
+                }, 300);
             } else {
                 _searchQuery = '';
                 $(".search-result").hide();

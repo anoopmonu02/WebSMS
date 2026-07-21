@@ -31,7 +31,7 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     Page<AcademicStudent> findAllBySessionFormatAndStudentName(@Param("sessionFormat") String sessionFormat, @Param("studentName") String studentName, Pageable pageable);
 
     //Fetching All students by Name
-    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName% OR a.classSrNo LIKE :studentName)")
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND a.school.id = :school AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName% OR a.classSrNo LIKE %:studentName%)")
     Page<AcademicStudent> findAllByAcademicYearAndSchoolAndStudentName(@Param("acadecmicYear") Long acadecmicYear, @Param("school")Long school, @Param("studentName") String studentName, Pageable pageable);
 
     @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE UPPER(s.status)='ACTIVE' AND a.status='Active' AND a.academicYear.id = :acadecmicYear AND (s.studentName LIKE %:studentName% OR s.fatherName LIKE %:studentName% OR s.motherName LIKE %:studentName%)")

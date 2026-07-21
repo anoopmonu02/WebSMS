@@ -195,6 +195,116 @@ public class FeeSubmissionService {
         return submissions;
     }
 
+    /**
+     * Per-academic-year-month fee table for one student, for the mobile app's
+     * Fees > Summary tab. One row per month of the academic year (calendar
+     * order, via MonthMapping.priority) regardless of payment state:
+     *
+     *   - amount: the student's grade's expected total fee for that month —
+     *     SUM(fee_class_map.amount) across every feehead marked applicable
+     *     that month (fee_month_map.is_applicable), same source already used
+     *     for the fee-submission "amount due" preview and receipt printouts
+     *     elsewhere in this service (findFeeDetailsPerMonth).
+     *   - receiptNo / submissionDate: populated only if an active fee
+     *     submission for this student actually covers that month via
+     *     FeeSubmissionMonths. A month is only ever added to
+     *     FeeSubmissionMonths once per student in normal operation (same
+     *     assumption getFeeReceiptDataForModel's submittedMonthMap already
+     *     relies on), so last-write-wins here is safe.
+     *   - status: "PAID" if covered by a submission; otherwise "PENDING" if
+     *     that month's configured due date (fee_date.fee_submissiondate) has
+     *     already passed, or "UPCOMING" if it hasn't (or no due date is
+     *     configured for it yet). This distinction matters — without it,
+     *     every unpaid month for the rest of the academic year gets summed
+     *     into "amount due" even though most of them aren't due yet, wildly
+     *     overstating what the parent actually owes right now.
+     *
+     * Read-only — does not create, modify, or delete any fee data.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMonthlyFeeTable(Long schoolId, Long academicYearId,
+                                                          Long academicStudentId, Long gradeId) {
+        log.info("Inside getMonthlyFeeTable");
+
+        List<MonthMapping> monthMappingList = monthmappingRepository
+                .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYearId, schoolId);
+
+        List<Long> monthIds = monthMappingList.stream()
+                .map(mm -> mm.getMonthMaster().getId())
+                .collect(Collectors.toList());
+
+        // Expected fee per month = SUM(fee_class_map.amount) across every
+        // feehead applicable that month, for this grade.
+        Map<Long, BigDecimal> amountByMonthId = new HashMap<>();
+        if (!monthIds.isEmpty()) {
+            List<Object[]> feeRows = feeclassmapRepository.findFeeDetailsPerMonth(
+                    academicYearId, schoolId, monthIds, gradeId);
+            if (feeRows != null) {
+                for (Object[] row : feeRows) {
+                    BigDecimal amt = row[0] != null ? new BigDecimal(row[0].toString()) : BigDecimal.ZERO;
+                    Long mId = ((Number) row[2]).longValue();
+                    amountByMonthId.merge(mId, amt, BigDecimal::add);
+                }
+            }
+        }
+
+        // Which months are already paid, via which receipt, and when.
+        Map<Long, FeeSubmission> submissionByMonthId = new HashMap<>();
+        List<FeeSubmission> submissions = getActiveFeeSubmissionsForYear(schoolId, academicYearId, academicStudentId);
+        if (submissions != null) {
+            for (FeeSubmission fs : submissions) {
+                if (fs.getFeeSubmissionMonths() == null) continue;
+                for (FeeSubmissionMonths fm : fs.getFeeSubmissionMonths()) {
+                    if (fm.getMonthMaster() != null) {
+                        submissionByMonthId.put(fm.getMonthMaster().getId(), fs);
+                    }
+                }
+            }
+        }
+
+        // Configured due date per month (school/academic-year specific admin
+        // setting) — used to tell "genuinely overdue" apart from "not billed
+        // yet". Batched once instead of one query per month.
+        Map<Long, Date> dueDateByMonthId = new HashMap<>();
+        List<FeeDate> feeDates = feedateRepository.findAllByAcademicYear_IdAndSchool_IdOrderByIdDesc(academicYearId, schoolId);
+        if (feeDates != null) {
+            for (FeeDate fd : feeDates) {
+                if (fd.getMonthMaster() != null) {
+                    dueDateByMonthId.put(fd.getMonthMaster().getId(), fd.getFeeSubmissiondate());
+                }
+            }
+        }
+        Date today = new Date();
+
+        List<Map<String, Object>> table = new ArrayList<>();
+        for (MonthMapping mm : monthMappingList) {
+            Long mId = mm.getMonthMaster().getId();
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("monthName", mm.getMonthMaster().getMonthName());
+            row.put("amount", amountByMonthId.getOrDefault(mId, BigDecimal.ZERO));
+
+            FeeSubmission fs = submissionByMonthId.get(mId);
+            Date dueDate = dueDateByMonthId.get(mId);
+            row.put("dueDate", dueDate);
+
+            if (fs != null) {
+                row.put("receiptNo",      fs.getReceiptNo());
+                row.put("submissionDate", fs.getFeeSubmissionDate());
+                row.put("status",         "PAID");
+            } else {
+                row.put("receiptNo",      null);
+                row.put("submissionDate", null);
+                // No due-date configured for this month yet: don't count it as
+                // overdue — fall back to "UPCOMING" rather than alarming the
+                // parent about something the school hasn't billed for yet.
+                boolean isDue = dueDate != null && !dueDate.after(today);
+                row.put("status", isDue ? "PENDING" : "UPCOMING");
+            }
+            table.add(row);
+        }
+        return table;
+    }
+
     public Map getPaidMonths(Long school_id, Long academic_id, Long academic_student_id){
         log.info("Inside getPaidMonths");
         Map paidMonths = new HashMap();

@@ -3,6 +3,8 @@ package com.smsweb.sms.controllers.mobile;
 import com.smsweb.sms.dto.mobile.ApiResponse;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
+import com.smsweb.sms.models.student.AttendanceConfirmation;
+import com.smsweb.sms.repositories.student.AttendanceConfirmationRepository;
 import com.smsweb.sms.services.mobile.MobileAcademicYearService;
 import com.smsweb.sms.services.student.StudentService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,11 +38,28 @@ public class MobileAttendanceController {
 
     private final StudentService studentService;                  // existing, unchanged
     private final MobileAcademicYearService academicYearService;  // new, mobile-only
+    private final AttendanceConfirmationRepository confirmationRepository; // new, mobile-only
 
     public MobileAttendanceController(StudentService studentService,
-                                       MobileAcademicYearService academicYearService) {
+                                       MobileAcademicYearService academicYearService,
+                                       AttendanceConfirmationRepository confirmationRepository) {
         this.studentService = studentService;
         this.academicYearService = academicYearService;
+        this.confirmationRepository = confirmationRepository;
+    }
+
+    /** Dates confirmed by admin within [start, end] for this school+academic year.
+     *  A day with no row at all, or a row with isConfirmed=false, is NOT included —
+     *  callers must treat both cases identically as "don't show this day yet". */
+    private Set<LocalDate> confirmedDatesInRange(Long schoolId, Long academicYearId,
+                                                  LocalDate start, LocalDate end) {
+        List<AttendanceConfirmation> rows = confirmationRepository
+                .findBySchool_IdAndAcademicYear_IdAndAttendanceDateBetween(schoolId, academicYearId, start, end);
+        Set<LocalDate> confirmed = new HashSet<>();
+        for (AttendanceConfirmation c : rows) {
+            if (c.isConfirmed()) confirmed.add(c.getAttendanceDate());
+        }
+        return confirmed;
     }
 
     // ── GET /api/v1/attendance/monthly ───────────────────────────────────────
@@ -71,12 +90,20 @@ public class MobileAttendanceController {
                 toDate(startLocal),
                 toDate(endLocal.plusDays(1))); // exclusive upper bound
 
+        // Only admin-confirmed days are shown to parents at all — an unconfirmed
+        // day contributes neither a calendar entry nor a present/absent count.
+        Set<LocalDate> confirmedDates = confirmedDatesInRange(
+                target.get().getSchool().getId(), target.get().getAcademicYear().getId(),
+                startLocal, endLocal);
+
         List<Map<String, Object>> days = new ArrayList<>();
         int present = 0, absent = 0;
 
         for (Attendance a : records) {
             LocalDate day = a.getAttendanceDate().toInstant()
                     .atZone(ZoneId.systemDefault()).toLocalDate();
+
+            if (!confirmedDates.contains(day)) continue; // not yet confirmed — skip entirely
 
             String remark = a.getRemark() != null ? a.getRemark() : "";
             boolean isHoliday = remark.toLowerCase().contains("holiday")
@@ -93,7 +120,7 @@ public class MobileAttendanceController {
             if (a.isPresent()) present++; else absent++;
         }
 
-        int    working = records.size();
+        int    working = days.size();
         double pct     = working > 0
                 ? Math.round(present * 100.0 / working * 10.0) / 10.0 : 0.0;
 
@@ -135,10 +162,29 @@ public class MobileAttendanceController {
         List<Attendance> records = studentService.getStudentAttendanceForYear(
                 resolvedId, resolvedYearId);
 
+        // Only admin-confirmed days count here either — derive the range to
+        // check from the fetched records themselves rather than assuming
+        // calendar-year bounds, since academic years don't run Jan-Dec.
+        Set<LocalDate> confirmedDates = Collections.emptySet();
+        if (!records.isEmpty()) {
+            LocalDate minDate = null, maxDate = null;
+            for (Attendance a : records) {
+                LocalDate day = a.getAttendanceDate().toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDate();
+                if (minDate == null || day.isBefore(minDate)) minDate = day;
+                if (maxDate == null || day.isAfter(maxDate))  maxDate = day;
+            }
+            confirmedDates = confirmedDatesInRange(
+                    resolved.getSchool().getId(), resolvedYearId, minDate, maxDate);
+        }
+
         Map<Integer, int[]> stats = new TreeMap<>(); // month → [present, absent]
         for (Attendance a : records) {
-            int m = a.getAttendanceDate().toInstant()
-                    .atZone(ZoneId.systemDefault()).toLocalDate().getMonthValue();
+            LocalDate day = a.getAttendanceDate().toInstant()
+                    .atZone(ZoneId.systemDefault()).toLocalDate();
+            if (!confirmedDates.contains(day)) continue; // not yet confirmed — skip entirely
+
+            int m = day.getMonthValue();
             stats.computeIfAbsent(m, k -> new int[]{0, 0});
             if (a.isPresent()) stats.get(m)[0]++; else stats.get(m)[1]++;
         }

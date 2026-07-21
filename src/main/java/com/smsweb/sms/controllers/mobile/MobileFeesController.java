@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
  * GET /api/v1/fees/submissions[?academicStudentId=..]
  * GET /api/v1/fees/summary[?academicStudentId=..]
  * GET /api/v1/fees/receipt/{id}
+ * GET /api/v1/fees/monthly-table[?academicStudentId=..]
  */
 @RestController
 @RequestMapping("/api/v1/fees")
@@ -114,6 +115,49 @@ public class MobileFeesController {
         summary.put("submissionCount", submissions.size());
 
         return ResponseEntity.ok(ApiResponse.success(summary));
+    }
+
+    // ── GET /api/v1/fees/monthly-table ───────────────────────────────────────
+    // Month name, receipt#, submission date, expected amount and PAID/"-"
+    // status for every month of the academic year — for the Fees > Summary
+    // tab's month-wise table. Read-only.
+
+    @GetMapping("/monthly-table")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMonthlyTable(
+            @RequestParam(required = false) Long academicStudentId,
+            HttpServletRequest request) {
+        log.info("Inside getMonthlyTable");
+
+        Long jwtAcademicStudentId = (Long) request.getAttribute("academicStudentId");
+
+        Optional<AcademicStudent> target = academicYearService
+                .resolveTargetAcademicStudent(academicStudentId, jwtAcademicStudentId);
+        if (target.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Requested student record is not accessible"));
+        }
+        AcademicStudent resolved = target.get();
+
+        if (resolved.getSchool() == null || resolved.getAcademicYear() == null || resolved.getGrade() == null) {
+            log.warn("getMonthlyTable: academicStudentId={} missing school/academicYear/grade — returning empty table",
+                    resolved.getId());
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>()));
+        }
+
+        try {
+            List<Map<String, Object>> table = feeSubmissionService.getMonthlyFeeTable(
+                    resolved.getSchool().getId(),
+                    resolved.getAcademicYear().getId(),
+                    resolved.getId(),
+                    resolved.getGrade().getId());
+
+            return ResponseEntity.ok(ApiResponse.success(table));
+        } catch (Exception e) {
+            // Fee-structure config (fee_class_map / fee_month_map) may be incomplete
+            // for this grade/year — don't take down the whole Summary tab over it.
+            log.error("getMonthlyTable failed for academicStudentId={}", resolved.getId(), e);
+            return ResponseEntity.ok(ApiResponse.success(new ArrayList<>()));
+        }
     }
 
     // ── GET /api/v1/fees/receipt/{id} ─────────────────────────────────────────

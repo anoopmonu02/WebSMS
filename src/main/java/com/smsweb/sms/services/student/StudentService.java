@@ -296,11 +296,15 @@ public class StudentService {
                     }
                 }
                 existingStudent.setStudentName(student.getStudentName());
+                existingStudent.setDob(student.getDob());
                 existingStudent.setFatherName(student.getFatherName());
                 existingStudent.setFatherOccupation(student.getFatherOccupation());
+                existingStudent.setFatherQualification(student.getFatherQualification());
                 existingStudent.setMotherName(student.getMotherName());
                 existingStudent.setMotherOccupation(student.getMotherOccupation());
+                existingStudent.setMotherQualification(student.getMotherQualification());
                 existingStudent.setReligion(student.getReligion());
+                existingStudent.setNationality(student.getNationality());
                 existingStudent.setGender(student.getGender());
                 existingStudent.setCategory(student.getCategory());
                 existingStudent.setCast(student.getCast());
@@ -321,6 +325,7 @@ public class StudentService {
                 existingStudent.setPersonContact(student.getPersonContact());
                 existingStudent.setRelationship(student.getRelationship());
                 existingStudent.setStudentType(student.getStudentType());
+                existingStudent.setAadharNo(student.getAadharNo());
                 existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 // Ensure FamilyAccount exists (creates one if mobile changed or new)
