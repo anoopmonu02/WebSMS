@@ -86,6 +86,11 @@ public class SmsMessageService {
         return smsMessageRepository.save(smsMessage);
     }
 
+    /** See SmsMessageRepository.existsTodaysMessageForStudentAndHeading — dedup guard for the daily birthday job. */
+    public boolean existsTodaysMessageForStudentAndHeading(Long academicStudentId, String heading) {
+        return smsMessageRepository.existsTodaysMessageForStudentAndHeading(academicStudentId, heading);
+    }
+
     public void saveConversation(SmsConversation conversation) {
         log.info("Inside saveConversation");
         smsConversationRepository.save(conversation);

@@ -36,7 +36,9 @@ import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.Year;
+import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -227,7 +229,10 @@ public class FeeSubmissionService {
         log.info("Inside getMonthlyFeeTable");
 
         List<MonthMapping> monthMappingList = monthmappingRepository
-                .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYearId, schoolId);
+                .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYearId, schoolId)
+                .stream()
+                .filter(mm -> mm.getMonthMaster() != null)
+                .collect(Collectors.toList());
 
         List<Long> monthIds = monthMappingList.stream()
                 .map(mm -> mm.getMonthMaster().getId())
@@ -245,6 +250,35 @@ public class FeeSubmissionService {
                     Long mId = ((Number) row[2]).longValue();
                     amountByMonthId.merge(mId, amt, BigDecimal::add);
                 }
+            }
+        }
+
+        // Net off the student's active discount (if any), per month — mirrors
+        // the web app's own calculation (getDiscountDetailsBasedOnMonth /
+        // calculateFullPaymentForDiscountedStudent), which this endpoint
+        // previously never touched at all. Failure here degrades to showing
+        // the gross fee rather than 500ing the whole Summary tab.
+        Map<Long, BigDecimal> discountByMonthId = new HashMap<>();
+        if (!monthIds.isEmpty()) {
+            try {
+                Optional<StudentDiscount> activeDiscount = studentDiscountRepository
+                        .findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(
+                                schoolId, academicYearId, academicStudentId, "Active");
+                if (activeDiscount.isPresent() && activeDiscount.get().getDiscounthead() != null) {
+                    Long discountId = activeDiscount.get().getDiscounthead().getId();
+                    List<Object[]> discountRows = discountclassmapRepository.findDiscountDetailsPerMonth(
+                            academicYearId, schoolId, monthIds, gradeId, discountId);
+                    if (discountRows != null) {
+                        for (Object[] row : discountRows) {
+                            BigDecimal amt = row[0] != null ? new BigDecimal(row[0].toString()) : BigDecimal.ZERO;
+                            Long mId = ((Number) row[2]).longValue();
+                            discountByMonthId.merge(mId, amt, BigDecimal::add);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("getMonthlyFeeTable: discount lookup failed for academicStudentId={} — showing gross fee",
+                        academicStudentId, e);
             }
         }
 
@@ -276,16 +310,48 @@ public class FeeSubmissionService {
         }
         Date today = new Date();
 
+        // Some schools collect certain months' fees together (e.g. Dec+Jan
+        // billed as one cycle due 1-Dec) — admin configures this via the
+        // FEE_MONTH_GROUP_PAIRS system_config row (comma-separated
+        // "Leader-Follower" pairs, e.g. "Dec-Jan,Feb-Mar"), optionally scoped
+        // to specific schools via its school_ids column. When a leader month
+        // is reached, its due date carries forward to the follower instead of
+        // the follower waiting on its own (later) configured due date.
+        Map<Integer, Integer> groupLeaderToFollowerMonthValue = loadMonthGroupPairs(schoolId);
+
         List<Map<String, Object>> table = new ArrayList<>();
+        Date carriedDueDate = null;
+        Integer carriedFromLeaderMonthValue = null;
+
         for (MonthMapping mm : monthMappingList) {
             Long mId = mm.getMonthMaster().getId();
+            Month thisMonth = parseMonthName(mm.getMonthMaster().getMonthName());
+
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("monthName", mm.getMonthMaster().getMonthName());
-            row.put("amount", amountByMonthId.getOrDefault(mId, BigDecimal.ZERO));
+
+            BigDecimal grossAmount = amountByMonthId.getOrDefault(mId, BigDecimal.ZERO);
+            BigDecimal discountAmount = discountByMonthId.getOrDefault(mId, BigDecimal.ZERO);
+            BigDecimal netAmount = grossAmount.subtract(discountAmount);
+            if (netAmount.compareTo(BigDecimal.ZERO) < 0) netAmount = BigDecimal.ZERO;
+            row.put("amount", netAmount);
+            if (discountAmount.compareTo(BigDecimal.ZERO) > 0) {
+                row.put("discountAmount", discountAmount);
+            }
 
             FeeSubmission fs = submissionByMonthId.get(mId);
-            Date dueDate = dueDateByMonthId.get(mId);
-            row.put("dueDate", dueDate);
+            Date ownDueDate = dueDateByMonthId.get(mId);
+
+            // Only apply the carried-forward due date if this month is
+            // genuinely the configured follower of the previous leader month
+            // — if month_mapping's real order doesn't match what admin typed
+            // into the config, skip the override rather than mis-apply it.
+            Date effectiveDueDate = ownDueDate;
+            if (carriedDueDate != null && thisMonth != null && carriedFromLeaderMonthValue != null
+                    && Objects.equals(groupLeaderToFollowerMonthValue.get(carriedFromLeaderMonthValue), thisMonth.getValue())) {
+                effectiveDueDate = carriedDueDate;
+            }
+            row.put("dueDate", effectiveDueDate);
 
             if (fs != null) {
                 row.put("receiptNo",      fs.getReceiptNo());
@@ -294,15 +360,121 @@ public class FeeSubmissionService {
             } else {
                 row.put("receiptNo",      null);
                 row.put("submissionDate", null);
-                // No due-date configured for this month yet: don't count it as
+                // No effective due date for this month yet: don't count it as
                 // overdue — fall back to "UPCOMING" rather than alarming the
                 // parent about something the school hasn't billed for yet.
-                boolean isDue = dueDate != null && !dueDate.after(today);
+                boolean isDue = effectiveDueDate != null && !effectiveDueDate.after(today);
                 row.put("status", isDue ? "PENDING" : "UPCOMING");
             }
             table.add(row);
+
+            // Set up the carry for the next iteration.
+            if (thisMonth != null && groupLeaderToFollowerMonthValue.containsKey(thisMonth.getValue())) {
+                carriedDueDate = ownDueDate;
+                carriedFromLeaderMonthValue = thisMonth.getValue();
+            } else {
+                carriedDueDate = null;
+                carriedFromLeaderMonthValue = null;
+            }
         }
         return table;
+    }
+
+    /**
+     * Parses the FEE_MONTH_GROUP_PAIRS system_config row (if present and
+     * applicable to this school) into a leader-month-value -> follower-month-
+     * value map. config_value format: comma-separated "Leader-Follower" pairs,
+     * e.g. "Dec-Jan,Feb-Mar" — month names matched case-insensitively, full or
+     * short form. school_ids: comma-separated school IDs this row applies to;
+     * null/blank means it applies to every school. Malformed pairs are
+     * skipped individually rather than failing the whole lookup.
+     */
+    private Map<Integer, Integer> loadMonthGroupPairs(Long schoolId) {
+        Map<Integer, Integer> result = new HashMap<>();
+        Optional<SystemConfig> cfgOpt = systemConfigRepository.findByConfigName("FEE_MONTH_GROUP_PAIRS");
+        if (cfgOpt.isEmpty()) return result;
+
+        SystemConfig cfg = cfgOpt.get();
+        if (!appliesToSchool(cfg.getSchoolIds(), schoolId)) return result;
+        if (cfg.getConfigValue() == null) return result;
+
+        for (String pair : cfg.getConfigValue().split(",")) {
+            String[] parts = pair.trim().split("-");
+            if (parts.length != 2) continue;
+            Month leader = parseMonthName(parts[0]);
+            Month follower = parseMonthName(parts[1]);
+            if (leader != null && follower != null) {
+                result.put(leader.getValue(), follower.getValue());
+            }
+        }
+        return result;
+    }
+
+    /** Blank/null schoolIds means "applies to every school". */
+    private boolean appliesToSchool(String schoolIdsCsv, Long schoolId) {
+        if (schoolIdsCsv == null || schoolIdsCsv.trim().isEmpty()) return true;
+        for (String part : schoolIdsCsv.split(",")) {
+            try {
+                if (Long.parseLong(part.trim()) == schoolId) return true;
+            } catch (NumberFormatException ignored) {
+                // malformed entry — ignore, don't let it match everything
+            }
+        }
+        return false;
+    }
+
+    /** Resolves a month name to java.time.Month regardless of whether it's
+     *  stored/typed as a full name ("December"), a short name ("Dec"), or in
+     *  any case. Returns null (never guesses) if nothing matches. */
+    private Month parseMonthName(String monthName) {
+        if (monthName == null) return null;
+        String trimmed = monthName.trim();
+        if (trimmed.isEmpty()) return null;
+        try {
+            return Month.valueOf(trimmed.toUpperCase());
+        } catch (Exception ignored) {
+            // not a full enum-constant name — fall through to short-name matching
+        }
+        for (Month m : Month.values()) {
+            if (m.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).equalsIgnoreCase(trimmed)
+                    || m.getDisplayName(TextStyle.FULL, Locale.ENGLISH).equalsIgnoreCase(trimmed)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /** Sorts a list of month-name strings (e.g. from a fee submission's covered
+     *  months) into academic-year chronological order using month_mapping.priority,
+     *  instead of whatever raw order they were originally collected in. Names that
+     *  don't resolve to a known month, or aren't found in the school's month_mapping,
+     *  are appended at the end in their original relative order — so a bad/unknown
+     *  entry never causes the whole list to disappear. */
+    @Transactional(readOnly = true)
+    public List<String> sortMonthsByPriority(Long schoolId, Long academicYearId, List<String> monthNames) {
+        if (monthNames == null || monthNames.size() <= 1) return monthNames;
+
+        List<MonthMapping> monthMappingList = monthmappingRepository
+                .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYearId, schoolId)
+                .stream()
+                .filter(mm -> mm.getMonthMaster() != null)
+                .collect(Collectors.toList());
+
+        Map<Integer, Integer> priorityByMonthValue = new HashMap<>();
+        for (MonthMapping mm : monthMappingList) {
+            Month resolved = parseMonthName(mm.getMonthMaster().getMonthName());
+            if (resolved != null) {
+                priorityByMonthValue.put(resolved.getValue(), mm.getPriority());
+            }
+        }
+
+        List<String> sorted = new ArrayList<>(monthNames);
+        sorted.sort(Comparator.comparingInt(name -> {
+            Month m = parseMonthName(name);
+            Integer priority = m != null ? priorityByMonthValue.get(m.getValue()) : null;
+            return priority != null ? priority : Integer.MAX_VALUE;
+        }));
+        return sorted;
     }
 
     public Map getPaidMonths(Long school_id, Long academic_id, Long academic_student_id){

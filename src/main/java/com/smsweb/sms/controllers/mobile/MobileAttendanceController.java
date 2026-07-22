@@ -1,9 +1,11 @@
 package com.smsweb.sms.controllers.mobile;
 
 import com.smsweb.sms.dto.mobile.ApiResponse;
+import com.smsweb.sms.models.admin.MonthMapping;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Attendance;
 import com.smsweb.sms.models.student.AttendanceConfirmation;
+import com.smsweb.sms.repositories.admin.MonthmappingRepository;
 import com.smsweb.sms.repositories.student.AttendanceConfirmationRepository;
 import com.smsweb.sms.services.mobile.MobileAcademicYearService;
 import com.smsweb.sms.services.student.StudentService;
@@ -13,9 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,13 +43,16 @@ public class MobileAttendanceController {
     private final StudentService studentService;                  // existing, unchanged
     private final MobileAcademicYearService academicYearService;  // new, mobile-only
     private final AttendanceConfirmationRepository confirmationRepository; // new, mobile-only
+    private final MonthmappingRepository monthmappingRepository;  // new, mobile-only — academic-year month ordering
 
     public MobileAttendanceController(StudentService studentService,
                                        MobileAcademicYearService academicYearService,
-                                       AttendanceConfirmationRepository confirmationRepository) {
+                                       AttendanceConfirmationRepository confirmationRepository,
+                                       MonthmappingRepository monthmappingRepository) {
         this.studentService = studentService;
         this.academicYearService = academicYearService;
         this.confirmationRepository = confirmationRepository;
+        this.monthmappingRepository = monthmappingRepository;
     }
 
     /** Dates confirmed by admin within [start, end] for this school+academic year.
@@ -178,28 +185,49 @@ public class MobileAttendanceController {
                     resolved.getSchool().getId(), resolvedYearId, minDate, maxDate);
         }
 
-        Map<Integer, int[]> stats = new TreeMap<>(); // month → [present, absent]
+        // Keyed by calendar month VALUE (1-12), straight from LocalDate — no
+        // string-parsing ambiguity on this side. Display order comes from
+        // month_mapping.priority below, so this map only needs to identify
+        // which month, not sort it.
+        Map<Integer, int[]> statsByMonth = new HashMap<>();
         for (Attendance a : records) {
             LocalDate day = a.getAttendanceDate().toInstant()
                     .atZone(ZoneId.systemDefault()).toLocalDate();
             if (!confirmedDates.contains(day)) continue; // not yet confirmed — skip entirely
 
-            int m = day.getMonthValue();
-            stats.computeIfAbsent(m, k -> new int[]{0, 0});
-            if (a.isPresent()) stats.get(m)[0]++; else stats.get(m)[1]++;
+            int monthKey = day.getMonthValue();
+            statsByMonth.computeIfAbsent(monthKey, k -> new int[]{0, 0});
+            if (a.isPresent()) statsByMonth.get(monthKey)[0]++; else statsByMonth.get(monthKey)[1]++;
         }
+
+        // Display order follows the school's own academic-year month sequence
+        // (month_mapping.priority, e.g. April..March) instead of raw calendar
+        // month number — sorting by plain 1-12 put January/February/March
+        // ahead of April-December once the academic year crosses into the
+        // next calendar year, which is wrong for any non-Jan-Dec academic year.
+        List<MonthMapping> monthMappingList = monthmappingRepository
+                .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(resolvedYearId, resolved.getSchool().getId())
+                .stream()
+                .filter(mm -> mm.getMonthMaster() != null)
+                .collect(Collectors.toList());
 
         List<Map<String, Object>> months = new ArrayList<>();
         int totalPresent = 0, totalAbsent = 0;
 
-        for (Map.Entry<Integer, int[]> e : stats.entrySet()) {
-            int p = e.getValue()[0], ab = e.getValue()[1], tot = p + ab;
+        for (MonthMapping mm : monthMappingList) {
+            String monthNameRaw = mm.getMonthMaster().getMonthName();
+            Month resolvedMonth = parseMonthName(monthNameRaw);
+            if (resolvedMonth == null) continue; // unparseable month_master row — skip rather than guess
+
+            int[] counts = statsByMonth.get(resolvedMonth.getValue());
+            if (counts == null) continue; // no confirmed attendance recorded for this month yet
+
+            int p = counts[0], ab = counts[1], tot = p + ab;
             double pct = tot > 0 ? Math.round(p * 100.0 / tot * 10.0) / 10.0 : 0.0;
 
             Map<String, Object> mEntry = new LinkedHashMap<>();
-            mEntry.put("month",     e.getKey());
-            mEntry.put("monthName", LocalDate.of(2000, e.getKey(), 1).getMonth()
-                    .getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+            mEntry.put("month",     mm.getPriority());
+            mEntry.put("monthName", resolvedMonth.getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
             mEntry.put("present",   p);
             mEntry.put("absent",    ab);
             mEntry.put("total",     tot);
@@ -230,5 +258,27 @@ public class MobileAttendanceController {
 
     private Date toDate(LocalDate d) {
         return Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    /** Resolves month_master.month_name to a java.time.Month regardless of
+     *  whether it's stored as a full name ("July"), a short name ("Jul"), or
+     *  in any case — tried in that order. Returns null (never guesses) if
+     *  nothing matches, so callers can skip a row rather than mis-map it. */
+    private Month parseMonthName(String monthName) {
+        if (monthName == null) return null;
+        String trimmed = monthName.trim();
+        if (trimmed.isEmpty()) return null;
+        try {
+            return Month.valueOf(trimmed.toUpperCase());
+        } catch (Exception ignored) {
+            // not a full enum-constant name — fall through to short-name matching
+        }
+        for (Month m : Month.values()) {
+            if (m.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).equalsIgnoreCase(trimmed)
+                    || m.getDisplayName(TextStyle.FULL, Locale.ENGLISH).equalsIgnoreCase(trimmed)) {
+                return m;
+            }
+        }
+        return null;
     }
 }

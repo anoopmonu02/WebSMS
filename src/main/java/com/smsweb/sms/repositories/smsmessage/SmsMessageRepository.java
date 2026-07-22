@@ -17,6 +17,18 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Query("SELECT m FROM SmsMessage m JOIN m.recipients r WHERE r.id = :studentId ORDER BY m.createdAt DESC")
     List<SmsMessage> findByRecipients_Id(Long studentId);
 
+    /**
+     * Dedup guard for the daily birthday-notification job (feature: birthday notifications) —
+     * true if this student already has a message with this exact heading created today.
+     * Protects against a duplicate "Happy Birthday" notice if the scheduled job somehow runs
+     * more than once the same day (server restart mid-run, manual re-trigger, etc.).
+     */
+    @Query("SELECT COUNT(m) > 0 FROM SmsMessage m JOIN m.recipients r " +
+            "WHERE r.id = :academicStudentId AND m.smsHeading = :heading " +
+            "AND FUNCTION('DATE', m.createdAt) = CURRENT_DATE")
+    boolean existsTodaysMessageForStudentAndHeading(@Param("academicStudentId") Long academicStudentId,
+                                                     @Param("heading") String heading);
+
     @Query("select sc from SmsConversation  sc where sc.smsMessage.id=:messageId order by  sc.sentAt desc")
     List<SmsConversation> findSmsConversationBySmsMessageId(Long messageId);
 

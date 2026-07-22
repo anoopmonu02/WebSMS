@@ -734,6 +734,82 @@ public class StudentService {
         }
     }
 
+    private static final String BIRTHDAY_NOTICE_HEADING = "Happy Birthday";
+
+    /**
+     * Sends one "Happy Birthday" notice per student whose birthday is today, for this
+     * school's given academic year (feature: birthday notifications). Called once daily by
+     * BirthdayNotificationScheduler — deliberately NOT tied to the Dashboard page load, since
+     * HomeController recomputes the same birthday list on every single page view, which would
+     * re-notify the same parents every time anyone loads the Dashboard that day.
+     *
+     * There's no logged-in user in a scheduled job, so school.getCreatedBy() (whoever set up
+     * this school/branch) is used as the message's createdBy — the closest available "actor"
+     * without inventing a new system-user concept. A school with no createdBy on record is
+     * skipped (logged), rather than failing the whole run.
+     *
+     * Best-effort + defensive per student: skips anyone who already has today's birthday
+     * notice (protects against this job somehow running more than once the same day), and a
+     * failure on one student is logged and skipped rather than blocking the rest of the batch.
+     */
+    public void sendTodaysBirthdayNotifications(School school, AcademicYear academic){
+        log.info("Inside sendTodaysBirthdayNotifications");
+        try {
+            UserEntity actor = school.getCreatedBy();
+            if (actor == null) {
+                log.warn("Skipping birthday notifications for school id={} — no createdBy on record", school.getId());
+                return;
+            }
+
+            List<AcademicStudent> birthdayStudents = academicStudentRepository
+                    .findTodaysBirthdayAcademicStudents(school.getId(), academic.getId(), "Active");
+            if (birthdayStudents == null || birthdayStudents.isEmpty()) return;
+
+            String schoolName = school.getSchoolName() != null ? school.getSchoolName() : "";
+
+            for (AcademicStudent academicStudent : birthdayStudents) {
+                try {
+                    if (academicStudent.getStudent() == null) continue;
+                    if (smsMessageService.existsTodaysMessageForStudentAndHeading(academicStudent.getId(), BIRTHDAY_NOTICE_HEADING)) {
+                        continue;
+                    }
+
+                    String studentName = academicStudent.getStudent().getStudentName() != null
+                            ? academicStudent.getStudent().getStudentName() : "";
+
+                    String content = "Happy Birthday! " + studentName + "\n"
+                            + "May your birthday ignite the spark of ambition and determination in you. -" + schoolName;
+
+                    SmsConversation conversation = new SmsConversation();
+                    conversation.setContent(content);
+                    conversation.setInitiatedBy(SmsConversation.INITIATED_BY_SCHOOL);
+                    conversation.setSeen(true);
+                    conversation.setIsDeleted(false);
+                    conversation.setSentAt(new Date());
+                    conversation.setHasAttachment(false);
+                    conversation.setHaveDocAttachment(false);
+
+                    SmsMessage smsMessage = new SmsMessage();
+                    smsMessage.setSmsHeading(BIRTHDAY_NOTICE_HEADING);
+                    smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_NOTIFICATION);
+                    smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
+                    smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
+                    smsMessage.setSchool(school);
+                    smsMessage.setCreatedBy(actor);
+                    smsMessage.setCreatedAt(new Date());
+                    smsMessage.setRecipients(Collections.singletonList(academicStudent));
+                    smsMessage.setConversations(new ArrayList<>(List.of(conversation)));
+
+                    smsMessageService.saveSmsMessage(smsMessage);
+                } catch (Exception perStudentEx) {
+                    log.error("Failed to save birthday notification for academicStudentId={}", academicStudent.getId(), perStudentEx);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to send birthday notifications for school={}, academic={}", school.getId(), academic.getId(), e);
+        }
+    }
+
     /** Shared formatting for "who/when confirmed" — a server-side formatted display
      *  string, deliberately not a raw timestamp, so the client never parses a Date
      *  itself (see the +5:30 display bug fixed earlier this session). */

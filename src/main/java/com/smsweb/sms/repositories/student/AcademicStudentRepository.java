@@ -144,6 +144,21 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                        @Param("academicYearId") Long academic,
                                        @Param("status") String status);
 
+    /**
+     * Same match as findTodaysBirthdays() above, but returns full AcademicStudent entities
+     * instead of display strings — needed to attach each match as an SmsMessage recipient
+     * (feature: birthday notifications). Kept as a separate method rather than changing the
+     * existing native query's SELECT list, so the Dashboard's already-working birthday
+     * display is never at risk from this change.
+     */
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s " +
+            "WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId " +
+            "AND a.status = :status AND s.status = :status AND s.dob IS NOT NULL " +
+            "AND FUNCTION('DATE_FORMAT', s.dob, '%m-%d') = FUNCTION('DATE_FORMAT', CURRENT_DATE, '%m-%d')")
+    List<AcademicStudent> findTodaysBirthdayAcademicStudents(@Param("schoolId") Long schoolId,
+                                                              @Param("academicYearId") Long academicYearId,
+                                                              @Param("status") String status);
+
     @Query("SELECT a FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status GROUP BY a")
     List<Object[]> fetchAllStudentsByGradewise(@Param("schoolId") Long school,
                                                @Param("academicYearId") Long academic,
