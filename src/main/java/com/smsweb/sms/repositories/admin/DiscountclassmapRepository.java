@@ -33,5 +33,27 @@ public interface DiscountclassmapRepository extends JpaRepository<DiscountClassM
                                                   @Param("gradeId") Long gradeId,
                                                   @Param("discountId") Long discountId);
 
+    /**
+     * Per-month discount breakdown — same shape as
+     * FeeclassmapRepository.findFeeDetailsPerMonth (one row per applicable
+     * month, not aggregated) so the two can be joined by month_master_id.
+     * Returns [amount, discountName, monthMasterId].
+     */
+    @Query(value = "SELECT fcm.amount as amt, fh.discount_name as DiscountName, fmm.month_master_id " +
+            "FROM discount_class_map fcm " +
+            "JOIN discount_month_map fmm ON fcm.academic_year_id = fmm.academic_year_id " +
+            "AND fcm.school_id = fmm.school_id AND fcm.discounthead_id = fmm.discounthead_id " +
+            "JOIN discounthead fh ON fh.id = fcm.discounthead_id " +
+            "WHERE fcm.academic_year_id = :academicYearId " +
+            "AND fcm.school_id = :schoolId " +
+            "AND fmm.month_master_id IN (:monthMasterIds) " +
+            "AND fmm.is_applicable = true " +
+            "AND fcm.grade_id = :gradeId AND fh.id = :discountId", nativeQuery = true)
+    List<Object[]> findDiscountDetailsPerMonth(@Param("academicYearId") Long academicYearId,
+                                               @Param("schoolId") Long schoolId,
+                                               @Param("monthMasterIds") List<Long> monthMasterIds,
+                                               @Param("gradeId") Long gradeId,
+                                               @Param("discountId") Long discountId);
+
     Optional<DiscountClassMap> findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(String discountName, Long academic_year, Long school, Long grade);
 }

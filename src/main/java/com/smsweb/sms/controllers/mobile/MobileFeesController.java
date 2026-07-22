@@ -214,6 +214,10 @@ public class MobileFeesController {
                 }
             }
         }
+        if (fs.getSchool() != null && fs.getAcademicYear() != null) {
+            months = feeSubmissionService.sortMonthsByPriority(
+                    fs.getSchool().getId(), fs.getAcademicYear().getId(), months);
+        }
         entry.put("monthsCovered", months);
 
         List<Map<String, Object>> breakdown = new ArrayList<>();
