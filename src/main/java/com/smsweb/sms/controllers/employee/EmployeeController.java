@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -240,6 +241,54 @@ public class EmployeeController extends BaseController {
         }
     }
 
+
+    // ── Employee List "Reset Password" button ────────────────────────────────
+    // ROLE_ADMIN/ROLE_SUPERADMIN only — deliberately narrower than the class-level
+    // @PreAuthorize above (which also allows ROLE_STAFF to view this list), and
+    // deliberately NOT using the finer-grained @CheckAccess/AppScreen system this
+    // controller otherwise uses, matching the precedent set by the Mobile Users
+    // admin screen's own reset-password button (same shape of feature).
+
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    @GetMapping("/generate-password")
+    @ResponseBody
+    public ResponseEntity<?> generatePassword() {
+        log.info("Inside employee generate temp password");
+        return ResponseEntity.ok(Map.of("password", employeeService.generateTempPassword()));
+    }
+
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    @PostMapping("/{uuid}/reset-password")
+    @ResponseBody
+    public ResponseEntity<?> resetPassword(@PathVariable("uuid") UUID uuid, @RequestBody Map<String, String> payload) {
+        log.info("Inside employee reset password - uuid={}", uuid);
+        try {
+            String newPassword = payload != null ? payload.get("newPassword") : null;
+            if (newPassword == null || newPassword.trim().length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 6 characters."));
+            }
+            Employee employee = employeeService.getEmployeeByUUID(uuid).orElse(null);
+            if (employee == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Employee not found."));
+            }
+            // Self-reset is blocked server-side too (the button is already hidden for
+            // this row in the UI, but that alone doesn't stop a direct API call) —
+            // an admin/superadmin resetting their own password must use
+            // /auth/change-password instead, which requires their current password.
+            String loggedInUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (employee.getUserEntity() != null && loggedInUsername != null
+                    && loggedInUsername.equals(employee.getUserEntity().getUsername())) {
+                return ResponseEntity.badRequest().body(Map.of("error",
+                        "You can't reset your own password here — use Change Password from your profile menu instead."));
+            }
+            employeeService.adminResetPassword(employee, newPassword.trim());
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (Exception e) {
+            log.error("Failed to reset password for employee uuid={}", uuid, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Reset failed: " + e.getMessage()));
+        }
+    }
 
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")

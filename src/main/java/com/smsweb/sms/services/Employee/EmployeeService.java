@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -34,6 +35,12 @@ public class EmployeeService {
     private final UserService userService;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+
+    private static final SecureRandom RNG = new SecureRandom();
+    // Excludes ambiguous characters (0/O, 1/l/I) — same convention as
+    // FamilyAccountService's temp password generator (Mobile Users screen).
+    private static final String TEMP_PASSWORD_CHARS =
+            "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
     public EmployeeService(FileHandleHelper fileHandleHelper, EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder, UserService userService, RoleRepository roleRepository, UserRepository userRepository) {
         this.fileHandleHelper = fileHandleHelper;
@@ -139,6 +146,35 @@ public class EmployeeService {
         userEntity.setPassword(passwordEncoder.encode(password));
 
         return userEntity;
+    }
+
+    // ── Employee List admin screen — "Reset Password" button ────────────────
+
+    /** Generates an 8-char temp password an admin can hand to an employee — the
+     *  admin can still overwrite it before saving, same as the Mobile Users flow. */
+    public String generateTempPassword() {
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            sb.append(TEMP_PASSWORD_CHARS.charAt(RNG.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Admin-driven password reset for an employee (Employee List "Reset Password"
+     * button — ROLE_ADMIN/ROLE_SUPERADMIN only). Unlike the self-service
+     * /auth/change-password flow, this doesn't require knowing the current
+     * password, so the controller blocks an admin from using it on their own row
+     * — self password changes must go through /auth/change-password instead.
+     * Writes straight to the users table via the existing passwordEncoder bean,
+     * same as every other password write in this codebase (BCrypt).
+     */
+    @Transactional
+    public void adminResetPassword(Employee employee, String newPassword) {
+        log.info("Inside adminResetPassword - employeeId={}", employee.getId());
+        UserEntity userEntity = employee.getUserEntity();
+        userEntity.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(userEntity);
     }
 
     public static String generatePassword(String employeeCode, String mobileNumber) {

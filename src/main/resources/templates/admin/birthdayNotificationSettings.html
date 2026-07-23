@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Birthday Notification Settings</title>
+</head>
+<body>
+<section>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3"><i class="bi bi-cake2-fill me-2 text-warning"></i>Birthday Notification Settings</div>
+        <p class="text-muted mb-3">
+          Every day at the time below, the system checks every school for students whose
+          birthday is today and sends them a "Happy Birthday" notice on the parent app.
+          One time applies across every school/branch. Changing it here takes effect from
+          the very next run — no server restart needed.
+        </p>
+
+        <div class="card border-0 shadow-sm" style="max-width: 480px;">
+          <div class="card-body">
+            <form th:action="@{/admin/birthday-notification-settings}" method="post">
+              <label for="timeInput" class="form-label fw-semibold">Send time (daily)</label>
+              <input type="time" class="form-control" id="timeInput" name="time" th:value="${currentTime}" required>
+              <div class="form-text mb-3">24-hour clock, server local time.</div>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2-circle"></i> Save Time
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+
+  <script type="text/javascript" th:inline="javascript">
+    const successMessage = [[${success}]];
+    if (successMessage) {
+      toastr["success"](successMessage, "Success");
+    }
+    const errorMessage = [[${error}]];
+    if (errorMessage) {
+      toastr["error"](errorMessage, "Error");
+    }
+  </script>
+</section>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
       xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
   <meta charset="UTF-8">
@@ -37,6 +38,16 @@
                             <td style="white-space: nowrap" class="text-center">
                                 <a sms:access="EMPLOYEE_EDIT:EDIT" class="btn btn-primary" th:href="@{/employee/employee-edit/{uuid}(uuid=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                                     <i class="bi bi-pencil-square"></i> </a>
+                                <!-- Reset Password — ROLE_ADMIN/ROLE_SUPERADMIN only, and hidden on the
+                                     logged-in admin's own row (they use Change Password from the profile
+                                     menu instead, since that flow needs their current password). -->
+                                <button type="button" class="btn btn-warning"
+                                        sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"
+                                        th:if="${employee.userEntity == null or employee.userEntity.username != #authentication.name}"
+                                        th:data-uuid="${employee.uuid}" th:data-name="${employee.employeeName}"
+                                        onclick="openResetPasswordModal(this.dataset.uuid, this.dataset.name)"
+                                        data-bs-toggle="tooltip" data-bs-title="Reset this employee's login password">
+                                    <i class="bi bi-key-fill"></i> </button>
                                 <a sms:access="EMPLOYEE_DELETE:DELETE" class="btn btn-danger" th:href="@{/employee/employee-delete/{id}(id=${employee.uuid})}" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
                                     <i class="bi bi-trash3-fill"></i> </a>
                             </td>
@@ -52,10 +63,96 @@
             </div>
         </div>
     </div>
+
+    <!-- Reset Password Modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-key-fill me-1"></i>Reset Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">Employee: <strong id="resetEmployeeLabel"></strong></p>
+            <label class="form-label small fw-semibold">New password</label>
+            <div class="input-group mb-2">
+              <input type="text" class="form-control" id="resetPasswordInput">
+              <button class="btn btn-outline-secondary" type="button" onclick="regeneratePassword()" title="Regenerate">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+              <button class="btn btn-outline-secondary" type="button" onclick="copyPassword()" title="Copy">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <p class="text-muted small mb-0">
+              The employee can use this password to log in immediately — share it with them directly.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="submitResetPassword()">
+              <i class="bi bi-check2-circle me-1"></i>Save New Password
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script th:src="@{/js/jquery-3.7.1.js}"></script>
     <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
     <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+        let currentEmployeeUuid = null;
+
+        function openResetPasswordModal(employeeUuid, employeeName) {
+            currentEmployeeUuid = employeeUuid;
+            document.getElementById('resetEmployeeLabel').innerText = employeeName;
+            document.getElementById('resetPasswordInput').value = '';
+            new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+            regeneratePassword();
+        }
+
+        function regeneratePassword() {
+            fetch(`${contextPath}employee/generate-password`, { headers: { 'Accept': 'application/json' } })
+                .then(res => res.json())
+                .then(data => { document.getElementById('resetPasswordInput').value = data.password || ''; })
+                .catch(err => console.error(err));
+        }
+
+        function copyPassword() {
+            const input = document.getElementById('resetPasswordInput');
+            input.select();
+            navigator.clipboard?.writeText(input.value);
+            toastr.info('Password copied.', 'Copied');
+        }
+
+        function submitResetPassword() {
+            const newPassword = document.getElementById('resetPasswordInput').value;
+            if (!newPassword || newPassword.trim().length < 6) {
+                toastr.error('Password must be at least 6 characters.', 'Error');
+                return;
+            }
+            fetch(`${contextPath}employee/${currentEmployeeUuid}/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newPassword })
+            })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || data.error) {
+                        toastr.error((data && data.error) || 'Reset failed.', 'Error');
+                        return;
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'))?.hide();
+                    toastr.success('Password reset successfully. Share it with the employee.', 'Success');
+                })
+                .catch(err => {
+                    console.error(err);
+                    toastr.error('Something went wrong while resetting the password.', 'Error');
+                });
+        }
+
         $(document).ready(function () {
             $('#employee-list').DataTable({
                 layout: {
