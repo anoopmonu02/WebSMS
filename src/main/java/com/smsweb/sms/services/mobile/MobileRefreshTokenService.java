@@ -18,6 +18,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -200,7 +201,36 @@ public class MobileRefreshTokenService {
             return new SessionSummary(false, false, null);
         }
         List<MobileRefreshToken> tokens = refreshTokenRepository.findAllByAcademicStudent_IdIn(academicStudentIds);
-        if (tokens.isEmpty()) {
+        return summarizeTokens(tokens);
+    }
+
+    /**
+     * Bulk-loads every refresh token for the given academic student ids in ONE
+     * query and groups them by academic_student_id (feature: Mobile Users admin
+     * screen perf fix). Lets a caller building rows for many families compute a
+     * SessionSummary per family via summarizeTokens() without calling
+     * getSessionSummary() once per family — that was one extra SELECT per family
+     * account, on top of everything else, on every page load AND every keystroke
+     * in the search box.
+     */
+    public Map<Long, List<MobileRefreshToken>> findTokensGroupedByStudent(List<Long> academicStudentIds) {
+        if (academicStudentIds == null || academicStudentIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<MobileRefreshToken> tokens = refreshTokenRepository.findAllByAcademicStudent_IdIn(academicStudentIds);
+        Map<Long, List<MobileRefreshToken>> byStudent = new HashMap<>();
+        for (MobileRefreshToken token : tokens) {
+            Long studentId = token.getAcademicStudent().getId();
+            byStudent.computeIfAbsent(studentId, k -> new java.util.ArrayList<>()).add(token);
+        }
+        return byStudent;
+    }
+
+    /** Pure in-memory version of getSessionSummary's aggregation — no DB access.
+     *  Used both by getSessionSummary itself and by callers using
+     *  findTokensGroupedByStudent() to summarize already-fetched tokens. */
+    public SessionSummary summarizeTokens(List<MobileRefreshToken> tokens) {
+        if (tokens == null || tokens.isEmpty()) {
             return new SessionSummary(false, false, null);
         }
         LocalDateTime now = LocalDateTime.now();

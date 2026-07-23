@@ -50,6 +50,22 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<AcademicStudent> findAllBySchool_IdAndStatus(Long school, String status);
 
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
+
+    /**
+     * Batch variant of findAllByStudent_IdAndStatus (feature: Mobile Users admin
+     * screen perf fix) — one query for every student id instead of one query per
+     * student in a loop. Grade/Section/School are JOIN FETCHed explicitly since
+     * they're read straight after (row-building code calls as.getGrade()/getSection()/
+     * getSchool()) — without the fetch, each would still lazy/eager-load with its
+     * own extra SELECT per row despite being @ManyToOne, multiplying the N+1 back in.
+     * a.student is also fetched so callers can group the flat result list by
+     * owning student id in memory (as.getStudent().getId()) with no further queries.
+     */
+    @Query("SELECT a FROM AcademicStudent a " +
+            "LEFT JOIN FETCH a.grade LEFT JOIN FETCH a.section LEFT JOIN FETCH a.school LEFT JOIN FETCH a.student " +
+            "WHERE a.student.id IN :studentIds AND a.status = :status")
+    List<AcademicStudent> findAllByStudent_IdInAndStatus(@Param("studentIds") List<Long> studentIds, @Param("status") String status);
+
     Optional<AcademicStudent> findByUuidAndStatusAndAcademicYear_IdAndSchool_Id(UUID uuid, String status, Long academic, Long school);
 
     /** UUID is globally unique — use this for exam result upload to avoid academicYear/school mismatch issues */

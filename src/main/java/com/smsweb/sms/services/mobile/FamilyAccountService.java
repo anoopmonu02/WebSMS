@@ -3,6 +3,7 @@ package com.smsweb.sms.services.mobile;
 import com.smsweb.sms.dto.FamilyGroupPreview;
 import com.smsweb.sms.dto.MobileUserRowDto;
 import com.smsweb.sms.dto.MobileUserStatsDto;
+import com.smsweb.sms.models.mobile.MobileRefreshToken;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.models.student.Student;
@@ -266,11 +267,56 @@ public class FamilyAccountService {
      * DB-heavy pass for this screen — callers should reuse the returned list for
      * both the searchable table and the summary-stat cards rather than calling
      * this twice.
+     *
+     * PERF NOTE (fixed — was the cause of the slow load / slow search): this used
+     * to be a classic N+1, and it ran in full on every /list call including every
+     * debounced search keystroke, not just the initial page load:
+     *   1. repo.findAll() then account.getStudents() per account — students is a
+     *      LAZY @OneToMany, so 1 extra SELECT per family account.
+     *   2. academicStudentRepository.findAllByStudent_IdAndStatus(...) per student
+     *      — 1 extra SELECT per linked student.
+     *   3. refreshTokenService.getSessionSummary(...) per account — 1 extra SELECT
+     *      per family account.
+     * For F family accounts and S linked students that was roughly 1 + 2F + S
+     * round trips. Now it's 3 queries total, independent of F and S: one to load
+     * every account with its students already joined, one to batch-resolve every
+     * linked student's active AcademicStudent, one to batch-load every relevant
+     * refresh token — everything else below is in-memory.
      */
     public List<MobileUserRowDto> getAllMobileUserRows() {
         log.info("Inside getAllMobileUserRows");
+        List<FamilyAccount> accounts = repo.findAllWithStudents();
+
+        // Query 1 of 3 (done above): accounts + their students in one shot.
+        Set<Long> allStudentIds = new HashSet<>();
+        for (FamilyAccount account : accounts) {
+            for (Student s : account.getStudents()) {
+                allStudentIds.add(s.getId());
+            }
+        }
+
+        // Query 2 of 3: every Active AcademicStudent for every linked student, in one call.
+        Map<Long, List<AcademicStudent>> academicByStudentId = new HashMap<>();
+        if (!allStudentIds.isEmpty()) {
+            List<AcademicStudent> allActive =
+                    academicStudentRepository.findAllByStudent_IdInAndStatus(new ArrayList<>(allStudentIds), "Active");
+            for (AcademicStudent as : allActive) {
+                academicByStudentId.computeIfAbsent(as.getStudent().getId(), k -> new ArrayList<>()).add(as);
+            }
+        }
+
+        // Query 3 of 3: every refresh token for every resolved AcademicStudent, in one call.
+        Set<Long> allAcademicStudentIds = new HashSet<>();
+        for (List<AcademicStudent> asList : academicByStudentId.values()) {
+            for (AcademicStudent as : asList) {
+                allAcademicStudentIds.add(as.getId());
+            }
+        }
+        Map<Long, List<MobileRefreshToken>> tokensByAcademicStudentId =
+                refreshTokenService.findTokensGroupedByStudent(new ArrayList<>(allAcademicStudentIds));
+
+        // Everything from here is pure in-memory row-building — no further DB access.
         List<MobileUserRowDto> result = new ArrayList<>();
-        List<FamilyAccount> accounts = repo.findAll();
         for (FamilyAccount account : accounts) {
             MobileUserRowDto dto = new MobileUserRowDto();
             dto.setFamilyAccountId(account.getId());
@@ -281,31 +327,29 @@ public class FamilyAccountService {
             List<String> studentLines = new ArrayList<>();
             List<Long> academicStudentIds = new ArrayList<>();
             for (Student s : account.getStudents()) {
-                try {
-                    List<AcademicStudent> asList =
-                            academicStudentRepository.findAllByStudent_IdAndStatus(s.getId(), "Active");
-                    if (!asList.isEmpty()) {
-                        AcademicStudent as = asList.get(0);
-                        String grade = as.getGrade() != null ? as.getGrade().getGradeName() : "";
-                        String section = as.getSection() != null ? as.getSection().getSectionName() : "";
-                        String school = as.getSchool() != null ? as.getSchool().getSchoolName() : "";
-                        String classPart = grade.isEmpty() ? "" : (section.isEmpty() ? grade : grade + "-" + section);
-                        String label = s.getStudentName()
-                                + (classPart.isEmpty() ? "" : " (" + classPart + (school.isEmpty() ? "" : ", " + school) + ")");
-                        studentLines.add(label);
-                        academicStudentIds.add(as.getId());
-                    } else {
-                        studentLines.add(s.getStudentName() + " (inactive)");
-                    }
-                } catch (Exception e) {
-                    log.warn("getAllMobileUserRows - could not resolve academic details for studentId={}: {}", s.getId(), e.getMessage());
-                    studentLines.add(s.getStudentName());
+                List<AcademicStudent> asList = academicByStudentId.getOrDefault(s.getId(), Collections.emptyList());
+                if (!asList.isEmpty()) {
+                    AcademicStudent as = asList.get(0);
+                    String grade = as.getGrade() != null ? as.getGrade().getGradeName() : "";
+                    String section = as.getSection() != null ? as.getSection().getSectionName() : "";
+                    String school = as.getSchool() != null ? as.getSchool().getSchoolName() : "";
+                    String classPart = grade.isEmpty() ? "" : (section.isEmpty() ? grade : grade + "-" + section);
+                    String label = s.getStudentName()
+                            + (classPart.isEmpty() ? "" : " (" + classPart + (school.isEmpty() ? "" : ", " + school) + ")");
+                    studentLines.add(label);
+                    academicStudentIds.add(as.getId());
+                } else {
+                    studentLines.add(s.getStudentName() + " (inactive)");
                 }
             }
             dto.setStudents(studentLines);
             dto.setAcademicStudentIds(academicStudentIds);
 
-            MobileRefreshTokenService.SessionSummary summary = refreshTokenService.getSessionSummary(academicStudentIds);
+            List<MobileRefreshToken> tokens = new ArrayList<>();
+            for (Long asId : academicStudentIds) {
+                tokens.addAll(tokensByAcademicStudentId.getOrDefault(asId, Collections.emptyList()));
+            }
+            MobileRefreshTokenService.SessionSummary summary = refreshTokenService.summarizeTokens(tokens);
             dto.setEverLoggedIn(summary.everLoggedIn);
             dto.setHasValidSession(summary.hasValidSession);
             dto.setLastActive(summary.lastActive);
