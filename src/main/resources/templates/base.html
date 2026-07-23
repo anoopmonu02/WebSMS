@@ -833,6 +833,12 @@
                                 <span>Mobile Users</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/birthday-notification-settings}">
+                                <i class="bi bi-cake2-fill text-warning"></i>
+                                <span>Birthday Notification</span>
+                            </a>
+                        </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" sms:access="ADMIN_STUDENT_REGIONAL:VIEW" th:href="@{/admin/student-regional}">
                                 <i class="bi bi-translate text-success"></i>

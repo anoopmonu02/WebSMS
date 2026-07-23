@@ -775,10 +775,11 @@ public class StudentService {
                     }
 
                     String studentName = academicStudent.getStudent().getStudentName() != null
-                            ? academicStudent.getStudent().getStudentName() : "";
+                            ? academicStudent.getStudent().getStudentName().toUpperCase() : "";
 
-                    String content = "Happy Birthday! " + studentName + "\n"
-                            + "May your birthday ignite the spark of ambition and determination in you. -" + schoolName;
+                    String content = "🎉🎂 Happy Birthday, " + studentName + "! 🎂🎉\n"
+                            + "✨ May your birthday ignite the spark of ambition and determination in you 🌟🚀\n\n"
+                            + "- " + schoolName;
 
                     SmsConversation conversation = new SmsConversation();
                     conversation.setContent(content);

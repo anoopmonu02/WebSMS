@@ -29,8 +29,12 @@ import org.slf4j.LoggerFactory;
  *   family_accounts  →  stores mobile + BCrypt password only
  *   students.family_account_id (FK)  →  links each student to their FamilyAccount
  *
+ * Matching rule: mobile1 ONLY. mobile2 is never used to create or link a
+ * FamilyAccount — it's still stored on the student record for contact purposes,
+ * it just doesn't participate in this flow (see createIfAbsent()/scanFamilyGroups()).
+ *
  * This means:
- *   - All siblings share ONE FamilyAccount (same mobile → same FK)
+ *   - All siblings sharing the same mobile1 share ONE FamilyAccount (same mobile1 → same FK)
  *   - Password change updates one row — all children covered automatically
  *   - Child lookup at login time: findAllByFamilyAccount(account)
  *
@@ -101,6 +105,15 @@ public class FamilyAccountService {
      * Finds or creates a FamilyAccount for the given mobile, then links
      * all students with that mobile1 to it via FK.
      *
+     * mobile1 ONLY (rule change) — mobile2 is no longer considered for
+     * FamilyAccount matching/linking at all. Previously this also linked any
+     * student whose mobile2 equalled this number, which could silently cross-link
+     * unrelated households (e.g. two different families listing the same
+     * grandparent/relative as a secondary contact) and made a student's account
+     * assignment depend on loop order when both a mobile1 match and a mobile2
+     * match existed. mobile2 is still stored on the student record for contact
+     * purposes — it just no longer drives FamilyAccount creation or linking.
+     *
      * Safe to call multiple times — idempotent.
      * Default password: UA@<last4digits>
      */
@@ -120,11 +133,8 @@ public class FamilyAccountService {
                     .build());
         });
 
-        // 2. Link students whose mobile1 = this mobile
+        // 2. Link students whose mobile1 = this mobile (mobile1 only — see javadoc above)
         studentRepository.findAllByMobile1(mobile).forEach(s -> linkStudent(s, account));
-
-        // 3. Also link students whose mobile2 = this mobile (cross-mobile2 family members)
-        studentRepository.findAllByMobile2(mobile).forEach(s -> linkStudent(s, account));
 
         return account;
     }
@@ -140,24 +150,22 @@ public class FamilyAccountService {
     // ── Migration scan ────────────────────────────────────────────────────────
 
     /**
-     * Scans ALL active students with any mobile set, groups them by mobile number,
-     * and returns a preview list for the admin review UI.
-     * A student with both mobile1 and mobile2 can appear in two groups.
+     * Scans ALL active students with a mobile1 set, groups them by mobile1, and
+     * returns a preview list for the admin review UI.
+     *
+     * mobile1 ONLY (rule change) — mobile2 is no longer scanned/grouped here,
+     * matching createIfAbsent()'s matching rule above. A student's mobile2 plays
+     * no part in FamilyAccount matching anywhere in this service anymore.
      */
     public List<FamilyGroupPreview> scanFamilyGroups() {
         log.info("Inside scanFamilyGroups");
         List<Student> allStudents = studentRepository.findAllActiveWithMobile();
 
-        // Build map: mobile → list of (student, matchedVia)
+        // Build map: mobile1 → list of students
         Map<String, List<Student[]>> mobileMap = new LinkedHashMap<>();
         for (Student s : allStudents) {
             if (s.getMobile1() != null && !s.getMobile1().isBlank()) {
                 mobileMap.computeIfAbsent(s.getMobile1(), k -> new ArrayList<>())
-                         .add(new Student[]{s});
-            }
-            if (s.getMobile2() != null && !s.getMobile2().isBlank()
-                    && !s.getMobile2().equals(s.getMobile1())) {
-                mobileMap.computeIfAbsent(s.getMobile2(), k -> new ArrayList<>())
                          .add(new Student[]{s});
             }
         }
@@ -177,7 +185,11 @@ public class FamilyAccountService {
 
             for (Student[] arr : rows) {
                 Student s = arr[0];
-                String matchedVia = (mobile.equals(s.getMobile1())) ? "mobile1" : "mobile2";
+                // Always "mobile1" now (mobile1-only rule) — kept as a field on
+                // FamilyGroupPreview.StudentRow/the migration template rather than
+                // removing it, to avoid touching the DTO shape for a value that's
+                // now constant.
+                String matchedVia = "mobile1";
                 boolean linked = s.getFamilyAccount() != null;
 
                 // Try to get grade/section/school from active academic student

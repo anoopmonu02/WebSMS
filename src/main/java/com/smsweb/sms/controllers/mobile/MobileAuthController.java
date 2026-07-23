@@ -5,6 +5,7 @@ import com.smsweb.sms.dto.mobile.*;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
+import com.smsweb.sms.services.mobile.LoginAttemptService;
 import com.smsweb.sms.services.mobile.MobileRefreshTokenService;
 import com.smsweb.sms.services.mobile.ParentSessionStore;
 import com.smsweb.sms.services.student.AcademicStudentService;
@@ -45,17 +46,20 @@ public class MobileAuthController {
     private final JwtTokenProvider         jwtTokenProvider;
     private final ParentSessionStore       parentSessionStore;
     private final MobileRefreshTokenService refreshTokenService;   // new, mobile-only (feature #10)
+    private final LoginAttemptService      loginAttemptService;    // new, mobile-only — login throttling
 
     public MobileAuthController(FamilyAccountService familyAccountService,
                                 AcademicStudentService academicStudentService,
                                 JwtTokenProvider jwtTokenProvider,
                                 ParentSessionStore parentSessionStore,
-                                MobileRefreshTokenService refreshTokenService) {
+                                MobileRefreshTokenService refreshTokenService,
+                                LoginAttemptService loginAttemptService) {
         this.familyAccountService   = familyAccountService;
         this.academicStudentService = academicStudentService;
         this.jwtTokenProvider       = jwtTokenProvider;
         this.parentSessionStore     = parentSessionStore;
         this.refreshTokenService    = refreshTokenService;
+        this.loginAttemptService    = loginAttemptService;
     }
 
     // ── POST /api/v1/auth/login ───────────────────────────────────────────────
@@ -65,20 +69,32 @@ public class MobileAuthController {
             @Valid @RequestBody MobileLoginRequest request) {
         log.info("Inside login");
 
+        // 0. Throttle — previously unlimited password guesses were possible
+        // against any mobile number with no slowdown at all.
+        String mobile = request.getMobile();
+        if (loginAttemptService.isLocked(mobile)) {
+            long minutes = loginAttemptService.remainingLockoutMinutes(mobile);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ApiResponse.error("Too many failed attempts. Try again in " + minutes + " minute(s)."));
+        }
+
         // 1. Find FamilyAccount by mobile
-        FamilyAccount account = familyAccountService.findActive(request.getMobile())
+        FamilyAccount account = familyAccountService.findActive(mobile)
                 .orElse(null);
 
         if (account == null) {
+            loginAttemptService.recordFailure(mobile);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("No account found for this mobile number. Contact school admin."));
         }
 
         // 2. Verify password against FamilyAccount (BCrypt)
         if (!familyAccountService.verifyPassword(account, request.getPassword())) {
+            loginAttemptService.recordFailure(mobile);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Incorrect password"));
         }
+        loginAttemptService.recordSuccess(mobile);
 
         // 3. Find children — SiblingGroup first, fallback to FamilyAccount FK
         //    SiblingGroup: admin-defined family grouping (handles different mobiles per child)
