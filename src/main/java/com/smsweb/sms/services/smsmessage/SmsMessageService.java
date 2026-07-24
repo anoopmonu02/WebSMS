@@ -17,6 +17,7 @@ import com.smsweb.sms.repositories.student.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -222,6 +223,24 @@ public class SmsMessageService {
                     }
 
                     String amount = row.get("amount") != null ? row.get("amount").toString() : "0";
+
+                    // Server-side guard (feature: don't remind fully-paid students) — the
+                    // client only resends whatever calculateFeeReminder() last returned, which
+                    // is already filtered to amount > 0, but that filter shouldn't be the ONLY
+                    // thing standing between a ₹0 row and an actual notification (stale cached
+                    // list, a future direct API call, etc.). Re-checked independently here.
+                    BigDecimal amountValue;
+                    try {
+                        amountValue = new BigDecimal(amount);
+                    } catch (NumberFormatException nfe) {
+                        amountValue = BigDecimal.ZERO;
+                    }
+                    if (amountValue.compareTo(BigDecimal.ZERO) <= 0) {
+                        skipped++;
+                        skippedReasons.add("Student id " + academicStudentId + " skipped — amount due is " + amount + " (nothing to remind).");
+                        continue;
+                    }
+
                     String monthsList = row.get("monthsList") != null ? row.get("monthsList").toString() : "";
                     String headList = row.get("headList") != null ? row.get("headList").toString() : "";
 

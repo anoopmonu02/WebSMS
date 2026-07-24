@@ -1257,6 +1257,15 @@ public class FeeSubmissionService {
                     responseMap.put("STUDENT_NOT_FOUND","Student Not found!");
                 }
             }
+            // Only students who actually owe something belong in a fee REMINDER —
+            // drop anyone whose computed amount is 0 (fully paid for the selected
+            // months, no carried-forward balance either) or negative (overpaid/
+            // credit). Filtered here, once, rather than skipping the add above, so
+            // every branch's calculation logic above stays untouched either way.
+            finalDataMap.entrySet().removeIf(entry -> {
+                Object amt = ((Map) entry.getValue()).get("amount");
+                return !(amt instanceof BigDecimal) || ((BigDecimal) amt).compareTo(BigDecimal.ZERO) <= 0;
+            });
             responseMap.put("finalData", finalDataMap);
         }catch(Exception e){
             e.printStackTrace();

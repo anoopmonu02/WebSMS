@@ -110,7 +110,7 @@
                     console.log("length: "+data.length);*/
                     if(data.length>0){
                         let text = `<table class="table table-bordered table-striped table-hover table-sm">
-                            <thead><th>SNo</th><th>Student Name</th><th>SR No</th><th>Grade</th><th>Father Name</th><th>Mother Name</th><th>Aadhaar No</th><th>Religion</th><th>Caste</th><th>Contact No</th><th>Address</th></thead>
+                            <thead><th>SNo</th><th>Student Name</th><th>SR No</th><th>Grade</th><th>Father Name</th><th>Mother Name</th><th>Aadhaar No</th><th>Religion</th><th>Caste</th><th>Contact No</th><th>Contact No:2</th><th>Address</th></thead>
                             <tbody class="table-group-divider">`;
                         let counter = 1;
                         data.forEach((student) =>{
@@ -119,7 +119,7 @@
                             //console.log("SR: "+classSRNoVal);
                             text+=`<tr class="${stuStatusClass}"><td>${counter}</td><td>${student.student.studentName}</td><td>${student.classSrNo==null || student.classSrNo==''?'':student.classSrNo}</td><td>${student.grade.gradeName}-${student.section.sectionName}</td>
                                    <td>${student.student.fatherName}</td><td>${student.student.motherName}</td><td>${student.student.aadharNo}</td><td>${student.student.religion}</td><td>${student.student.cast.castName}</td>
-                                      <td>${student.student.mobile1}</td><td>${student.student.address}</td></tr>`;
+                                      <td>${student.student.mobile1}</td><td>${student.student.mobile2}</td><td>${student.student.address}</td></tr>`;
                             counter++;
                         });
                         text+= `</tbody>
