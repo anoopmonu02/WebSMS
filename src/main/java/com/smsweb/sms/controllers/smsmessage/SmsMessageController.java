@@ -2,6 +2,7 @@ package com.smsweb.sms.controllers.smsmessage;
 
 import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.UserEntity;
@@ -9,6 +10,7 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
+import com.smsweb.sms.models.messaging.SmsMessageAttachment;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Section;
@@ -23,14 +25,21 @@ import com.smsweb.sms.services.universal.SectionService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import org.slf4j.Logger;
@@ -53,9 +62,10 @@ public class SmsMessageController extends BaseController {
     private final GradeService gradeService;
     private final SectionService sectionService;
     private final EmployeeService employeeService;
+    private final FileHandleHelper fileHandleHelper;
 
     //, SmsMessageService messageService
-    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService, StudentService studentService, GradeService gradeService, SectionService sectionService, EmployeeService employeeService) {
+    public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService, StudentService studentService, GradeService gradeService, SectionService sectionService, EmployeeService employeeService, FileHandleHelper fileHandleHelper) {
         this.dropdownService = dropdownService;
         //this.messageService = messageService;
         this.smsMessageService = smsMessageService;
@@ -65,6 +75,7 @@ public class SmsMessageController extends BaseController {
         this.gradeService = gradeService;
         this.sectionService = sectionService;
         this.employeeService = employeeService;
+        this.fileHandleHelper = fileHandleHelper;
     }
 
     // Endpoint for sending a message (only for employees)
@@ -390,6 +401,189 @@ public class SmsMessageController extends BaseController {
             ex.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error while sending Notification: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * "Send Document" — the same Notification flow as sendNewNotification()
+     * above, with optional file attachments. Deliberately a SEPARATE endpoint
+     * rather than modifying sendNewNotification(): that one takes a JSON body
+     * and is left completely untouched so nothing about its existing
+     * behaviour changes. This one takes multipart/form-data (required for
+     * file upload) and duplicates the recipient-resolution logic rather than
+     * extracting/sharing it with sendNewNotification(), on purpose — safer
+     * than refactoring already-working code to share it.
+     *
+     * Only ever creates messageType = NOTIFICATION rows — Complaint and
+     * Activities are explicitly out of scope for attachments per product
+     * decision, so this endpoint doesn't accept a messageType parameter at all.
+     *
+     * Files are optional — calling this with zero files behaves identically
+     * to sendNewNotification(), just via a different transport.
+     */
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.CREATE)
+    @PostMapping(value = "/sendNewNotificationWithAttachments", consumes = "multipart/form-data")
+    public ResponseEntity<?> sendNewNotificationWithAttachments(
+            @RequestParam String heading,
+            @RequestParam String message,
+            @RequestParam String recipientType,
+            @RequestParam(required = false) Long classId,
+            @RequestParam(required = false) Long sectionId,
+            @RequestParam(required = false) Long studentId,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files
+    ) {
+        log.info("Inside sendNewNotificationWithAttachments — recipientType={}, fileCount={}",
+                recipientType, files == null ? 0 : files.size());
+        try {
+            if (heading == null || heading.isBlank() || message == null || message.isBlank() || recipientType == null || recipientType.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Missing required fields."));
+            }
+
+            // Validate every file BEFORE touching the DB or disk — an admin
+            // shouldn't end up with a half-sent notification because file #3
+            // of 5 was the wrong type.
+            List<MultipartFile> validFiles = files == null ? Collections.emptyList()
+                    : files.stream().filter(f -> f != null && !f.isEmpty()).toList();
+            for (MultipartFile f : validFiles) {
+                if (!fileHandleHelper.isValidAttachmentFile(f)) {
+                    return ResponseEntity.badRequest().body(Map.of("error",
+                            "File \"" + f.getOriginalFilename() + "\" is not a supported type or exceeds the size limit."));
+                }
+            }
+
+            UserEntity loggedInUser = userService.getLoggedInUser();
+            String loggedInUsername = loggedInUser.getUsername();
+            School school = employeeService.getLoggedInEmployeeSchool(loggedInUsername)
+                    .orElseThrow(() -> new RuntimeException("School not found for Logged In user: " + loggedInUsername));
+
+            SmsMessage smsMessage = new SmsMessage();
+            smsMessage.setSmsHeading(heading);
+            smsMessage.setMessageType(SmsMessage.MESSAGE_TYPE_NOTIFICATION);
+            smsMessage.setCreatedAt(new Date());
+            smsMessage.setSchool(school);
+            smsMessage.setCreatedBy(loggedInUser);
+            smsMessage.setResolution(SmsMessage.RESOLUTION_TYPE_UNRESOLVED);
+
+            // Same recipientType switch as sendNewNotification() above.
+            Long classGradeId = null;
+            Long classSectionId = null;
+            switch (recipientType.toUpperCase()) {
+                case "CLASS":
+                    smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_CLASS);
+                    if (classId == null || sectionId == null) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "classId and sectionId are required for CLASS recipient type."));
+                    }
+                    Grade grade = gradeService.getGradeById(classId)
+                            .orElseThrow(() -> new RuntimeException("Grade not found with ID: " + classId));
+                    Section section = sectionService.getSectionById(sectionId)
+                            .orElseThrow(() -> new RuntimeException("Section not found with ID: " + sectionId));
+                    smsMessage.setGrade(grade);
+                    smsMessage.setSection(section);
+                    classGradeId = classId;
+                    classSectionId = sectionId;
+                    break;
+
+                case "STUDENT":
+                    smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_STUDENT);
+                    if (studentId == null) {
+                        return ResponseEntity.badRequest().body(Map.of("error", "studentId is required for STUDENT recipient type."));
+                    }
+                    AcademicStudent student = academicStudentService.findById(studentId)
+                            .orElseThrow(() -> new RuntimeException("Student not found with ID: " + studentId));
+                    smsMessage.setRecipients(Collections.singletonList(student));
+                    break;
+
+                default:
+                    smsMessage.setRecipientType(SmsMessage.RECIPIENT_TYPE_ALL);
+            }
+
+            SmsConversation conversation = new SmsConversation();
+            conversation.setSmsMessage(smsMessage);
+            conversation.setContent(message);
+            conversation.setSentAt(new Date());
+            conversation.setSeen(true);
+            conversation.setHasAttachment(!validFiles.isEmpty());
+            conversation.setHaveDocAttachment(false);
+            conversation.setIsDeleted(false);
+            conversation.setInitiatedBy(SmsConversation.INITIATED_BY_SCHOOL);
+            smsMessage.setConversations(Collections.singletonList(conversation));
+
+            // Save files to disk BEFORE the DB save — if a write fails partway,
+            // nothing has been persisted yet and the admin just sees an error
+            // and can retry, instead of a notification existing with some
+            // attachments silently missing.
+            List<SmsMessageAttachment> attachments = new ArrayList<>();
+            for (MultipartFile f : validFiles) {
+                String storedRelativePath = fileHandleHelper.saveMessageAttachment(f, school.getId());
+                attachments.add(new SmsMessageAttachment(
+                        smsMessage, storedRelativePath, f.getOriginalFilename(),
+                        f.getContentType(), f.getSize(), LocalDateTime.now()));
+            }
+            smsMessage.setAttachments(attachments);
+
+            // Cascades both conversations and attachments in one save (both are
+            // cascade=ALL on SmsMessage), and fires the push notification —
+            // same saveSmsMessage() every other notification path already uses.
+            smsMessageService.saveSmsMessage(smsMessage);
+
+            if (SmsMessage.RECIPIENT_TYPE_CLASS.equals(smsMessage.getRecipientType())) {
+                smsMessageService.materializeClassRecipients(smsMessage.getId(), school.getId(), classGradeId, classSectionId);
+            } else if (SmsMessage.RECIPIENT_TYPE_ALL.equals(smsMessage.getRecipientType())) {
+                smsMessageService.materializeSchoolRecipients(smsMessage.getId(), school.getId());
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Notification sent successfully.",
+                    "attachmentCount", attachments.size()
+            ));
+        } catch (Exception ex) {
+            log.error("sendNewNotificationWithAttachments failed", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error while sending Notification: " + ex.getMessage()));
+        }
+    }
+
+    /**
+     * Serves one notification attachment to the admin web UI. Inherits
+     * /message/** 's existing role restriction (ADMIN/SUPERADMIN/TEACHER/
+     * ACCOUNTENT/STAFF) automatically — no new security config needed, unlike
+     * the student/employee photo folders which are permitAll static
+     * resources. Attachments are potentially more sensitive than a profile
+     * picture, so this stays behind the same login+role check as the rest of
+     * the Message screens rather than following that permitAll precedent.
+     */
+    @CheckAccess(screen = "MESSAGE_VIEW", type = AccessType.VIEW)
+    @GetMapping("/attachment/{id}")
+    public ResponseEntity<Resource> getAttachment(@PathVariable Long id) {
+        log.info("Inside getAttachment — id={}", id);
+        Optional<SmsMessageAttachment> attOpt = smsMessageService.findAttachmentById(id);
+        if (attOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        SmsMessageAttachment att = attOpt.get();
+        try {
+            File file = fileHandleHelper.resolveMessageAttachmentFile(att.getStoredFileName());
+            if (file == null) {
+                return ResponseEntity.notFound().build();
+            }
+            Resource resource = new FileSystemResource(file);
+            MediaType mediaType;
+            try {
+                mediaType = MediaType.parseMediaType(att.getContentType());
+            } catch (Exception e) {
+                mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            }
+            // Images render inline (so an <img> tag / lightbox can show them
+            // directly); everything else prompts a download, since the admin
+            // web UI has no in-browser PDF/doc viewer built for this yet.
+            String disposition = att.isImage() ? "inline" : "attachment";
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"" + att.getOriginalFileName() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Failed to serve attachment id={}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

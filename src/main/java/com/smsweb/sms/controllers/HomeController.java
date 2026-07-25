@@ -31,7 +31,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 @Controller
-public class HomeController {
+public class HomeController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(HomeController.class);
 
 
@@ -73,6 +73,17 @@ public class HomeController {
         else{
             School school = (School) session.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)session.getAttribute("activeAcademicYear");
+            // Defensive — BaseController's setSchoolInModel()/setAcademicYearInModel()
+            // (this class now extends it) already try to re-resolve these from the logged-in
+            // employee's profile before this method body runs, so this should be rare. But a
+            // raw NPE here used to take the whole Dashboard down (e.g. right after a server
+            // restart wipes in-memory HttpSessions, or a genuinely orphaned account with no
+            // Employee record) — send them back to login instead of a stack trace.
+            if (school == null || academicYear == null) {
+                log.warn("Dashboard load with missing school/academicYear in session (school={}, academicYear={}) — redirecting to login",
+                        school != null, academicYear != null);
+                return "redirect:/login";
+            }
             model.addAttribute("isSuperAdmin", false);
             model.addAttribute("school", school);
             model.addAttribute("showDashboardStats", school.isShowDashboardStats());

@@ -9,7 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Date;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -34,7 +34,10 @@ public class HolidayService {
 
     public List<Holiday> getAllHolidayStartsFromToday(Long academic_year, Long school_id){
         log.info("Inside getAllHolidayStartsFromToday");
-        Date today = new Date();
+        // IST-anchored, same convention as the birthday queries — holidayStartDate is a
+        // plain calendar date now, so "today" should be computed the same way rather than
+        // relying on the JVM's default zone.
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         return holidayRepository.findAllByAcademicYear_IdAndSchool_IdAndHolidayStartDateAfterOrderByIdAsc(academic_year, school_id, today);
     }
 

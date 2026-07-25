@@ -19,6 +19,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -70,9 +71,17 @@ public class Student { // Extend UserEntity
     @DisplayLabel("Mother Name")
     private String motherName;
 
+    // Plain calendar date — DO NOT change back to java.util.Date/DATETIME.
+    // A DOB has no time component and no timezone; mapping it as a DATETIME
+    // previously caused every dob to be written 5.5 hours (crossing midnight)
+    // off from the intended date, because the JDBC URL uses serverTimezone=UTC
+    // while the JVM builds dates at IST midnight. LocalDate maps to a MySQL
+    // DATE column, which MySQL never subjects to timezone conversion on
+    // either read or write. See dob_timezone_fix_migration.sql for the
+    // one-time data/column migration this depends on.
     @DisplayLabel("Birth Date")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date dob;
+    private LocalDate dob;
 
     @Column(nullable = false)
     private String nationality = "INDIAN";

@@ -30,8 +30,8 @@
           <tr th:each="fine,iterStat : ${holidays}">
             <td th:text="${iterStat.index + 1}"></td>
             <td th:text="${fine.holidayName}"></td>
-            <td th:text="${#dates.format(fine.holidayStartDate, 'dd/MMM/yyyy')}"></td>
-            <td th:text="${#dates.format(fine.holidayEndDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#temporals.format(fine.holidayStartDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#temporals.format(fine.holidayEndDate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${fine.description}"></td>
             <td style="white-space: nowrap" class="text-center">
                 <button sms:access="ADMIN_HOLIDAY:DELETE" class="btn btn-danger delete-btn" th:attr="data-item-id=${fine.id}"><i class="bi bi-trash3-fill"></i> </button>

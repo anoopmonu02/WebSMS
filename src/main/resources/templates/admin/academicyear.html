@@ -30,8 +30,8 @@
 
           <tr th:each="academic,iterStat : ${academicYears}">
             <td th:text="${iterStat.index + 1}"></td>
-            <td th:text="${#dates.format(academic.startDate, 'dd/MMM/yyyy')}"></td>
-            <td th:text="${#dates.format(academic.endDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#temporals.format(academic.startDate, 'dd/MMM/yyyy')}"></td>
+            <td th:text="${#temporals.format(academic.endDate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${academic.sessionFormat}"></td>
             <td th:text="${academic.description}"></td>
             <td style="white-space: nowrap" class="text-center">

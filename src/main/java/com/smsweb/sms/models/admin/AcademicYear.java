@@ -13,6 +13,7 @@ import lombok.Setter;
 import org.hibernate.annotations.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Getter
@@ -25,13 +26,18 @@ public class AcademicYear {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Plain calendar dates — DO NOT change back to java.util.Date/DATETIME.
+    // Same reasoning as Student.dob: no time component, no timezone; mapping
+    // as DATETIME under serverTimezone=UTC silently shifted every save by a
+    // day. See academic_year_holiday_date_migration.sql for the one-time
+    // data/column migration this depends on.
     @NotNull(message = "Start date should not blank")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date startDate;
+    private LocalDate startDate;
 
     @NotNull(message = "End date should not blank")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date endDate;
+    private LocalDate endDate;
 
     @NotBlank(message = "Academic year format should not blank")
     @Size(max = 50, message = "Academic year format should not exceed 50 chars")

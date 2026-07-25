@@ -142,7 +142,17 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                                     @Param("academicYearId") Long academic,
                                                     @Param("status") String status);
 
-    /** Returns [dob, studentName, gradeName, sectionName] for students whose birthday is TODAY. */
+    /**
+     * Returns [dob, studentName, gradeName, sectionName] for students whose birthday is TODAY.
+     *
+     * todayMonthDay is passed in as "MM-dd" rather than compared against MySQL's own CURDATE()
+     * (bug fix — "today" was drifting to tomorrow's date on both local and server deployments,
+     * because CURDATE() depends on whatever timezone the DB server/session happens to be
+     * configured with, which isn't guaranteed to be IST and apparently isn't on either
+     * environment here). Callers must compute it as
+     * LocalDate.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MM-dd"))
+     * so "today" always means IST-today regardless of the DB server's own clock/timezone.
+     */
     @Query(value = "SELECT s.dob, s.student_name, g.grade_name, sec.section_name " +
             "FROM academic_students a " +
             "JOIN students s  ON s.id  = a.student_id " +
@@ -153,12 +163,13 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
             "AND a.status = :status " +
             "AND s.status = :status " +
             "AND s.dob IS NOT NULL " +
-            "AND DATE_FORMAT(s.dob, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') " +
+            "AND DATE_FORMAT(s.dob, '%m-%d') = :todayMonthDay " +
             "ORDER BY s.student_name",
             nativeQuery = true)
     List<Object[]> findTodaysBirthdays(@Param("schoolId") Long school,
                                        @Param("academicYearId") Long academic,
-                                       @Param("status") String status);
+                                       @Param("status") String status,
+                                       @Param("todayMonthDay") String todayMonthDay);
 
     /**
      * Same match as findTodaysBirthdays() above, but returns full AcademicStudent entities
@@ -166,14 +177,20 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
      * (feature: birthday notifications). Kept as a separate method rather than changing the
      * existing native query's SELECT list, so the Dashboard's already-working birthday
      * display is never at risk from this change.
+     *
+     * Also takes todayMonthDay explicitly now (same bug fix as findTodaysBirthdays() above) —
+     * this one matters even more than the Dashboard display, since it decides which students
+     * actually get a birthday NOTIFICATION sent; relying on the DB's own CURRENT_DATE risked
+     * firing a day early/late depending on the DB server's timezone.
      */
     @Query("SELECT a FROM AcademicStudent a JOIN a.student s " +
             "WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId " +
             "AND a.status = :status AND s.status = :status AND s.dob IS NOT NULL " +
-            "AND FUNCTION('DATE_FORMAT', s.dob, '%m-%d') = FUNCTION('DATE_FORMAT', CURRENT_DATE, '%m-%d')")
+            "AND FUNCTION('DATE_FORMAT', s.dob, '%m-%d') = :todayMonthDay")
     List<AcademicStudent> findTodaysBirthdayAcademicStudents(@Param("schoolId") Long schoolId,
                                                               @Param("academicYearId") Long academicYearId,
-                                                              @Param("status") String status);
+                                                              @Param("status") String status,
+                                                              @Param("todayMonthDay") String todayMonthDay);
 
     @Query("SELECT a FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND a.status = :status AND a.student.status = :status GROUP BY a")
     List<Object[]> fetchAllStudentsByGradewise(@Param("schoolId") Long school,

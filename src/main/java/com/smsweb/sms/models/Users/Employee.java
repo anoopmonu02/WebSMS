@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -57,8 +58,11 @@ public class Employee {
     @Column(nullable = true)
     private String motherName;
 
+    // Plain calendar date — see Student.dob javadoc (same file) for why this
+    // must never go back to java.util.Date/DATETIME. Depends on
+    // dob_timezone_fix_migration.sql having been run against the DB.
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date dob;
+    private LocalDate dob;
 
     @Column(nullable = false)
     private String nationality = "INDIAN";

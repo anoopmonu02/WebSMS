@@ -11,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Entity
@@ -41,12 +42,15 @@ public class Holiday {
     @NotBlank(message = "Holiday should not blank")
     @Size(max = 200, message = "Holiday should not exceed 200 chars")
     private String holidayName;
+    // Plain calendar dates — see AcademicYear.startDate javadoc (same repo)
+    // for why these must never go back to java.util.Date/DATETIME. Depends
+    // on academic_year_holiday_date_migration.sql having been run.
     @NotNull(message = "Holiday start date is mandatory")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date holidayStartDate;
+    private LocalDate holidayStartDate;
     @NotNull(message = "Holiday end date is mandatory")
     @DateTimeFormat(pattern = "dd/MMM/yyyy")
-    private Date holidayEndDate;
+    private LocalDate holidayEndDate;
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Description should not exceed 500 chars")
     private String description;

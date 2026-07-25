@@ -135,6 +135,7 @@
                 <th>Message Heading</th>
                 <th>Message Content</th>
                 <th>Message Date</th>
+                <th>Attachment</th>
             </tr>
             </thead>
             <tbody class="table-group-divider"></tbody>
@@ -144,6 +145,22 @@
 
 
 
+
+    <!-- Attachment Viewer Modal (Notification attachments) -->
+    <div class="modal fade" id="attachmentViewerModal" tabindex="-1" aria-labelledby="attachmentViewerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attachmentViewerModalLabel"><i class="bi bi-paperclip"></i> Attachments</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="attachmentViewerBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Add SMS Conversation Modal -->
 
@@ -297,6 +314,27 @@
 
 
 
+        // Lightweight viewer for a notification's attachments — images render
+        // inline (click to open full size in a new tab); documents show as a
+        // download link. Admin web UI can download any type today; the mobile
+        // app (separate workstream) only renders images inline for now.
+        function openAttachmentViewer(attachmentsJsonEncoded) {
+            const attachments = JSON.parse(decodeURIComponent(attachmentsJsonEncoded));
+            let bodyHtml = '';
+            attachments.forEach(att => {
+                const fullUrl = `${contextPath}${att.url}`;
+                if (att.image) {
+                    bodyHtml += `<a href="${fullUrl}" target="_blank" class="d-inline-block m-2">
+                        <img src="${fullUrl}" alt="${att.originalFileName}" style="max-width:200px;max-height:200px;border:1px solid #dee2e6;border-radius:4px;">
+                    </a>`;
+                } else {
+                    bodyHtml += `<div class="m-2"><a href="${fullUrl}" target="_blank"><i class="bi bi-file-earmark-arrow-down"></i> ${att.originalFileName}</a></div>`;
+                }
+            });
+            $('#attachmentViewerBody').html(bodyHtml || '<p class="text-muted">No attachments.</p>');
+            $('#attachmentViewerModal').modal('show');
+        }
+
         function fetchMessagesAndPopulateTable(selectedId) {
             const url = `${contextPath}message/notifications?studentId=${selectedId}`;
             fetch(url)
@@ -307,14 +345,24 @@
                     let table = $('#notificationTable').DataTable();
                     table.clear();
 
-                    const rows = data.map(item => [
-                        item.className,        // Class
-                        item.sectionName,      // Section
-                        item.recipientType,    // Recipient Type
-                        item.smsHeading,       // Message Heading
-                        item.smsContent,       // Message Content
-                        item.smsDate           // Message Date
-                    ]);
+                    const rows = data.map(item => {
+                        let attachmentCell = '<span class="text-muted">&mdash;</span>';
+                        if (Array.isArray(item.attachments) && item.attachments.length > 0) {
+                            const attJson = encodeURIComponent(JSON.stringify(item.attachments));
+                            attachmentCell = `<a href="#" onclick="openAttachmentViewer('${attJson}');return false;" title="View attachment(s)">
+                                <i class="bi bi-paperclip"></i> ${item.attachments.length}
+                            </a>`;
+                        }
+                        return [
+                            item.className,        // Class
+                            item.sectionName,      // Section
+                            item.recipientType,    // Recipient Type
+                            item.smsHeading,       // Message Heading
+                            item.smsContent,       // Message Content
+                            item.smsDate,          // Message Date
+                            attachmentCell          // Attachment
+                        ];
+                    });
 
                     table.rows.add(rows);
                     table.draw();
