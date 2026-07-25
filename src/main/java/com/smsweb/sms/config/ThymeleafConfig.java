@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.thymeleaf.extras.java8time.dialect.Java8TimeDialect;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.templatemode.TemplateMode;
@@ -42,6 +43,11 @@ public class ThymeleafConfig {
         // thymeleaf-extras-springsecurity6 via its own auto-configuration.
         // We only need to add our custom sms: dialect.
         templateEngine.addDialect(new PermissionDialectRegistrar(permissionService));
+        // #temporals — the LocalDate/LocalDateTime-aware equivalent of #dates. Needed
+        // wherever a template formats dob, AcademicYear.startDate/endDate, or
+        // Holiday.holidayStartDate/holidayEndDate — #dates.format() throws at runtime
+        // on a LocalDate since it expects java.util.Date/Calendar.
+        templateEngine.addDialect(new Java8TimeDialect());
     }
 }
 

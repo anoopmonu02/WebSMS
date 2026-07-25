@@ -38,14 +38,21 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Object[]> findUpcomingBirthdaysInNext7Days(@Param("schoolId") Long school,
                                                     @Param("status") String status);
 
+    /**
+     * todayMonthDay passed in as "MM-dd" rather than compared against MySQL's own CURDATE()
+     * (bug fix — "today" was drifting to tomorrow's date; see the matching fix + explanation
+     * on AcademicStudentRepository.findTodaysBirthdays()). Callers must compute it as
+     * LocalDate.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MM-dd")).
+     */
     @Query(value = "SELECT a.dob, a.employee_name, a.employee_code " +
             "FROM employees a " +
             "WHERE a.school_id = :schoolId " +
             "AND a.status = :status " +
             "AND a.dob IS NOT NULL " +
-            "AND DATE_FORMAT(a.dob, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d') " +
+            "AND DATE_FORMAT(a.dob, '%m-%d') = :todayMonthDay " +
             "ORDER BY a.employee_name",
             nativeQuery = true)
     List<Object[]> findTodaysBirthdays(@Param("schoolId") Long school,
-                                       @Param("status") String status);
+                                       @Param("status") String status,
+                                       @Param("todayMonthDay") String todayMonthDay);
 }

@@ -116,6 +116,7 @@
                                         <th>Subject</th>
                                         <th>Date</th>
                                         <th>Action/Status</th> <!-- New column -->
+                                        <th>Attachment</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -288,6 +289,16 @@
                         <textarea class="form-control" rows="5" id="notificationTextArea" placeholder="Type your message here..."></textarea>
                     </div>
 
+                    <!-- Attachments (optional) -->
+                    <div class="form-group mt-3">
+                        <label for="notificationAttachments" class="form-label">
+                            Attachments <span class="text-muted small">(optional — images, PDF, Word, Excel, PowerPoint; max 10MB each)</span>
+                        </label>
+                        <input type="file" class="form-control" id="notificationAttachments" multiple
+                               accept="image/jpeg,image/png,.jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                        <div id="notificationAttachmentList" class="small text-muted mt-1"></div>
+                    </div>
+
                     <div class="text-danger d-none" id="notificationModalError"></div>
                 </div>
 
@@ -339,6 +350,22 @@
                     <button type="button" class="btn btn-success" onclick="sendSmsConversation()">Send</button>
                     <!-- Cancel Button -->
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attachment Viewer Modal (Notification attachments) -->
+    <div class="modal fade" id="attachmentViewerModal" tabindex="-1" aria-labelledby="attachmentViewerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="attachmentViewerModalLabel"><i class="bi bi-paperclip"></i> Attachments</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="attachmentViewerBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -555,7 +582,7 @@
                     let tbody = $('#smsMessagesTable tbody');
                     tbody.empty();
                     if (!Array.isArray(messages) || messages.length === 0) {
-                        tbody.append('<tr><td colspan="4" class="text-center text-muted">No messages found</td></tr>');
+                        tbody.append('<tr><td colspan="5" class="text-center text-muted">No messages found</td></tr>');
                         return;
                     }
                     let counter = 1;
@@ -580,6 +607,7 @@
                             <td>${msg.smsHeading}</td>
                             <td>${dt}</td>
                             <td>${resolveBtn}${convoBtn}</td>
+                            <td></td>
                         </tr>`;
                         tbody.append(row);
                         counter++;
@@ -588,7 +616,7 @@
                 .catch(err => {
                     console.error("Failed to load messages:", err);
                     $('#smsSection').show();
-                    $('#smsMessagesTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading messages. Please try again.</td></tr>');
+                    $('#smsMessagesTable tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading messages. Please try again.</td></tr>');
                 });
         };
 
@@ -605,7 +633,7 @@
                     let tbody = $('#smsMessagesTable tbody');
                     tbody.empty();
                     if (!Array.isArray(notifications) || notifications.length === 0) {
-                        tbody.append('<tr><td colspan="4" class="text-center text-muted">No notifications found</td></tr>');
+                        tbody.append('<tr><td colspan="5" class="text-center text-muted">No notifications found</td></tr>');
                         return;
                     }
                     let counter = 1;
@@ -616,11 +644,19 @@
                         let recipientLabel = n.recipientType === 'CLASS'
                             ? `Class: ${n.className || ''} - ${n.sectionName || ''}`
                             : (n.recipientType === 'ALL' ? 'All Students' : 'Student');
+                        let attachmentCell = '<span class="text-muted">&mdash;</span>';
+                        if (Array.isArray(n.attachments) && n.attachments.length > 0) {
+                            const attJson = encodeURIComponent(JSON.stringify(n.attachments));
+                            attachmentCell = `<a href="#" onclick="openAttachmentViewer('${attJson}');return false;" title="View attachment(s)">
+                                <i class="bi bi-paperclip"></i> ${n.attachments.length}
+                            </a>`;
+                        }
                         let row = `<tr>
                             <td>${counter}</td>
                             <td>${n.smsHeading || ''}</td>
                             <td>${dt}</td>
                             <td><span class="badge bg-info text-dark">${recipientLabel}</span></td>
+                            <td>${attachmentCell}</td>
                         </tr>`;
                         tbody.append(row);
                         counter++;
@@ -629,9 +665,30 @@
                 .catch(err => {
                     console.error("Failed to load notifications:", err);
                     $('#smsSection').show();
-                    $('#smsMessagesTable tbody').html('<tr><td colspan="4" class="text-center text-danger">Error loading notifications. Please try again.</td></tr>');
+                    $('#smsMessagesTable tbody').html('<tr><td colspan="5" class="text-center text-danger">Error loading notifications. Please try again.</td></tr>');
                 });
         };
+
+        // Lightweight viewer for a notification's attachments — images render
+        // inline (click to open full size in a new tab); documents show as a
+        // download link. Admin web UI can download any type today; the mobile
+        // app (separate workstream) only renders images inline for now.
+        function openAttachmentViewer(attachmentsJsonEncoded) {
+            const attachments = JSON.parse(decodeURIComponent(attachmentsJsonEncoded));
+            let bodyHtml = '';
+            attachments.forEach(att => {
+                const fullUrl = `${contextPath}${att.url}`;
+                if (att.image) {
+                    bodyHtml += `<a href="${fullUrl}" target="_blank" class="d-inline-block m-2">
+                        <img src="${fullUrl}" alt="${att.originalFileName}" style="max-width:200px;max-height:200px;border:1px solid #dee2e6;border-radius:4px;">
+                    </a>`;
+                } else {
+                    bodyHtml += `<div class="m-2"><a href="${fullUrl}" target="_blank"><i class="bi bi-file-earmark-arrow-down"></i> ${att.originalFileName}</a></div>`;
+                }
+            });
+            $('#attachmentViewerBody').html(bodyHtml || '<p class="text-muted">No attachments.</p>');
+            $('#attachmentViewerModal').modal('show');
+        }
 
         const resolveSmsMessage = (messageId, button) => {
             const confirmed = confirm("Are you sure you want to mark this message as RESOLVED?");
@@ -981,13 +1038,13 @@
                 return;
             }
 
-            // Build request payload
-            const requestData = {
-                heading: heading,
-                message: message,
-                messageType: messageType,
-                recipientType: recipientType
-            };
+            // multipart/form-data — required for file upload. Text fields go in
+            // the same FormData whether or not any files are attached, so this
+            // is the one code path for both cases (no separate JSON branch).
+            const formData = new FormData();
+            formData.append("heading", heading);
+            formData.append("message", message);
+            formData.append("recipientType", recipientType);
 
             if (recipientType === "CLASS") {
                 const selectedClass = document.getElementById("grade")?.value;
@@ -999,8 +1056,8 @@
                     return;
                 }
 
-                requestData.classId = selectedClass;
-                requestData.sectionId = selectedSection;
+                formData.append("classId", selectedClass);
+                formData.append("sectionId", selectedSection);
             } else if (recipientType === "STUDENT") {
                 if(!selectedStudent){
                     errorDiv.textContent = "Please enter a student ID.";
@@ -1008,50 +1065,64 @@
                     return;
                 }
 
-
-                requestData.studentId = selectedStudent.id;
+                formData.append("studentId", selectedStudent.id);
             }
-            const url = `${contextPath}message/sendNewNotification`;
+
+            const fileInput = document.getElementById("notificationAttachments");
+            const files = fileInput ? Array.from(fileInput.files || []) : [];
+            // 10MB client-side check mirrors the server's cap — catches an
+            // oversized file before upload instead of after a wasted round trip.
+            const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+            for (const f of files) {
+                if (f.size > MAX_ATTACHMENT_BYTES) {
+                    errorDiv.textContent = `"${f.name}" exceeds the 10MB limit.`;
+                    errorDiv.classList.remove("d-none");
+                    return;
+                }
+                formData.append("files", f);
+            }
+
+            const url = `${contextPath}message/sendNewNotificationWithAttachments`;
             fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData),
+                body: formData,
                 credentials: 'include'
             })
-                .then(response => {
+                .then(async response => {
                     if (response.ok) {
-                        clearNotificationModalFields()
-                        return response.text(); // Assuming response is plain text
+                        clearNotificationModalFields();
+                        return response.json();
                     } else {
-                        throw new Error("Failed to send Notification.");
+                        const errBody = await response.json().catch(() => ({}));
+                        throw new Error(errBody.error || "Failed to send Notification.");
                     }
                 })
                 .then(data => {
-                    const infoMessage = "Notification Sent Successfully.";
-                    if (infoMessage) {
-                        //toastr.success(successMessage);
-                        toastr["info"](infoMessage,"Info");
-                        toastr.options = {
-                            "closeButton": true,
-                            "debug": false,
-                            "newestOnTop": true,
-                            "progressBar": false,
-                            "positionClass": "toast-top-right",
-                            "preventDuplicates": false,
-                            "onclick": null,
-                            "showDuration": "600",
-                            "hideDuration": "1000",
-                            "timeOut": "5000",
-                            "extendedTimeOut": "1000",
-                            "showEasing": "swing",
-                            "hideEasing": "linear",
-                            "showMethod": "fadeIn",
-                            "hideMethod": "fadeOut"
-                        }
+                    toastr["info"]("Notification Sent Successfully.", "Info");
+                    toastr.options = {
+                        "closeButton": true,
+                        "debug": false,
+                        "newestOnTop": true,
+                        "progressBar": false,
+                        "positionClass": "toast-top-right",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "600",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
                     }
-
+                    $("#notificationMessageModal").modal("hide");
+                    // Refresh the Message History list if a student is currently
+                    // selected and in view, so the just-sent notification (and its
+                    // attachment) shows up immediately without a manual reload.
+                    if (recipientType === "STUDENT" && selectedStudent) {
+                        loadNotificationsForStudent(selectedStudent.id);
+                    }
                 })
                 .catch(error => {
                     const errorMessage = error.message;
@@ -1446,9 +1517,23 @@
         function clearNotificationModalFields() {
             document.getElementById("notificationHeading").value = "";
             document.getElementById("notificationTextArea").value = "";
+            const fileInput = document.getElementById("notificationAttachments");
+            if (fileInput) fileInput.value = "";
+            const fileList = document.getElementById("notificationAttachmentList");
+            if (fileList) fileList.innerHTML = "";
             document.getElementById("notificationModalError").classList.add("d-none");
             document.getElementById("notificationModalError").innerText = "";
         }
+
+        // Shows the selected filenames under the file input — purely a UI nicety,
+        // the browser's native file input doesn't list multi-file selections well.
+        $(document).on("change", "#notificationAttachments", function () {
+            const files = Array.from(this.files || []);
+            const listDiv = document.getElementById("notificationAttachmentList");
+            if (!listDiv) return;
+            if (files.length === 0) { listDiv.innerHTML = ""; return; }
+            listDiv.innerHTML = "Selected: " + files.map(f => `${f.name} (${(f.size / 1024).toFixed(0)} KB)`).join(", ");
+        });
 
     </script>
 </section>

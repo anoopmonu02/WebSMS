@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -106,16 +104,13 @@ public class AcademicyearService {
             LocalDate startDate = LocalDate.of(year, 4, 1);
             LocalDate endDate = LocalDate.of(year + 1, 3, 31);
 
-            Date startDateConverted = convertToDate(startDate);
-            Date endDateConverted = convertToDate(endDate);
-
             for (School school : schools) {
                 List<AcademicYear> academicYears = getAllAcademiyears(school.getId());
 
                 // Proceed only if no academic years exist
                 if (academicYears.isEmpty()) {
                     log.info("No academic year found for school={}, creating new one", school.getSchoolName());
-                    AcademicYear academicYear = createNewAcademicYear(school, startDateConverted, endDateConverted, year);
+                    AcademicYear academicYear = createNewAcademicYear(school, startDate, endDate, year);
                     return academicyearRepository.save(academicYear);
                 } else {
                     log.debug("Academic year already exists for school={}", school.getSchoolName());
@@ -126,11 +121,8 @@ public class AcademicyearService {
         }
         return null;
     }
-    private Date convertToDate(LocalDate localDate) {
-        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-    }
 
-    private AcademicYear createNewAcademicYear(School school, Date startDate, Date endDate, int year) {
+    private AcademicYear createNewAcademicYear(School school, LocalDate startDate, LocalDate endDate, int year) {
         AcademicYear academicYear = new AcademicYear();
         academicYear.setSchool(school);
         academicYear.setStartDate(startDate);

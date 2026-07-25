@@ -6,6 +6,7 @@ import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.student.StudentDiscount;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.mobile.PushNotificationService;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.Grade;
@@ -71,6 +72,9 @@ public class FeeSubmissionService {
 
     @Autowired
     private StudentService studentService;
+
+    @Autowired
+    private PushNotificationService pushNotificationService; // feature: push notification on fee submission
 
     @Autowired
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
@@ -881,6 +885,28 @@ public class FeeSubmissionService {
                         feeSubmissionRepository.save(feeSubmission);
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());
+
+                        // Push a confirmation to the parent's phone — generic by design
+                        // (just the month(s) paid for), since amounts/receipts are already
+                        // visible in the Fees tab once they open the app. Never allowed to
+                        // affect the fee submission itself (see sendToStudents' own
+                        // try/catch) — this whole block is on top of that as a second
+                        // layer of safety around @Transactional here.
+                        try {
+                            String monthsLabel = (feeMonMap != null && !feeMonMap.isEmpty())
+                                    ? String.join(", ", feeMonMap.keySet())
+                                    : "";
+                            String pushBody = monthsLabel.isEmpty()
+                                    ? "Your fee submission has been recorded."
+                                    : "Fee Submitted for month: " + monthsLabel;
+                            pushNotificationService.sendToStudents(
+                                    Collections.singletonList(feeSubmission.getAcademicStudent()),
+                                    "Fee Submitted",
+                                    pushBody,
+                                    PushNotificationService.TYPE_FEE);
+                        } catch (Exception pushEx) {
+                            log.warn("Fee submission push notification skipped for feeSubmissionId={}", feeSubmission.getId(), pushEx);
+                        }
                     } else{
                         resultMap.put("fee_submission_not_allowed", "Fee Submission not allowed, Current submission date is less than the last submitted date.");
                     }

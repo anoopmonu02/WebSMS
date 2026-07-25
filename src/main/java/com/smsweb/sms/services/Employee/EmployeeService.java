@@ -253,10 +253,17 @@ public class EmployeeService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
-            List<Object[]> stuDobList = employeeRepository.findTodaysBirthdays(school, "Active");
+            // "Today" computed explicitly in IST and passed to the query — see javadoc on
+            // EmployeeRepository.findTodaysBirthdays() for why (CURDATE() was returning
+            // tomorrow's date on both local and server deployments).
+            String todayMonthDay = LocalDate.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MM-dd"));
+            List<Object[]> stuDobList = employeeRepository.findTodaysBirthdays(school, "Active", todayMonthDay);
             if(!stuDobList.isEmpty()){
                 for(Object[] dd:stuDobList){
-                    LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    // dob is now a plain SQL DATE column, returned as java.sql.Date — no
+                    // timezone conversion involved (java.sql.Date doesn't even support
+                    // toInstant()), so this is a direct, unambiguous conversion.
+                    LocalDate dob = ((java.sql.Date) dd[0]).toLocalDate();
                     String formattedDob = dob.format(formatter);
                     String studentName = (String) dd[1];
                     String[] dobList = new String[4];

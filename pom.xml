@@ -20,7 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
@@ -84,11 +84,51 @@
             <artifactId>thymeleaf-extras-springsecurity6</artifactId>
             <version>3.1.0.RELEASE</version>
         </dependency>
-        <!-- Embedded Tomcat should be provided when deploying to external Tomcat -->
+        <!-- Thymeleaf Extras for java.time (LocalDate, LocalDateTime, etc.) — adds the
+             #temporals expression object, the LocalDate-aware equivalent of #dates.
+             Needed now that dob/AcademicYear/Holiday dates are LocalDate, not Date. -->
         <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-java8time</artifactId>
+            <version>3.0.4.RELEASE</version>
+        </dependency>
+        <!-- Embedded Tomcat should be provided when deploying to external Tomcat -->
+        <!--Removing this to make docker friendly-->
+        <!--<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-tomcat</artifactId>
             <scope>provided</scope>
+        </dependency>-->
+       <!-- <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.4</version>
+        </dependency>-->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.3</version>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Firebase Admin SDK — sends push notifications (feature: Issues push
+             alerts). Initialized from a service-account JSON file whose path is
+             given via app.firebase.credentials.path — see FirebaseConfig. That
+             file must never be committed to source control. -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.1</version>
         </dependency>
     </dependencies>
 
@@ -112,12 +152,20 @@
             </plugin>
 
             <!-- CHANGE 3: Maven WAR plugin configuration -->
-            <plugin>
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                </configuration>
+            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
                 </configuration>
             </plugin>
         </plugins>

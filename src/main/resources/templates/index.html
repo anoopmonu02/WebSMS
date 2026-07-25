@@ -636,7 +636,7 @@
                 <div class="info-panel-body">
                     <div th:each="holiday : ${holidays}" th:if="${isHoliDays}" class="info-row">
                         <span class="info-name" th:text="${holiday.holidayName}">Holiday</span>
-                        <span class="info-date" th:text="${#dates.format(holiday.holidayStartDate, 'dd MMM yyyy')}">01 Jan</span>
+                        <span class="info-date" th:text="${#temporals.format(holiday.holidayStartDate, 'dd MMM yyyy')}">01 Jan</span>
                     </div>
                     <div th:if="${!isHoliDays}" class="info-empty">
                         <i class="bi bi-calendar-x" style="font-size:24px; color:#e2e8f0; display:block; margin-bottom:6px;"></i>

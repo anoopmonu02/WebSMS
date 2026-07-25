@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +26,7 @@ public interface MonthmappingRepository extends JpaRepository<MonthMapping, Long
     int currentFeeDateDifference(@Param("feeDate") String feeDate, @Param("subDate") String subDate);
 
     @Query(value = "select (month(str_to_date(:subDate,'%d/%b/%Y'))-month(:academicYearStartDate)) as DIFF", nativeQuery = true)
-    int firstMonthDifference(@Param("subDate") String subDate, @Param("academicYearStartDate") Date academicYearStartDate);
+    int firstMonthDifference(@Param("subDate") String subDate, @Param("academicYearStartDate") LocalDate academicYearStartDate);
 
     @Query(value = "select (" +
             "(select priority from month_mapping where month_master_id=(select id from month_master where month_name=:monthName) and school_id=:schoolId and academic_year_id=:academicYearId) - " +

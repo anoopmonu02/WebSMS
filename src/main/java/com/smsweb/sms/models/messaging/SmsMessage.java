@@ -56,6 +56,18 @@ public class SmsMessage {
     @JsonManagedReference
     private List<SmsConversation> conversations;
 
+    /**
+     * Files attached via the "Send Document" addition to the Notification flow
+     * (see SmsMessageAttachment javadoc). Empty/null for every existing
+     * Complaint/Activities/Notification-without-a-file row — nothing about
+     * those paths changes. LAZY on purpose: nothing that already reads
+     * SmsMessage needs this loaded, so this must never turn into an
+     * accidental N+1 on existing queries.
+     */
+    @OneToMany(mappedBy = "smsMessage", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<SmsMessageAttachment> attachments;
+
 
     @Column(nullable = false)
     private String messageType;

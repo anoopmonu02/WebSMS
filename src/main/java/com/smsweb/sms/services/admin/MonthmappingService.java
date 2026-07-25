@@ -10,7 +10,7 @@ import com.smsweb.sms.services.users.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,7 +58,7 @@ public class MonthmappingService {
         }
     }
 
-    public int firstMonthDifference(String feeDate, Date subDate){
+    public int firstMonthDifference(String feeDate, LocalDate subDate){
         log.info("Inside firstMonthDifference");
         try {
             return monthmappingRepository.firstMonthDifference(feeDate, subDate);

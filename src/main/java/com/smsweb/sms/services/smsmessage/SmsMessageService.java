@@ -1,5 +1,6 @@
 package com.smsweb.sms.services.smsmessage;
 
+import com.smsweb.sms.dto.SmsMessageAttachmentDto;
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.Employee;
 import com.smsweb.sms.models.Users.UserEntity;
@@ -7,13 +8,16 @@ import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.messaging.SmsConversation;
 import com.smsweb.sms.models.messaging.SmsMessage;
+import com.smsweb.sms.models.messaging.SmsMessageAttachment;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.repositories.smsmessage.SmsConversationRepository;
+import com.smsweb.sms.repositories.smsmessage.SmsMessageAttachmentRepository;
 import com.smsweb.sms.repositories.smsmessage.SmsMessageRepository;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
+import com.smsweb.sms.services.mobile.PushNotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +54,12 @@ public class SmsMessageService {
 
     @Autowired
     private AcademicStudentRepository academicStudentRepository;
+
+    @Autowired
+    private PushNotificationService pushNotificationService;
+
+    @Autowired
+    private SmsMessageAttachmentRepository smsMessageAttachmentRepository;
 
     public List<SmsMessage> getMessagesByStudentId(Long studentId) {
         return smsMessageRepository.findByRecipients_IdAndMessageType(studentId, SmsMessage.MESSAGE_TYPE_COMPLAINT);
@@ -84,7 +95,40 @@ public class SmsMessageService {
         if (smsMessage.getConversations() != null) {
             smsMessage.getConversations().forEach(convo -> convo.setSmsMessage(smsMessage));
         }
-        return smsMessageRepository.save(smsMessage);
+        SmsMessage saved = smsMessageRepository.save(smsMessage);
+
+        // Push a notification so the parent's phone lights up immediately
+        // instead of only updating on the next time they happen to open the
+        // app. Covers complaints (Issues menu) AND every existing
+        // MESSAGE_TYPE_NOTIFICATION flow that already goes through this same
+        // method — general notices (SmsMessageController.sendNotification),
+        // absent-student notices (StudentService.sendAbsentStudentNotifications),
+        // birthday notices, and monthly fee reminders (sendFeeReminders,
+        // above) — all get pushed for free without touching those callers.
+        // No-ops safely if Firebase isn't configured (see
+        // PushNotificationService/FirebaseConfig) or if there are no
+        // recipients/conversations — never blocks the save.
+        boolean isComplaint    = SmsMessage.MESSAGE_TYPE_COMPLAINT.equals(saved.getMessageType());
+        boolean isNotification = SmsMessage.MESSAGE_TYPE_NOTIFICATION.equals(saved.getMessageType());
+        if (isComplaint || isNotification) {
+            String body = (saved.getConversations() != null && !saved.getConversations().isEmpty())
+                    ? saved.getConversations().get(0).getContent()
+                    : "";
+            // Additive only — every existing caller (fee reminders, birthday
+            // notices, absent notices, complaints, general notices without a
+            // file) has a null/empty attachments list, so this never changes
+            // their push body.
+            if (saved.getAttachments() != null && !saved.getAttachments().isEmpty()) {
+                body += (body.isEmpty() ? "" : "\n") + "📎 " + saved.getAttachments().size()
+                        + (saved.getAttachments().size() == 1 ? " attachment" : " attachments");
+            }
+            String pushType = isComplaint
+                    ? PushNotificationService.TYPE_COMPLAINT
+                    : PushNotificationService.TYPE_NOTIFICATION;
+            pushNotificationService.sendToStudents(saved.getRecipients(), saved.getSmsHeading(), body, pushType);
+        }
+
+        return saved;
     }
 
     /** See SmsMessageRepository.existsTodaysMessageForStudentAndHeading — dedup guard for the daily birthday job. */
@@ -141,10 +185,39 @@ public class SmsMessageService {
     }*/
 
 
+    /** Used by SmsMessageController.getAttachment() to serve one file. */
+    public Optional<SmsMessageAttachment> findAttachmentById(Long id) {
+        log.info("Inside findAttachmentById");
+        return smsMessageAttachmentRepository.findById(id);
+    }
+
+    /**
+     * One batch query for every message's attachments, grouped in-memory —
+     * not one query per row, same convention used elsewhere in this app for
+     * N+1 avoidance (see FamilyAccountService.getAllMobileUserRows()).
+     * Shared by both the admin-web notification DTO builder below and the
+     * mobile /api/v1/notifications endpoint (MobileNotificationController).
+     */
+    public Map<Long, List<SmsMessageAttachment>> getAttachmentsGroupedByMessageId(List<Long> messageIds) {
+        Map<Long, List<SmsMessageAttachment>> attachmentsByMessageId = new HashMap<>();
+        if (messageIds == null || messageIds.isEmpty()) {
+            return attachmentsByMessageId;
+        }
+        for (SmsMessageAttachment att : smsMessageAttachmentRepository.findAllBySmsMessage_IdInOrderByIdAsc(messageIds)) {
+            attachmentsByMessageId
+                    .computeIfAbsent(att.getSmsMessage().getId(), k -> new ArrayList<>())
+                    .add(att);
+        }
+        return attachmentsByMessageId;
+    }
+
     public List<SmsNotificationDto> getNotificationDtosByStudentId(Long studentId) {
         log.info("Inside getNotificationDtosByStudentId");
         List<SmsMessage> messages = smsMessageRepository.findByRecipientId(studentId);
         List<SmsNotificationDto> dtos = new ArrayList<>();
+
+        List<Long> messageIds = messages.stream().map(SmsMessage::getId).collect(Collectors.toList());
+        Map<Long, List<SmsMessageAttachment>> attachmentsByMessageId = getAttachmentsGroupedByMessageId(messageIds);
 
         for (SmsMessage msg : messages) {
             SmsNotificationDto dto = new SmsNotificationDto();
@@ -175,6 +248,21 @@ public class SmsMessageService {
             }
 
             dto.setSmsDate(msg.getCreatedAt());
+
+            List<SmsMessageAttachment> msgAttachments = attachmentsByMessageId.getOrDefault(msg.getId(), Collections.emptyList());
+            if (!msgAttachments.isEmpty()) {
+                dto.setAttachments(msgAttachments.stream().map(att -> {
+                    SmsMessageAttachmentDto attDto = new SmsMessageAttachmentDto();
+                    attDto.setId(att.getId());
+                    attDto.setOriginalFileName(att.getOriginalFileName());
+                    attDto.setContentType(att.getContentType());
+                    attDto.setImage(att.isImage());
+                    attDto.setFileSize(att.getFileSize());
+                    attDto.setUrl("message/attachment/" + att.getId());
+                    return attDto;
+                }).collect(Collectors.toList()));
+            }
+
             dtos.add(dto);
         }
         return dtos;

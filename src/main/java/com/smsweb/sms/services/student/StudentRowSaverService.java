@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
@@ -120,11 +122,13 @@ public class StudentRowSaverService {
         }
 
         // ── DOB ───────────────────────────────────────────────────────────────
-        Date dob = null;
+        // Parsed straight to LocalDate — no java.util.Date/Calendar involved, so
+        // there's no timezone conversion for a DB round-trip to shift by a day.
+        LocalDate dob = null;
         if (importRow.getDobStr() != null) {
             try {
-                dob = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH)
-                        .parse(importRow.getDobStr());
+                dob = LocalDate.parse(importRow.getDobStr(),
+                        DateTimeFormatter.ofPattern("dd/MMM/yyyy", Locale.ENGLISH));
             } catch (Exception ignored) { /* saved as null */ }
         }
 

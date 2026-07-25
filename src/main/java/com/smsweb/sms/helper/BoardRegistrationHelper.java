@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -101,9 +100,9 @@ public class BoardRegistrationHelper {
         }
 
         if (s.getDob() != null) {
-            row.put("DD", new SimpleDateFormat("dd").format(s.getDob()));
-            row.put("MM", new SimpleDateFormat("MM").format(s.getDob()));
-            row.put("YYYY", new SimpleDateFormat("yyyy").format(s.getDob()));
+            row.put("DD", String.format("%02d", s.getDob().getDayOfMonth()));
+            row.put("MM", String.format("%02d", s.getDob().getMonthValue()));
+            row.put("YYYY", String.valueOf(s.getDob().getYear()));
         } else {
             row.put("DD", "");
             row.put("MM", "");

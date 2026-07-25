@@ -701,7 +701,7 @@ public class StudentService {
                     String content =
                             "Dear parent, your child " + studentName + " of class " + gradeName
                                     + " is absent on " + formattedDate + ". Please send your child regularly.\n"
-                                    + "प्रिय अभिभावक आपका पाल्य " + studentName + " कक्षा " + gradeName
+                                    + "प्रिय अभिभावक आपका पाल्य/पाल्या " + studentName + " कक्षा " + gradeName
                                     + " दिनांक " + formattedDate + " को अनुपस्थित है। कृपया अपने बच्चे को नियमित रूप से विद्यालय भेजें।";
 
                     SmsConversation conversation = new SmsConversation();
@@ -761,8 +761,11 @@ public class StudentService {
                 return;
             }
 
+            // "Today" computed explicitly in IST — see javadoc on findTodaysBirthdayAcademicStudents()
+            // for why (relying on the DB's CURRENT_DATE risked firing this a day early/late).
+            String todayMonthDay = LocalDate.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MM-dd"));
             List<AcademicStudent> birthdayStudents = academicStudentRepository
-                    .findTodaysBirthdayAcademicStudents(school.getId(), academic.getId(), "Active");
+                    .findTodaysBirthdayAcademicStudents(school.getId(), academic.getId(), "Active", todayMonthDay);
             if (birthdayStudents == null || birthdayStudents.isEmpty()) return;
 
             String schoolName = school.getSchoolName() != null ? school.getSchoolName() : "";
@@ -1379,11 +1382,17 @@ public class StudentService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
         List<String[]> dataList = new ArrayList<>();
         try{
+            // "Today" computed explicitly in IST and passed to the query — see javadoc on
+            // findTodaysBirthdays() for why (CURDATE() was returning tomorrow's date).
+            String todayMonthDay = LocalDate.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MM-dd"));
             // Today's birthdays only — also returns grade and section
-            List<Object[]> stuDobList = academicStudentRepository.findTodaysBirthdays(school, academic, "Active");
+            List<Object[]> stuDobList = academicStudentRepository.findTodaysBirthdays(school, academic, "Active", todayMonthDay);
             if(!stuDobList.isEmpty()){
                 for(Object[] dd : stuDobList){
-                    LocalDate dob = ((Date) dd[0]).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    // dob is now a plain SQL DATE column, returned as java.sql.Date — no
+                    // timezone conversion involved (java.sql.Date doesn't even support
+                    // toInstant()), so this is a direct, unambiguous conversion.
+                    LocalDate dob = ((java.sql.Date) dd[0]).toLocalDate();
                     String formattedDob = dob.format(formatter);
                     String studentName = (String) dd[1];
                     String gradeName   = dd[2] != null ? (String) dd[2] : "";

@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class BirthCertificateService {
 
     private static final Logger log = LoggerFactory.getLogger(BirthCertificateService.class);
-    private static final SimpleDateFormat DOB_FORMAT = new SimpleDateFormat("dd MMM, yyyy");
+    private static final DateTimeFormatter DOB_FORMAT = DateTimeFormatter.ofPattern("dd MMM, yyyy");
 
     private final AcademicStudentService academicStudentService;
     private final StudentRegionalDetailRepository regionalDetailRepository;
@@ -73,7 +73,7 @@ public class BirthCertificateService {
         dto.setNationality(student.getNationality());
         dto.setReligion(student.getReligion());
         dto.setRegistrationNo(student.getRegistrationNo());
-        dto.setDob(student.getDob() != null ? DOB_FORMAT.format(student.getDob()) : null);
+        dto.setDob(student.getDob() != null ? student.getDob().format(DOB_FORMAT) : null);
         dto.setClassSrNo(as.getClassSrNo());
         dto.setGradeName(as.getGrade() != null ? as.getGrade().getGradeName() : null);
         dto.setSectionName(as.getSection() != null ? as.getSection().getSectionName() : null);
