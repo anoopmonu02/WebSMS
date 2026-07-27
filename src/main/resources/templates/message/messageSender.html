@@ -292,10 +292,11 @@
                     <!-- Attachments (optional) -->
                     <div class="form-group mt-3">
                         <label for="notificationAttachments" class="form-label">
-                            Attachments <span class="text-muted small">(optional — images, PDF, Word, Excel, PowerPoint; max 10MB each)</span>
+                            Attachments <span class="text-muted small">(optional — images max 1MB each)</span>
                         </label>
                         <input type="file" class="form-control" id="notificationAttachments" multiple
-                               accept="image/jpeg,image/png,.jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                               accept="image/jpeg,image/png,.jpg,.jpeg,.png,">
+                        <!--accept="image/jpeg,image/png,.jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">-->
                         <div id="notificationAttachmentList" class="small text-muted mt-1"></div>
                     </div>
 
@@ -1072,10 +1073,10 @@
             const files = fileInput ? Array.from(fileInput.files || []) : [];
             // 10MB client-side check mirrors the server's cap — catches an
             // oversized file before upload instead of after a wasted round trip.
-            const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+            const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
             for (const f of files) {
                 if (f.size > MAX_ATTACHMENT_BYTES) {
-                    errorDiv.textContent = `"${f.name}" exceeds the 10MB limit.`;
+                    errorDiv.textContent = `"${f.name}" exceeds the 2MB limit.`;
                     errorDiv.classList.remove("d-none");
                     return;
                 }

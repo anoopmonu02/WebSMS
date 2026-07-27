@@ -138,9 +138,11 @@ public class WebSecurityConfig {
                 // on the very first page load and the first form POST silently fails CSRF.
                 .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .authorizeHttpRequests(requests -> requests
-                        // Public assets
-                        .requestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**",
-                                "/images/students/**", "/images/employees/**").permitAll()
+                        // Public assets (classpath:/static/images — logos, icons, etc.)
+                        // NOTE: student/employee photos are NOT under here — they're served
+                        // by the authenticated /student/images/{filename} and
+                        // /employee/images/{filename} endpoints instead (see MvcConfig).
+                        .requestMatchers("/images/**", "/css/**", "/js/**", "/fonts/**").permitAll()
                         .requestMatchers("/auth/forgot-password", "/auth/reset-password").permitAll()
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/error", "/error/**").permitAll()

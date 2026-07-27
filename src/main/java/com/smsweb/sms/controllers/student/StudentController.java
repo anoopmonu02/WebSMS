@@ -31,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +43,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -253,17 +257,39 @@ public class StudentController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")
-    public Resource getImage(@PathVariable("filename") String filename) {
+    public ResponseEntity<Resource> getImage(@PathVariable("filename") String filename) {
         log.info("Inside getImage");
-        log.info("Inside getImage");
-        try {
-            String imagePath = studentImageDirectory + "/" + filename;
-            Resource resource = new FileSystemResource(imagePath);
-            return resource;
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Could not read file: " + filename, e);
+        // Strip everything except letters, digits, spaces, hyphens, underscores, and dots.
+        // Blocks path traversal attempts like ../../etc/passwd or %2F encoded variants,
+        // while allowing spaces — FileHandleHelper.sanitizeFileName() keeps spaces in
+        // saved filenames (e.g. from an original name like "Screenshot ... AM.png"),
+        // so this must accept the same character set or legitimate files 404.
+        String safeName = filename.replaceAll("[^a-zA-Z0-9._ -]", "");
+        if (safeName.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            File base = new File(studentImageDirectory).getCanonicalFile();
+            File file = new File(base, safeName).getCanonicalFile();
+
+            // Double-lock: even if the sanitised name somehow resolves outside the
+            // images folder, the canonical path check blocks it.
+            if (!file.getPath().startsWith(base.getPath() + File.separator)) {
+                log.warn("Path traversal attempt blocked: requested={} resolved={}", filename, file.getPath());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok(new FileSystemResource(file));
+
+        } catch (IOException e) {
+            log.error("Error resolving student image path: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

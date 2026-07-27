@@ -106,7 +106,7 @@
 
                 <div class="col-md-4">
                     <div th:if="${student.pic!=null}">
-                        <img th:src="@{'/images/students/'+ *{student.pic}}" width="100px" height="140px"/>&nbsp;
+                        <img th:src="@{'/student/images/'+ *{student.pic}}" width="100px" height="140px"/>&nbsp;
                     </div>
                     <div th:if="not ${student.pic!=null}">
                         &nbsp;
@@ -382,7 +382,7 @@
             let initialSelectedState = $('#province').val();
             let initialSelectedNewCity = $('#hiddencity').val();
             /*<![CDATA[*/
-            let initialSelectedCity = [[${student}]] ? '[[${student.city}]]' : '';
+            let initialSelectedCity = [[${student != null}]] ? '[[${student.city}]]' : '';
             /*]]>*/
             console.log("initialSelectedState:> "+initialSelectedState);
             console.log("initialSelectedNewCity:> "+initialSelectedNewCity);

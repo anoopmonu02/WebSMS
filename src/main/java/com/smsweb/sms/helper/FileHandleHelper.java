@@ -207,7 +207,7 @@ public class FileHandleHelper {
                 if(isSizeOrTypeValid){
                     //String fileFormatName = new SimpleDateFormat(FILE_NAME_FORMAT_PREFIX).format(new Date());
                     String fileFormatName = UUID.randomUUID().toString();
-                    String imageFileName = fileFormatName + "_" + imageFile.getOriginalFilename();
+                    String imageFileName = fileFormatName + "_" + sanitizeFileName(imageFile.getOriginalFilename());
                     if(imageFolderName.equalsIgnoreCase("school")){
                         Path savedImageFile = saveImageInDirectory(SCHOOL_IMG_FOLDER_PATH, imageFileName, imageFile);
                         return imageFileName;
@@ -234,6 +234,36 @@ public class FileHandleHelper {
             fileName = "Failed to save the image: "+e.getLocalizedMessage();
         }
         return fileName;
+    }
+
+    /**
+     * Strips a client-supplied original filename down to safe characters
+     * before it's used to build a stored filename / written to the DB.
+     *
+     * Without this, an original filename containing unusual Unicode — e.g.
+     * the narrow no-break space macOS puts before AM/PM in auto-generated
+     * screenshot names like "Screenshot 2024-01-15 at 10.30.15 AM.png" —
+     * can fail to insert into a DB column that isn't utf8mb4, and characters
+     * like ':' are outright illegal in Windows file paths (this app's
+     * storage folders are configured as plain Windows paths in production,
+     * e.g. C:/SMSAPP/data/images/students).
+     *
+     * Keeps letters, digits, dot, hyphen, underscore and space; everything
+     * else becomes '_'. Falls back to "file" if nothing usable remains.
+     */
+    private String sanitizeFileName(String originalFileName) {
+        if (originalFileName == null || originalFileName.isBlank()) {
+            return "file";
+        }
+        // Keep just the last path segment in case the browser ever sends a
+        // full path rather than a bare filename.
+        String name = originalFileName.replace("\\", "/");
+        int lastSlash = name.lastIndexOf('/');
+        if (lastSlash >= 0) {
+            name = name.substring(lastSlash + 1);
+        }
+        String sanitized = name.replaceAll("[^a-zA-Z0-9._ -]", "_").trim();
+        return sanitized.isEmpty() ? "file" : sanitized;
     }
 
     private Path saveImageInDirectory(String folderPath, String imageFileName, MultipartFile imageFile) throws IOException {
