@@ -301,7 +301,7 @@
                 // Photo — use context path so popup window resolves URL correctly
                 let photoHtml = '<div class="no-photo">No Photo</div>';
                 if (as.pic) {
-                    const imgUrl = contextPath + 'images/students/' + as.pic;
+                    const imgUrl = contextPath + 'student/images/' + as.pic;
                     photoHtml = `<img src="${imgUrl}" alt="Photo"
                                       onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                                  <div class="no-photo" style="display:none;">No Photo</div>`;

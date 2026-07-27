@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -292,16 +294,39 @@ public class EmployeeController extends BaseController {
 
     @CheckAccess(screen = "EMPLOYEE", type = AccessType.VIEW)
     @GetMapping("/images/{filename}")
-    public Resource getImage(@PathVariable("filename") String filename) {
+    public ResponseEntity<Resource> getImage(@PathVariable("filename") String filename) {
         log.info("Inside getImage");
-        try {
-            String imagePath = employeeImageDirectory + "/" + filename;
-            Resource resource = new FileSystemResource(imagePath);
-            return resource;
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Could not read file: " + filename, e);
+        // Strip everything except letters, digits, spaces, hyphens, underscores, and dots.
+        // Blocks path traversal attempts like ../../etc/passwd or %2F encoded variants,
+        // while allowing spaces — FileHandleHelper.sanitizeFileName() keeps spaces in
+        // saved filenames (e.g. from an original name like "Screenshot ... AM.png"),
+        // so this must accept the same character set or legitimate files 404.
+        String safeName = filename.replaceAll("[^a-zA-Z0-9._ -]", "");
+        if (safeName.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            File base = new File(employeeImageDirectory).getCanonicalFile();
+            File file = new File(base, safeName).getCanonicalFile();
+
+            // Double-lock: even if the sanitised name somehow resolves outside the
+            // images folder, the canonical path check blocks it.
+            if (!file.getPath().startsWith(base.getPath() + File.separator)) {
+                log.warn("Path traversal attempt blocked: requested={} resolved={}", filename, file.getPath());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok(new FileSystemResource(file));
+
+        } catch (IOException e) {
+            log.error("Error resolving employee image path: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

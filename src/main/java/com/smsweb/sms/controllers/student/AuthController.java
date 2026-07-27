@@ -3,6 +3,7 @@ package com.smsweb.sms.controllers.student;
 import com.smsweb.sms.models.Users.PasswordResetToken;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.globalaccess.EmailService;
+import com.smsweb.sms.services.users.PasswordResetAttemptService;
 import com.smsweb.sms.services.users.PasswordResetTokenService;
 import com.smsweb.sms.services.users.UserService;
 import org.slf4j.Logger;
@@ -29,6 +30,9 @@ public class AuthController {
     private PasswordResetTokenService passwordResetTokenService;
 
     @Autowired
+    private PasswordResetAttemptService passwordResetAttemptService;
+
+    @Autowired
     private EmailService emailService;
 
     @Autowired
@@ -40,12 +44,33 @@ public class AuthController {
         return "forgot-password";  // This should be the name of your template
     }
 
+    // Always the same wording whether the email is registered or not, and
+    // whether sending actually succeeded — telling the caller which case
+    // occurred would let this form be used to enumerate valid accounts.
+    private static final String GENERIC_FORGOT_PASSWORD_MESSAGE =
+            "If an account exists for that email address, a password reset link has been sent.";
+
     @PostMapping("/forgot-password")
     public String forgotPassword(@RequestParam("email") String email, Model model, HttpServletRequest request) {
         log.info("Inside forgotPassword");
+
+        if (email == null || email.isBlank()) {
+            model.addAttribute("error", "Please enter your email address.");
+            return "forgot-password";
+        }
+
+        // Throttle — previously unlimited reset requests were possible for the
+        // same email with no slowdown (mailbox-spam risk).
+        if (passwordResetAttemptService.isLocked(email)) {
+            model.addAttribute("error", "Too many requests for this email. Please try again later.");
+            return "forgot-password";
+        }
+        passwordResetAttemptService.recordAttempt(email);
+
         UserEntity user = userService.findByEmail(email);
         if (user == null) {
-            model.addAttribute("error", "No user associated with this email address.");
+            log.info("forgotPassword: no account for submitted email — returning generic response");
+            model.addAttribute("message", GENERIC_FORGOT_PASSWORD_MESSAGE);
             return "forgot-password";
         }
 
@@ -64,13 +89,12 @@ public class AuthController {
         String resetLink = baseUrl + "/auth/reset-password?token=" + newToken.getToken();
         try {
             emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
-            model.addAttribute("message", "Password reset link has been sent to your email address.");
         } catch (Exception e) {
-            // Token was created — delete it so the user can try again cleanly
+            // Token was created — delete it so a legitimate retry starts clean.
             passwordResetTokenService.delete(newToken);
             log.error("Password reset email failed for {}: {}", email, e.getMessage(), e);
-            model.addAttribute("error", "Could not send reset email: " + e.getMessage());
         }
+        model.addAttribute("message", GENERIC_FORGOT_PASSWORD_MESSAGE);
         return "forgot-password";
     }
 

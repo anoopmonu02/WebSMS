@@ -57,8 +57,21 @@ public class PushNotificationService {
         }
     }
 
-    public void unregisterDevice(String token) {
+    /**
+     * Unregisters a device token — but only if it currently belongs to the
+     * calling student. Without this check, any authenticated mobile user
+     * could unregister an arbitrary device token (e.g. a leaked/observed
+     * one) and silently kill another family's push notifications.
+     */
+    public void unregisterDevice(String token, Long academicStudentId) {
         if (token == null || token.isBlank()) return;
+        FcmDeviceToken row = tokenRepository.findByToken(token).orElse(null);
+        if (row == null) return; // already gone — nothing to do
+        if (row.getAcademicStudent() == null
+                || !row.getAcademicStudent().getId().equals(academicStudentId)) {
+            log.warn("unregisterDevice: token does not belong to academicStudentId={} — ignored", academicStudentId);
+            return;
+        }
         tokenRepository.deleteByToken(token);
     }
 

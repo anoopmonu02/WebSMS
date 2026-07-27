@@ -101,9 +101,18 @@ public class MobileNotificationController {
     // for the account that just signed out.
 
     @PostMapping("/unregister-device")
-    public ResponseEntity<ApiResponse<Void>> unregisterDevice(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiResponse<Void>> unregisterDevice(
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request) {
         log.info("Inside unregisterDevice");
-        pushNotificationService.unregisterDevice(body.get("token"));
+
+        Long academicStudentId = (Long) request.getAttribute("academicStudentId");
+        if (academicStudentId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Not authenticated"));
+        }
+
+        pushNotificationService.unregisterDevice(body.get("token"), academicStudentId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
