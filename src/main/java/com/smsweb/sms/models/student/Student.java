@@ -26,7 +26,11 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "students")  // Specifies the table name for Student entities
+@Table(name = "students", indexes = {
+        // Backs PsrnService.generateNextPsrn()'s MAX(psrn) WHERE school_id = ?
+        // lookup so it stays a fast index seek regardless of table size.
+        @Index(name = "idx_students_school_psrn", columnList = "school_id, psrn")
+})  // Specifies the table name for Student entities
 public class Student { // Extend UserEntity
 
     @Id
@@ -47,6 +51,12 @@ public class Student { // Extend UserEntity
 
     @DisplayLabel("Registration No")
     private String registrationNo; // Auto-generated
+
+    // Per-school sequential registration number — see PsrnService. Nullable
+    // (older/unbackfilled rows may not have one yet), but unique whenever set:
+    // MySQL's unique index permits multiple NULLs, so this doesn't block that.
+    @Column(name = "psrn", unique = true)
+    private Long psrn;
 
     @CreationTimestamp
     @Column(updatable = false)

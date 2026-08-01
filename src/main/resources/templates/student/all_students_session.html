@@ -190,6 +190,7 @@
                         <th>Student Name</th>
                         <th>Father Name</th>
                         <th>Mother Name</th>
+                        <th>PSRN#</th>
                         <th>DOB</th>
                         <th>Religion</th>
                         <th>Caste</th>
@@ -243,6 +244,7 @@
                         } else{
                             notPreferredCounter++;
                         }
+                        console.log(">>>>>>"+academicStudent.student.psrn);
                         if(academicStudent.student.mobile1!=''){
                             mobileCounter++;
                         } else if(academicStudent.student.mobile1===''){
@@ -267,6 +269,7 @@
                             <td>${academicStudent.student.studentName}</td>
                             <td>${academicStudent.student.fatherName}</td>
                             <td>${academicStudent.student.motherName}</td>
+                            <td>${academicStudent.student.psrn}</td>
 
                             <td>${dob}</td>
                             <td>${academicStudent.student.religion}</td>
@@ -298,7 +301,7 @@
                     });
                     tblData+=`</tbody></table>`;
                     $("#student-collection-data").html(tblData);
-                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28];
+                    const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29];
                     const columnDefs = [{ "orderable": false, "targets": [0] }];
                     $("#studentTable").DataTable({
                         scrollX: true,

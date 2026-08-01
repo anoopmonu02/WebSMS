@@ -1,6 +1,7 @@
 package com.smsweb.sms.helper;
 
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.ExamResultSummary;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.models.student.StudentRegionalDetail;
 import org.apache.poi.ss.usermodel.*;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -129,6 +132,87 @@ public class ExcelFileHandler {
             return null;
         }
         finally {
+            workbook.close();
+            out.flush();
+            out.close();
+        }
+    }
+
+    /**
+     * Admin/SuperAdmin-only bulk-correct download — same layout as the
+     * "G_marks_entry" sample file, except the marks columns are pre-filled
+     * with each student's CURRENT saved result for this exam (blank if none
+     * exists yet, exactly like the normal blank sample). This lets an admin
+     * see and edit real values instead of re-typing from scratch, and lets
+     * the re-upload distinguish "unchanged" rows from actual corrections.
+     *
+     * existingResultsByStudentId holds at most one row per student — if a
+     * student has more than one result for this exam (a genuine resit on a
+     * different date), the latest by exam result date is used here. This
+     * only affects what's pre-filled; the admin can still edit the date
+     * before re-upload to target a different existing row if needed.
+     */
+    public ByteArrayInputStream LoadCurrentMarksForCorrectionFile(List<AcademicStudent> list, String[] medium_grade_section, String examName, Map<Long, ExamResultSummary> existingResultsByStudentId) throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
+        try {
+            Sheet sheet = workbook.createSheet("Student List");
+
+            Row row = sheet.createRow(0);
+            int colCount = 0;
+            for (int i = 0; i < GRADE_HEADER.length; i++) {
+                Cell keyCell = row.createCell(colCount);
+                keyCell.setCellValue(GRADE_HEADER[i]);
+                colCount++;
+                Cell valueCell = row.createCell(colCount);
+                valueCell.setCellValue(medium_grade_section[i]);
+                colCount++;
+            }
+
+            row = sheet.createRow(1);
+            createSingleRow(EXAM_RESULT_SAMPLE_HEADER, 1, row);
+
+            int rowCount = 2;
+            for (AcademicStudent student : list) {
+                row = sheet.createRow(rowCount++);
+                colCount = 0;
+
+                colCount = createCell(row, colCount, student.getStudent().getStudentName());
+                colCount = createCell(row, colCount, student.getUuid().toString());
+                colCount = createCell(row, colCount, student.getStudent().getFatherName());
+                colCount = createCell(row, colCount, student.getStudent().getMotherName());
+                colCount = createCell(row, colCount, student.getStudent().getMobile1());
+                colCount = createCell(row, colCount, student.getClassSrNo());
+                colCount = createCell(row, colCount, examName);
+
+                ExamResultSummary existing = existingResultsByStudentId.get(student.getId());
+                if (existing != null) {
+                    colCount = createCell(row, colCount, existing.getExamResultDate() != null ? dateFormat.format(existing.getExamResultDate()) : "");
+                    colCount = createCell(row, colCount, existing.getTotalMarks() != null ? String.valueOf(existing.getTotalMarks()) : "");
+                    colCount = createCell(row, colCount, existing.getObtainedMarks() != null ? String.valueOf(existing.getObtainedMarks()) : "");
+                    colCount = createCell(row, colCount, existing.getPercentageMarks() != null ? String.valueOf(existing.getPercentageMarks()) : "");
+                    colCount = createCell(row, colCount, existing.getDivision() != null ? existing.getDivision() : "");
+                    colCount = createCell(row, colCount, existing.getResult() != null ? existing.getResult() : "");
+                    colCount = createCell(row, colCount, existing.getRemarks() != null ? existing.getRemarks() : "");
+                } else {
+                    // 7 blanks: Exam Result Date, Total Marks, Obtained Marks,
+                    // Percentage(%), Division, Result, Remark — must match the
+                    // 7 createCell calls in the `existing != null` branch above,
+                    // or every column after this shifts by one for students
+                    // with no saved result yet.
+                    for (int i = 0; i < 7; i++) {
+                        colCount = createCell(row, colCount, "");
+                    }
+                }
+            }
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
             workbook.close();
             out.flush();
             out.close();

@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 @Controller
 @RequestMapping("/admin")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 public class GlobalController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(GlobalController.class);
 

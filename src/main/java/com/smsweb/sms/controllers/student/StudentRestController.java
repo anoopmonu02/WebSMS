@@ -756,31 +756,15 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-file")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
-    public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file, Model model){
         log.info("Inside validateExcelDataForExamResult");
-        Map<String, Map<String, List<String[]>>> excelData = excelService.checkAndValidateExamResultData(file);
-        Map<String, List<String[]>> dataMap = new HashMap<>();
-        try{
-            for (Map.Entry<String, Map<String, List<String[]>>> outerEntry : excelData.entrySet()) {
-                String outerKey = outerEntry.getKey();
-                Map<String, List<String[]>> innerMap = outerEntry.getValue();
-
-                log.debug("Processing outer key: {}", outerKey);
-                if("success".equalsIgnoreCase(outerKey)){
-                    dataMap.put(outerKey, innerMap.get("DATA"));
-                } else{
-                    List<String[]> lst = new ArrayList<>();
-                    String[] errdata = new String[1];
-                    errdata[0] = innerMap.keySet().toArray()[0].toString();
-                    lst.add(errdata);
-                    dataMap.put(outerKey, lst);
-                }
-            }
-        }catch(Exception e){
-            e.printStackTrace();
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        Map<String, Object> result = excelService.checkAndValidateExamResultData(file, academicYear, school);
+        if(result.containsKey("error")){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
         }
-
-        return ResponseEntity.ok(dataMap);
+        return ResponseEntity.ok(result);
     }
 
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
@@ -796,6 +780,86 @@ public class StudentRestController extends BaseController {
             responseMsg = studentService.uploadExamResult(tableData, academicYear, school);
         }catch(Exception e){
             e.printStackTrace();
+        }
+        return ResponseEntity.ok(responseMsg);
+    }
+
+    // ── Admin/SuperAdmin-only bulk-correct (grade-wise upsert) ──────────────
+    // Deliberately hard-locked with @PreAuthorize rather than the flexible
+    // @CheckAccess screen-permission system, since an admin should not be
+    // able to grant this to Teacher/Staff/Accountant later — see the exam
+    // result correction design discussion. Method-level @PreAuthorize
+    // replaces (does not AND with) the class-level one above.
+
+    @PostMapping("/download-current-exam-result-file")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    public ResponseEntity<?> downloadCurrentExamResultFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
+        log.info("Inside downloadCurrentExamResultFile");
+        String fileName = "Academic_Students_Current_Exam_Result_File.xlsx";
+        try{
+            if(requestBody!=null){
+                String medium = requestBody.getOrDefault("mediumId","0");
+                String grade = requestBody.getOrDefault("gradeId","0");
+                String section = requestBody.getOrDefault("sectionId","0");
+                String examId = requestBody.getOrDefault("examId","0");
+                Long mediumId = (medium!=null && !medium.isEmpty())?Long.parseLong(medium):0;
+                Long gradeId = (grade!=null && !grade.isEmpty())?Long.parseLong(grade):0;
+                Long sectionId = (section!=null && !section.isEmpty())?Long.parseLong(section):0;
+                Long examDetailsId = (examId!=null && !examId.isEmpty())?Long.parseLong(examId):0;
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                Map<String, Object> responseMap = excelService.downloadCurrentExamResultExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), examDetailsId);
+                if(responseMap!=null && responseMap.containsKey("error")){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
+                }
+                if(responseMap!=null && responseMap.containsKey("filecreated")){
+                    ByteArrayInputStream file = (ByteArrayInputStream)responseMap.get("filecreated");
+                    InputStreamResource in = new InputStreamResource(file);
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+fileName)
+                            .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                            .body(in);
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getLocalizedMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Invalid request data");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @PostMapping("/validate-bulk-correct-exam-result")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    public ResponseEntity<?> validateBulkCorrectExamResult(@RequestParam("file") MultipartFile file, Model model){
+        log.info("Inside validateBulkCorrectExamResult");
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        Map<String, Object> result = excelService.checkAndClassifyBulkCorrectionData(file, academicYear, school);
+        if(result.containsKey("error")){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/bulk-correct-exam-result-data")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    public ResponseEntity<?> bulkCorrectExamResultData(@RequestBody Map<String, Object> payload, Model model){
+        log.info("Inside bulkCorrectExamResultData");
+        String responseMsg;
+        try{
+            School school = (School)model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            String reason = payload.get("reason") != null ? payload.get("reason").toString() : null;
+            @SuppressWarnings("unchecked")
+            List<Map<String, String>> tableData = (List<Map<String, String>>) payload.get("rows");
+            responseMsg = studentService.bulkCorrectExamResult(tableData, academicYear, school, reason);
+        }catch(Exception e){
+            e.printStackTrace();
+            responseMsg = "error#####" + e.getLocalizedMessage();
         }
         return ResponseEntity.ok(responseMsg);
     }
