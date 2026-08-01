@@ -242,14 +242,38 @@ public class FeeSubmissionService {
                 .map(mm -> mm.getMonthMaster().getId())
                 .collect(Collectors.toList());
 
+        // Same old-vs-new student exclusion already applied everywhere else
+        // fee_class_map is read for an individual student (processFeeData,
+        // getFeeDetailsBasedOnMonth, etc.): "Admission Fee" only ever applies
+        // to a genuinely new admission, "Annual Fee" only to a continuing
+        // (old) one. This method previously summed every fee-head configured
+        // for the grade with no such filter, so an old/re-admitted student's
+        // month containing "Admission Fee" showed an inflated amount here
+        // that never matched the real fee-submission calculation or receipt.
+        boolean isOldStudent = true;
+        AcademicStudent forStudent = academicStudentRepository.findById(academicStudentId).orElse(null);
+        if (forStudent != null && forStudent.getStudent() != null) {
+            Student student = forStudent.getStudent();
+            int stuCounting = academicStudentRepository.countByStudent(student);
+            isOldStudent = student.getStudentType() != null && student.getStudentType().equalsIgnoreCase("old")
+                    || stuCounting > 1;
+        }
+
         // Expected fee per month = SUM(fee_class_map.amount) across every
-        // feehead applicable that month, for this grade.
+        // feehead applicable that month, for this grade — excluding whichever
+        // of Admission Fee / Annual Fee doesn't apply to this student (see
+        // isOldStudent above).
         Map<Long, BigDecimal> amountByMonthId = new HashMap<>();
         if (!monthIds.isEmpty()) {
             List<Object[]> feeRows = feeclassmapRepository.findFeeDetailsPerMonth(
                     academicYearId, schoolId, monthIds, gradeId);
             if (feeRows != null) {
                 for (Object[] row : feeRows) {
+                    String feeHeadName = row.length > 1 && row[1] != null ? row[1].toString() : null;
+                    boolean excluded = feeHeadName != null &&
+                            ((isOldStudent && feeHeadName.equalsIgnoreCase("Admission Fee")) ||
+                                    (!isOldStudent && feeHeadName.equalsIgnoreCase("Annual Fee")));
+                    if (excluded) continue;
                     BigDecimal amt = row[0] != null ? new BigDecimal(row[0].toString()) : BigDecimal.ZERO;
                     Long mId = ((Number) row[2]).longValue();
                     amountByMonthId.merge(mId, amt, BigDecimal::add);
