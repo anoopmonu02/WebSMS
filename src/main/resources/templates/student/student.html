@@ -44,6 +44,8 @@
           <thead>
           <tr>
             <th>Student Name</th>
+            <th th:if="${hasSuperAdmin==null || !hasSuperAdmin}">Grade-Section</th>
+            <th th:if="${hasSuperAdmin==null || !hasSuperAdmin}">SR</th>
             <th>Regis. Date</th>
             <th>Mother Name</th>
             <th>Father Name</th>
@@ -71,16 +73,55 @@
   <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+        <div class="modal-header bg-danger-subtle">
+          <h5 class="modal-title text-danger-emphasis" id="deleteConfirmationModalLabel">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Remove Student
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          Are you sure you want to delete this record?
+          <p class="mb-3">You're about to remove the following student from the active list:</p>
+
+          <div class="border rounded p-3 mb-3 bg-light">
+            <div class="row gy-2">
+              <div class="col-12">
+                <small class="text-muted d-block">Student Name</small>
+                <span class="fw-semibold" id="deleteStudentName">-</span>
+              </div>
+              <div class="col-6">
+                <small class="text-muted d-block">Grade-Section</small>
+                <span class="fw-semibold" id="deleteGradeSection">-</span>
+              </div>
+              <div class="col-6">
+                <small class="text-muted d-block">SR No.</small>
+                <span class="fw-semibold" id="deleteSr">-</span>
+              </div>
+              <div class="col-6">
+                <small class="text-muted d-block">Father Name</small>
+                <span class="fw-semibold" id="deleteFatherName">-</span>
+              </div>
+              <div class="col-6">
+                <small class="text-muted d-block">Mother Name</small>
+                <span class="fw-semibold" id="deleteMotherName">-</span>
+              </div>
+              <div class="col-12">
+                <small class="text-muted d-block">Address</small>
+                <span class="fw-semibold" id="deleteAddress">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-warning d-flex align-items-start mb-0" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+            <div>
+              This student will be removed from your active student list.
+              Their fee, attendance, and exam history will be safely preserved.
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel </button>
-          <button type="button" class="btn btn-danger" id="confirmDeleteButton"><i class="bi bi-trash3-fill"></i> Delete </button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteButton"><i class="bi bi-trash3-fill"></i> Remove Student </button>
         </div>
       </div>
     </div>
@@ -97,17 +138,28 @@
       const showDetailBase  = /*[[@{/student/student/show/}]]*/ '/student/student/show/';
       const editBase        = /*[[@{/student/student/edit/}]]*/ '/student/student/edit/';
 
-      // Columns always present (indices 0-9)
-      const baseColumns = [
-        {
-          data: 'studentName',
-          render: function(data, type, row) {
-            if (type === 'display') {
-              return '<a href="' + showDetailBase + row.uuid + '">' + (data || '') + '</a>';
-            }
-            return data || '';
+      // Student Name column — present for both roles, always first.
+      const studentNameColumn = {
+        data: 'studentName',
+        render: function(data, type, row) {
+          if (type === 'display') {
+            return '<a href="' + showDetailBase + row.uuid + '">' + (data || '') + '</a>';
           }
-        },
+          return data || '';
+        }
+      };
+
+      // Grade-Section/SR — non-superadmin only (requires the academic-year
+      // join that's deliberately skipped for superadmin), inserted right
+      // after Student Name.
+      const gradeSectionColumns = [
+        { data: 'gradeSection', orderable: false },
+        { data: 'sr',           orderable: false }
+      ];
+
+      // Columns common to both roles, after Student Name (and, for
+      // non-superadmin, after Grade-Section/SR).
+      const restColumns = [
         { data: 'registrationDate' },
         { data: 'motherName' },
         { data: 'fatherName' },
@@ -119,7 +171,18 @@
         { data: 'address' }
       ];
 
-      // Actions column for non-superadmin (index 10)
+      // Escapes a value for safe use inside an HTML attribute (student names/
+      // addresses can contain quotes, ampersands, etc.).
+      const escapeAttr = function(value) {
+        return String(value == null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      };
+
+      // Actions column for non-superadmin (last column)
       const actionsColumn = {
         data: null,
         orderable: false,
@@ -128,19 +191,32 @@
           return '<a class="btn btn-primary btn-sm me-1" href="' + editBase + row.uuid + '">' +
                  '<i class="bi bi-pencil-square"></i></a>' +
                  '<a class="btn btn-danger btn-sm delete-btn" data-id="' + row.id + '" ' +
+                 'data-name="'          + escapeAttr(row.studentName)   + '" ' +
+                 'data-grade-section="' + escapeAttr(row.gradeSection)  + '" ' +
+                 'data-sr="'            + escapeAttr(row.sr)            + '" ' +
+                 'data-father="'        + escapeAttr(row.fatherName)    + '" ' +
+                 'data-mother="'        + escapeAttr(row.motherName)    + '" ' +
+                 'data-address="'       + escapeAttr(row.address)       + '" ' +
                  'data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal">' +
                  '<i class="bi bi-trash3-fill"></i></a>';
         }
       };
 
-      const columns     = hasSuperAdmin ? baseColumns : [...baseColumns, actionsColumn];
-      const exportCols  = [0,1,2,3,4,5,6,7,8,9];
+      // Superadmin layout (unchanged): studentName, ...rest (10 cols, 0-9).
+      // Non-superadmin layout: studentName, gradeSection, sr, ...rest, actions (13 cols, 0-12).
+      const columns = hasSuperAdmin
+        ? [studentNameColumn, ...restColumns]
+        : [studentNameColumn, ...gradeSectionColumns, ...restColumns, actionsColumn];
+
+      const exportCols  = hasSuperAdmin
+        ? [0,1,2,3,4,5,6,7,8,9]
+        : [0,1,2,3,4,5,6,7,8,9,10,11];
       const pageSizes   = [5, 10, 25, 50, 100];
       const pageLabels  = [5, 10, 25, 50, 100];
 
       const columnDefs = hasSuperAdmin
         ? [{ orderable: false, targets: [6,8] }]
-        : [{ orderable: false, targets: [6,8,10] }];
+        : [{ orderable: false, targets: [1,2,8,10,12] }];
 
       $('#student-list').DataTable({
         serverSide: true,
@@ -196,7 +272,14 @@
 
       // Wire up the delete modal using event delegation (rows rendered dynamically)
       $(document).on('click', '.delete-btn', function() {
-        deleteId = $(this).data('id');
+        const btn = $(this);
+        deleteId = btn.data('id');
+        $('#deleteStudentName').text(btn.data('name') || '-');
+        $('#deleteGradeSection').text(btn.data('grade-section') || '-');
+        $('#deleteSr').text(btn.data('sr') || '-');
+        $('#deleteFatherName').text(btn.data('father') || '-');
+        $('#deleteMotherName').text(btn.data('mother') || '-');
+        $('#deleteAddress').text(btn.data('address') || '-');
       });
       $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
         // Remove the btn-secondary class from each button

@@ -112,11 +112,14 @@ public class StudentController extends BaseController {
         log.info("Inside getStudentData");
         boolean superAdmin = isSuperAdminLoggedIn();
         Long schoolId = null;
+        Long academicYearId = null;
         if (!superAdmin) {
             School school = (School) model.getAttribute("school");
             schoolId = school.getId();
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            academicYearId = (academicYear != null) ? academicYear.getId() : null;
         }
-        return studentService.getStudentsPage(superAdmin, schoolId, draw, start, length, search, sortCol, sortDir);
+        return studentService.getStudentsPage(superAdmin, schoolId, academicYearId, draw, start, length, search, sortCol, sortDir);
     }
 
     private boolean isSuperAdminLoggedIn(){

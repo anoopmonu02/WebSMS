@@ -208,25 +208,28 @@ public class ExcelService {
         try{
             for(String[] rowData : excelData){
                 if("exam_file".equalsIgnoreCase(fileName)){
-                    //if called from exam result
-                    //rowData[6-12]
-                    if (rowData.length < 15) {
-                        rowData = Arrays.copyOf(rowData, 15);
+                    // Columns: 0=Student Name,1=ID#,2=PSRN,3=Father Name,
+                    // 4=Mother Name,5=Mobile,6=SR No,7=Exam Name,8=Exam Result
+                    // Date,9=Total Marks,10=Obtained Marks,11=Percentage(%),
+                    // 12=Division,13=Result,14=Remark,15=status flag (below).
+                    // rowData[7-13] are the mandatory fields.
+                    if (rowData.length < 16) {
+                        rowData = Arrays.copyOf(rowData, 16);
                     }
                     boolean hasMissing = false;
-                    for (int i = 6; i <= 12; i++) {
+                    for (int i = 7; i <= 13; i++) {
                         if (i >= rowData.length || rowData[i] == null || rowData[i].trim().isEmpty()) {
                             hasMissing = true;
                             break;
                         }
                     }
-                    if(rowData[7]!=null && rowData[7].trim()!=""){
-                        rowData[7] = parseAndFormatDate(rowData[7]);
+                    if(rowData[8]!=null && rowData[8].trim()!=""){
+                        rowData[8] = parseAndFormatDate(rowData[8]);
                     }
                     if (hasMissing) {
-                        rowData[14] = "error#####Failed: Mandatory fields for exam result are missing.";
+                        rowData[15] = "error#####Failed: Mandatory fields for exam result are missing.";
                     } else {
-                        rowData[14] = "success#####Passed";
+                        rowData[15] = "success#####Passed";
                     }
                 } else{
                     if (rowData.length < 7) {
@@ -418,10 +421,13 @@ public class ExcelService {
 
             // All rows in one upload share the same exam (enforced again at
             // save time in StudentService.uploadExamResult) — resolve it once.
+            // Column 7 = Exam Name (see readSRExcelDataAndValidate's
+            // exam_file column map — PSRN at index 2 shifted everything
+            // after ID# by +1).
             String examName = null;
             for(String[] row : excelData){
-                if(row.length > 6 && row[6] != null && !row[6].trim().isEmpty()){
-                    examName = row[6].trim();
+                if(row.length > 7 && row[7] != null && !row[7].trim().isEmpty()){
+                    examName = row[7].trim();
                     break;
                 }
             }
@@ -453,27 +459,28 @@ public class ExcelService {
                 rowMap.put("rowIndex", rowIndex);
                 rowMap.put("studentName", cell(row, 0));
                 rowMap.put("idNo", cell(row, 1));
-                rowMap.put("fatherName", cell(row, 2));
-                rowMap.put("motherName", cell(row, 3));
-                rowMap.put("mobile", cell(row, 4));
-                rowMap.put("sr", cell(row, 5));
-                rowMap.put("examName", cell(row, 6));
-                rowMap.put("examResultDate", cell(row, 7));
-                rowMap.put("totalMarks", cell(row, 8));
-                rowMap.put("obtainedMarks", cell(row, 9));
-                rowMap.put("percentage", cell(row, 10));
-                rowMap.put("division", cell(row, 11));
-                rowMap.put("result", cell(row, 12));
-                rowMap.put("remark", cell(row, 13));
+                rowMap.put("psrn", cell(row, 2));
+                rowMap.put("fatherName", cell(row, 3));
+                rowMap.put("motherName", cell(row, 4));
+                rowMap.put("mobile", cell(row, 5));
+                rowMap.put("sr", cell(row, 6));
+                rowMap.put("examName", cell(row, 7));
+                rowMap.put("examResultDate", cell(row, 8));
+                rowMap.put("totalMarks", cell(row, 9));
+                rowMap.put("obtainedMarks", cell(row, 10));
+                rowMap.put("percentage", cell(row, 11));
+                rowMap.put("division", cell(row, 12));
+                rowMap.put("result", cell(row, 13));
+                rowMap.put("remark", cell(row, 14));
 
                 String status = "READY";
                 String reason = "";
 
                 List<String> missing = new ArrayList<>();
-                for(int i = 6; i <= 12; i++){
+                for(int i = 7; i <= 13; i++){
                     String v = cell(row, i);
                     if(v == null || v.trim().isEmpty()){
-                        missing.add(requiredLabels[i-6]);
+                        missing.add(requiredLabels[i-7]);
                     }
                 }
                 if(!missing.isEmpty()){
@@ -501,8 +508,8 @@ public class ExcelService {
                         // Long.parseLong on these same two fields, so validation must accept
                         // exactly what save will accept, or a row could show "Ready" here and
                         // then fail at save time.
-                        Long total = parseLongOrNull(cell(row, 8));
-                        Long obtained = parseLongOrNull(cell(row, 9));
+                        Long total = parseLongOrNull(cell(row, 9));
+                        Long obtained = parseLongOrNull(cell(row, 10));
                         if(total == null || obtained == null){
                             status = "ISSUE";
                             reason = "Total/obtained marks must be whole numbers";
@@ -510,10 +517,10 @@ public class ExcelService {
                             status = "ISSUE";
                             reason = "Obtained marks exceed total marks";
                         } else {
-                            // row[7] is already normalized to dd/MMM/yyyy by
+                            // row[8] is already normalized to dd/MMM/yyyy by
                             // readSRExcelDataAndValidate() above, matching the
                             // key format built from the DB dates.
-                            String rowDateKey = academicStudent.getId() + "|" + cell(row, 7);
+                            String rowDateKey = academicStudent.getId() + "|" + cell(row, 8);
                             if(existingStudentDateKeys.contains(rowDateKey)){
                                 status = "DUPLICATE";
                                 reason = "Result already saved for this student on this exam and date";
@@ -581,10 +588,12 @@ public class ExcelService {
                 return result;
             }
 
+            // Column 7 = Exam Name (PSRN at index 2 shifted everything after
+            // ID# by +1 — see readSRExcelDataAndValidate's exam_file map).
             String examName = null;
             for(String[] row : excelData){
-                if(row.length > 6 && row[6] != null && !row[6].trim().isEmpty()){
-                    examName = row[6].trim();
+                if(row.length > 7 && row[7] != null && !row[7].trim().isEmpty()){
+                    examName = row[7].trim();
                     break;
                 }
             }
@@ -616,18 +625,19 @@ public class ExcelService {
                 rowMap.put("rowIndex", rowIndex);
                 rowMap.put("studentName", cell(row, 0));
                 rowMap.put("idNo", cell(row, 1));
-                rowMap.put("fatherName", cell(row, 2));
-                rowMap.put("motherName", cell(row, 3));
-                rowMap.put("mobile", cell(row, 4));
-                rowMap.put("sr", cell(row, 5));
-                rowMap.put("examName", cell(row, 6));
-                rowMap.put("examResultDate", cell(row, 7));
-                rowMap.put("totalMarks", cell(row, 8));
-                rowMap.put("obtainedMarks", cell(row, 9));
-                rowMap.put("percentage", cell(row, 10));
-                rowMap.put("division", cell(row, 11));
-                rowMap.put("result", cell(row, 12));
-                rowMap.put("remark", cell(row, 13));
+                rowMap.put("psrn", cell(row, 2));
+                rowMap.put("fatherName", cell(row, 3));
+                rowMap.put("motherName", cell(row, 4));
+                rowMap.put("mobile", cell(row, 5));
+                rowMap.put("sr", cell(row, 6));
+                rowMap.put("examName", cell(row, 7));
+                rowMap.put("examResultDate", cell(row, 8));
+                rowMap.put("totalMarks", cell(row, 9));
+                rowMap.put("obtainedMarks", cell(row, 10));
+                rowMap.put("percentage", cell(row, 11));
+                rowMap.put("division", cell(row, 12));
+                rowMap.put("result", cell(row, 13));
+                rowMap.put("remark", cell(row, 14));
                 rowMap.put("oldTotalMarks", null);
                 rowMap.put("oldObtainedMarks", null);
                 rowMap.put("oldPercentage", null);
@@ -639,10 +649,10 @@ public class ExcelService {
                 String reason = "";
 
                 List<String> missing = new ArrayList<>();
-                for(int i = 6; i <= 12; i++){
+                for(int i = 7; i <= 13; i++){
                     String v = cell(row, i);
                     if(v == null || v.trim().isEmpty()){
-                        missing.add(requiredLabels[i-6]);
+                        missing.add(requiredLabels[i-7]);
                     }
                 }
                 if(!missing.isEmpty()){
@@ -665,8 +675,8 @@ public class ExcelService {
                         status = "ISSUE";
                         reason = "Examination '" + examName + "' not found for this school/academic year";
                     } else {
-                        Long total = parseLongOrNull(cell(row, 8));
-                        Long obtained = parseLongOrNull(cell(row, 9));
+                        Long total = parseLongOrNull(cell(row, 9));
+                        Long obtained = parseLongOrNull(cell(row, 10));
                         if(total == null || obtained == null){
                             status = "ISSUE";
                             reason = "Total/obtained marks must be whole numbers";
@@ -674,7 +684,7 @@ public class ExcelService {
                             status = "ISSUE";
                             reason = "Obtained marks exceed total marks";
                         } else {
-                            String rowDateKey = academicStudent.getId() + "|" + cell(row, 7);
+                            String rowDateKey = academicStudent.getId() + "|" + cell(row, 8);
                             ExamResultSummary existing = existingByStudentDateKey.get(rowDateKey);
                             if(existing == null){
                                 status = "NEW";
@@ -689,10 +699,10 @@ public class ExcelService {
 
                                 boolean changed = !Objects.equals(existing.getTotalMarks(), total)
                                         || !Objects.equals(existing.getObtainedMarks(), obtained)
-                                        || !percentageMatches(existing.getPercentageMarks(), cell(row, 10))
-                                        || !valueMatches(existing.getDivision(), cell(row, 11))
-                                        || !valueMatches(existing.getResult(), cell(row, 12))
-                                        || !valueMatches(existing.getRemarks(), cell(row, 13));
+                                        || !percentageMatches(existing.getPercentageMarks(), cell(row, 11))
+                                        || !valueMatches(existing.getDivision(), cell(row, 12))
+                                        || !valueMatches(existing.getResult(), cell(row, 13))
+                                        || !valueMatches(existing.getRemarks(), cell(row, 14));
                                 if(changed){
                                     status = "UPDATE";
                                     reason = "Existing result found — will be overwritten";

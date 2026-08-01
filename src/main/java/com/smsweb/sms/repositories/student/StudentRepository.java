@@ -51,22 +51,49 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
 
     // ── Server-side DataTable queries ─────────────────────────────────────────
 
-    /** Paginated search for a specific school (non-superadmin). */
+    /**
+     * Paginated search for a specific school (non-superadmin). Requires an
+     * Active AcademicStudent enrollment in the given academic year — a
+     * student whose Student row is still Active but who was never enrolled
+     * (or only enrolled in a past year, since AcademicStudent.status stays
+     * "Active" forever across every year — see StudentMigrationService) no
+     * longer shows up here. EXISTS rather than a JOIN so a student can't
+     * appear twice even if data is ever malformed.
+     */
     @Query(value = "SELECT s FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active' " +
+                   "AND EXISTS (SELECT 1 FROM AcademicStudent as1 WHERE as1.student = s " +
+                   "AND as1.academicYear.id = :academicYearId AND as1.status = 'Active') " +
                    "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                    "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                    "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                    "OR s.mobile1 LIKE CONCAT('%',:search,'%'))",
            countQuery = "SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active' " +
+                        "AND EXISTS (SELECT 1 FROM AcademicStudent as1 WHERE as1.student = s " +
+                        "AND as1.academicYear.id = :academicYearId AND as1.status = 'Active') " +
                         "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                         "OR LOWER(s.fatherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                         "OR LOWER(s.motherName) LIKE LOWER(CONCAT('%',:search,'%')) " +
                         "OR s.mobile1 LIKE CONCAT('%',:search,'%'))")
-    Page<Student> searchBySchool(@Param("schoolId") Long schoolId, @Param("search") String search, Pageable pageable);
+    Page<Student> searchBySchool(@Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId, @Param("search") String search, Pageable pageable);
 
-    /** Total active count for a specific school (used as recordsTotal). */
-    @Query("SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active'")
-    long countActiveBySchool(@Param("schoolId") Long schoolId);
+    /** Total count matching searchBySchool's filter (used as recordsTotal). */
+    @Query("SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active' " +
+           "AND EXISTS (SELECT 1 FROM AcademicStudent as1 WHERE as1.student = s " +
+           "AND as1.academicYear.id = :academicYearId AND as1.status = 'Active')")
+    long countActiveBySchool(@Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId);
+
+    /**
+     * Batch grade/section/SR lookup for the current page of the student list
+     * (non-superadmin only) — one round trip instead of N+1. Returns
+     * [studentId, gradeName, sectionName, classSrNo], scoped to the same
+     * academic year used to filter searchBySchool above, so a row here can
+     * only ever come from the exact enrollment that made the student appear
+     * in the list in the first place.
+     */
+    @Query("SELECT as1.student.id, g.gradeName, sec.sectionName, as1.classSrNo " +
+           "FROM AcademicStudent as1 JOIN as1.grade g JOIN as1.section sec " +
+           "WHERE as1.student.id IN :studentIds AND as1.academicYear.id = :academicYearId AND as1.status = 'Active'")
+    List<Object[]> findGradeSectionSrByStudentIdsAndYear(@Param("studentIds") List<Long> studentIds, @Param("academicYearId") Long academicYearId);
 
     /**
      * Highest PSRN currently assigned within a school, across all students

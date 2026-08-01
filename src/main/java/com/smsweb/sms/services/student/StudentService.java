@@ -1723,22 +1723,47 @@ public class StudentService {
      * Returns a DataTables server-side JSON payload.
      * Called by GET /student/student/data
      */
+    /**
+     * academicYearId is required for the non-superadmin path (used both to
+     * scope which students appear — see StudentRepository.searchBySchool —
+     * and to look up their Grade-Section/SR for display) and is ignored
+     * entirely when superAdmin is true: superadmin has no single "current"
+     * academic year (BaseController can't resolve one without a school in
+     * session), so that list intentionally stays exactly as it was before —
+     * no join, no Grade-Section/SR columns, unchanged filtering.
+     */
     @Transactional(readOnly = true)
-    public Map<String, Object> getStudentsPage(boolean superAdmin, Long schoolId,
+    public Map<String, Object> getStudentsPage(boolean superAdmin, Long schoolId, Long academicYearId,
                                                int draw, int start, int length,
                                                String search, int sortCol, String sortDir) {
         log.info("Inside getStudentsPage");
-        // Map DataTable column index → entity field name
-        String sortField = switch (sortCol) {
-            case 1  -> "registrationDate";
-            case 2  -> "motherName";
-            case 3  -> "fatherName";
-            case 4  -> "aadharNo";
-            case 5  -> "religion";
-            case 7  -> "mobile1";
-            case 9  -> "address";
-            default -> "studentName";
-        };
+        // Map DataTable column index → entity field name. The two column
+        // layouts differ (superadmin has no Grade-Section/SR/Actions
+        // columns), so the index-to-field mapping must branch by role too.
+        String sortField;
+        if (superAdmin) {
+            sortField = switch (sortCol) {
+                case 1  -> "registrationDate";
+                case 2  -> "motherName";
+                case 3  -> "fatherName";
+                case 4  -> "aadharNo";
+                case 5  -> "religion";
+                case 7  -> "mobile1";
+                case 9  -> "address";
+                default -> "studentName";
+            };
+        } else {
+            sortField = switch (sortCol) {
+                case 3  -> "registrationDate";
+                case 4  -> "motherName";
+                case 5  -> "fatherName";
+                case 6  -> "aadharNo";
+                case 7  -> "religion";
+                case 9  -> "mobile1";
+                case 11 -> "address";
+                default -> "studentName";
+            };
+        }
 
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
         int pageSize = (length > 0) ? length : 25;
@@ -1753,8 +1778,24 @@ public class StudentService {
             totalRecords = repository.countAllActive();
             page = repository.searchAll(q, pageable);
         } else {
-            totalRecords = repository.countActiveBySchool(schoolId);
-            page = repository.searchBySchool(schoolId, q, pageable);
+            totalRecords = repository.countActiveBySchool(schoolId, academicYearId);
+            page = repository.searchBySchool(schoolId, academicYearId, q, pageable);
+        }
+
+        // Grade-Section/SR — non-superadmin only, one batch query for the
+        // whole page instead of N+1. Keyed by studentId; every student on
+        // this page is guaranteed to have exactly one matching row here
+        // (that's what searchBySchool's EXISTS clause already required).
+        Map<Long, String[]> gradeSectionSrByStudentId = new HashMap<>();
+        if (!superAdmin && !page.getContent().isEmpty()) {
+            List<Long> studentIds = page.getContent().stream().map(Student::getId).collect(Collectors.toList());
+            for (Object[] row : repository.findGradeSectionSrByStudentIdsAndYear(studentIds, academicYearId)) {
+                Long studentId = ((Number) row[0]).longValue();
+                String gradeName = row[1] != null ? row[1].toString() : "";
+                String sectionName = row[2] != null ? row[2].toString() : "";
+                String classSrNo = row[3] != null ? row[3].toString() : "";
+                gradeSectionSrByStudentId.put(studentId, new String[]{ gradeName + "-" + sectionName, classSrNo });
+            }
         }
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MMM/yyyy");
@@ -1762,6 +1803,11 @@ public class StudentService {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("studentName",     s.getStudentName()     != null ? s.getStudentName()     : "");
             row.put("uuid",            s.getUuid());
+            if (!superAdmin) {
+                String[] gradeSectionSr = gradeSectionSrByStudentId.get(s.getId());
+                row.put("gradeSection", gradeSectionSr != null ? gradeSectionSr[0] : "");
+                row.put("sr",           gradeSectionSr != null ? gradeSectionSr[1] : "");
+            }
             row.put("registrationDate", s.getRegistrationDate() != null ? sdf.format(s.getRegistrationDate()) : "");
             row.put("motherName",      s.getMotherName()      != null ? s.getMotherName()      : "");
             row.put("fatherName",      s.getFatherName()      != null ? s.getFatherName()      : "");

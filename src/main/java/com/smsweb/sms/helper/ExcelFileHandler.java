@@ -26,7 +26,7 @@ public class ExcelFileHandler {
     public String[] GRADE_HEADER_FULL = {"All Student List"};
     public String[] SR_SAMPLE_HEADER = {"Student Name","ID#","Father Name", "Mother Name","Mobile","SR No"};
     public String[] AADHAR_SAMPLE_HEADER = {"Student Name","ID#","Father Name", "Mother Name","Mobile","Aadhar No"};
-    public String[] EXAM_RESULT_SAMPLE_HEADER = {"Student Name","ID#","Father Name", "Mother Name","Mobile","SR No","Exam Name", "Exam Result Date","Total Marks","Obtained Marks","Percentage(%)","Division","Result","Remark"};
+    public String[] EXAM_RESULT_SAMPLE_HEADER = {"Student Name","ID#","PSRN","Father Name", "Mother Name","Mobile","SR No","Exam Name", "Exam Result Date","Total Marks","Obtained Marks","Percentage(%)","Division","Result","Remark"};
 
     public ByteArrayInputStream LoadSampleSRFile(String fileName, List<AcademicStudent> list, String[] medium_grade_section, String fileType) throws IOException {
         Workbook workbook = new XSSFWorkbook();
@@ -110,13 +110,20 @@ public class ExcelFileHandler {
 
                 colCount = createCell(row, colCount, student.getStudent().getStudentName());
                 colCount = createCell(row, colCount, student.getUuid().toString());
+                colCount = createCell(row, colCount, student.getStudent().getPsrn() != null ? student.getStudent().getPsrn().toString() : "");
                 colCount = createCell(row, colCount, student.getStudent().getFatherName());
                 colCount = createCell(row, colCount, student.getStudent().getMotherName());
                 colCount = createCell(row, colCount, student.getStudent().getMobile1());
 
                 if ("G_marks_entry".equalsIgnoreCase(fileName)) {
                     colCount = createCell(row, colCount, student.getClassSrNo());
-                    for (int i = 0; i < 9; i++) {
+                    // 8 blanks: Exam Name, Exam Result Date, Total Marks,
+                    // Obtained Marks, Percentage(%), Division, Result, Remark
+                    // — must match EXAM_RESULT_SAMPLE_HEADER's remaining
+                    // columns after Student Name/ID#/PSRN/Father Name/Mother
+                    // Name/Mobile/SR No, or every column shifts by however
+                    // many cells this is off by.
+                    for (int i = 0; i < 8; i++) {
                         colCount = createCell(row, colCount, "");
                     }
                 } else {
@@ -180,6 +187,7 @@ public class ExcelFileHandler {
 
                 colCount = createCell(row, colCount, student.getStudent().getStudentName());
                 colCount = createCell(row, colCount, student.getUuid().toString());
+                colCount = createCell(row, colCount, student.getStudent().getPsrn() != null ? student.getStudent().getPsrn().toString() : "");
                 colCount = createCell(row, colCount, student.getStudent().getFatherName());
                 colCount = createCell(row, colCount, student.getStudent().getMotherName());
                 colCount = createCell(row, colCount, student.getStudent().getMobile1());
@@ -345,8 +353,12 @@ public class ExcelFileHandler {
                 }
 
                 Iterator<Cell> cellIterator = row.iterator();
-                String[] rowData = new String[15];
-                if(row.getPhysicalNumberOfCells() > 10){
+                // 16 = 15 real columns (Student Name..Remark, incl. PSRN at
+                // index 2) + 1 reserved slot at the end for the
+                // success/error status flag written by
+                // ExcelService.readSRExcelDataAndValidate.
+                String[] rowData = new String[16];
+                if(row.getPhysicalNumberOfCells() > 11){
                     while(cellIterator.hasNext()){
                         Cell cell = cellIterator.next();
                         int colIdx = cell.getColumnIndex();

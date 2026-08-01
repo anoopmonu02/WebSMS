@@ -141,7 +141,7 @@
                             <table id="stu-sr-data" class="table table-bordered table-sm" style="width:100%;">
                                 <thead>
                                 <tr>
-                                    <th>#</th><th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th>
+                                    <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th>
                                     <th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Percentage(%)</th>
                                     <th>Division</th><th>Result</th><th>Remark</th><th>Status</th><th>Reason</th>
                                 </tr>
@@ -240,7 +240,7 @@
                             <table id="bc-review-data" class="table table-bordered table-sm" style="width:100%;">
                                 <thead>
                                 <tr>
-                                    <th>#</th><th>Student Name</th><th>ID#</th><th>Exam Result Date</th>
+                                    <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Exam Result Date</th>
                                     <th>Old Total/Obtained</th><th>New Total/Obtained</th><th>Old Division/Result</th><th>New Division/Result</th>
                                     <th>Status</th><th>Reason</th>
                                 </tr>
@@ -421,6 +421,7 @@
                     <td>${r.rowIndex ?? ''}</td>
                     <td>${r.studentName ?? ''}</td>
                     <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
+                    <td>${r.psrn ?? ''}</td>
                     <td>${r.fatherName ?? ''}</td>
                     <td>${r.motherName ?? ''}</td>
                     <td>${r.mobile ?? ''}</td>
@@ -621,6 +622,7 @@
                     <td>${r.rowIndex ?? ''}</td>
                     <td>${r.studentName ?? ''}</td>
                     <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
+                    <td>${r.psrn ?? ''}</td>
                     <td>${r.examResultDate ?? ''}</td>
                     <td>${oldTO}</td>
                     <td>${newTO}</td>
