@@ -16,6 +16,29 @@ public interface ExamResultSummaryRepository extends JpaRepository<ExamResultSum
                                                      @Param("gradeId") Long gradeId, @Param("sectionId") Long sectionId,
                                                      @Param("examResultsObj")ExamDetails examResultsObj);
 
+    /**
+     * (AcademicStudent id, examResultDate) pairs already saved for a given
+     * exam — used to flag duplicate rows during upload preview/validation
+     * (ExcelService.checkAndValidateExamResultData) and again defensively at
+     * save time (StudentService.uploadExamResult). Scoped by date, not just
+     * student+exam, so a genuine resit recorded on a different date is
+     * allowed — only the exact same student+exam+date is blocked as a
+     * duplicate. Each element is [Long academicStudentId, Date examResultDate].
+     */
+    @Query("SELECT r.academicStudent.id, r.examResultDate FROM ExamResultSummary r WHERE r.examDetails.id = :examDetailsId")
+    List<Object[]> findStudentIdAndResultDateByExamDetailsId(@Param("examDetailsId") Long examDetailsId);
+
+    /**
+     * Full existing rows for a given exam — used by the Admin/SuperAdmin-only
+     * bulk-correct flow (ExcelService.checkAndClassifyBulkCorrectionData,
+     * StudentService.bulkCorrectExamResult) to decide, per uploaded row,
+     * whether to update an existing result or insert a new one. JOIN FETCH
+     * on academicStudent avoids an N+1 lazy-load when the caller builds a
+     * studentId+date lookup key for every row.
+     */
+    @Query("SELECT r FROM ExamResultSummary r JOIN FETCH r.academicStudent WHERE r.examDetails.id = :examDetailsId")
+    List<ExamResultSummary> findByExamDetailsId(@Param("examDetailsId") Long examDetailsId);
+
     // ── Mobile API queries ────────────────────────────────────────────────────
 
     /**

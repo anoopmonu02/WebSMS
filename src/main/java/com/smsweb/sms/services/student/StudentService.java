@@ -13,10 +13,12 @@ import com.smsweb.sms.models.student.Attendance;
 import com.smsweb.sms.models.student.AttendanceConfirmation;
 import com.smsweb.sms.repositories.student.AttendanceConfirmationRepository;
 import com.smsweb.sms.models.student.ExamResultSummary;
+import com.smsweb.sms.models.student.ExamResultCorrectionLog;
 import com.smsweb.sms.models.student.Student;
 import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.student.AttendanceRepository;
 import com.smsweb.sms.repositories.student.ExamResultSummaryRepository;
+import com.smsweb.sms.repositories.student.ExamResultCorrectionLogRepository;
 import com.smsweb.sms.repositories.student.StudentRepository;
 import com.smsweb.sms.models.Users.Roles;
 import com.smsweb.sms.repositories.users.RoleRepository;
@@ -72,9 +74,11 @@ public class StudentService {
     private final StudentHealthInfoService studentHealthInfoService; // new, mobile-only — feature: student health info
     private final AttendanceConfirmationRepository attendanceConfirmationRepository; // new — Confirm Attendance feature
     private final SmsMessageService smsMessageService; // new — Confirm Attendance absent-student notifications
+    private final PsrnService psrnService; // new — per-school sequential PSRN assignment
+    private final ExamResultCorrectionLogRepository examResultCorrectionLogRepository; // new — audit trail for admin-only bulk-correct
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository, SmsMessageService smsMessageService) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository, SmsMessageService smsMessageService, PsrnService psrnService, ExamResultCorrectionLogRepository examResultCorrectionLogRepository) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -89,6 +93,8 @@ public class StudentService {
         this.studentHealthInfoService = studentHealthInfoService;
         this.attendanceConfirmationRepository = attendanceConfirmationRepository;
         this.smsMessageService = smsMessageService;
+        this.psrnService = psrnService;
+        this.examResultCorrectionLogRepository = examResultCorrectionLogRepository;
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -178,11 +184,15 @@ public class StudentService {
                 student.setUserEntity(savedUser);
 
                 student.setCreatedBy(loggedInUser);
+                // PSRN — per-school sequential number, assigned once at creation,
+                // never reassigned. See PsrnService for the locking/derivation logic.
+                student.setPsrn(psrnService.generateNextPsrn(student.getSchool().getId()));
             } else if(existingStudent!=null){
                 if(existingStudent.getPic()!=null && existingStudent.getPic()!=""){
                     student.setPic(existingStudent.getPic());
                     student.setRegistrationNo(existingStudent.getRegistrationNo());
                 }
+                student.setPsrn(existingStudent.getPsrn());
                 student.setUpdatedBy(userService.getLoggedInUser());
             }
             Student savedStudent = repository.save(student);
@@ -1221,7 +1231,21 @@ public class StudentService {
                 ExamDetails examDetails = examinationService.getExamDetailByName(examName, academic.getId(), school.getId());
                 SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
                 School schoolObj = null;
+                int erDuplicateCounter = 0;
                 if(examDetails!=null){
+                    // Defense in depth — the review-table UI (ExcelService.checkAndValidateExamResultData)
+                    // already flags and excludes duplicates client-side before this endpoint is ever
+                    // called, but this endpoint must not silently create a second row if it's ever hit
+                    // directly or with a stale/tampered payload. Keyed by student+date (not just
+                    // student) so a different result date for the same exam — a genuine resit —
+                    // is still allowed to save; only the exact same student+exam+date is blocked.
+                    Set<String> existingStudentDateKeys = new HashSet<>();
+                    SimpleDateFormat dupKeyFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
+                    for (Object[] pair : examResultSummaryRepository.findStudentIdAndResultDateByExamDetailsId(examDetails.getId())) {
+                        Long sId = (Long) pair[0];
+                        Date d = (Date) pair[1];
+                        existingStudentDateKeys.add(sId + "|" + (d != null ? dupKeyFormat.format(d) : ""));
+                    }
                     for (Map<String, String> rowData : srdata) {
                         List<String> missingFields = new ArrayList<>();
 
@@ -1240,7 +1264,12 @@ public class StudentService {
                                 AcademicStudent academicStudent = academicStudentRepository.findByUuid(
                                         UUID.fromString(uuid)).orElse(null);
 
-                                if (academicStudent != null) {
+                                String rowDateKey = academicStudent != null
+                                        ? academicStudent.getId() + "|" + rowData.get("Exam Result Date")
+                                        : null;
+                                if (academicStudent != null && existingStudentDateKeys.contains(rowDateKey)) {
+                                    erDuplicateCounter++;
+                                } else if (academicStudent != null) {
                                     ExamResultSummary examResultSummary = new ExamResultSummary();
                                     examResultSummary.setResult(rowData.get("Result"));
                                     examResultSummary.setExamDetails(examDetails);
@@ -1277,7 +1306,8 @@ public class StudentService {
                     if (!studentsResultsToSave.isEmpty()) {
                         examResultSummaryRepository.saveAll(studentsResultsToSave);
                     }
-                    String msg = "Total Results updated: " + erPassCounter + " and Results not found for: " + erFailCounter;
+                    String msg = "Total Results updated: " + erPassCounter + ", not found: " + erFailCounter
+                            + ", duplicates skipped: " + erDuplicateCounter;
                     if (!failedIds.isEmpty()) {
                         log.warn("Exam result upload — UUIDs not matched: {}", failedIds);
                     }
@@ -1296,6 +1326,253 @@ public class StudentService {
             e.printStackTrace();
             return "error#####"+e.getLocalizedMessage();
         }
+    }
+
+    /**
+     * Admin/SuperAdmin-only bulk correction (grade-wise). Unlike
+     * uploadExamResult (insert-only, blocked on duplicates), this upserts:
+     * a student with no existing result for this exam+date gets a fresh row
+     * inserted; a student with an existing result gets it updated ONLY if at
+     * least one value actually differs (unchanged rows are skipped entirely
+     * — no write, no audit entry). Every insert/update from one call shares
+     * a batch id and is written to ExamResultCorrectionLog before/alongside
+     * being applied, so the change stays traceable.
+     *
+     * Percentage/Division/Result are trusted from the file, exactly like
+     * uploadExamResult — this app has no server-side calculation to derive
+     * them from the marks, so introducing one here (but not in the regular
+     * upload) would make the two paths inconsistent.
+     *
+     * Caller (StudentRestController) is responsible for the
+     * @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')") gate —
+     * this method does not re-check the role itself.
+     */
+    @Transactional
+    public String bulkCorrectExamResult(List<Map<String, String>> srdata, AcademicYear academic, School school, String reason){
+        log.info("Inside bulkCorrectExamResult");
+        if(reason == null || reason.trim().isEmpty()){
+            return "error#####A reason is required for a bulk correction.";
+        }
+        if(srdata == null || srdata.isEmpty()){
+            return "error#####No rows to save.";
+        }
+        int failCounter = 0, unchangedCounter = 0;
+        List<String> failedIds = new ArrayList<>();
+        String batchId = UUID.randomUUID().toString();
+        try{
+            List<String> requiredFields = Arrays.asList("Exam Name", "Total Marks", "Obtained Marks", "Percentage(%)", "Division", "Result");
+            boolean supportSingleExam = true;
+            String examName = "";
+            for (Map<String, String> rowData : srdata) {
+                if(examName.trim().length()>0){
+                    if(!examName.equalsIgnoreCase(rowData.get("Exam Name"))){
+                        supportSingleExam = false;
+                        break;
+                    }
+                } else{
+                    examName = rowData.get("Exam Name");
+                }
+            }
+            if(!supportSingleExam){
+                return "error#####Different exam results found, please re-check!";
+            }
+            ExamDetails examDetails = examinationService.getExamDetailByName(examName, academic.getId(), school.getId());
+            if(examDetails == null){
+                return "error#####Examination name not found. Kindly check your examination name!";
+            }
+
+            SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
+            SimpleDateFormat keyFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
+
+            // Existing rows for this exam, keyed exactly like the preview step
+            // (ExcelService.checkAndClassifyBulkCorrectionData) so a row
+            // classified as UPDATE there resolves to the same row here.
+            Map<String, ExamResultSummary> existingByStudentDateKey = new HashMap<>();
+            for(ExamResultSummary existing : examResultSummaryRepository.findByExamDetailsId(examDetails.getId())){
+                if(existing.getAcademicStudent() == null) continue;
+                String key = existing.getAcademicStudent().getId() + "|" + (existing.getExamResultDate() != null ? keyFormat.format(existing.getExamResultDate()) : "");
+                existingByStudentDateKey.put(key, existing);
+            }
+
+            UserEntity loggedInUser = userService.getLoggedInUser();
+
+            List<ExamResultSummary> newSummaries = new ArrayList<>();
+            List<ExamResultCorrectionLog> newSummaryLogs = new ArrayList<>(); // same index order as newSummaries
+            List<ExamResultSummary> updatedSummaries = new ArrayList<>();
+            List<ExamResultCorrectionLog> updateLogs = new ArrayList<>();
+
+            for (Map<String, String> rowData : srdata) {
+                List<String> missingFields = new ArrayList<>();
+                for (String field : requiredFields) {
+                    String value = rowData.get(field);
+                    if (value == null || value.trim().isEmpty()) {
+                        missingFields.add(field);
+                    }
+                }
+                if(!missingFields.isEmpty()){
+                    failCounter++;
+                    continue;
+                }
+                String uuid = rowData.get("ID#");
+                if(uuid == null || uuid.isEmpty()){
+                    failedIds.add("Invalid UUID");
+                    failCounter++;
+                    continue;
+                }
+                AcademicStudent academicStudent;
+                try{
+                    academicStudent = academicStudentRepository.findByUuid(UUID.fromString(uuid)).orElse(null);
+                }catch(IllegalArgumentException iae){
+                    academicStudent = null;
+                }
+                if(academicStudent == null){
+                    failedIds.add(uuid);
+                    failCounter++;
+                    continue;
+                }
+                Long total, obtained;
+                try{
+                    total = Long.parseLong(rowData.get("Total Marks"));
+                    obtained = Long.parseLong(rowData.get("Obtained Marks"));
+                }catch(NumberFormatException nfe){
+                    failedIds.add(uuid);
+                    failCounter++;
+                    continue;
+                }
+                if(obtained > total){
+                    failedIds.add(uuid);
+                    failCounter++;
+                    continue;
+                }
+
+                String examDateStr = rowData.get("Exam Result Date");
+                Date examDate = (examDateStr != null && !examDateStr.trim().isEmpty()) ? sf.parse(examDateStr) : new Date();
+                String rowDateKey = academicStudent.getId() + "|" + (examDateStr != null ? examDateStr.trim() : "");
+                ExamResultSummary existing = existingByStudentDateKey.get(rowDateKey);
+
+                Double percentage;
+                try{
+                    percentage = Double.parseDouble(rowData.get("Percentage(%)"));
+                }catch(NumberFormatException nfe){
+                    percentage = null;
+                }
+                String division = rowData.get("Division");
+                String resultVal = rowData.get("Result");
+                String remarks = rowData.get("remarks");
+
+                if(existing == null){
+                    ExamResultSummary examResultSummary = new ExamResultSummary();
+                    examResultSummary.setResult(resultVal);
+                    examResultSummary.setExamDetails(examDetails);
+                    examResultSummary.setExamResultDate(examDate);
+                    examResultSummary.setAcademicStudent(academicStudent);
+                    examResultSummary.setSchool(school);
+                    examResultSummary.setAcademicYear(academic);
+                    examResultSummary.setDivision(division);
+                    examResultSummary.setObtainedMarks(obtained);
+                    examResultSummary.setTotalMarks(total);
+                    examResultSummary.setPercentageMarks(percentage);
+                    examResultSummary.setRemarks(remarks);
+                    examResultSummary.setCreatedBy(loggedInUser);
+                    examResultSummary.setUpdatedBy(loggedInUser);
+
+                    ExamResultCorrectionLog logEntry = new ExamResultCorrectionLog();
+                    logEntry.setBatchId(batchId);
+                    logEntry.setChangeType("INSERT");
+                    logEntry.setNewTotalMarks(total);
+                    logEntry.setNewObtainedMarks(obtained);
+                    logEntry.setNewPercentageMarks(percentage);
+                    logEntry.setNewDivision(division);
+                    logEntry.setNewResult(resultVal);
+                    logEntry.setReason(reason);
+                    logEntry.setCorrectedBy(loggedInUser);
+
+                    newSummaries.add(examResultSummary);
+                    newSummaryLogs.add(logEntry);
+                } else {
+                    boolean changed = !Objects.equals(existing.getTotalMarks(), total)
+                            || !Objects.equals(existing.getObtainedMarks(), obtained)
+                            || !percentageMatches(existing.getPercentageMarks(), percentage)
+                            || !valueMatches(existing.getDivision(), division)
+                            || !valueMatches(existing.getResult(), resultVal)
+                            || !valueMatches(existing.getRemarks(), remarks);
+                    if(!changed){
+                        unchangedCounter++;
+                        continue;
+                    }
+
+                    ExamResultCorrectionLog logEntry = new ExamResultCorrectionLog();
+                    logEntry.setExamResultSummary(existing);
+                    logEntry.setBatchId(batchId);
+                    logEntry.setChangeType("UPDATE");
+                    logEntry.setOldTotalMarks(existing.getTotalMarks());
+                    logEntry.setOldObtainedMarks(existing.getObtainedMarks());
+                    logEntry.setOldPercentageMarks(existing.getPercentageMarks());
+                    logEntry.setOldDivision(existing.getDivision());
+                    logEntry.setOldResult(existing.getResult());
+                    logEntry.setNewTotalMarks(total);
+                    logEntry.setNewObtainedMarks(obtained);
+                    logEntry.setNewPercentageMarks(percentage);
+                    logEntry.setNewDivision(division);
+                    logEntry.setNewResult(resultVal);
+                    logEntry.setReason(reason);
+                    logEntry.setCorrectedBy(loggedInUser);
+
+                    existing.setTotalMarks(total);
+                    existing.setObtainedMarks(obtained);
+                    existing.setPercentageMarks(percentage);
+                    existing.setDivision(division);
+                    existing.setResult(resultVal);
+                    existing.setRemarks(remarks);
+                    existing.setUpdatedBy(loggedInUser);
+
+                    updatedSummaries.add(existing);
+                    updateLogs.add(logEntry);
+                }
+            }
+
+            if(!newSummaries.isEmpty()){
+                examResultSummaryRepository.saveAll(newSummaries); // populates generated ids in place
+                for(int i = 0; i < newSummaries.size(); i++){
+                    newSummaryLogs.get(i).setExamResultSummary(newSummaries.get(i));
+                }
+            }
+            if(!updatedSummaries.isEmpty()){
+                examResultSummaryRepository.saveAll(updatedSummaries);
+            }
+            List<ExamResultCorrectionLog> allLogs = new ArrayList<>();
+            allLogs.addAll(newSummaryLogs);
+            allLogs.addAll(updateLogs);
+            if(!allLogs.isEmpty()){
+                examResultCorrectionLogRepository.saveAll(allLogs);
+            }
+
+            if(!failedIds.isEmpty()){
+                log.warn("Bulk-correct exam result — rows skipped/failed for UUIDs: {}", failedIds);
+            }
+            String msg = "Inserted: " + newSummaries.size() + ", updated: " + updatedSummaries.size()
+                    + ", unchanged (skipped): " + unchangedCounter + ", failed: " + failCounter;
+            if(newSummaries.isEmpty() && updatedSummaries.isEmpty() && failCounter > 0){
+                return "error#####" + msg + ". Check if UUIDs in the file match current school and academic year.";
+            }
+            return msg;
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return "error#####"+e.getLocalizedMessage();
+        }
+    }
+
+    private boolean valueMatches(String existingValue, String newValue){
+        String a = existingValue == null ? "" : existingValue.trim();
+        String b = newValue == null ? "" : newValue.trim();
+        return a.equals(b);
+    }
+
+    private boolean percentageMatches(Double existingValue, Double newValue){
+        if(existingValue == null && newValue == null) return true;
+        if(existingValue == null || newValue == null) return false;
+        return Math.abs(existingValue - newValue) < 0.0001;
     }
 
     public List<ExamResultSummary> getExamResultsForStudents(Long medium, Long grade, Long section, Long exam, Long academic, Long school){
@@ -1613,6 +1890,7 @@ public class StudentService {
             stuMap.put("studentName",          s.getStudentName()          != null ? s.getStudentName()          : "");
             stuMap.put("fatherName",            s.getFatherName()            != null ? s.getFatherName()            : "");
             stuMap.put("motherName",            s.getMotherName()            != null ? s.getMotherName()            : "");
+            stuMap.put("psrn",            s.getPsrn()            != null ? s.getPsrn()            : "");
             stuMap.put("dob",                   s.getDob());
             stuMap.put("gender",                s.getGender()                != null ? s.getGender()                : "");
             stuMap.put("mobile1",               s.getMobile1()               != null ? s.getMobile1()               : "");

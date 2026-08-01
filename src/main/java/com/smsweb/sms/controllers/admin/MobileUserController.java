@@ -34,7 +34,7 @@ import java.util.Map;
  */
 @Controller
 @RequestMapping("/admin/mobile-users")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 public class MobileUserController {
 
     private static final Logger log = LoggerFactory.getLogger(MobileUserController.class);

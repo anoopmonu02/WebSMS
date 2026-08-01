@@ -1,79 +1,93 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6" th:replace="~{base::Layout(~{::section})}">
 <head>
     <meta charset="UTF-8">
     <title>UAIC - Student</title>
 </head>
 <body>
 <section>
+    <style>
+        .er-toolbar-card{background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:var(--radius-md,10px);padding:14px 18px;margin-bottom:16px;}
+        .er-results-card{background:var(--card-bg,#fff);border:1px solid var(--border-color,#e2e8f0);border-radius:var(--radius-md,10px);padding:16px 18px;position:relative;min-height:80px;}
+        .er-stat-pill{background:#f1f5f9;border-radius:8px;padding:8px 14px;text-align:center;min-width:90px;}
+        .er-stat-pill .er-stat-label{font-size:11.5px;color:#64748b;}
+        .er-stat-pill .er-stat-value{font-size:19px;font-weight:600;}
+        .er-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+        .er-badge-ready{background:#dcfce7;color:#166534;}
+        .er-badge-issue{background:#fee2e2;color:#991b1b;}
+        .er-badge-duplicate{background:#fef3c7;color:#92400e;}
+        .er-loading-overlay{position:absolute;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;border-radius:var(--radius-md,10px);z-index:5;}
+        .er-normal-state, .er-loading-state{display:inline-flex;align-items:center;}
+        .btn.is-loading .er-normal-state{display:none;}
+        .btn:not(.is-loading) .er-loading-state{display:none;}
+        .er-filter-toggle{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;gap:2px;}
+        .er-filter-toggle button{border:none;background:transparent;padding:5px 14px;border-radius:6px;font-size:12.5px;color:#64748b;cursor:pointer;}
+        .er-filter-toggle button.active{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600;color:#0f172a;}
+    </style>
     <div class="container-fluid px-3">
-        <div class="row mt-2 ">
-            <div class="col-md-12 ">
+        <div class="row mt-2">
+            <div class="col-md-12">
                 <div class="card-header fs-3">Examination Result</div>
                 <hr/>
             </div>
-            <div class="row mt-3 pb-3">
-                <div class="col-md-2">
-                    <label for="medium" class="form-label">Medium</label>
-                    <select name="medium" id="medium" class="form-select">
-                        <option value="">Select Medium</option>
-                        <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="grade" class="form-label">Grade</label>
-                    <select name="grade" id="grade" class="form-select">
-                        <option value="">Select Grade</option>
-                        <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="section" class="form-label">Section</label>
-                    <select name="section" id="section" class="form-select">
-                        <option value="">Select Section</option>
-                        <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label for="exam" class="form-label">Exam</label>
-                    <select name="exam" id="exam" class="form-select">
-                        <option value="">Select Exam</option>
-                        <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
-                    </select>
-                </div>
-                <div class="col-md-2 align-self-end">
-                    <div class="col-sm-12">
-                        <button name="getfee" id="getfee" class="btn btn-primary"><i class="bi bi-search"></i> Get Student List </button>
-                    </div>
-                </div>
-                <div class="col-md-2 align-self-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary"><i class="bi bi-upload"></i> Upload Result</button>
-                        <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="visually-hidden">Toggle Dropdown</span>
+
+            <div class="col-12">
+                <div class="er-toolbar-card">
+                    <div class="d-flex align-items-end gap-2 flex-wrap">
+                        <div style="min-width:150px;flex:1;">
+                            <label for="medium" class="form-label mb-1" style="font-size:12.5px;">Medium</label>
+                            <select name="medium" id="medium" class="form-select form-select-sm">
+                                <option value="">Select Medium</option>
+                                <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+                            </select>
+                        </div>
+                        <div style="min-width:150px;flex:1;">
+                            <label for="grade" class="form-label mb-1" style="font-size:12.5px;">Grade</label>
+                            <select name="grade" id="grade" class="form-select form-select-sm">
+                                <option value="">Select Grade</option>
+                                <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+                            </select>
+                        </div>
+                        <div style="min-width:150px;flex:1;">
+                            <label for="section" class="form-label mb-1" style="font-size:12.5px;">Section</label>
+                            <select name="section" id="section" class="form-select form-select-sm">
+                                <option value="">Select Section</option>
+                                <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+                            </select>
+                        </div>
+                        <div style="min-width:150px;flex:1;">
+                            <label for="exam" class="form-label mb-1" style="font-size:12.5px;">Exam</label>
+                            <select name="exam" id="exam" class="form-select form-select-sm">
+                                <option value="">Select Exam</option>
+                                <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
+                            </select>
+                        </div>
+                        <button name="getfee" id="getfee" class="btn btn-primary btn-sm text-nowrap">
+                            <span class="er-normal-state"><i class="bi bi-search me-1"></i>Get result</span>
+                            <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Fetching…</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <!--<li><a class="dropdown-item" href="#"><i class="bi bi-cloud-upload-fill"></i> Upload SR - Garde</a></li>-->
-                            <li><a class="dropdown-item" href="#" onclick="uploadFileGradeWise()"><i class="bi bi-cloud-upload-fill"></i> Upload Exam Result(For Grade)</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <!--<li><a class="dropdown-item" onclick="downloadSample('G')" href="#"><i class="bi bi-download"></i> Download Sample File(Grade)</a></li>-->
-                            <li><a class="dropdown-item" onclick="downloadSample('G')" href="#"><i class="bi bi-download"></i> Download Sample File(Grade)</a></li>
-                        </ul>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle text-nowrap" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-upload me-1"></i>Upload
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="uploadFileGradeWise()"><i class="bi bi-cloud-upload-fill"></i> Upload Exam Result (For Grade)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="downloadSample('G')"><i class="bi bi-download"></i> Download Sample File (Grade)</a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><hr class="dropdown-divider"></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><h6 class="dropdown-header">Admin only</h6></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><a class="dropdown-item" href="#" onclick="downloadCurrentData()"><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Current Data (to correct)</a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><a class="dropdown-item" href="#" onclick="bulkCorrectUpload()"><i class="bi bi-arrow-repeat"></i> Bulk Correct (Grade-wise)</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-            <hr/>
 
-            <div class="col-12" id="student-grade-data">
-
-            </div>
-            <div id="btn-classes" style="display: none;" class="row">
-                <div class="col-md-5">
-
+            <div class="col-12" id="student-grade-data-wrapper">
+                <div class="er-results-card" id="student-grade-data">
+                    <div class="text-center text-muted py-4" style="font-size:13px;">Select medium, grade, section and exam, then click "Get result".</div>
                 </div>
-                <!--<div class="col-md-6 mb-5 pt-5">
-                    <button type="button" class="btn btn-primary" id="save-sr-from-table"><i class="bi bi-save2-fill"></i> Save SR</button>
-                </div>-->
             </div>
 
             <!--File Upload Modal-->
@@ -81,371 +95,674 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="fileUploadModalLabel">Upload File</h5>
+                            <h5 class="modal-title" id="fileUploadModalLabel">Upload exam result</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <form id="fileUploadForm" enctype="multipart/form-data">
                                 <div class="mb-3">
-                                    <label for="formFile" class="form-label">Choose a file to upload the Student Exam Results</label>
+                                    <label for="formFile" class="form-label">Choose the exam result file (.xlsx)</label>
                                     <input class="form-control" type="file" id="formFile" name="file" accept=".xlsx">
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close </button>
-                            <button type="button" class="btn btn-primary" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload Exam Result</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
+                            <button type="button" class="btn btn-primary" id="uploadBtn">
+                                <span class="er-normal-state"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Upload &amp; validate</span>
+                                <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating rows…</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Second Modal: Show File Info -->
+            <!-- Review modal: per-row status + reason, paginated, errors-only filter -->
             <div class="modal fade" id="fileInfoModal" tabindex="-1" aria-labelledby="fileInfoModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="fileInfoModalLabel">Exam Result Information</h5>
+                            <h5 class="modal-title" id="fileInfoModalLabel">Review upload</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body ">
-                            <div class="alert alert-primary" role="alert">
-                                <p id="fileInfo">Those rows are red which has no result found for Student. Either cancel this window and upload updated file again or want to proceed?<br>
-                                    In case of proceed, validation failed records will not be process.
-                                </p>
+                        <div class="modal-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div class="d-flex gap-2">
+                                    <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="stat-total">0</div></div>
+                                    <div class="er-stat-pill" style="background:#f0fdf4;"><div class="er-stat-label" style="color:#166534;">Ready</div><div class="er-stat-value" style="color:#166534;" id="stat-ready">0</div></div>
+                                    <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;" id="stat-issue">0</div></div>
+                                </div>
+                                <div class="er-filter-toggle">
+                                    <button type="button" id="filter-all" class="active" onclick="setReviewFilter('all')">All</button>
+                                    <button type="button" id="filter-issues" onclick="setReviewFilter('issues')">Needs attention only</button>
+                                </div>
                             </div>
 
-                            <table id="stu-sr-data" class="table table-bordered table-sm">
+                            <table id="stu-sr-data" class="table table-bordered table-sm" style="width:100%;">
                                 <thead>
-                                <tr id="table-headers">
-                                    <th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th>
-                                    <th>Obtained Marks</th><th>Percentage(%)</th><th>Division</th><th>Result</th><th>Remark</th><th>Validation Message</th>
+                                <tr>
+                                    <th>#</th><th>Student Name</th><th>ID#</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th>
+                                    <th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Percentage(%)</th>
+                                    <th>Division</th><th>Result</th><th>Remark</th><th>Status</th><th>Reason</th>
                                 </tr>
                                 </thead>
-                                <tbody id="table-body" class="table-group-divider">
-                                </tbody>
-                                <tfoot id="table-foot1">
-                                </tfoot>
+                                <tbody></tbody>
                             </table>
-                            <div id="table-foot">
-
-                            </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-success" id="uploadAndCloseModals">Upload and Close</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" id="openConfirmSaveBtn"><i class="bi bi-check2-circle me-1"></i>Save results</button>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Confirm-before-save popup -->
+            <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-labelledby="confirmSaveModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+                    <div class="modal-content">
+                        <div class="modal-body pt-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <div style="width:34px;height:34px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="bi bi-exclamation-triangle-fill" style="color:#b45309;"></i>
+                                </div>
+                                <h5 class="modal-title mb-0" id="confirmSaveModalLabel">Confirm before saving</h5>
+                            </div>
+                            <p class="text-muted" style="font-size:13px;">This action can't be undone once saved. Review the counts below before you confirm.</p>
+                            <div class="d-flex gap-2 mb-3">
+                                <div class="er-stat-pill flex-fill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="confirm-stat-total">0</div></div>
+                                <div class="er-stat-pill flex-fill" style="background:#f0fdf4;"><div class="er-stat-label" style="color:#166534;">Will save</div><div class="er-stat-value" style="color:#166534;" id="confirm-stat-ready">0</div></div>
+                                <div class="er-stat-pill flex-fill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Skipped</div><div class="er-stat-value" style="color:#991b1b;" id="confirm-stat-issue">0</div></div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary flex-fill" id="confirmSaveBtn">
+                                    <span class="er-normal-state">Yes, save results</span>
+                                    <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Saving…</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin/SuperAdmin-only: Bulk-correct file upload modal -->
+            <div class="modal fade" id="bulkCorrectUploadModal" tabindex="-1" aria-labelledby="bulkCorrectUploadModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="bulkCorrectUploadModalLabel">Bulk correct exam result</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted" style="font-size:12.5px;">Use "Download Current Data" first, edit the values that need correcting, then upload the same file here. Students without an existing result will be inserted as new.</p>
+                            <form id="bulkCorrectUploadForm" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="bulkCorrectFormFile" class="form-label">Choose the corrected exam result file (.xlsx)</label>
+                                    <input class="form-control" type="file" id="bulkCorrectFormFile" name="file" accept=".xlsx">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
+                            <button type="button" class="btn btn-primary" id="bulkCorrectUploadBtn">
+                                <span class="er-normal-state"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Upload &amp; validate</span>
+                                <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating rows…</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin/SuperAdmin-only: Bulk-correct review modal (New / Update / Unchanged / Issue) -->
+            <div class="modal fade" id="bulkCorrectReviewModal" tabindex="-1" aria-labelledby="bulkCorrectReviewModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="bulkCorrectReviewModalLabel">Review bulk correction</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div class="d-flex gap-2">
+                                    <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="bc-stat-total">0</div></div>
+                                    <div class="er-stat-pill" style="background:#f0f9ff;"><div class="er-stat-label" style="color:#075985;">New</div><div class="er-stat-value" style="color:#075985;" id="bc-stat-new">0</div></div>
+                                    <div class="er-stat-pill" style="background:#fef9c3;"><div class="er-stat-label" style="color:#92400e;">Will change</div><div class="er-stat-value" style="color:#92400e;" id="bc-stat-update">0</div></div>
+                                    <div class="er-stat-pill" style="background:#f1f5f9;"><div class="er-stat-label" style="color:#64748b;">Unchanged</div><div class="er-stat-value" style="color:#64748b;" id="bc-stat-unchanged">0</div></div>
+                                    <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;" id="bc-stat-issue">0</div></div>
+                                </div>
+                                <div class="er-filter-toggle">
+                                    <button type="button" id="bc-filter-all" class="active" onclick="setBulkCorrectFilter('all')">All</button>
+                                    <button type="button" id="bc-filter-changes" onclick="setBulkCorrectFilter('changes')">Changes only</button>
+                                </div>
+                            </div>
+
+                            <table id="bc-review-data" class="table table-bordered table-sm" style="width:100%;">
+                                <thead>
+                                <tr>
+                                    <th>#</th><th>Student Name</th><th>ID#</th><th>Exam Result Date</th>
+                                    <th>Old Total/Obtained</th><th>New Total/Obtained</th><th>Old Division/Result</th><th>New Division/Result</th>
+                                    <th>Status</th><th>Reason</th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" id="bcOpenConfirmBtn"><i class="bi bi-check2-circle me-1"></i>Save corrections</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin/SuperAdmin-only: Bulk-correct confirm popup with required reason -->
+            <div class="modal fade" id="bulkCorrectConfirmModal" tabindex="-1" aria-labelledby="bulkCorrectConfirmModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
+                    <div class="modal-content">
+                        <div class="modal-body pt-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <div style="width:34px;height:34px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="bi bi-exclamation-triangle-fill" style="color:#991b1b;"></i>
+                                </div>
+                                <h5 class="modal-title mb-0" id="bulkCorrectConfirmModalLabel">Confirm bulk correction</h5>
+                            </div>
+                            <p class="text-muted" style="font-size:13px;">This overwrites saved marks for the students shown as "Will change". Cannot be undone except via the correction log.</p>
+                            <div class="d-flex gap-2 mb-3">
+                                <div class="er-stat-pill flex-fill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="bc-confirm-stat-total">0</div></div>
+                                <div class="er-stat-pill flex-fill" style="background:#f0f9ff;"><div class="er-stat-label" style="color:#075985;">New</div><div class="er-stat-value" style="color:#075985;" id="bc-confirm-stat-new">0</div></div>
+                                <div class="er-stat-pill flex-fill" style="background:#fef9c3;"><div class="er-stat-label" style="color:#92400e;">Will change</div><div class="er-stat-value" style="color:#92400e;" id="bc-confirm-stat-update">0</div></div>
+                            </div>
+                            <label for="bc-reason" class="form-label mb-1" style="font-size:12.5px;">Reason for this correction (required)</label>
+                            <textarea id="bc-reason" class="form-control mb-3" rows="2" placeholder="e.g. Row misalignment found during moderation review" style="font-size:12.5px;"></textarea>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary flex-fill" id="bulkCorrectConfirmBtn" disabled>
+                                    <span class="er-normal-state">Confirm and overwrite</span>
+                                    <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Saving…</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </div>
 
-    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
-    <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         const contextPath = /*[[@{/}]]*/ '/';
         const successMessage = [[${success}]];
-        if (successMessage) {
-            showMsg("success", successMessage, "Success");
-        }
-
+        if (successMessage) { showMsg("success", successMessage, "Success"); }
         const infoMessage = [[${info}]];
-        if (infoMessage) {
-            showMsg("info", infoMessage, "Info");
-        }
-
+        if (infoMessage) { showMsg("info", infoMessage, "Info"); }
         const errorMessage = [[${error}]];
-        if (errorMessage) {
-            showMsg("error", errorMessage, "Error");
-        }
+        if (errorMessage) { showMsg("error", errorMessage, "Error"); }
 
         function showMsg(msgType, msg, headerValue){
             toastr.options = {
-                "closeButton": true,
-                "debug": false,
-                "newestOnTop": false,
-                "progressBar": false,
-                "positionClass": "toast-top-right",
-                "preventDuplicates": false,
-                "onclick": null,
-                "showDuration": "600",
-                "hideDuration": "1000",
-                "timeOut": "5000",
-                "extendedTimeOut": "1000",
-                "showEasing": "swing",
-                "hideEasing": "linear",
-                "showMethod": "fadeIn",
-                "hideMethod": "fadeOut"
-            }
-            toastr[msgType](msg,headerValue);
+                "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+                "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+                "showDuration": "600", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+                "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+            };
+            toastr[msgType](msg, headerValue);
+        }
+
+        function setBtnLoading(btnEl, loading){
+            if (loading) { btnEl.classList.add('is-loading'); btnEl.disabled = true; }
+            else { btnEl.classList.remove('is-loading'); btnEl.disabled = false; }
         }
 
         let medium, grade, section;
+        let reviewRows = []; // last validated rows, kept client-side for the confirm+save step
+        let reviewTable = null;
 
-        const validateMandatoryValues=()=>{
+        const validateMandatoryValues = () => {
             medium = $('#medium').val();
             grade = $('#grade').val();
             section = $('#section').val();
-            if(medium === '' || grade === '' || section === ''){
-                showMsg('error','Medium/Grade/Section is mandatory',"Warning");
+            if (medium === '' || grade === '' || section === '') {
+                showMsg('error', 'Medium/Grade/Section is mandatory', "Warning");
                 return false;
             }
             return true;
-        }
+        };
 
-        const downloadSample=(val) =>{
-            let proceed = false;
-            if(val=='F'){
-                proceed = true;
-            } else{
-                proceed = validateMandatoryValues();
+        const downloadSample = (val) => {
+            let proceed = (val === 'F') ? true : validateMandatoryValues();
+            if (!proceed) return;
+            // This link lives inside a dropdown menu that Bootstrap auto-closes
+            // on click, so a spinner on the link itself would never be seen
+            // during the wait — a toast is the visible feedback here instead.
+            showMsg("info", "Preparing your file…", "Please wait");
+            let requestData = { mediumId: '', gradeId: '', sectionId: '', fileType: val };
+            if (val === 'G') {
+                requestData = { mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), fileType: val };
             }
-            if(proceed){
-                let url = `${contextPath}downloadSampleFileToEnterExamResult`;
-                let requestData = {
-                    mediumId: '',
-                    gradeId: '',
-                    sectionId: '',
-                    fileType: val
-                };
-                if(val=='G'){
-                    requestData = {
-                        mediumId: medium.toString(),
-                        gradeId: grade.toString(),
-                        sectionId: section.toString(),
-                        fileType: val
-                    };
-                }
-                console.log("requestData::: "+JSON.stringify(requestData));
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
+            fetch(`${contextPath}downloadSampleFileToEnterExamResult`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+                .then(response => response.ok ? response.blob() : response.json())
+                .then(data => {
+                    if (data instanceof Blob) {
+                        const a = document.createElement('a');
+                        a.href = window.URL.createObjectURL(data);
+                        a.download = "Academic_Students_Exam_Result_Sample_File.xlsx";
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        showMsg("success", "File downloaded", "Success");
+                    } else {
+                        showMsg("error", (data.error || "An unknown error occurred"), "Error");
+                    }
                 })
-                    .then(response => {
-                        if (response.ok) {
-                            return response.blob();  // Download file as blob
-                        } else {
-                            return response.json();  // Handle error as JSON
-                        }
-                    })
-                    .then(data => {
-                        if (data instanceof Blob) {
-                            const link = document.createElement('a');
-                            link.href = window.URL.createObjectURL(data);
-                            link.download = "Academic_Students_Exam_Result_Sample_File.xlsx";
-                            document.body.appendChild(link);
-                            link.click();
-                            link.remove();
-                            //toastr["success"]("File downloaded successfully", "Success");
-                            showMsg("success","File downloaded successfully","Success");
-                        } else {
-                            //toastr["error"](data.error || "An unknown error occurred", "Error");
-                            showMsg("error",(data.error || "An unknown error occurred"), "Error");
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        toastr["error"]("An error occurred while downloading the file", "Error");
-                    });
-            }
-        }
+                .catch(() => showMsg("error", "An error occurred while downloading the file", "Error"));
+        };
 
-        const uploadFileGradeWise=()=>{
-            const fileUploadModal = new bootstrap.Modal(document.getElementById('fileUploadModal'));
-            fileUploadModal.show();
-        }
+        const uploadFileGradeWise = () => {
+            new bootstrap.Modal(document.getElementById('fileUploadModal')).show();
+        };
 
         document.addEventListener('DOMContentLoaded', function () {
-            const fileUploadModal = document.getElementById('fileUploadModal');
-            fileUploadModal.addEventListener('show.bs.modal', function () {
-                // Clear file input when modal is about to be shown
+            document.getElementById('fileUploadModal').addEventListener('show.bs.modal', function () {
                 document.getElementById('formFile').value = '';
             });
         });
 
-        document.getElementById("uploadBtn").onclick = function (){
-            $("#table-body").empty();
-            $("#errorMessage").hide();
-            $("#table-foot").html('');
-            const formData = new FormData();
+        document.getElementById("uploadBtn").onclick = function () {
             const fileInput = document.getElementById("formFile");
-            formData.append("file", fileInput.files[0]);
-            $('#fileUploadModal').modal('hide');
-            // AJAX call to send the file to the server
-            fetch(`${contextPath}upload-exam-result-file`, {
-                method: 'POST',
-                body: formData,
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log("DATA:::: "+data);
-                    if (data.hasOwnProperty("success")) {
-                        // Display the validation result on the page
-                        //document.getElementById("validationResult").innerHTML = JSON.stringify(data.result);
-                        //console.log("DATA::>>>> "+data.success);
-                        const fileInfoModal = new bootstrap.Modal(document.getElementById('fileInfoModal'));
-
-                        if (data.hasOwnProperty("success")) {
-                            let rowData = data.success;
-
-                            if (rowData.length > 0) {
-
-                                // Create table rows for each array in the list
-                                let passed = 0;
-                                let failed = 0;
-                                for (let i = 0; i < rowData.length; i++) {
-                                    let row = rowData[i];
-                                    //console.log("ROW>>>>>>>>>>>>>>>>> "+row[row.length - 1].includes("error"));
-                                    let tableRow = "<tr>";
-                                    if(row[row.length - 1].includes("error")){
-                                        tableRow = "<tr class='table-danger'>";
-                                        failed++;
-                                    } else{
-                                        passed++;
-                                    }
-                                    row.forEach(cell => {
-                                        console.log("cell--"+cell);
-                                        if (cell == null) {
-                                            tableRow += `<td></td>`;
-                                        } else {
-                                            // Check if the cell contains "#####"
-                                            if (cell.includes("#####")) {
-                                                tableRow += `<td>${cell.split("#####")[1]}</td>`;
-                                            } else {
-                                                tableRow += `<td>${cell}</td>`;
-                                            }
-                                        }
-                                    });
-                                    tableRow += "</tr>";
-                                    //console.log("ROW DATA:::: "+tableRow);
-                                    $("#table-body").append(tableRow);
-                                }
-                                let msg = "<div class='row'><div class='col-md-2'><span><strong>Total: </strong>" + rowData.length + "</span></div><div class='col-md-2'><span class='text-success'><strong>Passed: </strong>"+ passed +"</span></div><div class='col-md-2'><span class='text-danger'><strong>Failed: </strong>" + failed;
-                                msg+="</span></div><div class='col-md-6'></div></div>";
-                                $("#table-foot").html(msg);
-                            }
-                        } else if (data.hasOwnProperty("error")) {
-                            // If the key is "error", display the error message
-                            let errorMessage = data.error.join(', '); // Assuming the error is a list of strings
-                            $("#errorMessage").text(errorMessage).show();
-                        }
-
-                        fileInfoModal.show();
-                    } else if(data.hasOwnProperty("error")) {
-                        //alert(data.message);
-                        console.log("eRROR: "+data.error[0]);
-                        showMsg("error", data.error[0],"Error");
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        };
-
-        document.getElementById("uploadAndCloseModals").onclick = function (){
-            //stu-sr-data
-            const tableData = [];
-
-            // Only send valid (non-error) rows — skip red table-danger rows
-            $('#stu-sr-data tbody tr').not('.table-danger').each(function() {
-                const rowData = {};
-                $(this).find('td').each(function(index) {
-                    const header = $('#stu-sr-data thead th').eq(index).text();
-                    rowData[header] = $(this).text();
-                });
-                tableData.push(rowData);
-            });
-            if (tableData.length === 0) {
-                showMsg("error", "No valid rows to upload. Please fix errors in the file.", "Error");
+            if (!fileInput.files[0]) {
+                showMsg("error", "Please choose a file first.", "Error");
                 return;
             }
+            const btn = this;
+            setBtnLoading(btn, true);
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
 
-            // Send data to the Spring Boot controller via AJAX
+            fetch(`${contextPath}upload-exam-result-file`, { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showMsg("error", typeof data.error === 'string' ? data.error : "Could not read this file.", "Error");
+                        return;
+                    }
+                    reviewRows = data.rows || [];
+                    $('#fileUploadModal').modal('hide');
+                    renderReviewTable();
+                    new bootstrap.Modal(document.getElementById('fileInfoModal')).show();
+                })
+                .catch(() => showMsg("error", "Could not upload the file. Please try again.", "Error"))
+                .finally(() => setBtnLoading(btn, false));
+        };
+
+        function statusBadge(status){
+            if (status === 'READY') return '<span class="er-badge er-badge-ready">Ready</span>';
+            if (status === 'DUPLICATE') return '<span class="er-badge er-badge-duplicate">Duplicate</span>';
+            return '<span class="er-badge er-badge-issue">Issue</span>';
+        }
+
+        function renderReviewTable(){
+            const total = reviewRows.length;
+            const ready = reviewRows.filter(r => r.status === 'READY').length;
+            const issues = total - ready;
+            $('#stat-total').text(total);
+            $('#stat-ready').text(ready);
+            $('#stat-issue').text(issues);
+
+            if (reviewTable) { reviewTable.destroy(); $('#stu-sr-data tbody').empty(); }
+
+            const tbody = $('#stu-sr-data tbody');
+            reviewRows.forEach(r => {
+                tbody.append(`<tr class="${r.status !== 'READY' ? 'table-danger' : ''}">
+                    <td>${r.rowIndex ?? ''}</td>
+                    <td>${r.studentName ?? ''}</td>
+                    <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
+                    <td>${r.fatherName ?? ''}</td>
+                    <td>${r.motherName ?? ''}</td>
+                    <td>${r.mobile ?? ''}</td>
+                    <td>${r.sr ?? ''}</td>
+                    <td>${r.examName ?? ''}</td>
+                    <td>${r.examResultDate ?? ''}</td>
+                    <td>${r.totalMarks ?? ''}</td>
+                    <td>${r.obtainedMarks ?? ''}</td>
+                    <td>${r.percentage ?? ''}</td>
+                    <td>${r.division ?? ''}</td>
+                    <td>${r.result ?? ''}</td>
+                    <td>${r.remark ?? ''}</td>
+                    <td>${statusBadge(r.status)}</td>
+                    <td style="font-size:12px;">${r.reason ?? ''}</td>
+                </tr>`);
+            });
+
+            reviewTable = $('#stu-sr-data').DataTable({
+                pageLength: 10,
+                lengthChange: false,
+                searching: false,
+                order: []
+            });
+        }
+
+        function setReviewFilter(mode){
+            $('#filter-all, #filter-issues').removeClass('active');
+            $('#filter-' + (mode === 'issues' ? 'issues' : 'all')).addClass('active');
+            if (!reviewTable) return;
+            $.fn.dataTable.ext.search.pop();
+            if (mode === 'issues') {
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    return reviewRows[dataIndex] && reviewRows[dataIndex].status !== 'READY';
+                });
+            }
+            reviewTable.draw();
+        }
+
+        document.getElementById("openConfirmSaveBtn").onclick = function () {
+            const readyRows = reviewRows.filter(r => r.status === 'READY');
+            if (readyRows.length === 0) {
+                showMsg("error", "No rows are ready to save. Fix the flagged rows and re-upload.", "Error");
+                return;
+            }
+            $('#confirm-stat-total').text(reviewRows.length);
+            $('#confirm-stat-ready').text(readyRows.length);
+            $('#confirm-stat-issue').text(reviewRows.length - readyRows.length);
+            new bootstrap.Modal(document.getElementById('confirmSaveModal')).show();
+        };
+
+        document.getElementById("confirmSaveBtn").onclick = function () {
+            const btn = this;
+            setBtnLoading(btn, true);
+            const payload = reviewRows.filter(r => r.status === 'READY').map(r => ({
+                "Student Name": r.studentName,
+                "ID#": r.idNo,
+                "Father Name": r.fatherName,
+                "Mother Name": r.motherName,
+                "Mobile": r.mobile,
+                "SR": r.sr,
+                "Exam Name": r.examName,
+                "Exam Result Date": r.examResultDate,
+                "Total Marks": r.totalMarks,
+                "Obtained Marks": r.obtainedMarks,
+                "Percentage(%)": r.percentage,
+                "Division": r.division,
+                "Result": r.result,
+                "remarks": r.remark
+            }));
+
             $.ajax({
                 url: `${contextPath}upload-exam-result-data`,
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify(tableData),
-                success: function(response) {
-                    console.log('Data sent successfully:', response);
-                    $('.modal').modal('hide');
-                    if(response.includes('error')){
-                        showMsg("error", response.split("#####")[1],"Error");
-                    } else{
-                        showMsg("success", response, "Updated");
+                data: JSON.stringify(payload),
+                success: function (response) {
+                    $('#confirmSaveModal').modal('hide');
+                    $('#fileInfoModal').modal('hide');
+                    if (typeof response === 'string' && response.startsWith('error')) {
+                        showMsg("error", response.split("#####")[1] || response, "Error");
+                    } else {
+                        showMsg("success", response, "Saved");
                     }
-
                 },
-                error: function(xhr, status, error) {
-                    console.error('Error sending data:', error);
-                    showMsg("error", 'Error sending data:'+ error,"Error");
+                error: function () {
+                    showMsg("error", "Could not save the results. Please try again.", "Error");
+                },
+                complete: function () {
+                    setBtnLoading(btn, false);
                 }
             });
         };
 
-        document.getElementById("getfee").onclick = function(){
-            let proceed = validateMandatoryValues();
-            let exam = $('#exam').val();
-            if(proceed){
-                if(exam === ''){
-                    showMsg('error','Examination name is mandatory to view the records',"Warning");
-                    return false;
-                }
-                let url = `${contextPath}getStudentsExamResults`;
-                let requestData = {
-                    mediumId: medium.toString(),
-                    gradeId: grade.toString(),
-                    sectionId: section.toString(),
-                    examId: exam.toString()
-                };
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            // Handle HTTP errors (e.g., 400, 500)
-                            throw new Error(`Error ${response.status}: ${response.statusText}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (Array.isArray(data)) {
-                            if (data.length === 0) {
-                                showMsg("warning", "No result found for the given criteria.", "Message");
-                            } else {
-                                renderStudentData(data);
-                            }
-                        } else if (data && data.empty) {
-                            showMsg("warning", data.message || "No result found for the given criteria.", "Message");
-                        } else {
-                            renderStudentData(data);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showMsg("error", "An error occurred while fetching the examination result.", "Error");
-                    });
+        // ── Admin/SuperAdmin-only: bulk-correct (grade-wise upsert) ─────────
+        const validateMandatoryValuesWithExam = () => {
+            if (!validateMandatoryValues()) return false;
+            if ($('#exam').val() === '') {
+                showMsg('error', 'Examination name is mandatory', "Warning");
+                return false;
             }
+            return true;
+        };
+
+        const downloadCurrentData = () => {
+            if (!validateMandatoryValuesWithExam()) return;
+            showMsg("info", "Preparing your file…", "Please wait");
+            fetch(`${contextPath}download-current-exam-result-file`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: $('#exam').val().toString() })
+            })
+                .then(response => response.ok ? response.blob() : response.json())
+                .then(data => {
+                    if (data instanceof Blob) {
+                        const a = document.createElement('a');
+                        a.href = window.URL.createObjectURL(data);
+                        a.download = "Academic_Students_Current_Exam_Result_File.xlsx";
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        showMsg("success", "File downloaded", "Success");
+                    } else {
+                        showMsg("error", (data.error || "An unknown error occurred"), "Error");
+                    }
+                })
+                .catch(() => showMsg("error", "Could not download the file. Please try again.", "Error"));
+        };
+
+        const bulkCorrectUpload = () => {
+            if (!validateMandatoryValuesWithExam()) return;
+            new bootstrap.Modal(document.getElementById('bulkCorrectUploadModal')).show();
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('bulkCorrectUploadModal').addEventListener('show.bs.modal', function () {
+                document.getElementById('bulkCorrectFormFile').value = '';
+            });
+        });
+
+        let bulkCorrectRows = [];
+        let bulkCorrectTable = null;
+
+        document.getElementById("bulkCorrectUploadBtn").onclick = function () {
+            const fileInput = document.getElementById("bulkCorrectFormFile");
+            if (!fileInput.files[0]) {
+                showMsg("error", "Please choose a file first.", "Error");
+                return;
+            }
+            const btn = this;
+            setBtnLoading(btn, true);
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            fetch(`${contextPath}validate-bulk-correct-exam-result`, { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showMsg("error", typeof data.error === 'string' ? data.error : "Could not read this file.", "Error");
+                        return;
+                    }
+                    bulkCorrectRows = data.rows || [];
+                    $('#bulkCorrectUploadModal').modal('hide');
+                    renderBulkCorrectReviewTable();
+                    new bootstrap.Modal(document.getElementById('bulkCorrectReviewModal')).show();
+                })
+                .catch(() => showMsg("error", "Could not upload the file. Please try again.", "Error"))
+                .finally(() => setBtnLoading(btn, false));
+        };
+
+        function bulkCorrectStatusBadge(status){
+            if (status === 'NEW') return '<span class="er-badge" style="background:#e0f2fe;color:#075985;">New</span>';
+            if (status === 'UPDATE') return '<span class="er-badge er-badge-duplicate">Will change</span>';
+            if (status === 'UNCHANGED') return '<span class="er-badge" style="background:#f1f5f9;color:#64748b;">Unchanged</span>';
+            return '<span class="er-badge er-badge-issue">Issue</span>';
+        }
+
+        function renderBulkCorrectReviewTable(){
+            const total = bulkCorrectRows.length;
+            const newCount = bulkCorrectRows.filter(r => r.status === 'NEW').length;
+            const updateCount = bulkCorrectRows.filter(r => r.status === 'UPDATE').length;
+            const unchangedCount = bulkCorrectRows.filter(r => r.status === 'UNCHANGED').length;
+            const issueCount = total - newCount - updateCount - unchangedCount;
+            $('#bc-stat-total').text(total);
+            $('#bc-stat-new').text(newCount);
+            $('#bc-stat-update').text(updateCount);
+            $('#bc-stat-unchanged').text(unchangedCount);
+            $('#bc-stat-issue').text(issueCount);
+
+            if (bulkCorrectTable) { bulkCorrectTable.destroy(); $('#bc-review-data tbody').empty(); }
+
+            const tbody = $('#bc-review-data tbody');
+            bulkCorrectRows.forEach(r => {
+                const oldTO = (r.oldTotalMarks ?? r.oldObtainedMarks) ? `${r.oldObtainedMarks ?? ''} / ${r.oldTotalMarks ?? ''}` : '—';
+                const newTO = `${r.obtainedMarks ?? ''} / ${r.totalMarks ?? ''}`;
+                const oldDR = (r.oldDivision || r.oldResult) ? `${r.oldDivision ?? ''} / ${r.oldResult ?? ''}` : '—';
+                const newDR = `${r.division ?? ''} / ${r.result ?? ''}`;
+                tbody.append(`<tr class="${r.status === 'UPDATE' ? 'table-warning' : (r.status !== 'NEW' && r.status !== 'UNCHANGED' ? 'table-danger' : '')}">
+                    <td>${r.rowIndex ?? ''}</td>
+                    <td>${r.studentName ?? ''}</td>
+                    <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
+                    <td>${r.examResultDate ?? ''}</td>
+                    <td>${oldTO}</td>
+                    <td>${newTO}</td>
+                    <td>${oldDR}</td>
+                    <td>${newDR}</td>
+                    <td>${bulkCorrectStatusBadge(r.status)}</td>
+                    <td style="font-size:12px;">${r.reason ?? ''}</td>
+                </tr>`);
+            });
+
+            bulkCorrectTable = $('#bc-review-data').DataTable({
+                pageLength: 10,
+                lengthChange: false,
+                searching: false,
+                order: []
+            });
+        }
+
+        function setBulkCorrectFilter(mode){
+            $('#bc-filter-all, #bc-filter-changes').removeClass('active');
+            $('#bc-filter-' + (mode === 'changes' ? 'changes' : 'all')).addClass('active');
+            if (!bulkCorrectTable) return;
+            $.fn.dataTable.ext.search.pop();
+            if (mode === 'changes') {
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    const row = bulkCorrectRows[dataIndex];
+                    return row && row.status !== 'UNCHANGED';
+                });
+            }
+            bulkCorrectTable.draw();
+        }
+
+        document.getElementById("bcOpenConfirmBtn").onclick = function () {
+            const newRows = bulkCorrectRows.filter(r => r.status === 'NEW');
+            const updateRows = bulkCorrectRows.filter(r => r.status === 'UPDATE');
+            if (newRows.length === 0 && updateRows.length === 0) {
+                showMsg("error", "Nothing to save — no new or changed rows found.", "Error");
+                return;
+            }
+            $('#bc-confirm-stat-total').text(bulkCorrectRows.length);
+            $('#bc-confirm-stat-new').text(newRows.length);
+            $('#bc-confirm-stat-update').text(updateRows.length);
+            $('#bc-reason').val('');
+            $('#bulkCorrectConfirmBtn').prop('disabled', true);
+            new bootstrap.Modal(document.getElementById('bulkCorrectConfirmModal')).show();
+        };
+
+        document.getElementById("bc-reason").addEventListener('input', function () {
+            $('#bulkCorrectConfirmBtn').prop('disabled', this.value.trim().length === 0);
+        });
+
+        document.getElementById("bulkCorrectConfirmBtn").onclick = function () {
+            const reason = $('#bc-reason').val().trim();
+            if (!reason) return;
+            const btn = this;
+            setBtnLoading(btn, true);
+            const rows = bulkCorrectRows.filter(r => r.status === 'NEW' || r.status === 'UPDATE').map(r => ({
+                "Student Name": r.studentName,
+                "ID#": r.idNo,
+                "Father Name": r.fatherName,
+                "Mother Name": r.motherName,
+                "Mobile": r.mobile,
+                "SR": r.sr,
+                "Exam Name": r.examName,
+                "Exam Result Date": r.examResultDate,
+                "Total Marks": r.totalMarks,
+                "Obtained Marks": r.obtainedMarks,
+                "Percentage(%)": r.percentage,
+                "Division": r.division,
+                "Result": r.result,
+                "remarks": r.remark
+            }));
+
+            $.ajax({
+                url: `${contextPath}bulk-correct-exam-result-data`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ reason: reason, rows: rows }),
+                success: function (response) {
+                    $('#bulkCorrectConfirmModal').modal('hide');
+                    $('#bulkCorrectReviewModal').modal('hide');
+                    if (typeof response === 'string' && response.startsWith('error')) {
+                        showMsg("error", response.split("#####")[1] || response, "Error");
+                    } else {
+                        showMsg("success", response, "Saved");
+                    }
+                },
+                error: function () {
+                    showMsg("error", "Could not save the corrections. Please try again.", "Error");
+                },
+                complete: function () {
+                    setBtnLoading(btn, false);
+                }
+            });
+        };
+
+        document.getElementById("getfee").onclick = function () {
+            const proceed = validateMandatoryValues();
+            const exam = $('#exam').val();
+            if (!proceed) return;
+            if (exam === '') {
+                showMsg('error', 'Examination name is mandatory to view the records', "Warning");
+                return;
+            }
+            const btn = this;
+            setBtnLoading(btn, true);
+            const wrapper = document.getElementById('student-grade-data');
+            wrapper.style.position = 'relative';
+            const overlay = document.createElement('div');
+            overlay.className = 'er-loading-overlay';
+            overlay.innerHTML = '<span class="spinner-border text-primary"></span>';
+            wrapper.appendChild(overlay);
+
+            fetch(`${contextPath}getStudentsExamResults`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: exam.toString() })
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    return response.json();
+                })
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        if (data.length === 0) { showMsg("warning", "No result found for the given criteria.", "Message"); }
+                        else { renderStudentData(data); }
+                    } else if (data && data.empty) {
+                        showMsg("warning", data.message || "No result found for the given criteria.", "Message");
+                    } else {
+                        renderStudentData(data);
+                    }
+                })
+                .catch(() => showMsg("error", "An error occurred while fetching the examination result.", "Error"))
+                .finally(() => { setBtnLoading(btn, false); overlay.remove(); });
         };
 
         function renderStudentData(studentData) {
             let divTabId = $("#student-grade-data");
-            let btndiv = $("#btn-classes");
-            btndiv.hide();
             divTabId.html('');
             let rowCount = 0;
-            let tbl = '<table class="table table-bordered table-sm" id="er-table-data"><thead><tr><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Perc(%)</th><th>Division</th><th>Result</th><th>Remark</th></tr></thead><tbody class="table-group-divider">'
-            studentData.forEach(function(examSummary) {
+            let tbl = '<table class="table table-bordered table-sm" id="er-table-data"><thead><tr><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Perc(%)</th><th>Division</th><th>Result</th><th>Remark</th></tr></thead><tbody class="table-group-divider">';
+            studentData.forEach(function (examSummary) {
                 let srno = examSummary.academicStudent.classSrNo ? examSummary.academicStudent.classSrNo.trim() : '';
                 let remark = examSummary.remarks ? examSummary.remarks?.trim() : '';
                 tbl += `<tr>
@@ -464,62 +781,30 @@
                       <td>${examSummary.result}</td>
                       <td>${remark}</td>
                    </tr>`;
-
             });
-            tbl+='</tbody></table>';
+            tbl += '</tbody></table>';
             divTabId.html(tbl);
             const exportColumns = [0,1,2,3,4,5,6,7,8,9,10,11,12];
             const columnDefs = [{ "orderable": false, "targets": [0] }];
             $("#er-table-data").DataTable({
                 layout: {
-                    bottomEnd: {
-                        paging: {
-                            firstLast: false
-                        }
-                    },
+                    bottomEnd: { paging: { firstLast: false } },
                     top1Start: {
                         buttons: [
-                            {
-                                extend: 'excelHtml5',
-                                text: '<i class="bi bi-file-excel-fill text-success"></i>',
-                                titleAttr: 'Excel',
-                                title: 'Total Students Exam Result Data export',
-                                exportOptions: {
-                                    columns: exportColumns
-                                }
-                            },
-                            {
-                                extend: 'csvHtml5',
-                                text: '<i class="bi bi-filetype-csv text-info"></i>',
-                                titleAttr: 'CSV',
-                                title: 'Total Students Exam Result Data export'
-                            },
-                            {
-                                extend: 'pdfHtml5',
-                                text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
-                                titleAttr: 'PDF',
-                                title: 'Total Students Exam Result Data export',
-                                exportOptions: {
-                                    columns: exportColumns
-                                }
-                            },
+                            { extend: 'excelHtml5', text: '<i class="bi bi-file-excel-fill text-success"></i>', titleAttr: 'Excel', title: 'Total Students Exam Result Data export', exportOptions: { columns: exportColumns } },
+                            { extend: 'csvHtml5', text: '<i class="bi bi-filetype-csv text-info"></i>', titleAttr: 'CSV', title: 'Total Students Exam Result Data export' },
+                            { extend: 'pdfHtml5', text: '<i class="bi bi-file-pdf-fill text-danger"></i>', titleAttr: 'PDF', title: 'Total Students Exam Result Data export', exportOptions: { columns: exportColumns } },
                             'colvis'
                         ]
                     }
                 },
-                lengthMenu: [
-                    [5, 10, 25, 50, 100, -1],
-                    [5, 10, 25, 50, 100, 'All']
-                ],
+                lengthMenu: [ [5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, 'All'] ],
                 pageLength: 25,
                 columnDefs: columnDefs
             });
-            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
-                // Remove the btn-secondary class from each button
-                $(this).removeClass("btn-secondary");
-            });
-            btndiv.show();
+            $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function () { $(this).removeClass("btn-secondary"); });
         }
+
         function formatDateManual(dateStr) {
             const date = new Date(dateStr);
             const day = String(date.getDate()).padStart(2, '0');

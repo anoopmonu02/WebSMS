@@ -156,6 +156,31 @@ public class WebSecurityConfig {
                         // the general /admin/** rule below since Spring Security matches top-to-bottom.
                         .requestMatchers("/admin/student-regional/**").hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
 
+                        // Admin Config screens deliberately opened to STAFF too — route-level gate is
+                        // intentionally wide here (same idiom as /employee/** below); @CheckAccess on
+                        // each GlobalController method + the Permission Matrix enforce exactly which
+                        // of VIEW/CREATE/EDIT/DELETE a given STAFF user actually has per screen.
+                        // Must come before the general /admin/** rule below since Spring Security
+                        // matches top-to-bottom. Deliberately NOT included here (stay ADMIN/SUPERADMIN-only,
+                        // no per-user override intended): Customer, School, User, Role, Role-User Mapping,
+                        // User Permissions, Family Migration, Previous Balance, Mobile Sessions Cleanup.
+                        .requestMatchers(
+                                "/admin/academicyear/**",
+                                "/admin/month-mapping/**",
+                                "/admin/feedate/**",
+                                "/admin/fine/**",
+                                "/admin/fee-class/**",
+                                "/admin/fee-month/**",
+                                "/admin/discount-class/**",
+                                "/admin/discount-month/**",
+                                "/admin/full-payment-discount/**",
+                                "/admin/holidays/**", "/admin/holiday/**",
+                                "/admin/examinations/**", "/admin/examination/**",
+                                "/admin/examinations-date/**", "/admin/examination-details/**", "/admin/examinations-detail/**",
+                                "/admin/mobile-users/**",
+                                "/admin/birthday-notification-settings/**"
+                        ).hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
+
                         // Admin-only paths — STAFF excluded intentionally (no school config access)
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
 

@@ -793,21 +793,21 @@
                         <li class="sidebar-item"><hr class="sidebar-divider"></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="EMPLOYEE_LIST:VIEW" th:href="@{'/employee/employee-list'}"><i class="bi bi-dot"></i><span>Employee</span></a></li>
                         <li class="sidebar-item"><hr class="sidebar-divider"></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_ACYEAR:VIEW" th:href="@{'/admin/academicyear'}"><i class="bi bi-dot"></i><span>Academic Year</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_MONTH_MAP:VIEW" th:href="@{'/admin/month-mapping'}"><i class="bi bi-dot"></i><span>Month Mapping</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEEDATE:VIEW" th:href="@{'/admin/feedate'}"><i class="bi bi-dot"></i><span>Fee Date</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FINE:VIEW" th:href="@{'/admin/fine'}"><i class="bi bi-dot"></i><span>Fine</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_ACYEAR:VIEW" th:href="@{'/admin/academicyear'}"><i class="bi bi-dot"></i><span>Academic Year</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_MONTH_MAP:VIEW" th:href="@{'/admin/month-mapping'}"><i class="bi bi-dot"></i><span>Month Mapping</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEEDATE:VIEW" th:href="@{'/admin/feedate'}"><i class="bi bi-dot"></i><span>Fee Date</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FINE:VIEW" th:href="@{'/admin/fine'}"><i class="bi bi-dot"></i><span>Fine</span></a></li>
                         <li class="sidebar-item"><hr class="sidebar-divider"></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEE_CLASS:VIEW" th:href="@{'/admin/fee-class'}"><i class="bi bi-dot"></i><span>Fee-Grade Map</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEE_MONTH:VIEW" th:href="@{'/admin/fee-month'}"><i class="bi bi-dot"></i><span>Fee-Month Map</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_DISCOUNT_CLASS:VIEW" th:href="@{'/admin/discount-class'}"><i class="bi bi-dot"></i><span>Discount-Grade Map</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_DISCOUNT_MONTH:VIEW" th:href="@{'/admin/discount-month'}"><i class="bi bi-dot"></i><span>Discount-Month Map</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FULL_PAYMENT:VIEW" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-dot"></i><span>Full Payment Discount</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEE_CLASS:VIEW" th:href="@{'/admin/fee-class'}"><i class="bi bi-dot"></i><span>Fee-Grade Map</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FEE_MONTH:VIEW" th:href="@{'/admin/fee-month'}"><i class="bi bi-dot"></i><span>Fee-Month Map</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_DISCOUNT_CLASS:VIEW" th:href="@{'/admin/discount-class'}"><i class="bi bi-dot"></i><span>Discount-Grade Map</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_DISCOUNT_MONTH:VIEW" th:href="@{'/admin/discount-month'}"><i class="bi bi-dot"></i><span>Discount-Month Map</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_FULL_PAYMENT:VIEW" th:href="@{'/admin/full-payment-discount'}"><i class="bi bi-dot"></i><span>Full Payment Discount</span></a></li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><hr class="sidebar-divider"></li>
                         <!--<li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_REPORT_SETTINGS:VIEW" th:href="@{'/admin/select-columns'}"><i class="bi bi-dot"></i><span>Report Settings</span></a></li>-->
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_HOLIDAY:VIEW" th:href="@{'/admin/holidays'}"><i class="bi bi-dot"></i><span>Holiday Calendar</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM:VIEW" th:href="@{'/admin/examinations'}"><i class="bi bi-dot"></i><span>Examination</span></a></li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM_DATE:VIEW" th:href="@{'/admin/examinations-date'}"><i class="bi bi-dot"></i><span>Examination Date</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_HOLIDAY:VIEW" th:href="@{'/admin/holidays'}"><i class="bi bi-dot"></i><span>Holiday Calendar</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM:VIEW" th:href="@{'/admin/examinations'}"><i class="bi bi-dot"></i><span>Examination</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item"><a class="sidebar-link" sms:access="ADMIN_EXAM_DATE:VIEW" th:href="@{'/admin/examinations-date'}"><i class="bi bi-dot"></i><span>Examination Date</span></a></li>
                         <li class="sidebar-item"><hr class="sidebar-divider"></li>
                         <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/family-migration}">
@@ -827,13 +827,13 @@
                                 <span>Mobile Sessions Cleanup</span>
                             </a>
                         </li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/mobile-users}">
                                 <i class="bi bi-phone text-info"></i>
                                 <span>Mobile Users</span>
                             </a>
                         </li>
-                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/birthday-notification-settings}">
                                 <i class="bi bi-cake2-fill text-warning"></i>
                                 <span>Birthday Notification</span>

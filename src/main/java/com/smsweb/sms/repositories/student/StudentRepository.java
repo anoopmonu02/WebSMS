@@ -68,6 +68,15 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     @Query("SELECT COUNT(s) FROM Student s WHERE s.school.id = :schoolId AND s.status = 'Active'")
     long countActiveBySchool(@Param("schoolId") Long schoolId);
 
+    /**
+     * Highest PSRN currently assigned within a school, across all students
+     * regardless of status (soft-deleted/"Inactive" students keep their psrn,
+     * so this must not filter by status — see PsrnService for why).
+     * Returns null when the school has no students yet.
+     */
+    @Query("SELECT MAX(s.psrn) FROM Student s WHERE s.school.id = :schoolId")
+    Long findMaxPsrnBySchoolId(@Param("schoolId") Long schoolId);
+
     /** Paginated search across all schools (superadmin). */
     @Query(value = "SELECT s FROM Student s WHERE s.status = 'ACTIVE' " +
                    "AND (:search = '' OR LOWER(s.studentName) LIKE LOWER(CONCAT('%',:search,'%')) " +

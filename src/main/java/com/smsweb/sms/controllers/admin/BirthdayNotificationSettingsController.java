@@ -35,7 +35,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  */
 @Controller
 @RequestMapping("/admin/birthday-notification-settings")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
 public class BirthdayNotificationSettingsController {
 
     private static final Logger log = LoggerFactory.getLogger(BirthdayNotificationSettingsController.class);
