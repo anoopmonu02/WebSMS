@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Database Backup</title>
+</head>
+<body>
+<section>
+
+  <style>
+    .db-hero {
+      background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+      border-radius: 16px;
+      padding: 24px 28px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(3,105,161,.25);
+    }
+    .db-hero-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; flex-shrink: 0;
+    }
+    .db-hero h1 { font-size: 20px; font-weight: 700; margin: 0 0 2px; }
+    .db-hero p { font-size: 13px; margin: 0; opacity: .92; }
+
+    .db-card {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      padding: 22px;
+      height: 100%;
+    }
+    .db-card-title {
+      font-size: 15px; font-weight: 700; color: #0f172a;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+
+    .freq-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .freq-toggle .btn-check:checked + .freq-btn {
+      background: #0ea5e9; color: #fff; border-color: #0ea5e9;
+    }
+    .freq-btn { flex: 1; border-radius: 10px; font-weight: 600; }
+
+    .stat-chip {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px; height: 100%;
+    }
+    .stat-chip-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .stat-chip-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .stat-chip-value { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+    .run-now-panel {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #bbf7d0; border-radius: 14px; padding: 18px;
+      text-align: center;
+    }
+    .run-now-panel .bi-cloud-arrow-down-fill { font-size: 34px; color: #059669; }
+
+    #backupTable tbody tr:hover { background: #f8fafc; }
+    .backup-icon { width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; color: #0284c7;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .size-badge { font-size: 12px; font-weight: 600; background: #eef2ff; color: #4338ca; padding: 3px 10px; border-radius: 20px; }
+  </style>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+
+        <div class="db-hero">
+          <div class="db-hero-icon"><i class="bi bi-database-fill-gear"></i></div>
+          <div>
+            <h1>Database Backup</h1>
+            <p>Schedule automatic backups, or run one right now. Every backup is zipped, kept on this server, and emailed to the address below.</p>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <div class="stat-chip">
+              <div class="stat-chip-icon" style="background:#ede9fe;color:#6366f1;"><i class="bi bi-archive-fill"></i></div>
+              <div>
+                <div class="stat-chip-label">Total Backups</div>
+                <div class="stat-chip-value" th:text="${#lists.size(backups)}">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-5">
+            <div class="stat-chip">
+              <div class="stat-chip-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-clock-history"></i></div>
+              <div>
+                <div class="stat-chip-label">Current Schedule</div>
+                <div class="stat-chip-value" style="font-size:14px;">
+                  <span th:if="${frequency == 'WEEKLY'}" th:text="'Weekly, ' + ${dayOfWeek} + ' at ' + ${time}">Weekly</span>
+                  <span th:if="${frequency == 'DAILY'}" th:text="'Daily at ' + ${time}">Daily</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-chip">
+              <div class="stat-chip-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-envelope-check-fill"></i></div>
+              <div>
+                <div class="stat-chip-label">Sent To</div>
+                <div class="stat-chip-value" style="font-size:14px;" th:text="${emailTo != null and !emailTo.isEmpty() ? emailTo : 'Not set'}">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <div class="db-card">
+              <div class="db-card-title"><i class="bi bi-sliders text-primary"></i> Backup Schedule</div>
+
+              <form th:action="@{/admin/db-backup/schedule}" method="post" id="scheduleForm">
+                <label class="form-label fw-semibold">Frequency</label>
+                <div class="freq-toggle">
+                  <input type="radio" class="btn-check" name="frequencyRadio" id="freqDaily" autocomplete="off" value="DAILY" th:checked="${frequency == 'DAILY'}">
+                  <label class="btn btn-outline-primary freq-btn" for="freqDaily"><i class="bi bi-calendar-day"></i> Daily</label>
+
+                  <input type="radio" class="btn-check" name="frequencyRadio" id="freqWeekly" autocomplete="off" value="WEEKLY" th:checked="${frequency == 'WEEKLY'}">
+                  <label class="btn btn-outline-primary freq-btn" for="freqWeekly"><i class="bi bi-calendar-week"></i> Weekly</label>
+                </div>
+                <input type="hidden" name="frequency" id="frequencyInput" th:value="${frequency}">
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6" id="dayOfWeekWrap">
+                    <label for="dayOfWeek" class="form-label">Day of week</label>
+                    <select class="form-select" id="dayOfWeek" name="dayOfWeek">
+                      <option value="MON" th:selected="${dayOfWeek == 'MON'}">Monday</option>
+                      <option value="TUE" th:selected="${dayOfWeek == 'TUE'}">Tuesday</option>
+                      <option value="WED" th:selected="${dayOfWeek == 'WED'}">Wednesday</option>
+                      <option value="THU" th:selected="${dayOfWeek == 'THU'}">Thursday</option>
+                      <option value="FRI" th:selected="${dayOfWeek == 'FRI'}">Friday</option>
+                      <option value="SAT" th:selected="${dayOfWeek == 'SAT'}">Saturday</option>
+                      <option value="SUN" th:selected="${dayOfWeek == 'SUN'}">Sunday</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="timeInput" class="form-label">Time</label>
+                    <input type="time" class="form-control" id="timeInput" name="time" th:value="${time}" required>
+                    <div class="form-text">24-hour clock, server local time.</div>
+                  </div>
+                </div>
+
+                <hr/>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label for="emailInput" class="form-label">Backup email address</label>
+                    <input type="email" class="form-control" id="emailInput" name="email" th:value="${emailTo}" placeholder="e.g. backups@yourschool.com" required>
+                    <div class="form-text">Also used as the sender account (the backup is emailed to itself).</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="passwordInput" class="form-label">App password / passkey</label>
+                    <input type="password" class="form-control" id="passwordInput" name="password"
+                           th:placeholder="${hasPassword} ? 'Leave blank to keep current password' : 'Enter app password'">
+                    <div class="form-text" th:if="${hasPassword}">A password is already saved — leave blank to keep it.</div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Save Schedule</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="db-card">
+              <div class="run-now-panel mb-3">
+                <i class="bi bi-cloud-arrow-down-fill d-block mb-2"></i>
+                <div class="fw-semibold mb-1">Run a backup right now</div>
+                <div class="text-muted small mb-3">Creates a fresh backup immediately, in addition to the schedule.</div>
+                <button type="button" class="btn btn-success w-100" id="runNowBtn">
+                  <i class="bi bi-play-fill"></i> Backup Now
+                </button>
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Large databases may take a few minutes. You'll see a confirmation here once it's done, and an email if one is configured.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-card">
+          <div class="db-card-title"><i class="bi bi-archive-fill text-primary"></i> Existing Backups</div>
+
+          <div class="table-responsive">
+            <table class="table table-borderless align-middle mb-0" id="backupTable">
+              <thead>
+                <tr class="text-muted small text-uppercase">
+                  <th>Backup</th>
+                  <th>Size</th>
+                  <th>Created On</th>
+                  <th class="text-end">Action</th>
+                </tr>
+              </thead>
+              <tbody id="backupTableBody">
+                <tr th:each="b : ${backups}" th:attr="data-filename=${b.filename}">
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="backup-icon"><i class="bi bi-file-earmark-zip-fill"></i></div>
+                      <span th:text="${b.filename}">db_backup_20260804_143022</span>
+                    </div>
+                  </td>
+                  <td><span class="size-badge" th:text="${b.size}">0 MB</span></td>
+                  <td class="text-muted" th:text="${b.createdOn}">-</td>
+                  <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-backup-btn"
+                            th:attr="data-filename=${b.filename}">
+                      <i class="bi bi-trash3-fill"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-center text-muted py-5" id="noBackupsHint" th:style="${#lists.isEmpty(backups) ? '' : 'display:none;'}">
+            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+            No backups yet. Click "Backup Now" above to create the first one.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete confirmation modal -->
+  <div class="modal fade" id="deleteBackupModal" tabindex="-1" aria-labelledby="deleteBackupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger-subtle">
+          <h5 class="modal-title text-danger-emphasis" id="deleteBackupModalLabel">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Backup
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">You're about to permanently delete:</p>
+          <div class="border rounded p-3 bg-light fw-semibold" id="deleteBackupName">-</div>
+          <div class="alert alert-warning d-flex align-items-start mt-3 mb-0" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+            <div>This removes both the .sql and .zip files from the server. This cannot be undone.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmDeleteBackupBtn"><i class="bi bi-trash3-fill"></i> Delete Backup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "6000", "extendedTimeOut": "1000",
+        "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    const successMessage = [[${success}]];
+    if (successMessage) showMsg('success', successMessage, 'Success');
+    const errorMessage = [[${error}]];
+    if (errorMessage) showMsg('error', errorMessage, 'Error');
+
+    /* ── Frequency toggle ─────────────────────────────────────────────────── */
+    const toggleDayOfWeek = () => {
+      let isWeekly = $('#freqWeekly').is(':checked');
+      $('#dayOfWeekWrap').toggle(isWeekly);
+      $('#frequencyInput').val(isWeekly ? 'WEEKLY' : 'DAILY');
+    };
+    $('#freqDaily, #freqWeekly').on('change', toggleDayOfWeek);
+    toggleDayOfWeek();
+
+    /* ── Backup Now ────────────────────────────────────────────────────────── */
+    $('#runNowBtn').on('click', function(){
+      let btn = $(this);
+      btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Backing up...');
+      fetch(`${contextPath}admin/db-backup/run-now`, { method: 'POST' })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok || data.error) {
+            showMsg('error', data.error || 'Backup failed.', 'Error');
+          } else {
+            showMsg('success', data.message || 'Backup completed.', 'Success');
+            refreshBackupList();
+          }
+        })
+        .catch(() => showMsg('error', 'Backup failed. Please try again.', 'Error'))
+        .finally(() => btn.prop('disabled', false).html('<i class="bi bi-play-fill"></i> Backup Now'));
+    });
+
+    /* ── List refresh (after backup / delete) ─────────────────────────────── */
+    const renderBackupRow = (b) => {
+      return `<tr data-filename="${b.filename}">
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="backup-icon"><i class="bi bi-file-earmark-zip-fill"></i></div>
+            <span>${b.filename}</span>
+          </div>
+        </td>
+        <td><span class="size-badge">${b.size}</span></td>
+        <td class="text-muted">${b.createdOn}</td>
+        <td class="text-end">
+          <button type="button" class="btn btn-sm btn-outline-danger delete-backup-btn" data-filename="${b.filename}">
+            <i class="bi bi-trash3-fill"></i>
+          </button>
+        </td>
+      </tr>`;
+    };
+
+    const refreshBackupList = () => {
+      fetch(`${contextPath}admin/db-backup/list`).then(r => r.json()).then(backups => {
+        let tbody = $('#backupTableBody');
+        tbody.empty();
+        backups.forEach(b => tbody.append(renderBackupRow(b)));
+        $('#noBackupsHint').toggle(backups.length === 0);
+      }).catch(() => {});
+    };
+
+    /* ── Delete (event-delegated, since rows are re-rendered) ─────────────── */
+    let _deleteTarget = null;
+
+    $(document).on('click', '.delete-backup-btn', function(){
+      _deleteTarget = $(this).data('filename');
+      $('#deleteBackupName').text(_deleteTarget);
+      new bootstrap.Modal(document.getElementById('deleteBackupModal')).show();
+    });
+
+    $('#confirmDeleteBackupBtn').on('click', function(){
+      if (!_deleteTarget) return;
+      let btn = $(this);
+      btn.prop('disabled', true);
+      fetch(`${contextPath}admin/db-backup/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'filename=' + encodeURIComponent(_deleteTarget)
+      })
+      .then(r => r.json().then(data => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        bootstrap.Modal.getInstance(document.getElementById('deleteBackupModal'))?.hide();
+        if (!ok || data.error) {
+          showMsg('error', data.error || 'Could not delete backup.', 'Error');
+        } else {
+          showMsg('success', 'Backup deleted.', 'Success');
+          refreshBackupList();
+        }
+      })
+      .catch(() => showMsg('error', 'Could not delete backup.', 'Error'))
+      .finally(() => btn.prop('disabled', false));
+    });
+  </script>
+
+</section>
+</body>
+</html>

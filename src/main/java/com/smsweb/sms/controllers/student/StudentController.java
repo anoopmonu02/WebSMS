@@ -601,6 +601,30 @@ public class StudentController extends BaseController {
         return "student/show-attendance";
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_ATTENDANCE_ANNUAL", type = AccessType.VIEW)
+    @GetMapping("/annual-attendance-report")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
+    public String annualAttendanceReport(Model model){
+        log.info("Inside annualAttendanceReport");
+        model.addAttribute("mediums", dropdownService.getMediums());
+        model.addAttribute("grades", dropdownService.getGrades());
+        model.addAttribute("sections", dropdownService.getSections());
+        // Tells base.html to include the DataTables/Buttons script bundle
+        // (jQuery, dataTables.js, export buttons, etc.) — same flag
+        // studentData() sets for the student list page.
+        model.addAttribute("page", "datatable");
+        return "student/annual-attendance-report";
+    }
+
+    @CheckAccess(screen = "STUDENT_EDIT_ATTENDANCE", type = AccessType.VIEW)
+    @GetMapping("/edit-student-attendance")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    public String editStudentAttendancePage(Model model){
+        log.info("Inside editStudentAttendancePage");
+        model.addAttribute("months", dropdownService.getMonths());
+        return "student/edit-student-attendance";
+    }
+
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.EDIT)
     @GetMapping("/edit-aadhar-detail")
     public String updateAadharPage(Model model){
@@ -649,7 +673,6 @@ public class StudentController extends BaseController {
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String examResultForm(Model model){
         log.info("Inside examResultForm");
-        log.info("Inside examResultForm");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
@@ -662,6 +685,27 @@ public class StudentController extends BaseController {
         } else {
             model.addAttribute("examNames", java.util.Collections.emptyList());
         }
+
+        // Session (academic year) selector — lets the current+previous session's
+        // exam results both be entered/corrected from this one screen, since the
+        // annual exam is conducted at the end of one session but its results are
+        // usually declared a week or two into the next one (after rollover has
+        // already happened). Bounded to just the two most recent years for the
+        // school — no arbitrary past-year editing — via getAllAcademiyears(),
+        // which is already sorted newest-first.
+        List<AcademicYear> recentYears = (school != null)
+                ? academicyearService.getAllAcademiyears(school.getId())
+                : java.util.Collections.emptyList();
+        List<AcademicYear> academicYearOptions = recentYears.size() > 2 ? recentYears.subList(0, 2) : recentYears;
+        model.addAttribute("academicYearOptions", academicYearOptions);
+        model.addAttribute("examNamesCurrent", model.getAttribute("examNames"));
+        if (academicYearOptions.size() > 1 && school != null) {
+            AcademicYear previousYear = academicYearOptions.get(1);
+            model.addAttribute("examNamesPrevious", examDetailsRepository.findAllByAcademicYear_IdAndSchool_Id(previousYear.getId(), school.getId()));
+        } else {
+            model.addAttribute("examNamesPrevious", java.util.Collections.emptyList());
+        }
+
         model.addAttribute("page", "datatable");
         return "student/stu_exam";
     }

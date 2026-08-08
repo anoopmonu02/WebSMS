@@ -45,8 +45,12 @@ public class Attendance {
     @NotNull(message = "Academic student should be available")
     private AcademicStudent academicStudent;
 
-    @CreationTimestamp
-    @Column(updatable = false)
+    // Was @CreationTimestamp + updatable=false (always "now" at insert, never
+    // changeable). Relaxed so StudentService.editStudentAttendanceDay() can
+    // insert a backfilled record stamped with the correct historical date
+    // instead of today's date. The one other place that creates a new
+    // Attendance row (saveStudentsAttendance, the daily-marking flow) now
+    // explicitly sets this to "now" itself, so its behavior is unchanged.
     @JoinColumn(name = "attendance_date")
     private Date attendanceDate;
 

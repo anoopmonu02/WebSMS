@@ -47,11 +47,12 @@ public class StudentRestController extends BaseController {
     private final GradeWiseImageDownloadHelper gradeWiseImageDownloadHelper;
     private final BoardRegistrationHelper boardRegistrationHelper;
     private final StudentRegionalDetailRepository studentRegionalDetailRepository;
+    private final com.smsweb.sms.services.admin.AcademicyearService academicyearService;
 
     @Value("${student.image.storage.path}")
     private String studentImageDirectory;
 
-    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService, StudentDiscountService studentDiscountService, GradeWiseImageDownloadHelper gradeWiseImageDownloadHelper, BoardRegistrationHelper boardRegistrationHelper, StudentRegionalDetailRepository studentRegionalDetailRepository) {
+    public StudentRestController(ExcelService excelService, StudentService studentService, AcademicStudentService academicStudentService, StudentDiscountService studentDiscountService, GradeWiseImageDownloadHelper gradeWiseImageDownloadHelper, BoardRegistrationHelper boardRegistrationHelper, StudentRegionalDetailRepository studentRegionalDetailRepository, com.smsweb.sms.services.admin.AcademicyearService academicyearService) {
         this.excelService = excelService;
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
@@ -59,6 +60,39 @@ public class StudentRestController extends BaseController {
         this.gradeWiseImageDownloadHelper = gradeWiseImageDownloadHelper;
         this.boardRegistrationHelper = boardRegistrationHelper;
         this.studentRegionalDetailRepository = studentRegionalDetailRepository;
+        this.academicyearService = academicyearService;
+    }
+
+    /**
+     * Resolves which AcademicYear an exam-result screen action should target.
+     * Exists because the annual exam is conducted at the end of one session but
+     * its results are usually declared a week or two into the next one — by
+     * which point the logged-in admin/teacher's session-wide "current" academic
+     * year has already flipped, with no way to target the just-ended one. The
+     * Exam Result screen offers a Session dropdown (current + previous only) for
+     * exactly this; every exam-result endpoint resolves its target year through
+     * here instead of trusting the raw client value, so a request can only ever
+     * target the session's own current year or the one immediately before it —
+     * never an arbitrary past year.
+     */
+    private AcademicYear resolveExamResultTargetYear(Object requestedId, AcademicYear sessionYear, School school) {
+        if (requestedId == null || school == null) {
+            return sessionYear;
+        }
+        Long id;
+        try {
+            String s = requestedId.toString().trim();
+            if (s.isEmpty()) return sessionYear;
+            id = Long.parseLong(s);
+        } catch (NumberFormatException nfe) {
+            return sessionYear;
+        }
+        if (sessionYear != null && id.equals(sessionYear.getId())) {
+            return sessionYear;
+        }
+        List<AcademicYear> recentYears = academicyearService.getAllAcademiyears(school.getId());
+        List<AcademicYear> allowed = recentYears.size() > 2 ? recentYears.subList(0, 2) : recentYears;
+        return allowed.stream().filter(ay -> ay.getId().equals(id)).findFirst().orElse(sessionYear);
     }
 
     @CheckAccess(screen = "STUDENT_ASSIGN_SR", type = AccessType.VIEW)
@@ -511,6 +545,113 @@ public class StudentRestController extends BaseController {
         }
     }
 
+    @CheckAccess(screen = "STUDENT_REPORT_ATTENDANCE_ANNUAL", type = AccessType.VIEW)
+    @PostMapping("/getStudentsAnnualAttendance")
+    public ResponseEntity<?> getStudentsAnnualAttendance(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentsAnnualAttendance");
+        try{
+            if(requestBody!=null){
+                String medium = requestBody.getOrDefault("mediumId","0");
+                String grade = requestBody.getOrDefault("gradeId","0");
+                String section = requestBody.getOrDefault("sectionId","0");
+                Long mediumId = (medium!=null && !medium.isEmpty())?Long.parseLong(medium):0L;
+                Long gradeId = (grade!=null && !grade.isEmpty())?Long.parseLong(grade):0L;
+                Long sectionId = (section!=null && !section.isEmpty())?Long.parseLong(section):0L;
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                Map<String, Object> result = studentService.getAnnualAttendance(mediumId, gradeId, sectionId, school.getId(), academicYear);
+                return ResponseEntity.ok(result);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Request body is missing or invalid.");
+            }
+        }catch(Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    // ── Edit Student Attendance (single-day admin correction) ──────────────────
+    // Hard-locked with @PreAuthorize (ADMIN/SUPERADMIN only) in addition to the
+    // screen permission, matching the exam-result bulk-correct precedent above —
+    // this directly rewrites attendance history, so it shouldn't be grantable to
+    // Teacher/Staff/Accountant via the flexible screen-permission system alone.
+
+    @CheckAccess(screen = "STUDENT_EDIT_ATTENDANCE", type = AccessType.VIEW)
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    @PostMapping("/getStudentAttendanceMonthDetail")
+    public ResponseEntity<?> getStudentAttendanceMonthDetail(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside getStudentAttendanceMonthDetail");
+        try{
+            if(requestBody!=null){
+                String stuId = requestBody.getOrDefault("academicStudentId","0");
+                String monthVal = requestBody.getOrDefault("month","0");
+                Long academicStudentId = (stuId!=null && !stuId.isEmpty())?Long.parseLong(stuId):0L;
+                int month = (monthVal!=null && !monthVal.isEmpty())?Integer.parseInt(monthVal):0;
+                if(academicStudentId==0L || month<1 || month>12){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Invalid student or month."));
+                }
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                // Scoped by school+academicYear (not a raw findById) so a student id can't
+                // be used to read another school's/branch's attendance data.
+                AcademicStudent academicStudent = academicStudentService.searchStudentById(academicStudentId, academicYear.getId(), school.getId());
+                if(academicStudent==null){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Student not found."));
+                }
+                int year = java.time.LocalDate.now().getYear();
+                Map<String, Object> result = studentService.getStudentMonthlyAttendanceDetail(academicStudent, school, academicYear, month, year);
+                return ResponseEntity.ok(result);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Request body is missing or invalid."));
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
+    @CheckAccess(screen = "STUDENT_EDIT_ATTENDANCE", type = AccessType.EDIT)
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
+    @PostMapping("/editStudentAttendanceDay")
+    public ResponseEntity<?> editStudentAttendanceDay(@RequestBody Map<String, Object> requestBody, Model model){
+        log.info("Inside editStudentAttendanceDay");
+        try{
+            if(requestBody!=null){
+                String stuId = requestBody.get("academicStudentId")!=null ? requestBody.get("academicStudentId").toString() : "0";
+                String dateStr = requestBody.get("date")!=null ? requestBody.get("date").toString() : null;
+                Object presentObj = requestBody.get("present");
+                String remark = requestBody.get("remark")!=null ? requestBody.get("remark").toString() : null;
+                Long academicStudentId = (stuId!=null && !stuId.isEmpty())?Long.parseLong(stuId):0L;
+                if(academicStudentId==0L || dateStr==null || dateStr.isEmpty() || presentObj==null){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Missing required fields."));
+                }
+                boolean present = Boolean.parseBoolean(presentObj.toString());
+                java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                School school = (School)model.getAttribute("school");
+                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                // Scoped by school+academicYear (not a raw findById) so a student id can't
+                // be used to write another school's/branch's attendance data.
+                AcademicStudent academicStudent = academicStudentService.searchStudentById(academicStudentId, academicYear.getId(), school.getId());
+                if(academicStudent==null){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Student not found."));
+                }
+                Map<String, Object> result = studentService.editStudentAttendanceDay(academicStudent, school, academicYear, date, present, remark);
+                if(result.containsKey("error")){
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+                }
+                return ResponseEntity.ok(result);
+            } else{
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Request body is missing or invalid."));
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "An unexpected error occurred: " + e.getMessage()));
+        }
+    }
+
     @CheckAccess(screen = "STUDENT_EDIT_AADHAR", type = AccessType.VIEW)
     @PostMapping("/downloadAadharSampleFile")
     public ResponseEntity<?> downloadAadharSampleFile(@RequestBody Map<String, String> requestBody, Model model) throws IOException {
@@ -727,7 +868,7 @@ public class StudentRestController extends BaseController {
                 Long sectionId = (section!=null && section!="")?Long.parseLong(section):0;
                 String fileType = requestBody.getOrDefault("fileType", "");
                 School school = (School)model.getAttribute("school");
-                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                AcademicYear academicYear = resolveExamResultTargetYear(requestBody.get("academicYearId"), (AcademicYear)model.getAttribute("academicYear"), school);
                 Map<String, Object> responseMap = excelService.downloadSampleSRExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), fileType, "exam");
                 if(responseMap!=null && responseMap.containsKey("error")){
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
@@ -756,10 +897,10 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-file")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
-    public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file, Model model){
+    public ResponseEntity<?> validateExcelDataForExamResult(@RequestParam("file") MultipartFile file, @RequestParam(value = "academicYearId", required = false) Long academicYearId, Model model){
         log.info("Inside validateExcelDataForExamResult");
         School school = (School)model.getAttribute("school");
-        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        AcademicYear academicYear = resolveExamResultTargetYear(academicYearId, (AcademicYear)model.getAttribute("academicYear"), school);
         Map<String, Object> result = excelService.checkAndValidateExamResultData(file, academicYear, school);
         if(result.containsKey("error")){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
@@ -770,13 +911,13 @@ public class StudentRestController extends BaseController {
     @CheckAccess(screen = "STUDENT_EXAM_RESULT", type = AccessType.EDIT)
     @PostMapping("/upload-exam-result-data")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
-    public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, Model model){
+    public ResponseEntity<?> uploadExamResultData(@RequestBody List<Map<String, String>> tableData, @RequestParam(value = "academicYearId", required = false) Long academicYearId, Model model){
         log.info("Inside uploadExamResultData");
         String responseMsg = "";
         try{
             log.debug("Received data, size={}", tableData.size());
             School school = (School)model.getAttribute("school");
-            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            AcademicYear academicYear = resolveExamResultTargetYear(academicYearId, (AcademicYear)model.getAttribute("academicYear"), school);
             responseMsg = studentService.uploadExamResult(tableData, academicYear, school);
         }catch(Exception e){
             e.printStackTrace();
@@ -807,7 +948,7 @@ public class StudentRestController extends BaseController {
                 Long sectionId = (section!=null && !section.isEmpty())?Long.parseLong(section):0;
                 Long examDetailsId = (examId!=null && !examId.isEmpty())?Long.parseLong(examId):0;
                 School school = (School)model.getAttribute("school");
-                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+                AcademicYear academicYear = resolveExamResultTargetYear(requestBody.get("academicYearId"), (AcademicYear)model.getAttribute("academicYear"), school);
                 Map<String, Object> responseMap = excelService.downloadCurrentExamResultExcel(gradeId, sectionId, mediumId, academicYear.getId(), school.getId(), examDetailsId);
                 if(responseMap!=null && responseMap.containsKey("error")){
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMap);
@@ -834,10 +975,10 @@ public class StudentRestController extends BaseController {
 
     @PostMapping("/validate-bulk-correct-exam-result")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
-    public ResponseEntity<?> validateBulkCorrectExamResult(@RequestParam("file") MultipartFile file, Model model){
+    public ResponseEntity<?> validateBulkCorrectExamResult(@RequestParam("file") MultipartFile file, @RequestParam(value = "academicYearId", required = false) Long academicYearId, Model model){
         log.info("Inside validateBulkCorrectExamResult");
         School school = (School)model.getAttribute("school");
-        AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+        AcademicYear academicYear = resolveExamResultTargetYear(academicYearId, (AcademicYear)model.getAttribute("academicYear"), school);
         Map<String, Object> result = excelService.checkAndClassifyBulkCorrectionData(file, academicYear, school);
         if(result.containsKey("error")){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
@@ -852,7 +993,7 @@ public class StudentRestController extends BaseController {
         String responseMsg;
         try{
             School school = (School)model.getAttribute("school");
-            AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
+            AcademicYear academicYear = resolveExamResultTargetYear(payload.get("academicYearId"), (AcademicYear)model.getAttribute("academicYear"), school);
             String reason = payload.get("reason") != null ? payload.get("reason").toString() : null;
             @SuppressWarnings("unchecked")
             List<Map<String, String>> tableData = (List<Map<String, String>>) payload.get("rows");
@@ -881,8 +1022,8 @@ public class StudentRestController extends BaseController {
                 Long sectionId = (section!=null && section!="")?Long.parseLong(section):0L;
                 Long exam = (examId!=null && examId!="")?Long.parseLong(examId):0L;
                 School school = (School)model.getAttribute("school");
-                AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
-                List<ExamResultSummary> examResultSummaries = studentService.getExamResultsForStudents(mediumId, gradeId, sectionId,exam, academicYear.getId(), school.getId());
+                AcademicYear academicYear = resolveExamResultTargetYear(tableData.get("academicYearId"), (AcademicYear)model.getAttribute("academicYear"), school);
+                List<ExamResultSummary> examResultSummaries = studentService.getExamResultsForView(mediumId, gradeId, sectionId,exam, academicYear.getId(), school.getId());
                 if(examResultSummaries == null || examResultSummaries.isEmpty()){
                     return ResponseEntity.ok(java.util.Map.of("empty", true, "message", "No result found for the given criteria."));
                 }

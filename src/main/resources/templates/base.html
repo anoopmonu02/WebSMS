@@ -839,6 +839,12 @@
                                 <span>Birthday Notification</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/db-backup}">
+                                <i class="bi bi-database-fill-gear text-info"></i>
+                                <span>Database Backup</span>
+                            </a>
+                        </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
                             <a class="sidebar-link" sms:access="ADMIN_STUDENT_REGIONAL:VIEW" th:href="@{/admin/student-regional}">
                                 <i class="bi bi-translate text-success"></i>
@@ -891,6 +897,7 @@
                     </a>
                     <ul id="attendance" class="sidebar-dropdown list-unstyled collapse">
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_ATTENDANCE_VIEW:VIEW" th:href="@{'/student/student-attendance'}"><i class="bi bi-dot"></i><span>Student Attendance</span></a></li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item"><a class="sidebar-link" sms:access="STUDENT_EDIT_ATTENDANCE:VIEW" th:href="@{'/student/edit-student-attendance'}"><i class="bi bi-dot"></i><span>Edit Student Attendance</span></a></li>
                     </ul>
                 </li>
 
@@ -956,6 +963,7 @@
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_ID_CARD:VIEW" th:href="@{'/student/id-card-print'}" class="sidebar-link"><i class="bi bi-dot"></i><span>ID Card Print</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_GRADEWISE_IMAGE_DOWNLOAD:VIEW" th:href="@{'/student/grade-wise-image-download'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade-wise Images Download</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_BOARD_REGISTRATION_CLASS9:VIEW" th:href="@{'/student/board-registration-class9'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Board Registration (Class 9)</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_REPORT_ATTENDANCE_ANNUAL:VIEW" th:href="@{'/student/annual-attendance-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Attendance Report (Annual)</span></a></li>
                             </ul>
                         </li>
                     </ul>

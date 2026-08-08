@@ -318,6 +318,20 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     /**
      * Finds all active AcademicStudents whose parent mobile1 matches.
      * Used by mobile login to support families with multiple children.
+     *
+     * "a.isMigrated = false" is the fix for a duplicate-child bug: a.status =
+     * 'Active' alone does NOT mean "this is the student's current enrollment"
+     * — AcademicStudent rows for past years legitimately stay 'Active' as
+     * historical records (see MobileAcademicYearService.getAcademicYearsForStudent,
+     * which relies on exactly that to power the year picker). isMigrated is
+     * flipped to true on the OLD row the instant a student is promoted/migrated
+     * to a new enrollment row (see StudentMigrationService — both the
+     * same-school and cross-school paths set it), and the new row is created
+     * with it still false, so "isMigrated = false" reliably picks out exactly
+     * the one current row per physical student, regardless of how many past
+     * years/migrations exist. Without this, a promoted student showed up
+     * twice — once per enrollment row — on the mobile app's login/select and
+     * Switch Student screens.
      */
     @Query("SELECT a FROM AcademicStudent a " +
            "JOIN FETCH a.student s " +
@@ -327,13 +341,16 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
            "JOIN FETCH a.grade g " +
            "JOIN FETCH a.section sec " +
            "JOIN FETCH a.medium m " +
-           "WHERE s.mobile1 = :mobile AND a.status = 'Active' AND s.status = 'ACTIVE'")
+           "WHERE s.mobile1 = :mobile AND a.status = 'Active' AND s.status = 'ACTIVE' " +
+           "AND a.isMigrated = false")
     List<AcademicStudent> findActiveByMobile(@Param("mobile") String mobile);
 
 
     /**
      * Finds all active AcademicStudents linked to a FamilyAccount (via student FK).
      * Used at login time — replaces the fragile mobile1 string match.
+     * See findActiveByMobile's doc comment above for why "a.isMigrated = false"
+     * is required here too.
      */
     @Query("SELECT a FROM AcademicStudent a " +
            "JOIN FETCH a.student s " +
@@ -343,22 +360,34 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
            "JOIN FETCH a.grade g " +
            "JOIN FETCH a.section sec " +
            "JOIN FETCH a.medium m " +
-           "WHERE s.familyAccount = :familyAccount AND a.status = 'Active' AND s.status = 'ACTIVE'")
+           "WHERE s.familyAccount = :familyAccount AND a.status = 'Active' AND s.status = 'ACTIVE' " +
+           "AND a.isMigrated = false")
     List<AcademicStudent> findActiveByFamilyAccount(@Param("familyAccount") FamilyAccount familyAccount);
 
 
     /**
      * PRIMARY child lookup at mobile login — via SiblingGroup.
      *
-     * Finds all active AcademicStudents that belong to the same SiblingGroup
-     * as any student whose parent mobile1 matches the login mobile.
+     * Finds all active, NOT-YET-MIGRATED AcademicStudents that belong to the
+     * same SiblingGroup as any student whose parent mobile1 matches the login
+     * mobile.
      *
      * Logic:
-     *   1. Find any active AcademicStudent where student.mobile1 = :mobile
+     *   1. Find any active, not-migrated AcademicStudent where student.mobile1 = :mobile
      *   2. Get their SiblingGroup (via SiblingGroupStudent)
-     *   3. Return ALL active AcademicStudents in that same SiblingGroup
+     *   3. Return the active, not-migrated AcademicStudents in that same SiblingGroup
      *
      * Returns empty list if no SiblingGroup is found → caller falls back to mobile1/FK.
+     *
+     * The "isMigrated = false" filter (both here and on the inner subquery) is
+     * the fix for a duplicate-child bug — see findActiveByMobile's doc comment
+     * above for the full explanation. isMigrated is the purpose-built signal
+     * for "has this exact enrollment row been superseded by a newer one,"
+     * set at the moment of migration in StudentMigrationService — more direct
+     * and robust than checking the row's academicYear against whichever
+     * AcademicYear is currently flagged active for the school, since it holds
+     * even for a same-year re-section and doesn't depend on that separate
+     * flag being kept correct.
      */
     @Query("SELECT DISTINCT a FROM AcademicStudent a " +
            "JOIN FETCH a.student s " +
@@ -373,8 +402,10 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
            "  SELECT DISTINCT sgs2.siblingGroup FROM SiblingGroupStudent sgs2 " +
            "  WHERE sgs2.academicStudent.student.mobile1 = :mobile " +
            "  AND sgs2.academicStudent.status = 'Active' " +
+           "  AND sgs2.academicStudent.isMigrated = false " +
            "  AND sgs2.siblingGroup.status = 'Active'" +
-           ") AND a.status = 'Active' AND s.status = 'ACTIVE'")
+           ") AND a.status = 'Active' AND s.status = 'ACTIVE' " +
+           "AND a.isMigrated = false")
     List<AcademicStudent> findSiblingsByMobile(@Param("mobile") String mobile);
 
 }

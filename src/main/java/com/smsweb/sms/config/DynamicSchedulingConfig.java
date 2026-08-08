@@ -2,6 +2,8 @@ package com.smsweb.sms.config;
 
 import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.SystemConfigRepository;
+import com.smsweb.sms.services.admin.DbBackupScheduler;
+import com.smsweb.sms.services.admin.DbBackupService;
 import com.smsweb.sms.services.student.BirthdayNotificationScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +38,14 @@ public class DynamicSchedulingConfig implements SchedulingConfigurer {
 
     private final SystemConfigRepository systemConfigRepository;
     private final BirthdayNotificationScheduler birthdayNotificationScheduler;
+    private final DbBackupScheduler dbBackupScheduler;
 
     public DynamicSchedulingConfig(SystemConfigRepository systemConfigRepository,
-                                    BirthdayNotificationScheduler birthdayNotificationScheduler) {
+                                    BirthdayNotificationScheduler birthdayNotificationScheduler,
+                                    DbBackupScheduler dbBackupScheduler) {
         this.systemConfigRepository = systemConfigRepository;
         this.birthdayNotificationScheduler = birthdayNotificationScheduler;
+        this.dbBackupScheduler = dbBackupScheduler;
     }
 
     @Override
@@ -48,6 +53,10 @@ public class DynamicSchedulingConfig implements SchedulingConfigurer {
         registrar.addTriggerTask(
                 birthdayNotificationScheduler::runScheduledBirthdayNotifications,
                 triggerContext -> new CronTrigger(resolveBirthdayCron()).nextExecution(triggerContext)
+        );
+        registrar.addTriggerTask(
+                dbBackupScheduler::runScheduledBackup,
+                triggerContext -> new CronTrigger(resolveBackupCron()).nextExecution(triggerContext)
         );
     }
 
@@ -67,6 +76,23 @@ public class DynamicSchedulingConfig implements SchedulingConfigurer {
             log.error("Invalid birthday notification cron '{}' in system_config — falling back to default '{}'",
                     cron, BirthdayNotificationScheduler.DEFAULT_CRON);
             return BirthdayNotificationScheduler.DEFAULT_CRON;
+        }
+    }
+
+    /** Same re-read-on-every-run pattern as resolveBirthdayCron(), for the
+     *  Database Backup schedule (DB_BACKUP_SCHEDULE). */
+    private String resolveBackupCron() {
+        String cron = systemConfigRepository.findByConfigName(DbBackupService.CONFIG_CRON)
+                .map(SystemConfig::getConfigValue)
+                .filter(v -> v != null && !v.isBlank())
+                .orElse(DbBackupService.DEFAULT_CRON);
+        try {
+            new CronTrigger(cron);
+            return cron;
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid DB backup cron '{}' in system_config — falling back to default '{}'",
+                    cron, DbBackupService.DEFAULT_CRON);
+            return DbBackupService.DEFAULT_CRON;
         }
     }
 }
