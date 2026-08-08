@@ -25,6 +25,7 @@ import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.ExaminationService;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
+import com.smsweb.sms.services.mobile.PushNotificationService;
 import com.smsweb.sms.services.mobile.StudentHealthInfoService;
 import com.smsweb.sms.services.users.UserService;
 import com.smsweb.sms.models.messaging.SmsMessage;
@@ -53,6 +54,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -76,9 +78,10 @@ public class StudentService {
     private final SmsMessageService smsMessageService; // new — Confirm Attendance absent-student notifications
     private final PsrnService psrnService; // new — per-school sequential PSRN assignment
     private final ExamResultCorrectionLogRepository examResultCorrectionLogRepository; // new — audit trail for admin-only bulk-correct
+    private final PushNotificationService pushNotificationService; // new — result-declared push (feature: result-declared push)
 
     @Autowired
-    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository, SmsMessageService smsMessageService, PsrnService psrnService, ExamResultCorrectionLogRepository examResultCorrectionLogRepository) {
+    public StudentService(StudentRepository repository, AcademicStudentRepository academicStudentRepository, PasswordEncoder passwordEncoder, FileHandleHelper fileHandleHelper, UserService userService, AttendanceRepository attendanceRepository, ExaminationService examinationService, ExamResultSummaryRepository examResultSummaryRepository, UserRepository userRepository, FamilyAccountService familyAccountService, RoleRepository roleRepository, StudentHealthInfoService studentHealthInfoService, AttendanceConfirmationRepository attendanceConfirmationRepository, SmsMessageService smsMessageService, PsrnService psrnService, ExamResultCorrectionLogRepository examResultCorrectionLogRepository, PushNotificationService pushNotificationService) {
         this.repository = repository;
         this.academicStudentRepository = academicStudentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -95,6 +98,32 @@ public class StudentService {
         this.smsMessageService = smsMessageService;
         this.psrnService = psrnService;
         this.examResultCorrectionLogRepository = examResultCorrectionLogRepository;
+        this.pushNotificationService = pushNotificationService;
+    }
+
+    /**
+     * Fires the "Result Declared" push for every row with a non-blank Result
+     * value, right after a batch of ExamResultSummary rows has been saved.
+     * Deliberately silent/best-effort — a push failure must never surface as
+     * an error on the upload/correction response the admin sees, and
+     * PushNotificationService.sendToStudents already swallows its own
+     * exceptions, but this method's own list-building is wrapped too.
+     */
+    private void notifyResultsDeclared(List<ExamResultSummary> savedResults, String examName) {
+        try {
+            List<AcademicStudent> declaredStudents = new ArrayList<>();
+            for (ExamResultSummary ers : savedResults) {
+                if (ers.getResult() != null && !ers.getResult().isBlank() && ers.getAcademicStudent() != null) {
+                    declaredStudents.add(ers.getAcademicStudent());
+                }
+            }
+            if (declaredStudents.isEmpty()) return;
+            String body = "Your " + (examName != null ? examName : "exam") + " result has been declared.";
+            pushNotificationService.sendToStudents(
+                    declaredStudents, "Result Declared", body, PushNotificationService.TYPE_RESULT);
+        } catch (Exception e) {
+            log.warn("notifyResultsDeclared failed — push notification skipped", e);
+        }
     }
 
     public List<Student> getAllActiveStudentsOfSchool(Long school_id) {
@@ -913,6 +942,10 @@ public class StudentService {
                             attendance.setSchool(school);
                             attendance.setAcademicYear(academic);
                             attendance.setAcademicStudent(academicStudent);
+                            // attendanceDate is no longer auto-stamped by Hibernate (see
+                            // Attendance.attendanceDate javadoc) — set explicitly to "now"
+                            // to keep this daily-marking flow's behavior unchanged.
+                            attendance.setAttendanceDate(new Date());
                             attendance.setPresent(isChecked);
                             attendance.setRemark(remark);
                             attendance.setCreatedBy(loggedInUser);
@@ -1014,6 +1047,305 @@ public class StudentService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Annual (whole academic-session) attendance report for a medium/grade/section —
+     * backs the "Attendance Report (Annual)" screen under Reports > Student Report.
+     *
+     * Columns are the academic year's own 12 months in chronological order (e.g. Apr
+     * through Mar for an April-starting session), not calendar Jan-Dec — driven by
+     * AcademicYear.startDate/endDate, same source of truth used everywhere else a
+     * session's date range matters. Each month is still labelled with its plain
+     * calendar name (Jan, Feb, ...) for display.
+     *
+     * One query fetches every attendance row for the whole year (not 12 separate
+     * monthly queries) and the results are bucketed by month in memory — same
+     * findByAcademicStudentInAndAttendanceDateBetween() repository method
+     * getMonthlyAttendance() already uses, just called once with the full-year range.
+     */
+    public Map<String, Object> getAnnualAttendance(Long mediumId, Long gradeId, Long sectionId, Long schoolId, AcademicYear academicYear){
+        log.info("Inside getAnnualAttendance");
+        Map<String, Object> result = new LinkedHashMap<>();
+        try{
+            LocalDate academicStart = academicYear.getStartDate();
+            LocalDate academicEnd = academicYear.getEndDate();
+
+            List<YearMonth> academicMonths = new ArrayList<>();
+            YearMonth cursor = YearMonth.from(academicStart);
+            YearMonth endMonth = YearMonth.from(academicEnd);
+            while (!cursor.isAfter(endMonth)) {
+                academicMonths.add(cursor);
+                cursor = cursor.plusMonths(1);
+            }
+
+            List<AcademicStudent> students = academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(
+                    schoolId, mediumId, gradeId, sectionId, academicYear.getId(), "Active");
+
+            List<Attendance> allAttendance = attendanceRepository.findByAcademicStudentInAndAttendanceDateBetween(
+                    students, convertToDate(academicStart), convertToDate(academicEnd));
+
+            Map<UUID, List<Attendance>> attendanceByStudent = allAttendance.stream()
+                    .collect(Collectors.groupingBy(att -> att.getAcademicStudent().getUuid()));
+
+            LocalDate today = LocalDate.now();
+
+            // Working days per month (days in month minus Sundays) — same for
+            // every student since Sundays are calendar-wide, so computed once.
+            int[] workingDaysPerMonth = new int[academicMonths.size()];
+            for (int m = 0; m < academicMonths.size(); m++) {
+                YearMonth ym = academicMonths.get(m);
+                int sundays = 0;
+                for (LocalDate d = ym.atDay(1); !d.isAfter(ym.atEndOfMonth()); d = d.plusDays(1)) {
+                    if (d.getDayOfWeek() == DayOfWeek.SUNDAY) sundays++;
+                }
+                workingDaysPerMonth[m] = ym.lengthOfMonth() - sundays;
+            }
+
+            long[] presentSumPerMonth = new long[academicMonths.size()];
+            long yearlyPresentAll = 0;
+            List<Map<String, Object>> studentRows = new ArrayList<>();
+
+            for (AcademicStudent student : students) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("studentId", student.getUuid().toString());
+                row.put("studentName", student.getStudent().getStudentName());
+                row.put("srNo", student.getClassSrNo() != null ? student.getClassSrNo() : "");
+                row.put("psrn", student.getStudent().getPsrn() != null ? student.getStudent().getPsrn().toString() : "");
+
+                List<Attendance> studentAttendance = attendanceByStudent.getOrDefault(student.getUuid(), Collections.emptyList());
+                Map<YearMonth, List<Attendance>> byMonth = studentAttendance.stream()
+                        .collect(Collectors.groupingBy(a -> YearMonth.from(
+                                a.getAttendanceDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate())));
+
+                List<Map<String, Object>> months = new ArrayList<>();
+                int yearlyPresent = 0;
+                int yearlyTotalDays = 0;
+                for (int m = 0; m < academicMonths.size(); m++) {
+                    YearMonth ym = academicMonths.get(m);
+                    List<Attendance> recs = byMonth.getOrDefault(ym, Collections.emptyList());
+                    int present = 0;
+                    for (Attendance a : recs) {
+                        // Sundays never count toward present, even if a stray attendance
+                        // record exists for one — same rule getMonthlyAttendance()
+                        // enforces by forcing every Sunday cell to "S" regardless of
+                        // any underlying record.
+                        LocalDate recDate = a.getAttendanceDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                        if (recDate.getDayOfWeek() != DayOfWeek.SUNDAY && a.isPresent()) present++;
+                    }
+                    // A month that hasn't started yet contributes 0 working days so it
+                    // doesn't drag the running total down before the year is actually over.
+                    boolean isFutureMonth = ym.atDay(1).isAfter(today);
+                    int totalDaysForMonth = isFutureMonth ? 0 : workingDaysPerMonth[m];
+
+                    Map<String, Object> monthCell = new LinkedHashMap<>();
+                    monthCell.put("month", ym.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+                    monthCell.put("present", present);
+                    monthCell.put("totalDays", totalDaysForMonth);
+                    months.add(monthCell);
+
+                    yearlyPresent += present;
+                    yearlyTotalDays += totalDaysForMonth;
+                    presentSumPerMonth[m] += present;
+                }
+                row.put("months", months);
+                row.put("yearlyPresent", yearlyPresent);
+                row.put("yearlyTotalDays", yearlyTotalDays);
+                studentRows.add(row);
+                yearlyPresentAll += yearlyPresent;
+            }
+
+            // Summary block backing the 4 cards (student count, annual average,
+            // working days so far, month-wise class-average trend).
+            int totalWorkingDaysSoFar = 0;
+            List<Map<String, Object>> monthwiseTrend = new ArrayList<>();
+            for (int m = 0; m < academicMonths.size(); m++) {
+                YearMonth ym = academicMonths.get(m);
+                boolean isFutureMonth = ym.atDay(1).isAfter(today);
+                int totalDaysForMonth = isFutureMonth ? 0 : workingDaysPerMonth[m];
+                totalWorkingDaysSoFar += totalDaysForMonth;
+                double avgPercent = (!students.isEmpty() && totalDaysForMonth > 0)
+                        ? (presentSumPerMonth[m] * 100.0) / (students.size() * (double) totalDaysForMonth)
+                        : 0.0;
+                Map<String, Object> trendCell = new LinkedHashMap<>();
+                trendCell.put("month", ym.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+                trendCell.put("avgPercent", Math.round(avgPercent));
+                monthwiseTrend.add(trendCell);
+            }
+            double annualAveragePercent = (!students.isEmpty() && totalWorkingDaysSoFar > 0)
+                    ? (yearlyPresentAll * 100.0) / (students.size() * (double) totalWorkingDaysSoFar)
+                    : 0.0;
+
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("totalStudents", students.size());
+            summary.put("workingDaysInYear", totalWorkingDaysSoFar);
+            summary.put("annualAveragePercent", Math.round(annualAveragePercent));
+            summary.put("monthwiseTrend", monthwiseTrend);
+
+            result.put("students", studentRows);
+            result.put("summary", summary);
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", e.getLocalizedMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Day-by-day attendance detail for ONE student in ONE month — backs the
+     * "Edit Student Attendance" screen (Admin/Superadmin only).
+     *
+     * Each day is classified as Holiday (Sunday — never editable), Future (hasn't
+     * happened yet — never editable), Present/Absent (a record already exists —
+     * editable, flips the existing row), or NotMarked (no record for this student
+     * on a genuine past weekday). A NotMarked day is only "editable" (meaning: can
+     * have a new record backfilled) if at least one classmate has an attendance
+     * record for that exact date — see AttendanceRepository.existsAnyAttendanceForClassOnDate
+     * for why: that's the only way to know the class was actually marked that day
+     * rather than the whole day simply never happening for anyone.
+     */
+    public Map<String, Object> getStudentMonthlyAttendanceDetail(AcademicStudent academicStudent, School school, AcademicYear academicYear, int month, int year){
+        log.info("Inside getStudentMonthlyAttendanceDetail");
+        Map<String, Object> result = new LinkedHashMap<>();
+        try{
+            YearMonth yearMonth = YearMonth.of(year, month);
+            LocalDate firstDay = yearMonth.atDay(1);
+            LocalDate lastDay = yearMonth.atEndOfMonth();
+            LocalDate today = LocalDate.now();
+
+            List<Attendance> studentRecords = attendanceRepository.findByAcademicStudentInAndAttendanceDateBetween(
+                    List.of(academicStudent), convertToDate(firstDay), convertToDate(lastDay.plusDays(1)));
+            Map<LocalDate, Attendance> byDate = new HashMap<>();
+            for (Attendance a : studentRecords) {
+                LocalDate d = a.getAttendanceDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                byDate.put(d, a);
+            }
+
+            List<Map<String, Object>> days = new ArrayList<>();
+            int presentCount = 0;
+            int workingDays = 0;
+
+            for (LocalDate d = firstDay; !d.isAfter(lastDay); d = d.plusDays(1)) {
+                Map<String, Object> dayMap = new LinkedHashMap<>();
+                boolean isSunday = d.getDayOfWeek() == DayOfWeek.SUNDAY;
+                boolean isFuture = d.isAfter(today);
+                dayMap.put("date", d.toString());
+                dayMap.put("dayOfMonth", d.getDayOfMonth());
+                dayMap.put("dayName", d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
+
+                Attendance rec = byDate.get(d);
+                String status;
+                boolean editable = false;
+                Long attendanceId = null;
+                String remark = "";
+
+                if (isSunday) {
+                    status = "Holiday";
+                } else if (isFuture) {
+                    status = "Future";
+                } else if (rec != null) {
+                    status = rec.isPresent() ? "Present" : "Absent";
+                    editable = true;
+                    attendanceId = rec.getId();
+                    remark = rec.getRemark() != null ? rec.getRemark() : "";
+                    if (rec.isPresent()) presentCount++;
+                    workingDays++;
+                } else {
+                    boolean classMarked = attendanceRepository.existsAnyAttendanceForClassOnDate(
+                            academicStudent.getGrade().getId(), academicStudent.getSection().getId(), academicStudent.getMedium().getId(),
+                            school.getId(), academicYear.getId(), convertToDate(d), convertToDate(d.plusDays(1))) > 0;
+                    status = "NotMarked";
+                    editable = classMarked;
+                    workingDays++;
+                }
+
+                dayMap.put("status", status);
+                dayMap.put("editable", editable);
+                dayMap.put("attendanceId", attendanceId);
+                dayMap.put("remark", remark);
+                days.add(dayMap);
+            }
+
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("present", presentCount);
+            summary.put("workingDays", workingDays);
+            summary.put("percent", workingDays > 0 ? Math.round((presentCount * 100.0) / workingDays) : 0);
+
+            result.put("days", days);
+            result.put("summary", summary);
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", e.getLocalizedMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Single-date attendance correction (Admin/Superadmin only) — updates one
+     * existing Attendance row, or backfills a brand-new one if the class was
+     * genuinely marked that day and only this student's row is missing (see
+     * getStudentMonthlyAttendanceDetail's javadoc). Always requires a remark
+     * and never touches Sundays or future dates.
+     */
+    @Transactional
+    public Map<String, Object> editStudentAttendanceDay(AcademicStudent academicStudent, School school, AcademicYear academicYear,
+                                                          LocalDate date, boolean present, String remark){
+        log.info("Inside editStudentAttendanceDay");
+        Map<String, Object> result = new LinkedHashMap<>();
+        try{
+            UserEntity loggedInUser = userService.getLoggedInUser();
+            if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                result.put("error", "Sunday is not a school day and can't be edited.");
+                return result;
+            }
+            if (date.isAfter(LocalDate.now())) {
+                result.put("error", "Can't edit attendance for a date that hasn't happened yet.");
+                return result;
+            }
+            if (remark == null || remark.trim().isEmpty()) {
+                result.put("error", "A remark is required for this correction.");
+                return result;
+            }
+
+            Date startOfDay = convertToDate(date);
+            Date startOfNextDay = convertToDate(date.plusDays(1));
+
+            List<Attendance> existing = attendanceRepository.findByAcademicStudentIdAndDateRange(
+                    academicStudent.getId(), startOfDay, startOfNextDay);
+
+            Attendance attendance;
+            if (!existing.isEmpty()) {
+                attendance = existing.get(0);
+                attendance.setPresent(present);
+                attendance.setRemark(remark);
+                attendance.setUpdatedBy(loggedInUser);
+            } else {
+                boolean classMarked = attendanceRepository.existsAnyAttendanceForClassOnDate(
+                        academicStudent.getGrade().getId(), academicStudent.getSection().getId(), academicStudent.getMedium().getId(),
+                        school.getId(), academicYear.getId(), startOfDay, startOfNextDay) > 0;
+                if (!classMarked) {
+                    result.put("error", "This date was never marked for this class, so a new record can't be backfilled for it.");
+                    return result;
+                }
+                attendance = new Attendance();
+                attendance.setSchool(school);
+                attendance.setAcademicYear(academicYear);
+                attendance.setAcademicStudent(academicStudent);
+                attendance.setAttendanceDate(startOfDay);
+                attendance.setPresent(present);
+                attendance.setRemark(remark);
+                attendance.setCreatedBy(loggedInUser);
+            }
+            attendanceRepository.save(attendance);
+
+            result.put("success", true);
+            result.put("attendanceId", attendance.getId());
+            result.put("status", present ? "Present" : "Absent");
+        }catch(Exception e){
+            e.printStackTrace();
+            result.put("error", "Update failed: " + e.getLocalizedMessage());
+        }
+        return result;
     }
 
     public void getAttendanceSummaryByDates(Date startDate, Date endDate, Long schoolId, Long academicId, Long medium, Long gradeId, Long sectionId){
@@ -1264,12 +1596,21 @@ public class StudentService {
                                 AcademicStudent academicStudent = academicStudentRepository.findByUuid(
                                         UUID.fromString(uuid)).orElse(null);
 
+                                // Save-side safety net mirroring ExcelService's preview-step check — since
+                                // findByUuid is unscoped, guard here too against a row whose matched student
+                                // belongs to a different academic year than the one this upload targets (the
+                                // Exam Result screen's Session selector). Should already be caught by the
+                                // preview step, but this endpoint must not silently save a mismatch if ever
+                                // called directly or with a stale/tampered payload.
+                                boolean yearMismatch = academicStudent != null && academicStudent.getAcademicYear() != null
+                                        && !academicStudent.getAcademicYear().getId().equals(academic.getId());
+
                                 String rowDateKey = academicStudent != null
                                         ? academicStudent.getId() + "|" + rowData.get("Exam Result Date")
                                         : null;
-                                if (academicStudent != null && existingStudentDateKeys.contains(rowDateKey)) {
+                                if (academicStudent != null && !yearMismatch && existingStudentDateKeys.contains(rowDateKey)) {
                                     erDuplicateCounter++;
-                                } else if (academicStudent != null) {
+                                } else if (academicStudent != null && !yearMismatch) {
                                     ExamResultSummary examResultSummary = new ExamResultSummary();
                                     examResultSummary.setResult(rowData.get("Result"));
                                     examResultSummary.setExamDetails(examDetails);
@@ -1291,7 +1632,7 @@ public class StudentService {
                                     studentsResultsToSave.add(examResultSummary);  // Collect the student for bulk saving
                                     erPassCounter++;
                                 } else {
-                                    failedIds.add(uuid);  // Log the failure
+                                    failedIds.add(uuid + (yearMismatch ? " (different academic year)" : ""));  // Log the failure
                                     erFailCounter++;
                                 }
                             } else {
@@ -1305,6 +1646,11 @@ public class StudentService {
                     // Bulk save the students
                     if (!studentsResultsToSave.isEmpty()) {
                         examResultSummaryRepository.saveAll(studentsResultsToSave);
+                        // feature: result-declared push — this insert-only upload path IS
+                        // the "declare results" moment, so every row here is a first-time
+                        // declaration (uploadExamResult never overwrites an existing row —
+                        // see the duplicate-key check above).
+                        notifyResultsDeclared(studentsResultsToSave, examName);
                     }
                     String msg = "Total Results updated: " + erPassCounter + ", not found: " + erFailCounter
                             + ", duplicates skipped: " + erDuplicateCounter;
@@ -1430,6 +1776,14 @@ public class StudentService {
                     failCounter++;
                     continue;
                 }
+                // Same safety net as the preview step (ExcelService.checkAndClassifyBulkCorrectionData)
+                // and uploadExamResult — findByUuid is unscoped, so verify the matched student actually
+                // belongs to the academic year this bulk-correction targets before saving anything.
+                if(academicStudent.getAcademicYear() != null && !academicStudent.getAcademicYear().getId().equals(academic.getId())){
+                    failedIds.add(uuid + " (different academic year)");
+                    failCounter++;
+                    continue;
+                }
                 Long total, obtained;
                 try{
                     total = Long.parseLong(rowData.get("Total Marks"));
@@ -1536,6 +1890,10 @@ public class StudentService {
                 for(int i = 0; i < newSummaries.size(); i++){
                     newSummaryLogs.get(i).setExamResultSummary(newSummaries.get(i));
                 }
+                // feature: result-declared push — only newSummaries (brand-new rows)
+                // count as a first declaration; updatedSummaries are corrections to an
+                // already-declared result and must NOT re-notify the parent.
+                notifyResultsDeclared(newSummaries, examName);
             }
             if(!updatedSummaries.isEmpty()){
                 examResultSummaryRepository.saveAll(updatedSummaries);
@@ -1582,6 +1940,23 @@ public class StudentService {
         if (examDetails == null) return java.util.Collections.emptyList();
         List<ExamResultSummary> examResultSummaries = examResultSummaryRepository.getExamResultSummariesBy(school, academic, medium, grade, section, examDetails);
         log.debug("getExamResultsForStudents result size={}", examResultSummaries.size());
+        return examResultSummaries;
+    }
+
+    /**
+     * View result screen. Same match rules as getExamResultsForStudents —
+     * school + selected session + medium/grade/section (read off each
+     * result's linked academic_student, since exam_result_summary itself has
+     * no grade/medium/section columns) + the exact exam — but backed by
+     * findExamResultDetailsForView, which JOIN FETCHes the student and exam
+     * name in the same query instead of lazy-loading them per row.
+     */
+    public List<ExamResultSummary> getExamResultsForView(Long medium, Long grade, Long section, Long exam, Long academic, Long school){
+        log.info("Inside getExamResultsForView");
+        ExamDetails examDetails = examinationService.getExamDetailByDetailsId(exam);
+        if (examDetails == null) return java.util.Collections.emptyList();
+        List<ExamResultSummary> examResultSummaries = examResultSummaryRepository.findExamResultDetailsForView(school, academic, medium, grade, section, examDetails.getId());
+        log.debug("getExamResultsForView result size={}", examResultSummaries.size());
         return examResultSummaries;
     }
 

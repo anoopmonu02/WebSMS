@@ -29,6 +29,36 @@ public interface ExamResultSummaryRepository extends JpaRepository<ExamResultSum
     List<Object[]> findStudentIdAndResultDateByExamDetailsId(@Param("examDetailsId") Long examDetailsId);
 
     /**
+     * View result screen — same match rules as getExamResultSummariesBy
+     * (school + selected session + medium/grade/section read off the linked
+     * academic_student, since exam_result_summary has no grade/medium/section
+     * columns of its own + the exact exam), but with student and exam name
+     * eagerly JOIN FETCHed so the controller doesn't lazy-load them one row
+     * at a time. Every join here is many-to-one (result -> academicStudent,
+     * academicStudent -> student, result -> examDetails, examDetails ->
+     * examination), so this can't multiply rows — one row in, one row out,
+     * no duplicates.
+     */
+    @Query("SELECT f FROM ExamResultSummary f " +
+           "JOIN FETCH f.academicStudent ast " +
+           "JOIN FETCH ast.student " +
+           "JOIN FETCH f.examDetails ed " +
+           "JOIN FETCH ed.examination " +
+           "WHERE f.school.id = :schoolId " +
+           "AND f.academicYear.id = :academicYearId " +
+           "AND ast.medium.id = :mediumId " +
+           "AND ast.grade.id = :gradeId " +
+           "AND ast.section.id = :sectionId " +
+           "AND f.examDetails.id = :examDetailsId " +
+           "ORDER BY ast.student.studentName ASC")
+    List<ExamResultSummary> findExamResultDetailsForView(@Param("schoolId") Long schoolId,
+                                                           @Param("academicYearId") Long academicYearId,
+                                                           @Param("mediumId") Long mediumId,
+                                                           @Param("gradeId") Long gradeId,
+                                                           @Param("sectionId") Long sectionId,
+                                                           @Param("examDetailsId") Long examDetailsId);
+
+    /**
      * Full existing rows for a given exam — used by the Admin/SuperAdmin-only
      * bulk-correct flow (ExcelService.checkAndClassifyBulkCorrectionData,
      * StudentService.bulkCorrectExamResult) to decide, per uploaded row,

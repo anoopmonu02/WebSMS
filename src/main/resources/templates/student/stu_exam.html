@@ -16,13 +16,20 @@
         .er-badge-ready{background:#dcfce7;color:#166534;}
         .er-badge-issue{background:#fee2e2;color:#991b1b;}
         .er-badge-duplicate{background:#fef3c7;color:#92400e;}
-        .er-loading-overlay{position:absolute;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;border-radius:var(--radius-md,10px);z-index:5;}
         .er-normal-state, .er-loading-state{display:inline-flex;align-items:center;}
         .btn.is-loading .er-normal-state{display:none;}
         .btn:not(.is-loading) .er-loading-state{display:none;}
         .er-filter-toggle{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;gap:2px;}
         .er-filter-toggle button{border:none;background:transparent;padding:5px 14px;border-radius:6px;font-size:12.5px;color:#64748b;cursor:pointer;}
         .er-filter-toggle button.active{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600;color:#0f172a;}
+        .er-admin-strip{border-top:1px dashed #e2e8f0;margin-top:14px;padding-top:14px;}
+        /* Keep most review-table columns on one line (so a long ID/UUID doesn't
+           force every row tall) and only let the free-text Remark/Reason columns
+           wrap — with a floor width so they wrap at a sentence, not a word. The
+           table already scrolls horizontally (see .table-responsive), so wider
+           columns here are cheap. */
+        #stu-sr-data td, #stu-sr-data th, #bc-review-data td, #bc-review-data th{white-space:nowrap;}
+        #stu-sr-data td.er-wrap-col, #stu-sr-data th.er-wrap-col, #bc-review-data td.er-wrap-col, #bc-review-data th.er-wrap-col{white-space:normal;min-width:220px;max-width:340px;}
     </style>
     <div class="container-fluid px-3">
         <div class="row mt-2">
@@ -31,133 +38,120 @@
                 <hr/>
             </div>
 
+            <!-- ── Part 1: Selector part ─────────────────────────────────── -->
             <div class="col-12">
                 <div class="er-toolbar-card">
                     <div class="d-flex align-items-end gap-2 flex-wrap">
-                        <div style="min-width:150px;flex:1;">
-                            <label for="medium" class="form-label mb-1" style="font-size:12.5px;">Medium</label>
-                            <select name="medium" id="medium" class="form-select form-select-sm">
+                        <div style="min-width:170px;flex:1;" th:if="${academicYearOptions != null and #lists.size(academicYearOptions) > 1}">
+                            <label for="academicYearId" class="form-label mb-1" style="font-size:13px;">Session</label>
+                            <select name="academicYearId" id="academicYearId" class="form-select">
+                                <option th:each="ay, ayStat : ${academicYearOptions}" th:value="${ay.id}" th:text="${ay.sessionFormat}"
+                                        th:attr="data-slot=${ayStat.index == 0 ? 'current' : 'previous'}"
+                                        th:selected="${academicYear != null and ay.id == academicYear.id}">Session</option>
+                            </select>
+                        </div>
+                        <!-- Server-rendered, hidden — holds each session's own exam list so switching
+                             the Session dropdown swaps the visible Exam options client-side with no
+                             extra round trip. See swapExamOptionsForSelectedYear() below. -->
+                        <select id="exam-data-current" style="display:none" aria-hidden="true">
+                            <option th:each="exam : ${examNamesCurrent}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
+                        </select>
+                        <select id="exam-data-previous" style="display:none" aria-hidden="true">
+                            <option th:each="exam : ${examNamesPrevious}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
+                        </select>
+                        <div style="min-width:170px;flex:1;">
+                            <label for="medium" class="form-label mb-1" style="font-size:13px;">Medium</label>
+                            <select name="medium" id="medium" class="form-select">
                                 <option value="">Select Medium</option>
                                 <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
                             </select>
                         </div>
-                        <div style="min-width:150px;flex:1;">
-                            <label for="grade" class="form-label mb-1" style="font-size:12.5px;">Grade</label>
-                            <select name="grade" id="grade" class="form-select form-select-sm">
+                        <div style="min-width:170px;flex:1;">
+                            <label for="grade" class="form-label mb-1" style="font-size:13px;">Grade</label>
+                            <select name="grade" id="grade" class="form-select">
                                 <option value="">Select Grade</option>
                                 <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
                             </select>
                         </div>
-                        <div style="min-width:150px;flex:1;">
-                            <label for="section" class="form-label mb-1" style="font-size:12.5px;">Section</label>
-                            <select name="section" id="section" class="form-select form-select-sm">
+                        <div style="min-width:170px;flex:1;">
+                            <label for="section" class="form-label mb-1" style="font-size:13px;">Section</label>
+                            <select name="section" id="section" class="form-select">
                                 <option value="">Select Section</option>
                                 <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
                             </select>
                         </div>
-                        <div style="min-width:150px;flex:1;">
-                            <label for="exam" class="form-label mb-1" style="font-size:12.5px;">Exam</label>
-                            <select name="exam" id="exam" class="form-select form-select-sm">
+                        <div style="min-width:170px;flex:1;">
+                            <label for="exam" class="form-label mb-1" style="font-size:13px;">Exam</label>
+                            <select name="exam" id="exam" class="form-select">
                                 <option value="">Select Exam</option>
                                 <option th:each="exam : ${examNames}" th:value="${exam.id}" th:text="${exam.examination.examinationName}">Exam Name</option>
                             </select>
                         </div>
-                        <button name="getfee" id="getfee" class="btn btn-primary btn-sm text-nowrap">
-                            <span class="er-normal-state"><i class="bi bi-search me-1"></i>Get result</span>
+
+                        <button type="button" id="uploadResultBtn" class="btn btn-primary text-nowrap">
+                            <span class="er-normal-state"><i class="bi bi-cloud-upload-fill me-1"></i>Upload result</span>
+                            <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating…</span>
+                        </button>
+                        <button type="button" id="downloadResultBtn" class="btn btn-success text-nowrap">
+                            <i class="bi bi-download me-1"></i>Download result
+                        </button>
+                        <button type="button" id="viewResultBtn" class="btn btn-secondary text-nowrap">
+                            <span class="er-normal-state"><i class="bi bi-eye-fill me-1"></i>View result</span>
                             <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Fetching…</span>
                         </button>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-secondary btn-sm dropdown-toggle text-nowrap" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-upload me-1"></i>Upload
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" onclick="uploadFileGradeWise()"><i class="bi bi-cloud-upload-fill"></i> Upload Exam Result (For Grade)</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="downloadSample('G')"><i class="bi bi-download"></i> Download Sample File (Grade)</a></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><hr class="dropdown-divider"></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><h6 class="dropdown-header">Admin only</h6></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><a class="dropdown-item" href="#" onclick="downloadCurrentData()"><i class="bi bi-file-earmark-arrow-down-fill"></i> Download Current Data (to correct)</a></li>
-                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')"><a class="dropdown-item" href="#" onclick="bulkCorrectUpload()"><i class="bi bi-arrow-repeat"></i> Bulk Correct (Grade-wise)</a></li>
-                            </ul>
-                        </div>
+                    </div>
+
+                    <!-- Admin/SuperAdmin-only strip — same roles the backend already
+                         restricts /download-current-exam-result-file, /validate-bulk-correct-exam-result
+                         and /bulk-correct-exam-result-data to (see StudentRestController). -->
+                    <div sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="d-flex align-items-center gap-2 flex-wrap er-admin-strip">
+                        <span class="er-badge" style="background:#fee2e2;color:#991b1b;"><i class="bi bi-shield-lock-fill"></i> Admin only</span>
+                        <button type="button" id="uploadByAdminBtn" class="btn btn-outline-danger text-nowrap">
+                            <span class="er-normal-state"><i class="bi bi-file-earmark-arrow-up-fill me-1"></i>Upload by admin</span>
+                            <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating…</span>
+                        </button>
+                        <button type="button" id="downloadByAdminBtn" class="btn btn-outline-danger text-nowrap">
+                            <i class="bi bi-file-earmark-arrow-down-fill me-1"></i>Download exam result by admin
+                        </button>
+                        <span class="text-muted" style="font-size:11.5px;">Downloads the already-saved data if results exist for this selection, otherwise the blank template.</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Hidden file inputs — clicked programmatically, no picker modal -->
+            <input type="file" id="formFile" accept=".xlsx" style="display:none" aria-hidden="true">
+            <input type="file" id="bulkCorrectFormFile" accept=".xlsx" style="display:none" aria-hidden="true">
+
+            <!-- ── Part 2: Data part — shows an upload review or an admin
+                 correction review while you're about to save something.
+                 Saved/persisted results are viewed separately via the View
+                 result modal below, so this area is never disturbed by a
+                 look-up while a review is in progress ────────────────────── -->
             <div class="col-12" id="student-grade-data-wrapper">
                 <div class="er-results-card" id="student-grade-data">
-                    <div class="text-center text-muted py-4" style="font-size:13px;">Select medium, grade, section and exam, then click "Get result".</div>
+                    <div class="text-center text-muted py-4" style="font-size:13px;">Select medium, grade, section and exam, then use Upload result, Download result or View result above.</div>
                 </div>
             </div>
 
-            <!--File Upload Modal-->
-            <div class="modal fade" id="fileUploadModal" tabindex="-1" aria-labelledby="fileUploadModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="fileUploadModalLabel">Upload exam result</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="fileUploadForm" enctype="multipart/form-data">
-                                <div class="mb-3">
-                                    <label for="formFile" class="form-label">Choose the exam result file (.xlsx)</label>
-                                    <input class="form-control" type="file" id="formFile" name="file" accept=".xlsx">
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
-                            <button type="button" class="btn btn-primary" id="uploadBtn">
-                                <span class="er-normal-state"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Upload &amp; validate</span>
-                                <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating rows…</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Review modal: per-row status + reason, paginated, errors-only filter -->
-            <div class="modal fade" id="fileInfoModal" tabindex="-1" aria-labelledby="fileInfoModalLabel" aria-hidden="true">
+            <!-- View result modal — read only, already-saved data. Backdrop is
+                 static and keyboard is off, so it closes only via the header's
+                 X or the footer's Close button, never by clicking outside. -->
+            <div class="modal fade" id="viewResultModal" tabindex="-1" aria-labelledby="viewResultModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="fileInfoModalLabel">Review upload</h5>
+                            <h5 class="modal-title" id="viewResultModalLabel">Exam result</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                <div class="d-flex gap-2">
-                                    <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="stat-total">0</div></div>
-                                    <div class="er-stat-pill" style="background:#f0fdf4;"><div class="er-stat-label" style="color:#166534;">Ready</div><div class="er-stat-value" style="color:#166534;" id="stat-ready">0</div></div>
-                                    <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;" id="stat-issue">0</div></div>
-                                </div>
-                                <div class="er-filter-toggle">
-                                    <button type="button" id="filter-all" class="active" onclick="setReviewFilter('all')">All</button>
-                                    <button type="button" id="filter-issues" onclick="setReviewFilter('issues')">Needs attention only</button>
-                                </div>
-                            </div>
-
-                            <table id="stu-sr-data" class="table table-bordered table-sm" style="width:100%;">
-                                <thead>
-                                <tr>
-                                    <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th>
-                                    <th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Percentage(%)</th>
-                                    <th>Division</th><th>Result</th><th>Remark</th><th>Status</th><th>Reason</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
+                        <div class="modal-body" id="view-result-modal-body"></div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-success" id="openConfirmSaveBtn"><i class="bi bi-check2-circle me-1"></i>Save results</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg me-1"></i>Close</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Confirm-before-save popup -->
+            <!-- Confirm-before-save popup — normal upload -->
             <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-labelledby="confirmSaveModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
                     <div class="modal-content">
@@ -169,6 +163,9 @@
                                 <h5 class="modal-title mb-0" id="confirmSaveModalLabel">Confirm before saving</h5>
                             </div>
                             <p class="text-muted" style="font-size:13px;">This action can't be undone once saved. Review the counts below before you confirm.</p>
+                            <div class="text-center mb-2" style="font-size:12.5px;color:#475569;background:#f1f5f9;border-radius:6px;padding:6px;">
+                                Saving results for session: <strong id="confirm-session-label">—</strong>
+                            </div>
                             <div class="d-flex gap-2 mb-3">
                                 <div class="er-stat-pill flex-fill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="confirm-stat-total">0</div></div>
                                 <div class="er-stat-pill flex-fill" style="background:#f0fdf4;"><div class="er-stat-label" style="color:#166534;">Will save</div><div class="er-stat-value" style="color:#166534;" id="confirm-stat-ready">0</div></div>
@@ -186,76 +183,6 @@
                 </div>
             </div>
 
-            <!-- Admin/SuperAdmin-only: Bulk-correct file upload modal -->
-            <div class="modal fade" id="bulkCorrectUploadModal" tabindex="-1" aria-labelledby="bulkCorrectUploadModalLabel" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="bulkCorrectUploadModalLabel">Bulk correct exam result</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="text-muted" style="font-size:12.5px;">Use "Download Current Data" first, edit the values that need correcting, then upload the same file here. Students without an existing result will be inserted as new.</p>
-                            <form id="bulkCorrectUploadForm" enctype="multipart/form-data">
-                                <div class="mb-3">
-                                    <label for="bulkCorrectFormFile" class="form-label">Choose the corrected exam result file (.xlsx)</label>
-                                    <input class="form-control" type="file" id="bulkCorrectFormFile" name="file" accept=".xlsx">
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
-                            <button type="button" class="btn btn-primary" id="bulkCorrectUploadBtn">
-                                <span class="er-normal-state"><i class="bi bi-cloud-arrow-up-fill me-1"></i>Upload &amp; validate</span>
-                                <span class="er-loading-state"><span class="spinner-border spinner-border-sm me-1"></span>Validating rows…</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin/SuperAdmin-only: Bulk-correct review modal (New / Update / Unchanged / Issue) -->
-            <div class="modal fade" id="bulkCorrectReviewModal" tabindex="-1" aria-labelledby="bulkCorrectReviewModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="bulkCorrectReviewModalLabel">Review bulk correction</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                <div class="d-flex gap-2">
-                                    <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="bc-stat-total">0</div></div>
-                                    <div class="er-stat-pill" style="background:#f0f9ff;"><div class="er-stat-label" style="color:#075985;">New</div><div class="er-stat-value" style="color:#075985;" id="bc-stat-new">0</div></div>
-                                    <div class="er-stat-pill" style="background:#fef9c3;"><div class="er-stat-label" style="color:#92400e;">Will change</div><div class="er-stat-value" style="color:#92400e;" id="bc-stat-update">0</div></div>
-                                    <div class="er-stat-pill" style="background:#f1f5f9;"><div class="er-stat-label" style="color:#64748b;">Unchanged</div><div class="er-stat-value" style="color:#64748b;" id="bc-stat-unchanged">0</div></div>
-                                    <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;" id="bc-stat-issue">0</div></div>
-                                </div>
-                                <div class="er-filter-toggle">
-                                    <button type="button" id="bc-filter-all" class="active" onclick="setBulkCorrectFilter('all')">All</button>
-                                    <button type="button" id="bc-filter-changes" onclick="setBulkCorrectFilter('changes')">Changes only</button>
-                                </div>
-                            </div>
-
-                            <table id="bc-review-data" class="table table-bordered table-sm" style="width:100%;">
-                                <thead>
-                                <tr>
-                                    <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Exam Result Date</th>
-                                    <th>Old Total/Obtained</th><th>New Total/Obtained</th><th>Old Division/Result</th><th>New Division/Result</th>
-                                    <th>Status</th><th>Reason</th>
-                                </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-success" id="bcOpenConfirmBtn"><i class="bi bi-check2-circle me-1"></i>Save corrections</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Admin/SuperAdmin-only: Bulk-correct confirm popup with required reason -->
             <div class="modal fade" id="bulkCorrectConfirmModal" tabindex="-1" aria-labelledby="bulkCorrectConfirmModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" style="max-width:440px;">
@@ -268,6 +195,9 @@
                                 <h5 class="modal-title mb-0" id="bulkCorrectConfirmModalLabel">Confirm bulk correction</h5>
                             </div>
                             <p class="text-muted" style="font-size:13px;">This overwrites saved marks for the students shown as "Will change". Cannot be undone except via the correction log.</p>
+                            <div class="text-center mb-2" style="font-size:12.5px;color:#475569;background:#f1f5f9;border-radius:6px;padding:6px;">
+                                Saving results for session: <strong id="bc-confirm-session-label">—</strong>
+                            </div>
                             <div class="d-flex gap-2 mb-3">
                                 <div class="er-stat-pill flex-fill"><div class="er-stat-label">Total</div><div class="er-stat-value" id="bc-confirm-stat-total">0</div></div>
                                 <div class="er-stat-pill flex-fill" style="background:#f0f9ff;"><div class="er-stat-label" style="color:#075985;">New</div><div class="er-stat-value" style="color:#075985;" id="bc-confirm-stat-new">0</div></div>
@@ -315,8 +245,66 @@
         }
 
         let medium, grade, section;
-        let reviewRows = []; // last validated rows, kept client-side for the confirm+save step
+        let reviewRows = []; // last validated upload rows, kept client-side for the confirm+save step
         let reviewTable = null;
+        let bulkCorrectRows = []; // last validated admin-correction rows
+        let bulkCorrectTable = null;
+
+        // Resets the data part back to its empty prompt — used on load and after a
+        // successful save, so the page never shows stale rows once they're persisted.
+        function resetDataPart(message){
+            document.getElementById('student-grade-data').innerHTML =
+                '<div class="text-center text-muted py-4" style="font-size:13px;">' +
+                (message || 'Select medium, grade, section and exam, then use Upload result, Download result or View result above.') +
+                '</div>';
+            reviewTable = null;
+            bulkCorrectTable = null;
+        }
+
+        // ── Session (academic year) selector ─────────────────────────────────
+        // Only rendered when the school has a previous-session AcademicYear row
+        // (see academicYearOptions on the server side) — lets last session's
+        // just-concluded exam be entered/corrected here too, since its results
+        // are usually declared a week or two into the new session.
+        function selectedAcademicYearId(){
+            const el = document.getElementById('academicYearId');
+            return el ? el.value : '';
+        }
+
+        // Human-readable session label for the confirm-before-save popups. When
+        // the dropdown exists, reads its selected option's text (e.g. "2025-26").
+        // When it doesn't (school only has one AcademicYear row, so there's
+        // nothing to switch between), falls back to the page's own current
+        // session, rendered server-side.
+        const currentSessionFormat = /*[[${academicYear != null ? academicYear.sessionFormat : ''}]]*/ '';
+        function selectedSessionLabel(){
+            const el = document.getElementById('academicYearId');
+            if (el && el.selectedOptions && el.selectedOptions[0]) {
+                return el.selectedOptions[0].text;
+            }
+            return currentSessionFormat;
+        }
+
+        function swapExamOptionsForSelectedYear(){
+            const yearSelect = document.getElementById('academicYearId');
+            const examSelect = document.getElementById('exam');
+            if (!yearSelect || !examSelect) return; // only one session exists — nothing to swap
+            const selectedOption = yearSelect.options[yearSelect.selectedIndex];
+            const slot = selectedOption ? selectedOption.getAttribute('data-slot') : 'current';
+            const source = document.getElementById(slot === 'previous' ? 'exam-data-previous' : 'exam-data-current');
+            if (!source) return;
+            const previousValue = examSelect.value;
+            examSelect.innerHTML = '<option value="">Select Exam</option>';
+            Array.from(source.options).forEach(opt => examSelect.add(new Option(opt.text, opt.value)));
+            examSelect.value = Array.from(examSelect.options).some(o => o.value === previousValue) ? previousValue : '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const yearSelect = document.getElementById('academicYearId');
+            if (yearSelect) {
+                yearSelect.addEventListener('change', swapExamOptionsForSelectedYear);
+            }
+        });
 
         const validateMandatoryValues = () => {
             medium = $('#medium').val();
@@ -329,16 +317,24 @@
             return true;
         };
 
+        const validateMandatoryValuesWithExam = () => {
+            if (!validateMandatoryValues()) return false;
+            if ($('#exam').val() === '') {
+                showMsg('error', 'Examination name is mandatory', "Warning");
+                return false;
+            }
+            return true;
+        };
+
         const downloadSample = (val) => {
             let proceed = (val === 'F') ? true : validateMandatoryValues();
             if (!proceed) return;
-            // This link lives inside a dropdown menu that Bootstrap auto-closes
-            // on click, so a spinner on the link itself would never be seen
-            // during the wait — a toast is the visible feedback here instead.
+            // This button's spinner would be easy to miss the moment the browser's
+            // save-file dialog steals focus, so a toast is the visible feedback here.
             showMsg("info", "Preparing your file…", "Please wait");
-            let requestData = { mediumId: '', gradeId: '', sectionId: '', fileType: val };
+            let requestData = { mediumId: '', gradeId: '', sectionId: '', fileType: val, academicYearId: selectedAcademicYearId() };
             if (val === 'G') {
-                requestData = { mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), fileType: val };
+                requestData = { mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), fileType: val, academicYearId: selectedAcademicYearId() };
             }
             fetch(`${contextPath}downloadSampleFileToEnterExamResult`, {
                 method: 'POST',
@@ -362,26 +358,27 @@
                 .catch(() => showMsg("error", "An error occurred while downloading the file", "Error"));
         };
 
-        const uploadFileGradeWise = () => {
-            new bootstrap.Modal(document.getElementById('fileUploadModal')).show();
+        document.getElementById('downloadResultBtn').onclick = function () { downloadSample('G'); };
+
+        // ── Upload result (normal user/admin) ────────────────────────────────
+        // Selector is required first (Medium/Grade/Section), same as Download —
+        // not because the backend needs it (each row carries its own student ID),
+        // but so the two buttons behave consistently for the person using them.
+        document.getElementById('uploadResultBtn').onclick = function () {
+            if (!validateMandatoryValues()) return;
+            const fileInput = document.getElementById('formFile');
+            fileInput.value = '';
+            fileInput.click();
         };
 
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('fileUploadModal').addEventListener('show.bs.modal', function () {
-                document.getElementById('formFile').value = '';
-            });
-        });
-
-        document.getElementById("uploadBtn").onclick = function () {
-            const fileInput = document.getElementById("formFile");
-            if (!fileInput.files[0]) {
-                showMsg("error", "Please choose a file first.", "Error");
-                return;
-            }
-            const btn = this;
+        document.getElementById('formFile').addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+            const btn = document.getElementById('uploadResultBtn');
             setBtnLoading(btn, true);
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append("file", file);
+            formData.append("academicYearId", selectedAcademicYearId());
 
             fetch(`${contextPath}upload-exam-result-file`, { method: 'POST', body: formData })
                 .then(response => response.json())
@@ -391,13 +388,11 @@
                         return;
                     }
                     reviewRows = data.rows || [];
-                    $('#fileUploadModal').modal('hide');
-                    renderReviewTable();
-                    new bootstrap.Modal(document.getElementById('fileInfoModal')).show();
+                    renderUploadReviewInline();
                 })
                 .catch(() => showMsg("error", "Could not upload the file. Please try again.", "Error"))
                 .finally(() => setBtnLoading(btn, false));
-        };
+        });
 
         function statusBadge(status){
             if (status === 'READY') return '<span class="er-badge er-badge-ready">Ready</span>';
@@ -405,19 +400,17 @@
             return '<span class="er-badge er-badge-issue">Issue</span>';
         }
 
-        function renderReviewTable(){
+        // Renders the validated upload rows into the Data part (was previously a
+        // review modal) — same stat pills, filter toggle and columns as before,
+        // just using page space instead of a popup. Save sits at the bottom.
+        function renderUploadReviewInline(){
             const total = reviewRows.length;
             const ready = reviewRows.filter(r => r.status === 'READY').length;
             const issues = total - ready;
-            $('#stat-total').text(total);
-            $('#stat-ready').text(ready);
-            $('#stat-issue').text(issues);
 
-            if (reviewTable) { reviewTable.destroy(); $('#stu-sr-data tbody').empty(); }
-
-            const tbody = $('#stu-sr-data tbody');
+            let rowsHtml = '';
             reviewRows.forEach(r => {
-                tbody.append(`<tr class="${r.status !== 'READY' ? 'table-danger' : ''}">
+                rowsHtml += `<tr class="${r.status !== 'READY' ? 'table-danger' : ''}">
                     <td>${r.rowIndex ?? ''}</td>
                     <td>${r.studentName ?? ''}</td>
                     <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
@@ -433,11 +426,40 @@
                     <td>${r.percentage ?? ''}</td>
                     <td>${r.division ?? ''}</td>
                     <td>${r.result ?? ''}</td>
-                    <td>${r.remark ?? ''}</td>
+                    <td class="er-wrap-col">${r.remark ?? ''}</td>
                     <td>${statusBadge(r.status)}</td>
-                    <td style="font-size:12px;">${r.reason ?? ''}</td>
-                </tr>`);
+                    <td class="er-wrap-col" style="font-size:12px;">${r.reason ?? ''}</td>
+                </tr>`;
             });
+
+            document.getElementById('student-grade-data').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="d-flex gap-2">
+                        <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value">${total}</div></div>
+                        <div class="er-stat-pill" style="background:#f0fdf4;"><div class="er-stat-label" style="color:#166534;">Ready</div><div class="er-stat-value" style="color:#166534;">${ready}</div></div>
+                        <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;">${issues}</div></div>
+                    </div>
+                    <div class="er-filter-toggle">
+                        <button type="button" id="filter-all" class="active" onclick="setReviewFilter('all')">All</button>
+                        <button type="button" id="filter-issues" onclick="setReviewFilter('issues')">Needs attention only</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                <table id="stu-sr-data" class="table table-bordered table-sm" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th>
+                        <th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Percentage(%)</th>
+                        <th>Division</th><th>Result</th><th class="er-wrap-col">Remark</th><th>Status</th><th class="er-wrap-col">Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openConfirmSaveForUpload()"><i class="bi bi-check2-circle me-1"></i>Save results</button>
+                </div>
+            `;
 
             reviewTable = $('#stu-sr-data').DataTable({
                 pageLength: 10,
@@ -460,7 +482,7 @@
             reviewTable.draw();
         }
 
-        document.getElementById("openConfirmSaveBtn").onclick = function () {
+        function openConfirmSaveForUpload(){
             const readyRows = reviewRows.filter(r => r.status === 'READY');
             if (readyRows.length === 0) {
                 showMsg("error", "No rows are ready to save. Fix the flagged rows and re-upload.", "Error");
@@ -469,8 +491,9 @@
             $('#confirm-stat-total').text(reviewRows.length);
             $('#confirm-stat-ready').text(readyRows.length);
             $('#confirm-stat-issue').text(reviewRows.length - readyRows.length);
+            $('#confirm-session-label').text(selectedSessionLabel());
             new bootstrap.Modal(document.getElementById('confirmSaveModal')).show();
-        };
+        }
 
         document.getElementById("confirmSaveBtn").onclick = function () {
             const btn = this;
@@ -493,17 +516,18 @@
             }));
 
             $.ajax({
-                url: `${contextPath}upload-exam-result-data`,
+                url: `${contextPath}upload-exam-result-data?academicYearId=${encodeURIComponent(selectedAcademicYearId())}`,
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function (response) {
                     $('#confirmSaveModal').modal('hide');
-                    $('#fileInfoModal').modal('hide');
                     if (typeof response === 'string' && response.startsWith('error')) {
                         showMsg("error", response.split("#####")[1] || response, "Error");
                     } else {
                         showMsg("success", response, "Saved");
+                        reviewRows = [];
+                        resetDataPart();
                     }
                 },
                 error: function () {
@@ -515,23 +539,14 @@
             });
         };
 
-        // ── Admin/SuperAdmin-only: bulk-correct (grade-wise upsert) ─────────
-        const validateMandatoryValuesWithExam = () => {
-            if (!validateMandatoryValues()) return false;
-            if ($('#exam').val() === '') {
-                showMsg('error', 'Examination name is mandatory', "Warning");
-                return false;
-            }
-            return true;
-        };
-
+        // ── Admin/SuperAdmin-only: download filled-or-blank sheet ───────────
         const downloadCurrentData = () => {
             if (!validateMandatoryValuesWithExam()) return;
             showMsg("info", "Preparing your file…", "Please wait");
             fetch(`${contextPath}download-current-exam-result-file`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: $('#exam').val().toString() })
+                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: $('#exam').val().toString(), academicYearId: selectedAcademicYearId() })
             })
                 .then(response => response.ok ? response.blob() : response.json())
                 .then(data => {
@@ -550,30 +565,28 @@
                 .catch(() => showMsg("error", "Could not download the file. Please try again.", "Error"));
         };
 
-        const bulkCorrectUpload = () => {
+        document.getElementById('downloadByAdminBtn').onclick = function () { downloadCurrentData(); };
+
+        // ── Admin/SuperAdmin-only: bulk-correct (grade-wise upsert) ─────────
+        // Deliberately hard-locked server-side with @PreAuthorize rather than the
+        // flexible @CheckAccess screen-permission system, since an admin should
+        // not be able to grant this to Teacher/Staff/Accountant later. The strip
+        // this button lives in is also gated with sec:authorize for the same roles.
+        document.getElementById('uploadByAdminBtn').onclick = function () {
             if (!validateMandatoryValuesWithExam()) return;
-            new bootstrap.Modal(document.getElementById('bulkCorrectUploadModal')).show();
+            const fileInput = document.getElementById('bulkCorrectFormFile');
+            fileInput.value = '';
+            fileInput.click();
         };
 
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('bulkCorrectUploadModal').addEventListener('show.bs.modal', function () {
-                document.getElementById('bulkCorrectFormFile').value = '';
-            });
-        });
-
-        let bulkCorrectRows = [];
-        let bulkCorrectTable = null;
-
-        document.getElementById("bulkCorrectUploadBtn").onclick = function () {
-            const fileInput = document.getElementById("bulkCorrectFormFile");
-            if (!fileInput.files[0]) {
-                showMsg("error", "Please choose a file first.", "Error");
-                return;
-            }
-            const btn = this;
+        document.getElementById('bulkCorrectFormFile').addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+            const btn = document.getElementById('uploadByAdminBtn');
             setBtnLoading(btn, true);
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append("file", file);
+            formData.append("academicYearId", selectedAcademicYearId());
 
             fetch(`${contextPath}validate-bulk-correct-exam-result`, { method: 'POST', body: formData })
                 .then(response => response.json())
@@ -583,13 +596,11 @@
                         return;
                     }
                     bulkCorrectRows = data.rows || [];
-                    $('#bulkCorrectUploadModal').modal('hide');
-                    renderBulkCorrectReviewTable();
-                    new bootstrap.Modal(document.getElementById('bulkCorrectReviewModal')).show();
+                    renderAdminCorrectionReviewInline();
                 })
                 .catch(() => showMsg("error", "Could not upload the file. Please try again.", "Error"))
                 .finally(() => setBtnLoading(btn, false));
-        };
+        });
 
         function bulkCorrectStatusBadge(status){
             if (status === 'NEW') return '<span class="er-badge" style="background:#e0f2fe;color:#075985;">New</span>';
@@ -598,27 +609,23 @@
             return '<span class="er-badge er-badge-issue">Issue</span>';
         }
 
-        function renderBulkCorrectReviewTable(){
+        // Renders the admin correction preview into the Data part (was previously
+        // its own review modal) — same New/Update/Unchanged/Issue columns as
+        // before, old-vs-new values included, Save at the bottom.
+        function renderAdminCorrectionReviewInline(){
             const total = bulkCorrectRows.length;
             const newCount = bulkCorrectRows.filter(r => r.status === 'NEW').length;
             const updateCount = bulkCorrectRows.filter(r => r.status === 'UPDATE').length;
             const unchangedCount = bulkCorrectRows.filter(r => r.status === 'UNCHANGED').length;
             const issueCount = total - newCount - updateCount - unchangedCount;
-            $('#bc-stat-total').text(total);
-            $('#bc-stat-new').text(newCount);
-            $('#bc-stat-update').text(updateCount);
-            $('#bc-stat-unchanged').text(unchangedCount);
-            $('#bc-stat-issue').text(issueCount);
 
-            if (bulkCorrectTable) { bulkCorrectTable.destroy(); $('#bc-review-data tbody').empty(); }
-
-            const tbody = $('#bc-review-data tbody');
+            let rowsHtml = '';
             bulkCorrectRows.forEach(r => {
                 const oldTO = (r.oldTotalMarks ?? r.oldObtainedMarks) ? `${r.oldObtainedMarks ?? ''} / ${r.oldTotalMarks ?? ''}` : '—';
                 const newTO = `${r.obtainedMarks ?? ''} / ${r.totalMarks ?? ''}`;
                 const oldDR = (r.oldDivision || r.oldResult) ? `${r.oldDivision ?? ''} / ${r.oldResult ?? ''}` : '—';
                 const newDR = `${r.division ?? ''} / ${r.result ?? ''}`;
-                tbody.append(`<tr class="${r.status === 'UPDATE' ? 'table-warning' : (r.status !== 'NEW' && r.status !== 'UNCHANGED' ? 'table-danger' : '')}">
+                rowsHtml += `<tr class="${r.status === 'UPDATE' ? 'table-warning' : (r.status !== 'NEW' && r.status !== 'UNCHANGED' ? 'table-danger' : '')}">
                     <td>${r.rowIndex ?? ''}</td>
                     <td>${r.studentName ?? ''}</td>
                     <td class="text-muted" style="font-size:11px;">${r.idNo ?? ''}</td>
@@ -629,9 +636,40 @@
                     <td>${oldDR}</td>
                     <td>${newDR}</td>
                     <td>${bulkCorrectStatusBadge(r.status)}</td>
-                    <td style="font-size:12px;">${r.reason ?? ''}</td>
-                </tr>`);
+                    <td class="er-wrap-col" style="font-size:12px;">${r.reason ?? ''}</td>
+                </tr>`;
             });
+
+            document.getElementById('student-grade-data').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="d-flex gap-2">
+                        <div class="er-stat-pill"><div class="er-stat-label">Total</div><div class="er-stat-value">${total}</div></div>
+                        <div class="er-stat-pill" style="background:#f0f9ff;"><div class="er-stat-label" style="color:#075985;">New</div><div class="er-stat-value" style="color:#075985;">${newCount}</div></div>
+                        <div class="er-stat-pill" style="background:#fef9c3;"><div class="er-stat-label" style="color:#92400e;">Will change</div><div class="er-stat-value" style="color:#92400e;">${updateCount}</div></div>
+                        <div class="er-stat-pill" style="background:#f1f5f9;"><div class="er-stat-label" style="color:#64748b;">Unchanged</div><div class="er-stat-value" style="color:#64748b;">${unchangedCount}</div></div>
+                        <div class="er-stat-pill" style="background:#fef2f2;"><div class="er-stat-label" style="color:#991b1b;">Needs attention</div><div class="er-stat-value" style="color:#991b1b;">${issueCount}</div></div>
+                    </div>
+                    <div class="er-filter-toggle">
+                        <button type="button" id="bc-filter-all" class="active" onclick="setBulkCorrectFilter('all')">All</button>
+                        <button type="button" id="bc-filter-changes" onclick="setBulkCorrectFilter('changes')">Changes only</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                <table id="bc-review-data" class="table table-bordered table-sm" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th>#</th><th>Student Name</th><th>ID#</th><th>PSRN</th><th>Exam Result Date</th>
+                        <th>Old Total/Obtained</th><th>New Total/Obtained</th><th>Old Division/Result</th><th>New Division/Result</th>
+                        <th>Status</th><th class="er-wrap-col">Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openConfirmSaveForAdminCorrection()"><i class="bi bi-check2-circle me-1"></i>Save results</button>
+                </div>
+            `;
 
             bulkCorrectTable = $('#bc-review-data').DataTable({
                 pageLength: 10,
@@ -655,7 +693,7 @@
             bulkCorrectTable.draw();
         }
 
-        document.getElementById("bcOpenConfirmBtn").onclick = function () {
+        function openConfirmSaveForAdminCorrection(){
             const newRows = bulkCorrectRows.filter(r => r.status === 'NEW');
             const updateRows = bulkCorrectRows.filter(r => r.status === 'UPDATE');
             if (newRows.length === 0 && updateRows.length === 0) {
@@ -667,8 +705,9 @@
             $('#bc-confirm-stat-update').text(updateRows.length);
             $('#bc-reason').val('');
             $('#bulkCorrectConfirmBtn').prop('disabled', true);
+            $('#bc-confirm-session-label').text(selectedSessionLabel());
             new bootstrap.Modal(document.getElementById('bulkCorrectConfirmModal')).show();
-        };
+        }
 
         document.getElementById("bc-reason").addEventListener('input', function () {
             $('#bulkCorrectConfirmBtn').prop('disabled', this.value.trim().length === 0);
@@ -700,14 +739,15 @@
                 url: `${contextPath}bulk-correct-exam-result-data`,
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ reason: reason, rows: rows }),
+                data: JSON.stringify({ reason: reason, rows: rows, academicYearId: selectedAcademicYearId() }),
                 success: function (response) {
                     $('#bulkCorrectConfirmModal').modal('hide');
-                    $('#bulkCorrectReviewModal').modal('hide');
                     if (typeof response === 'string' && response.startsWith('error')) {
                         showMsg("error", response.split("#####")[1] || response, "Error");
                     } else {
                         showMsg("success", response, "Saved");
+                        bulkCorrectRows = [];
+                        resetDataPart();
                     }
                 },
                 error: function () {
@@ -719,7 +759,12 @@
             });
         };
 
-        document.getElementById("getfee").onclick = function () {
+        // ── View result — same fetch/render as before, now opens in a modal
+        // instead of the data part, so it never disturbs an in-progress
+        // upload/correction review sitting in the data part. The modal has
+        // backdrop:static + keyboard:false (set on the element above), so it
+        // only closes via the header X or the footer Close button. ─────────
+        document.getElementById("viewResultBtn").onclick = function () {
             const proceed = validateMandatoryValues();
             const exam = $('#exam').val();
             if (!proceed) return;
@@ -729,17 +774,11 @@
             }
             const btn = this;
             setBtnLoading(btn, true);
-            const wrapper = document.getElementById('student-grade-data');
-            wrapper.style.position = 'relative';
-            const overlay = document.createElement('div');
-            overlay.className = 'er-loading-overlay';
-            overlay.innerHTML = '<span class="spinner-border text-primary"></span>';
-            wrapper.appendChild(overlay);
 
             fetch(`${contextPath}getStudentsExamResults`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: exam.toString() })
+                body: JSON.stringify({ mediumId: medium.toString(), gradeId: grade.toString(), sectionId: section.toString(), examId: exam.toString(), academicYearId: selectedAcademicYearId() })
             })
                 .then(response => {
                     if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -748,19 +787,20 @@
                 .then(data => {
                     if (Array.isArray(data)) {
                         if (data.length === 0) { showMsg("warning", "No result found for the given criteria.", "Message"); }
-                        else { renderStudentData(data); }
+                        else { renderStudentData(data); new bootstrap.Modal(document.getElementById('viewResultModal')).show(); }
                     } else if (data && data.empty) {
                         showMsg("warning", data.message || "No result found for the given criteria.", "Message");
                     } else {
                         renderStudentData(data);
+                        new bootstrap.Modal(document.getElementById('viewResultModal')).show();
                     }
                 })
                 .catch(() => showMsg("error", "An error occurred while fetching the examination result.", "Error"))
-                .finally(() => { setBtnLoading(btn, false); overlay.remove(); });
+                .finally(() => { setBtnLoading(btn, false); });
         };
 
         function renderStudentData(studentData) {
-            let divTabId = $("#student-grade-data");
+            let divTabId = $("#view-result-modal-body");
             divTabId.html('');
             let rowCount = 0;
             let tbl = '<table class="table table-bordered table-sm" id="er-table-data"><thead><tr><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>Mobile</th><th>SR</th><th>Exam Name</th><th>Exam Result Date</th><th>Total Marks</th><th>Obtained Marks</th><th>Perc(%)</th><th>Division</th><th>Result</th><th>Remark</th></tr></thead><tbody class="table-group-divider">';

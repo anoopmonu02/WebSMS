@@ -499,6 +499,16 @@ public class ExcelService {
                     if(academicStudent == null){
                         status = "ISSUE";
                         reason = "No student found for this ID in the current school/academic year";
+                    } else if(academicYear != null && academicStudent.getAcademicYear() != null
+                            && !academicStudent.getAcademicYear().getId().equals(academicYear.getId())){
+                        // Safety net for the Session (current/previous year) selector on the exam-
+                        // result screen — findByUuid() is deliberately global (no school/year filter,
+                        // see its call site), so it's possible for a file built for one session to be
+                        // uploaded while a different session is selected. Catch that mismatch here
+                        // instead of silently saving a result whose academicYear disagrees with its
+                        // own academicStudent's academicYear.
+                        status = "ISSUE";
+                        reason = "This student belongs to a different academic year than the one selected above";
                     } else if(examDetails == null){
                         status = "ISSUE";
                         reason = "Examination '" + examName + "' not found for this school/academic year";
@@ -671,6 +681,11 @@ public class ExcelService {
                     if(academicStudent == null){
                         status = "ISSUE";
                         reason = "No student found for this ID in the current school/academic year";
+                    } else if(academicYear != null && academicStudent.getAcademicYear() != null
+                            && !academicStudent.getAcademicYear().getId().equals(academicYear.getId())){
+                        // Same safety net as checkAndValidateExamResultData — see comment there.
+                        status = "ISSUE";
+                        reason = "This student belongs to a different academic year than the one selected above";
                     } else if(examDetails == null){
                         status = "ISSUE";
                         reason = "Examination '" + examName + "' not found for this school/academic year";

@@ -83,16 +83,23 @@ public class PushNotificationService {
     public static final String TYPE_COMPLAINT     = "complaint";     // → Issues tab
     public static final String TYPE_NOTIFICATION  = "notification";  // → Home/Notices tab
     public static final String TYPE_FEE           = "fee";           // → Fees tab
+    public static final String TYPE_RESULT        = "result";        // → Results tab (feature: result-declared push)
 
     /**
      * Sends the same title/body to every device registered for each of the
      * given students, tagged with [type] so the app knows which tab to open
      * on tap. Called from several places now (complaints, general notices,
      * absent-student notices, birthday notices, fee reminders, fee
-     * submission confirmations) — some of those callers are inside their own
-     * @Transactional method, so this must never let an exception escape and
-     * roll back a save that already succeeded. Every failure is logged and
-     * swallowed instead.
+     * submission confirmations, exam-result declarations) — some of those
+     * callers are inside their own @Transactional method, so this must never
+     * let an exception escape and roll back a save that already succeeded.
+     * Every failure is logged and swallowed instead.
+     *
+     * Every push's data payload also carries the recipient's own
+     * academicStudentId (student.getId()) — additive field, existing app
+     * builds that don't read it are unaffected. Lets the Flutter app switch
+     * to the right child before deep-linking, for a parent who has this
+     * push's student as a sibling of, not currently, their active child.
      */
     public void sendToStudents(List<AcademicStudent> students, String title, String body, String type) {
         try {
@@ -105,7 +112,7 @@ public class PushNotificationService {
             for (AcademicStudent student : students) {
                 List<FcmDeviceToken> tokens = tokenRepository.findAllByAcademicStudent_Id(student.getId());
                 for (FcmDeviceToken deviceToken : tokens) {
-                    sendOne(deviceToken.getToken(), title, body, type);
+                    sendOne(deviceToken.getToken(), title, body, type, student.getId());
                 }
             }
         } catch (Exception e) {
@@ -118,12 +125,15 @@ public class PushNotificationService {
         sendToStudents(students, title, body, TYPE_COMPLAINT);
     }
 
-    private void sendOne(String token, String title, String body, String type) {
-        Message message = Message.builder()
+    private void sendOne(String token, String title, String body, String type, Long academicStudentId) {
+        Message.Builder builder = Message.builder()
                 .setToken(token)
                 .setNotification(Notification.builder().setTitle(title).setBody(body).build())
-                .putData("type", type != null ? type : TYPE_COMPLAINT)
-                .build();
+                .putData("type", type != null ? type : TYPE_COMPLAINT);
+        if (academicStudentId != null) {
+            builder.putData("academicStudentId", String.valueOf(academicStudentId));
+        }
+        Message message = builder.build();
         try {
             FirebaseMessaging.getInstance().send(message);
         } catch (FirebaseMessagingException e) {

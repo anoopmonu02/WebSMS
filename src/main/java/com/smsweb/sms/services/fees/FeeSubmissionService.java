@@ -1749,6 +1749,12 @@ public class FeeSubmissionService {
                 if(academicStudents!=null && !academicStudents.isEmpty()){
                     Map stuFeeSubMap = new HashMap();
                     for(AcademicStudent student:academicStudents){
+                        // Admission Fee applies only to new-admission students, Annual Fee only to
+                        // continuing/old students — mutually exclusive. Same rule already enforced in
+                        // getMonthlyFeeTable/processFeeData/calculateFeeReminder/calculatePendingFeeSummary;
+                        // this report (Total Deposited Fee) was missing it, so an old student's Admission
+                        // Fee (never actually charged) was being summed into feeSubmitted below.
+                        String feeTypeToExclude = "Old".equalsIgnoreCase(student.getStudent() != null ? student.getStudent().getStudentType() : "Old") ? "Admission Fee" : "Annual Fee";
                         Map stuFeeDataMap = new HashMap();
                         List<FeeSubmission> feeSubmissions = feeSubmissionRepository.findAllByAcademicStudent_IdAndStatus(student.getId(), "Active");
                         List depositedFeeList = new ArrayList();
@@ -1818,6 +1824,10 @@ public class FeeSubmissionService {
                                         if(feesBasedOnMonths!=null && !feesBasedOnMonths.isEmpty()) {
                                             //fee heads + amount for selected months
                                             for(Object[] obj : feesBasedOnMonths){
+                                                String feeHeadName = obj[1] != null ? obj[1].toString() : "";
+                                                if (feeTypeToExclude.equalsIgnoreCase(feeHeadName)) {
+                                                    continue;
+                                                }
                                                 BigDecimal amount = (obj[0] != null)
                                                         ? new BigDecimal(obj[0].toString())
                                                         : BigDecimal.ZERO;

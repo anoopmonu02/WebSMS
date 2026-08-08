@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Annual Attendance Report</title>
+</head>
+<body>
+<section>
+
+  <style>
+    /* Dashboard-matching stat tiles — same classes/values as index.html's
+       stat cards, copied here (not shared globally) since each page defines
+       its own <style> under the th:replace pattern used throughout this app. */
+    .stat-tile {
+      position: relative; overflow: hidden;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px 20px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      height: 100%;
+    }
+    .stat-tile-ghost {
+      position: absolute; right: -12px; top: -12px;
+      font-size: 88px; opacity: .065;
+      pointer-events: none; user-select: none; line-height: 1;
+    }
+    .stat-badge {
+      width: 40px; height: 40px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 14px; flex-shrink: 0;
+    }
+    .stat-label {
+      font-size: 11.5px; font-weight: 600; color: #64748b;
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .stat-value {
+      font-size: 32px; font-weight: 700; line-height: 1;
+      letter-spacing: -1px; margin-bottom: 4px;
+    }
+    .stat-sub { font-size: 11.5px; color: #94a3b8; }
+
+    /* Compact month-wise bar chart, kept to a fixed 40px height so the 4th
+       card stays the same size as its 3 siblings instead of growing taller. */
+    .trend-bars { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+    .trend-bars .bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 3px; }
+  </style>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Attendance Report (Annual)</div>
+        <hr/>
+
+        <div class="row mt-3">
+          <div class="col-md-2">
+            <label for="medium" class="form-label">Medium</label>
+            <select id="medium" class="form-select">
+              <option value="">Select Medium</option>
+              <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label for="grade" class="form-label">Grade</label>
+            <select id="grade" class="form-select">
+              <option value="">Select Grade</option>
+              <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label for="section" class="form-label">Section</label>
+            <select id="section" class="form-select">
+              <option value="">Select Section</option>
+              <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+            </select>
+          </div>
+          <div class="col-md-2">&nbsp;</div>
+          <div class="col-md-2 align-self-end">
+            <button type="button" id="getReport" class="btn btn-primary w-100"><i class="bi bi-search"></i> Get Report</button>
+          </div>
+        </div>
+        <hr/>
+
+        <div class="row g-3 mb-4" id="summaryCardsRow" style="display:none;">
+          <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+              <i class="bi bi-people-fill stat-tile-ghost" style="color:#6366f1;" aria-hidden="true"></i>
+              <div class="stat-badge" style="background:#ede9fe; color:#6366f1;"><i class="bi bi-people-fill" aria-hidden="true"></i></div>
+              <div class="stat-label">Students</div>
+              <div class="stat-value" id="cardTotalStudents" style="color:#4f46e5;">0</div>
+              <div class="stat-sub">In this grade / section</div>
+            </div>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+              <i class="bi bi-graph-up-arrow stat-tile-ghost" style="color:#10b981;" aria-hidden="true"></i>
+              <div class="stat-badge" style="background:#d1fae5; color:#059669;"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></div>
+              <div class="stat-label">Annual Average</div>
+              <div class="stat-value" id="cardAnnualAverage" style="color:#059669;">0%</div>
+              <div class="stat-sub">Across the full session</div>
+            </div>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+              <i class="bi bi-calendar-check-fill stat-tile-ghost" style="color:#f59e0b;" aria-hidden="true"></i>
+              <div class="stat-badge" style="background:#fef3c7; color:#d97706;"><i class="bi bi-calendar-check-fill" aria-hidden="true"></i></div>
+              <div class="stat-label">Working Days</div>
+              <div class="stat-value" id="cardWorkingDays" style="color:#d97706;">0</div>
+              <div class="stat-sub">So far this session</div>
+            </div>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <div class="stat-tile">
+              <i class="bi bi-bar-chart-fill stat-tile-ghost" style="color:#0ea5e9;" aria-hidden="true"></i>
+              <div class="stat-badge" style="background:#e0f2fe; color:#0284c7;"><i class="bi bi-bar-chart-fill" aria-hidden="true"></i></div>
+              <div class="stat-label">Monthwise Trend</div>
+              <div class="trend-bars" id="cardTrendBars"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="annual-attendance-data"></div>
+        <!-- Hidden, non-paginated copy of the same table used only for printing,
+             so Print always includes every student regardless of which
+             DataTable page is currently showing on screen. -->
+        <div id="annual-attendance-print-data" style="display:none;"></div>
+
+        <div id="btn-classes" style="display:none;" class="row">
+          <div class="col-md-12 mb-5 pt-4 text-end">
+            <!--<button type="button" class="btn btn-success" id="printreport" onclick="printDiv('annual-attendance-print-data','Annual Attendance Report')"><i class="bi bi-printer-fill"></i> Print</button>-->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+        "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    document.getElementById("getReport").onclick = function(){
+      let mediumId = $('#medium').val();
+      let gradeId = $('#grade').val();
+      let sectionId = $('#section').val();
+      if(!mediumId || !gradeId || !sectionId){
+        showMsg('error','Medium/Grade/Section is mandatory','Warning');
+        return;
+      }
+      fetch(`${contextPath}getStudentsAnnualAttendance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediumId: mediumId, gradeId: gradeId, sectionId: sectionId })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => renderReport(data))
+      .catch(error => {
+        console.error('Error:', error);
+        toastr["error"]("An error occurred while fetching the report", "Error");
+      });
+    };
+
+    function renderReport(data){
+      if(data.error){
+        showMsg('error', data.error, 'Error');
+        return;
+      }
+      let students = data.students || [];
+      let summary = data.summary || {};
+      let months = (summary.monthwiseTrend || []).map(m => m.month);
+
+      renderCards(summary);
+      renderTable(students, months, true);
+      renderTable(students, months, false);
+      $('#summaryCardsRow').show();
+      $('#btn-classes').show();
+    }
+
+    function renderCards(summary){
+      $('#cardTotalStudents').text(summary.totalStudents || 0);
+      $('#cardAnnualAverage').text((summary.annualAveragePercent || 0) + '%');
+      $('#cardWorkingDays').text(summary.workingDaysInYear || 0);
+
+      let bars = '';
+      (summary.monthwiseTrend || []).forEach(m => {
+        let pct = m.avgPercent || 0;
+        let color = pct >= 80 ? '#10b981' : (pct >= 60 ? '#f59e0b' : '#ef4444');
+        bars += `<div class="bar" style="height:${Math.max(pct,4)}%; background:${color};" title="${m.month} ${pct}%"></div>`;
+      });
+      $('#cardTrendBars').html(bars);
+    }
+
+    function renderTable(students, months, interactive){
+      let targetTableId = interactive ? 'annual-attendance-table' : 'annual-attendance-print-table';
+      let tbl = `<table class="table table-bordered table-sm" id="${targetTableId}"><thead><tr><th>#</th><th>Student Name</th><th>SR</th><th>PSRN</th>`;
+      months.forEach(m => { tbl += `<th>${m}</th>`; });
+      tbl += `<th>Total</th></tr></thead><tbody class="table-group-divider">`;
+
+      students.forEach((s, idx) => {
+        tbl += `<tr><td>${idx + 1}</td><td>${s.studentName || ''}</td><td>${s.srNo || ''}</td><td>${s.psrn || ''}</td>`;
+        (s.months || []).forEach(mc => {
+          tbl += `<td class="text-center">${mc.present}/${mc.totalDays}</td>`;
+        });
+        tbl += `<td class="text-center"><strong>${s.yearlyPresent}/${s.yearlyTotalDays}</strong></td></tr>`;
+      });
+      tbl += `</tbody></table>`;
+
+      if(interactive){
+        if($.fn.DataTable.isDataTable('#annual-attendance-table')){
+          $('#annual-attendance-table').DataTable().destroy();
+        }
+        $('#annual-attendance-data').html('<div class="table-responsive">' + tbl + '</div>');
+        $('#annual-attendance-table').DataTable({
+          scrollX: true,
+          autoWidth: false,
+          layout: {
+            top1Start: {
+              buttons: [
+                {
+                  extend: 'excelHtml5',
+                  text: '<i class="bi bi-file-excel-fill text-success"></i>',
+                  titleAttr: 'Excel',
+                  title: 'Annual Attendance Report'
+                },
+                {
+                  extend: 'csvHtml5',
+                  text: '<i class="bi bi-filetype-csv text-info"></i>',
+                  titleAttr: 'CSV',
+                  title: 'Annual Attendance Report'
+                },
+                {
+                  extend: 'pdfHtml5',
+                  text: '<i class="bi bi-file-pdf-fill text-danger"></i>',
+                  titleAttr: 'PDF',
+                  title: 'Annual Attendance Report'
+                },
+                'colvis'
+              ]
+            }
+          },
+          lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, 'All'] ],
+          pageLength: 25
+        });
+        $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {
+          $(this).removeClass("btn-secondary");
+        });
+      } else {
+        $('#annual-attendance-print-data').html(tbl);
+      }
+    }
+
+    function printDiv(divId, title) {
+      const originalContent = document.getElementById(divId);
+      const printWindow = window.open('', 'PRINT', 'height=850,width=1000,top=100,left=150');
+      if (!printWindow) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return;
+      }
+      printWindow.document.write('<html><head><title>' + title + '</title>');
+      printWindow.document.write(
+              '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" ' +
+              'integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">'
+      );
+      printWindow.document.write('<style>table{font-size:11px;} th,td{padding:3px 5px;}</style>');
+      printWindow.document.write('</head><body>');
+      printWindow.document.write(originalContent.innerHTML);
+      printWindow.document.write('</body></html>');
+
+      printWindow.document.close();
+      printWindow.focus();
+
+      setTimeout(function() {
+        printWindow.print();
+        printWindow.close();
+      }, 800);
+    }
+  </script>
+
+</section>
+</body>
+</html>

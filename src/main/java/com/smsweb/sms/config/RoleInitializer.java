@@ -197,6 +197,17 @@ public class RoleInitializer {
                     "STUDENT_ATTENDANCE_REPORT",
                     "View monthly attendance report for a class");
 
+            // View whole-year attendance report (Reports > Student Report)
+            seed(screenRepo, "Student", "Attendance Report (Annual)",
+                    "STUDENT_REPORT_ATTENDANCE_ANNUAL",
+                    "View annual attendance report for a class");
+
+            // Correct a single day's attendance for one student, with a mandatory
+            // reason — hard-locked to Admin/Superadmin at the controller level too
+            seed(screenRepo, "Student", "Edit Student Attendance",
+                    "STUDENT_EDIT_ATTENDANCE",
+                    "Correct a single day's attendance for a student, with a mandatory reason");
+
             // Confirm today's attendance so it becomes visible to parents in the mobile
             // app — deliberately separate from STUDENT_ATTENDANCE_MARK so it can be
             // granted to a specific assigned user independent of who marks attendance

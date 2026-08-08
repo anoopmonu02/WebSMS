@@ -137,6 +137,44 @@ public interface AttendanceRepository extends JpaRepository<Attendance,Long> {
     int existsAnyAttendanceForToday(@Param("schoolId") Long schoolId,
                                         @Param("academicYearId") Long academicYearId);
 
+    // ── Edit Student Attendance (single-day admin correction) ──────────────────
+
+    /**
+     * A specific student's attendance row(s) for one exact calendar date (range-based,
+     * same CURDATE()-style reasoning as findTodaysAttendanceByAcademicStudentId — avoids
+     * comparing a Java Date's time-of-day against a stored timestamp). Ordered so the
+     * most recently created row wins if duplicates ever exist.
+     */
+    @Query("SELECT a FROM Attendance a WHERE a.academicStudent.id = :academicStudentId " +
+           "AND a.attendanceDate >= :startOfDay AND a.attendanceDate < :startOfNextDay " +
+           "ORDER BY a.id DESC")
+    List<Attendance> findByAcademicStudentIdAndDateRange(@Param("academicStudentId") Long academicStudentId,
+                                                          @Param("startOfDay") Date startOfDay,
+                                                          @Param("startOfNextDay") Date startOfNextDay);
+
+    /**
+     * Whether ANY student in this grade/section/medium has an attendance record for the
+     * given date — used to decide whether a missing record for one student can safely be
+     * backfilled (attendance was genuinely taken for the class that day, this student was
+     * just missed) versus refused (the class was never marked that day at all, so there's
+     * nothing to confirm the date against).
+     */
+    @Query(value = "SELECT EXISTS (" +
+            "   SELECT 1 FROM attendance a " +
+            "   JOIN academic_students ast ON a.academic_student_id = ast.id " +
+            "   WHERE ast.grade_id = :gradeId AND ast.section_id = :sectionId AND ast.medium_id = :mediumId " +
+            "   AND a.school_id = :schoolId AND a.academic_year_id = :academicYearId " +
+            "   AND a.attendance_date >= :startOfDay AND a.attendance_date < :startOfNextDay" +
+            ")",
+            nativeQuery = true)
+    int existsAnyAttendanceForClassOnDate(@Param("gradeId") Long gradeId,
+                                          @Param("sectionId") Long sectionId,
+                                          @Param("mediumId") Long mediumId,
+                                          @Param("schoolId") Long schoolId,
+                                          @Param("academicYearId") Long academicYearId,
+                                          @Param("startOfDay") Date startOfDay,
+                                          @Param("startOfNextDay") Date startOfNextDay);
+
     // ── Mobile API queries ────────────────────────────────────────────────────
 
     /**

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Edit Student Attendance</title>
+</head>
+<body>
+<section>
+
+  <style>
+    .stu-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #ede9fe; color: #6366f1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700; flex-shrink: 0;
+    }
+    .summary-ring {
+      width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #059669;
+      background: conic-gradient(#10b981 calc(var(--pct) * 1%), #e2e8f0 0);
+    }
+    .summary-ring-inner {
+      width: 50px; height: 50px; border-radius: 50%; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #ledger-table td, #ledger-table th { vertical-align: middle; }
+    .ledger-edit-btn { padding: 2px 8px; }
+    .status-badge { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 20px; }
+    .toggle-present.active { background:#10b981; color:#fff; border-color:#10b981; }
+    .toggle-absent.active { background:#ef4444; color:#fff; border-color:#ef4444; }
+  </style>
+
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Edit Student Attendance</div>
+        <hr/>
+
+        <!-- Month + Student search -->
+        <div class="row">
+          <div class="col-md-3">
+            <label for="month" class="form-label">Month</label>
+            <select id="month" class="form-select">
+              <option value="">Select Month</option>
+              <option th:each="m : ${months}" th:value="${m.id}" th:text="${m.monthName}">Month</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="search-input" class="form-label">Search Student</label>
+            <div class="search-container position-relative">
+              <input oninput="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Type student name (min 3 characters)">
+              <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none; position:absolute; z-index:1000; background:#fff; width:100%;"></div>
+            </div>
+          </div>
+        </div>
+        <hr/>
+
+        <!-- Student + month summary cards -->
+        <div class="row g-3 mb-3" id="studentCardsRow" style="display:none;">
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body d-flex align-items-center gap-3">
+                <div class="stu-avatar" id="cardStuInitials">--</div>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold fs-5" id="cardStuName">-</div>
+                  <div class="text-muted small">
+                    SR: <span id="cardStuSr">-</span> &nbsp;|&nbsp; PSRN: <span id="cardStuPsrn">-</span>
+                  </div>
+                  <div class="text-muted small">
+                    <span id="cardStuGradeSection">-</span> &nbsp;|&nbsp; Father: <span id="cardStuFather">-</span>
+                  </div>
+                  <div class="text-muted small">
+                    Mother: <span id="cardStuMother">-</span> &nbsp;|&nbsp; Contact: <span id="cardStuContact">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-ring" id="cardSummaryRing" style="--pct:0;">
+                  <div class="summary-ring-inner"><span id="cardSummaryPercent">0%</span></div>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold" id="cardSummaryMonth">Month Attendance</div>
+                  <div class="text-muted small">
+                    Present: <span class="fw-semibold text-success" id="cardSummaryPresent">0</span>
+                    &nbsp;/&nbsp; Working Days: <span class="fw-semibold" id="cardSummaryWorkingDays">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ledger -->
+        <div id="ledger-wrapper" style="display:none;">
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle" id="ledger-table">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:80px;">Date</th>
+                  <th style="width:80px;">Day</th>
+                  <th>Status</th>
+                  <th>Remark</th>
+                  <th style="width:70px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="empty-hint" class="text-muted text-center py-5">
+          <i class="bi bi-search fs-1 d-block mb-2 opacity-50"></i>
+          Select a month and search for a student to view and edit their attendance.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit modal -->
+  <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-labelledby="editAttendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAttendanceModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Attendance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Date: <strong id="modalDateLabel">-</strong></p>
+          <div class="btn-group w-100 mb-3" role="group">
+            <button type="button" class="btn btn-outline-success toggle-present" id="btnMarkPresent"><i class="bi bi-check-circle-fill"></i> Present</button>
+            <button type="button" class="btn btn-outline-danger toggle-absent" id="btnMarkAbsent"><i class="bi bi-x-circle-fill"></i> Absent</button>
+          </div>
+          <label for="modalRemark" class="form-label">Remark <span class="text-danger">*</span></label>
+          <textarea id="modalRemark" class="form-control" rows="3" maxlength="500" placeholder="Reason for this correction (required)"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveEditBtn"><i class="bi bi-save-fill"></i> Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.7.1.js}"></script>
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+
+    function showMsg(msgType, msg, headerValue){
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+        "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    /* ── Student search with infinite scroll (same pattern as Fee Submission) ── */
+    let _searchQuery = '';
+    let _searchPage  = 0;
+    let _searchMore  = false;
+    let _searchLoading = false;
+    let _searchDebounceTimer = null;
+    let _lastSearchResults = {}; // id -> full lean academic-student object, so selecting a
+                                  // row doesn't need a second round-trip to the server
+
+    const renderStudentRow = (student) => {
+      let srval = student.classSrNo != null && student.classSrNo != '' ? ' / ' + student.classSrNo : ' / -';
+      _lastSearchResults[student.id] = student;
+      return `<a onclick="loadStudentData(${student.id})" href="#" class='list-group-item list-group-item-action'>${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
+    };
+
+    const fetchStudents = (query, page, append) => {
+      if (_searchLoading) return;
+      _searchLoading = true;
+      let url = `${contextPath}searchStudentForOtherPage/${encodeURIComponent(query)}?page=${page}`;
+      fetch(url).then(r => r.json()).then(students => {
+        _searchLoading = false;
+        _searchMore = students.length === 10;
+        if (!append) {
+          let html = `<div class='list-group' id='student-list-group'>`;
+          students.forEach(s => { html += renderStudentRow(s); });
+          html += `</div>`;
+          $(".search-result").html(html).show();
+        } else {
+          students.forEach(s => {
+            $('#student-list-group').append(renderStudentRow(s));
+          });
+        }
+      }).catch(() => { _searchLoading = false; });
+    };
+
+    const searchStuName = () => {
+      clearTimeout(_searchDebounceTimer);
+      let query = $("#search-input").val();
+      if (query.trim().length > 2) {
+        _searchDebounceTimer = setTimeout(() => {
+          _searchQuery = query;
+          _searchPage  = 0;
+          fetchStudents(query, 0, false);
+        }, 300);
+      } else {
+        _searchQuery = '';
+        $(".search-result").hide();
+      }
+    };
+
+    document.querySelector('.search-result').addEventListener('scroll', function() {
+      if (!_searchMore || _searchLoading) return;
+      if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+        _searchPage++;
+        fetchStudents(_searchQuery, _searchPage, true);
+      }
+    });
+
+    /* ── Selection + month detail ─────────────────────────────────────────── */
+    let selectedStudent = null;
+
+    const loadStudentData = (id) => {
+      $(".search-result").hide();
+      $("#search-input").val('');
+      selectedStudent = _lastSearchResults[id];
+      if (!selectedStudent) return;
+      renderStudentCard(selectedStudent);
+      $('#studentCardsRow').show();
+      loadMonthDetail();
+    };
+
+    $('#month').on('change', function(){
+      if (selectedStudent) loadMonthDetail();
+    });
+
+    const renderStudentCard = (s) => {
+      let name = s.student.studentName || '-';
+      let initials = name.split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('');
+      $('#cardStuInitials').text(initials || '--');
+      $('#cardStuName').text(name);
+      $('#cardStuSr').text(s.classSrNo || '-');
+      $('#cardStuPsrn').text(s.student.psrn || '-');
+      $('#cardStuGradeSection').text((s.grade ? s.grade.gradeName : '') + '-' + (s.section ? s.section.sectionName : ''));
+      $('#cardStuFather').text(s.student.fatherName || '-');
+      $('#cardStuMother').text(s.student.motherName || '-');
+      $('#cardStuContact').text(s.student.mobile1 || s.student.mobile2 || '-');
+    };
+
+    const loadMonthDetail = () => {
+      let month = $('#month').val();
+      if (!month) {
+        showMsg('warning', 'Please select a month', 'Warning');
+        return;
+      }
+      fetch(`${contextPath}getStudentAttendanceMonthDetail`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ academicStudentId: selectedStudent.id, month: month })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          showMsg('error', data.error, 'Error');
+          return;
+        }
+        renderSummary(data.summary || {});
+        renderLedger(data.days || []);
+        $('#ledger-wrapper').show();
+        $('#empty-hint').hide();
+      })
+      .catch(() => showMsg('error', 'Unable to load attendance for this student.', 'Error'));
+    };
+
+    const renderSummary = (summary) => {
+      let pct = summary.percent || 0;
+      $('#cardSummaryRing').css('--pct', pct);
+      $('#cardSummaryPercent').text(pct + '%');
+      $('#cardSummaryPresent').text(summary.present || 0);
+      $('#cardSummaryWorkingDays').text(summary.workingDays || 0);
+      $('#cardSummaryMonth').text('Month Attendance');
+    };
+
+    const statusBadge = (status) => {
+      switch(status){
+        case 'Present': return '<span class="status-badge bg-success text-white">Present</span>';
+        case 'Absent': return '<span class="status-badge bg-danger text-white">Absent</span>';
+        case 'Holiday': return '<span class="status-badge bg-secondary text-white">Holiday</span>';
+        case 'Future': return '<span class="status-badge bg-light text-muted">-</span>';
+        case 'NotMarked': return '<span class="status-badge bg-warning text-dark">Not Marked</span>';
+        default: return status;
+      }
+    };
+
+    let _currentDays = [];
+
+    const renderLedger = (days) => {
+      _currentDays = days;
+      let rows = '';
+      days.forEach((d, idx) => {
+        let actionCell = '-';
+        if (d.editable) {
+          actionCell = `<button type="button" class="btn btn-sm btn-outline-primary ledger-edit-btn" onclick="openEditModal(${idx})"><i class="bi bi-pencil-square"></i></button>`;
+        }
+        rows += `<tr>
+          <td>${d.dayOfMonth}</td>
+          <td>${d.dayName}</td>
+          <td>${statusBadge(d.status)}</td>
+          <td class="text-muted small">${d.remark ? d.remark : '-'}</td>
+          <td class="text-center">${actionCell}</td>
+        </tr>`;
+      });
+      $('#ledger-body').html(rows);
+    };
+
+    /* ── Edit modal ────────────────────────────────────────────────────────── */
+    // bootstrap.Modal is instantiated lazily inside these functions (not at
+    // top-level script scope) because base.html loads bootstrap.bundle.min.js
+    // in its own SCRIPTS block, which renders AFTER this page's content in the
+    // DOM — same pattern used by stu_exam.html / update-aadhar.html elsewhere
+    // in this app. Referencing `bootstrap` at top-level parse time here would
+    // throw "bootstrap is not defined".
+    let _editingDay = null;
+    let _editingPresent = null;
+
+    // ISO "2026-08-03" -> "03/Aug/2026", matching the dd/MMM/yyyy format used
+    // elsewhere in the app (e.g. fee dates, exam result dates).
+    const formatDdMmmYyyy = (isoDate) => {
+      let parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      let monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      let mon = monthNames[parseInt(parts[1], 10) - 1] || parts[1];
+      return `${parts[2]}/${mon}/${parts[0]}`;
+    };
+
+    const openEditModal = (idx) => {
+      let d = _currentDays[idx];
+      if (!d || !d.editable) return;
+      _editingDay = d;
+      _editingPresent = d.status === 'Present' ? true : (d.status === 'Absent' ? false : null);
+      $('#modalDateLabel').text(formatDdMmmYyyy(d.date) + ' (' + d.dayName + ')');
+      $('#modalRemark').val(d.remark || '');
+      updateToggleButtons();
+      new bootstrap.Modal(document.getElementById('editAttendanceModal')).show();
+    };
+
+    const updateToggleButtons = () => {
+      $('#btnMarkPresent').toggleClass('active', _editingPresent === true);
+      $('#btnMarkAbsent').toggleClass('active', _editingPresent === false);
+    };
+
+    $('#btnMarkPresent').on('click', function(){ _editingPresent = true; updateToggleButtons(); });
+    $('#btnMarkAbsent').on('click', function(){ _editingPresent = false; updateToggleButtons(); });
+
+    $('#saveEditBtn').on('click', function(){
+      if (!_editingDay) return;
+      if (_editingPresent === null) {
+        showMsg('warning', 'Please choose Present or Absent', 'Warning');
+        return;
+      }
+      let remark = $('#modalRemark').val().trim();
+      if (!remark) {
+        showMsg('warning', 'A remark is required for this correction', 'Warning');
+        return;
+      }
+      fetch(`${contextPath}editStudentAttendanceDay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          academicStudentId: selectedStudent.id,
+          date: _editingDay.date,
+          present: _editingPresent,
+          remark: remark
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          showMsg('error', data.error, 'Error');
+          return;
+        }
+        showMsg('success', 'Attendance updated successfully', 'Success');
+        bootstrap.Modal.getInstance(document.getElementById('editAttendanceModal'))?.hide();
+        loadMonthDetail();
+      })
+      .catch(() => showMsg('error', 'Update failed. Please try again.', 'Error'));
+    });
+  </script>
+
+</section>
+</body>
+</html>

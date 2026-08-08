@@ -77,7 +77,11 @@
   <script th:src="@{/js/jquery-3.7.1.js}"></script>
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
+  <!-- Chart.js is only needed for the per-student pie chart, which is disabled
+       for now (see createPieChart/renderStudentData below) — commented out
+       rather than removed so it's a one-line restore if the chart comes back.
   <script th:src="@{/js/chart.js}"></script>
+  -->
   <script type="text/javascript" th:inline="javascript">
     const contextPath = /*[[@{/}]]*/ '/';
 
@@ -183,7 +187,10 @@
       for (let i = 1; i <= daysInMonth; i++) {
         tbl += `<th>${i}</th>`;
       }
-      tbl += `<th>Summary</th></tr></thead><tbody class="table-group-divider">`;
+      // "Summary" (pie-chart) column disabled for now to keep the table compact —
+      // uncomment to restore it alongside the other chart-related lines below.
+      // tbl += `<th>Summary</th>`;
+      tbl += `<th>Total</th></tr></thead><tbody class="table-group-divider">`;
       const presentDateCount = new Array(daysInMonth + 1).fill(0);
       const absentDateCount = new Array(daysInMonth + 1).fill(0);
       const holidayDateCount = new Array(daysInMonth + 1).fill(0);
@@ -203,7 +210,7 @@
             presentCount++;
             presentDateCount[i]++;
           } else if (attendanceVal === "A") {
-            attendanceIcon = `<span id="date-wise-att-A-${i}"><i class="bi bi-dot text-danger"></i></span>`;
+            attendanceIcon = `<span id="date-wise-att-A-${i}"><i class="bi bi-person-fill text-danger"></i></span>`;
             absentCount++;
             absentDateCount[i]++;
           } else if (attendanceVal === "N") {
@@ -217,9 +224,17 @@
           }
           tbl += `<td>${attendanceIcon}</td>`;
         }
-        tbl += `<td><canvas class="attendance-pie-chart" id="chart${counter}" width="150" height="100"></canvas></td></tr>`;
-        let studentAttDataList = [presentCount, absentCount, holidayCount];
-        myMap.set(`chart${counter}`, studentAttDataList);
+        // Total days = days in month minus Sundays (holidayCount already counts
+        // only Sundays — see the "S" branch above), so it doesn't need its own
+        // separate tally.
+        let totalDays = daysInMonth - holidayCount;
+        // Pie-chart cell disabled for now — uncomment this line (and the
+        // matching header <th>, the myMap.forEach() call, and the two lines
+        // below) to bring it back.
+        // tbl += `<td><canvas class="attendance-pie-chart" id="chart${counter}" width="150" height="100"></canvas></td>`;
+        tbl += `<td class="text-center"><strong>${presentCount}/${totalDays}</strong></td></tr>`;
+        // let studentAttDataList = [presentCount, absentCount, holidayCount];
+        // myMap.set(`chart${counter}`, studentAttDataList);
         counter++;
       });
       tbl += `<tr><td colspan="3" class="text-center"><strong>Total</strong></td>`;
@@ -231,14 +246,20 @@
                         : presentDateCount[i] + '/' + (presentDateCount[i] + absentDateCount[i])
         }</strong></td>`;
       }
+      // tbl += `<td></td>`; // second empty cell was for the now-disabled Summary/chart column
       tbl += `<td></td></tr>`;
       tbl+='</tbody></table>';
-      divTabId.html(tbl);
+      // table-responsive wraps the table so a horizontal scrollbar only
+      // appears when the table (up to 31 date columns wide) is actually
+      // wider than the page — not shown at all otherwise.
+      divTabId.html('<div class="table-responsive">' + tbl + '</div>');
       btndiv.show();
-      myMap.forEach((value, key) => {
-        console.log(key + " = " + value);
-        createPieChart(key, value);
-      });
+      // Pie-chart rendering disabled for now — uncomment alongside the other
+      // commented chart lines above (and the Chart.js <script> include) to restore.
+      // myMap.forEach((value, key) => {
+      //   console.log(key + " = " + value);
+      //   createPieChart(key, value);
+      // });
 
     }
 
@@ -347,6 +368,11 @@
 
 
 
+    // Pie-chart renderer — disabled for now along with everything else that
+    // fed it (see the commented lines in renderStudentData() above and the
+    // commented Chart.js <script> include). Left here, commented, as a
+    // one-piece restore if the chart column comes back later.
+    /*
     function createPieChart(canvasId, values) {
       console.log("canvasId--->"+canvasId);
       let canv = document.getElementById(canvasId);
@@ -358,7 +384,6 @@
           datasets: [{
             data: values,
             backgroundColor: ['#36A2EB', '#FF6384', '#494647FF'],
-            /*backgroundColor: Object.values(Utils.CHART_COLORS),*/
             hoverBackgroundColor: ['#36A2EB', '#FF6384', '#494647FF'],
           }]
         },
@@ -379,6 +404,7 @@
         }
       });
     }
+    */
 
   </script>
 
