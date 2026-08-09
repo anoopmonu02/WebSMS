@@ -81,6 +81,31 @@ public class FeeSubmissionController extends BaseController {
         return "fees/feesubmitform";
     }
 
+    /**
+     * "Fee Submission (New)" — a redesigned front-end for the exact same fee
+     * submission flow as getFeeSubmissionForm() above. Deliberately a
+     * separate method/view rather than a modification of the original, so
+     * the live, already-trusted Fee Submission page (and its controller
+     * method) stays completely untouched. Posts to the same /fees/feesubmit
+     * endpoint below — same save logic, same receipt-print redirect on
+     * success. Same FEE_SUBMIT permission as the original, since it's the
+     * same capability, just a different screen.
+     */
+    @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
+    @GetMapping("/fee-submit-form-new")
+    public String getFeeSubmissionFormNew(Model model){
+        log.info("Inside getFeeSubmissionFormNew");
+        School school = (School)model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+        List<MonthMapping> monthMappingList = mmService.getAllMonthMapping(academicYear.getId(), school.getId());
+        log.debug("getFeeSubmissionFormNew - monthMappingList size={}", monthMappingList.size());
+        model.addAttribute("monthmapping", monthMappingList);
+        model.addAttribute("feesubmissionobj", new FeeSubmission());
+        model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
+        model.addAttribute("migrationDiscountEnabled", feeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser());
+        return "fees/feesubmitform-new";
+    }
+
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.CREATE)
     @PostMapping("/feesubmit")
     public String saveFeeSubmission(HttpServletRequest request, RedirectAttributes redirectAttributes, Model model){

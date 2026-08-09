@@ -1,5 +1,7 @@
 package com.smsweb.sms.services.globalaccess;
 
+import com.smsweb.sms.models.admin.SystemConfig;
+import com.smsweb.sms.repositories.admin.SystemConfigRepository;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -21,6 +23,21 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private SystemConfigRepository systemConfigRepository;
+
+    // system_config keys for the backup email's SMTP timeouts — admin-tunable
+    // (via direct system_config edit; no dedicated UI yet) so a network-specific
+    // adjustment doesn't require a code change + rebuild + redeploy cycle. Falls
+    // back to these same defaults (the values observed to work) if a row is
+    // missing, so this never breaks a deployment that hasn't set them.
+    private static final String CONFIG_CONNECT_TIMEOUT_MS = "EMAIL_DB_BACKUP_CONNECT_TIMEOUT_MS";
+    private static final String CONFIG_READ_TIMEOUT_MS = "EMAIL_DB_BACKUP_READ_TIMEOUT_MS";
+    private static final String CONFIG_WRITE_TIMEOUT_MS = "EMAIL_DB_BACKUP_WRITE_TIMEOUT_MS";
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 10000;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 30000;
+    private static final int DEFAULT_WRITE_TIMEOUT_MS = 60000;
 
     public void sendPasswordResetEmail(String to, String resetLink) {
         log.info("Inside sendPasswordResetEmail");
@@ -59,9 +76,18 @@ public class EmailService {
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.starttls.required", "true");
         props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-        props.put("mail.smtp.connectiontimeout", "5000");
-        props.put("mail.smtp.timeout", "15000");
-        props.put("mail.smtp.writetimeout", "15000");
+        // Generous, admin-tunable timeouts — this sends a multi-MB DB dump as an
+        // attachment, and on the customer's network a full send (TLS handshake +
+        // upload + Gmail's final "250 OK") has been observed taking ~20-23s end to
+        // end, exceeding the old 15s read timeout even though the send was otherwise
+        // succeeding. This is a background action (manual "Run Now" or scheduled
+        // job), not something a user waits on synchronously in the UI, so there's no
+        // cost to allowing more time. Read from system_config on every call (not
+        // cached) so a network-specific tweak takes effect immediately, same as the
+        // DB Backup schedule cron.
+        props.put("mail.smtp.connectiontimeout", String.valueOf(resolveTimeoutMs(CONFIG_CONNECT_TIMEOUT_MS, DEFAULT_CONNECT_TIMEOUT_MS)));
+        props.put("mail.smtp.timeout", String.valueOf(resolveTimeoutMs(CONFIG_READ_TIMEOUT_MS, DEFAULT_READ_TIMEOUT_MS)));
+        props.put("mail.smtp.writetimeout", String.valueOf(resolveTimeoutMs(CONFIG_WRITE_TIMEOUT_MS, DEFAULT_WRITE_TIMEOUT_MS)));
 
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, attachment != null);
@@ -73,5 +99,25 @@ public class EmailService {
             helper.addAttachment(attachment.getName(), attachment);
         }
         sender.send(message);
+    }
+
+    /**
+     * Reads an integer millisecond timeout from system_config, falling back to
+     * defaultMs if the row doesn't exist or its value isn't a valid integer — a
+     * missing or malformed config can never break sending, it just behaves as if
+     * unset.
+     */
+    private int resolveTimeoutMs(String configName, int defaultMs) {
+        try {
+            return systemConfigRepository.findByConfigName(configName)
+                    .map(SystemConfig::getConfigValue)
+                    .filter(v -> v != null && !v.isBlank())
+                    .map(String::trim)
+                    .map(Integer::parseInt)
+                    .orElse(defaultMs);
+        } catch (NumberFormatException nfe) {
+            log.warn("Invalid value for {} in system_config — using default {}ms", configName, defaultMs);
+            return defaultMs;
+        }
     }
 }

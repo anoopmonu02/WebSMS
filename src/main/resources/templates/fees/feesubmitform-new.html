@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+    <!--
+        Fee Submission (New) — redesigned front-end for the exact same fee
+        submission flow as fees/feesubmitform.html. Every id/class/name below
+        that the shared inline script block (copied verbatim from the original at
+        the bottom of this file) depends on is preserved exactly — only the
+        surrounding layout/CSS changes. Posts to the same /fees/feesubmit
+        action as the original page, so save + receipt-print redirect behave
+        identically. All classes introduced for the new look are prefixed
+        "fsn-" to avoid clashing with any existing global style.
+    -->
+    <style>
+        .fsn-card{background:var(--card-bg,#fff);border:1px solid #eef1f5;border-radius:12px;padding:16px 20px;box-shadow:0 1px 2px rgba(15,23,42,0.04),0 4px 12px rgba(15,23,42,0.05);}
+        .fsn-identity-card{margin-bottom:16px;box-shadow:0 1px 0 rgba(255,255,255,0.8) inset,0 2px 6px rgba(15,23,42,0.05),0 8px 20px rgba(15,23,42,0.06);border:1px solid #eef1f5;}
+        .fsn-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#eaf2fc,#dbe9fa);display:flex;align-items:center;justify-content:center;font-size:20px;color:#1d5fa8;flex-shrink:0;box-shadow:0 1px 3px rgba(29,95,168,0.25) inset,0 1px 2px rgba(15,23,42,0.06);}
+        .fsn-subtext{font-size:12.5px;color:#64748b;display:flex;align-items:center;flex-wrap:wrap;}
+        .fsn-name{font-size:15.5px;font-weight:700;color:#0f172a;letter-spacing:-0.1px;}
+        .fsn-dot{color:#cbd5e1;margin:0 6px;}
+        .fsn-tel-icon{font-size:11px;color:#94a3b8;margin-right:3px;}
+        .fsn-info-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12.5px;color:#475569;border-top:1px dashed #e2e8f0;padding-top:8px;margin-top:8px;}
+        .fsn-sep{color:#e2e8f0;}
+        .fsn-inline-field{white-space:nowrap;}
+        .fsn-inline-field > span:first-child{color:#94a3b8;}
+        .fsn-plain-inline{border:none !important;background:transparent !important;padding:0 0 0 4px !important;height:auto !important;width:90px;font-size:12.5px;font-weight:600;color:#0f172a;display:inline-block;}
+        #feedate.fsn-plain-inline{width:88px;}
+        #feesubmissiondate.fsn-plain-inline{width:150px;}
+        #previousBalance.fsn-plain-inline{width:55px;}
+        .fsn-btn-icon-green{width:23px;height:23px;border-radius:50%;background:linear-gradient(145deg,#22c55e,#16a34a);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-left:8px;cursor:pointer;vertical-align:middle;box-shadow:0 1px 3px rgba(22,163,74,0.45);transition:transform .1s ease,box-shadow .1s ease;}
+        .fsn-btn-icon-green:hover{background:linear-gradient(145deg,#16a34a,#128038);box-shadow:0 2px 5px rgba(22,163,74,0.55);transform:translateY(-1px);}
+        .fsn-btn-icon-green i{font-size:10px;}
+        .fsn-panel-title{font-size:12px;color:#64748b;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+        .fsn-panel-subtitle{font-size:11px;color:#94a3b8;font-weight:400;text-transform:none;letter-spacing:0;}
+        .fsn-month-legend{display:flex;gap:14px;font-size:11.5px;color:#64748b;align-items:center;}
+        .fsn-swatch{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid #cbd5e1;margin-right:4px;vertical-align:middle;}
+        .fsn-swatch-paid{background:#f1f5f9;}
+        .fsn-swatch-selected{background:#3b5bdb;border-color:#3b5bdb;}
+        .fsn-swatch-available{background:#fff;}
+        .fsn-month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+        .fsn-month-tile{position:relative;display:block;cursor:pointer;margin:0;}
+        .fsn-month-tile input{position:absolute;opacity:0;width:0;height:0;}
+        .fsn-month-visual{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #e2e8f0;border-radius:8px;padding:10px 0;font-size:12.5px;color:#475569;transition:all .12s ease;}
+        .fsn-month-visual i{font-size:14px;visibility:hidden;color:#1d5fa8;}
+        .fsn-month-tile input:checked + .fsn-month-visual{background:linear-gradient(145deg,#eaf2fc,#dde9fb);border-color:#a9c9f2;color:#1d5fa8;font-weight:700;box-shadow:0 2px 6px rgba(29,95,168,0.18);}
+        .fsn-month-tile input:checked + .fsn-month-visual i{visibility:visible;}
+        .fsn-month-tile:hover input:enabled + .fsn-month-visual{border-color:#c7d7ec;}
+        .fsn-month-tile input:disabled + .fsn-month-visual{background:#f1f5f9;color:#94a3b8;}
+        .fsn-month-tile input:disabled + .fsn-month-visual i{visibility:visible;color:#94a3b8;}
+        .fsn-fee-table{margin-bottom:6px;}
+        .fsn-fee-table thead th{background:transparent;color:#94a3b8;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #e2e8f0 !important;border-top:none;}
+        .fsn-fee-table td,.fsn-fee-table th{border-color:#f1f5f9;vertical-align:middle;}
+        .fsn-fee-table tbody tr:nth-child(even){background:#fafbfd;}
+        .fsn-invoice{background:var(--card-bg,#fff);border:1px solid #eef1f5;border-radius:12px;padding:18px 20px;position:sticky;top:12px;box-shadow:0 1px 2px rgba(15,23,42,0.04),0 4px 12px rgba(15,23,42,0.05);}
+        .fsn-invoice-header{font-size:15px;font-weight:700;margin-bottom:4px;padding-bottom:10px;border-bottom:1px dashed #e2e8f0;color:#0f172a;}
+        .fsn-invoice-subtitle{font-size:11.5px;font-weight:400;color:#94a3b8;margin-top:2px;}
+        .fsn-invoice-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;margin-bottom:0;font-size:13px;}
+        .fsn-invoice-row label{color:#64748b;margin:0;flex:1;}
+        .fsn-invoice-value{display:inline-flex;align-items:center;gap:2px;white-space:nowrap;flex-shrink:0;}
+        .fsn-invoice-value .fsn-currency{position:relative;top:0;line-height:1;}
+        .fsn-plain-input{border:none !important;background:transparent !important;padding:0 !important;height:auto !important;text-align:right;width:70px;font-size:13px;}
+        .fsn-currency{color:#94a3b8;font-size:12px;}
+        .fsn-line-sub{font-size:11px;color:#16a34a;margin:2px 0 0;text-align:right;}
+        .fsn-line-sub label{margin:0 0 0 6px;font-weight:400;}
+        .fsn-line-sub label:first-child{margin-left:0;}
+        .fsn-tag-success{font-size:10px;background:#dcfce7;color:#16a34a;border-radius:20px;padding:1px 8px;margin-left:4px;font-weight:600;}
+        .fsn-settled-badge{background:#dcfce7;color:#16a34a;font-size:11.5px;font-weight:600;padding:3px 10px;}
+        .fsn-fine-active{color:#dc2626 !important;font-weight:700 !important;}
+        .fsn-fine-active-hint{color:#dc2626 !important;font-weight:600;}
+        #msgLabel{display:none !important;}
+        .fsn-total-row{padding-top:10px;border-top:1px solid #e2e8f0;margin-top:12px;}
+        .fsn-total-row label{font-weight:600;color:#0f172a;font-size:14px;}
+        .fsn-total-value{font-weight:700 !important;font-size:20px !important;color:#0f172a;}
+        .fsn-hint{font-size:11px;color:#94a3b8;margin:2px 0 0;display:block;border:none;background:transparent;padding:0;height:auto;width:100%;text-align:right;}
+        .fsn-input{width:70px;text-align:right;font-size:13px;height:32px;}
+        #feeSubmitBtn{border-radius:8px;box-shadow:0 2px 6px rgba(37,99,235,0.3);}
+    </style>
+
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Fee Submission <span class="badge rounded-pill text-bg-primary" style="font-size:11px;vertical-align:middle;">New</span></div>
+                <hr/>
+                <!--Search box-->
+                <div class="search-container my-3">
+                    <input oninput="searchStuName()" type="text" class="form-control" id="search-input" placeholder="Search student name">
+                    <div class="search-result" style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; display:none;">
+                    </div>
+                </div>
+                <form name="feesubmission" th:action="@{/fees/feesubmit}" th:object="${feesubmissionobj}" method="post">
+
+                    <!--Student + Academic + Meta detail, combined into one card-->
+                    <div class="fsn-card fsn-identity-card">
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="fsn-avatar"><i class="bi bi-person-fill"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="studname fsn-name"></div>
+                                <div class="fsn-subtext">
+                                    <span class="fname"></span><span class="fsn-dot">&middot;</span><span class="mname"></span><span class="fsn-dot">&middot;</span><i class="bi bi-telephone-fill fsn-tel-icon"></i><span class="contactno"></span>
+                                    <button type="button" class="fsn-btn-icon-green dynamic-btn" title="Update contact"><i class="bi bi-pencil-fill"></i></button>
+                                </div>
+                                <div class="fsn-info-row">
+                                    <span class="cmedium"></span>
+                                    <span class="fsn-sep">|</span>
+                                    <span>Class <span class="cgrade"></span>-<span class="csection"></span></span>
+                                    <span class="fsn-sep">|</span>
+                                    <span>SR <span class="csr"></span></span>
+                                    <span class="fsn-sep">|</span>
+                                    <span class="fsn-inline-field"><span>Fee date</span><input type="text" readonly class="fsn-plain-inline" id="feedate" name="feedate" value=""></span>
+                                    <span class="fsn-sep">|</span>
+                                    <span class="fsn-inline-field"><span>Submitted</span><input type="text" readonly class="fsn-plain-inline" id="feesubmissiondate" name="feesubmissiondate" value=""></span>
+                                    <span class="fsn-sep">|</span>
+                                    <span class="fsn-inline-field"><span>Prev. balance</span><input type="text" readonly class="fsn-plain-inline" id="previousBalance" name="previousBalance" value=""></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="academicStudentId" value="" name="academicStudentId" th:field="*{academicStudent.id}">
+                    <input type="hidden" name="school_id" id="school_id" th:field="*{school.id}"/>
+                    <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
+                    <input type="hidden" id="StudentId" value="" name="StudentId">
+                    <input type="hidden" id="gradeId" value="" name="gradeId">
+
+                    <!--Other Fee Detail-->
+                    <div class="row">
+                        <div class="col-lg-7">
+
+                            <!--Months grid-->
+                            <div class="fsn-card mb-3" th:if="${hasMonthMapping}">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div class="fsn-panel-title mb-0">Session months</div>
+                                    <div class="fsn-month-legend">
+                                        <span><span class="fsn-swatch fsn-swatch-paid"></span>Paid</span>
+                                        <span><span class="fsn-swatch fsn-swatch-selected"></span>Selected now</span>
+                                        <span><span class="fsn-swatch fsn-swatch-available"></span>Available</span>
+                                    </div>
+                                </div>
+                                <div class="fsn-month-grid">
+                                    <label class="fsn-month-tile" th:each="mon,iterStat : ${monthmapping}">
+                                        <input type="checkbox" class="form-check form-check-input monthcheckbox" th:id="${mon.monthMaster.monthName}" th:name="months" th:value="${mon.monthMaster.monthName}" />
+                                        <span class="fsn-month-visual">
+                                            <i class="bi bi-check-lg"></i>
+                                            <span th:text="${mon.monthMaster.monthName}"></span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="fsn-card mb-3" th:if="${!hasMonthMapping}">
+                                <p class="text-center mb-1">No Month-Mapping found.</p>
+                                <p class="text-center mb-0">Contact to your admin.</p>
+                            </div>
+
+                            <!--Fee heads-->
+                            <div class="fsn-card mb-3">
+                                <div class="fsn-panel-title mb-2">Fee heads <span class="fsn-panel-subtitle">for selected months</span></div>
+                                <table id="feeTable" class="table table-hover table-sm fsn-fee-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Fee-head</th>
+                                            <th>Qty</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    </tbody>
+                                </table>
+                                <span id="msgLabel"></span>
+                                <input type="hidden" name="fullPaymentAmount" value=""/>
+                            </div>
+
+                            <!--
+                                Mid Year Migration Discount - rendered only when the server-side check
+                                (system_config toggle ON + logged-in user is ROLE_ADMIN/ROLE_SUPERADMIN,
+                                see FeeSubmissionController.getFeeSubmissionFormNew /
+                                FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser)
+                                passes - computed once at page load, not per student.
+                            -->
+                            <div id="migrationDiscountRow" th:if="${migrationDiscountEnabled}">
+                                <div class="card border-warning">
+                                    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                                        <i class="bi bi-info-circle-fill text-warning fs-4"></i>
+                                        <label for="migrationDiscountAmount" class="col-form-label mb-0"><b>Special Discount (Admin)</b></label>
+                                        <div class="input-group" style="max-width:220px;">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="text" inputmode="numeric" class="form-control" id="migrationDiscountAmount" name="migrationDiscountAmount" placeholder="0" autocomplete="off">
+                                        </div>
+                                        <span class="text-muted small">Tick the month(s) above as usual - this amount is deducted from the total due.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!--Amount Detail / Invoice-->
+                        <div class="col-lg-5">
+                            <div class="fsn-invoice">
+                                <div class="fsn-invoice-header">Invoice<div class="fsn-invoice-subtitle" id="invoiceSubtitle">Select months to begin</div></div>
+
+                                <div class="fsn-invoice-row">
+                                    <label>Fee amount</label>
+                                    <span class="fsn-invoice-value"><span class="fsn-currency">₹</span><span id="invoiceFeeAmount">0</span></span>
+                                </div>
+
+                                <div class="fsn-invoice-row">
+                                    <label for="discountAmount">Discount</label>
+                                    <span class="fsn-invoice-value"><span class="fsn-currency">₹</span><input type="number" readonly="readonly" class="fsn-plain-input" id="discountAmount" name="discountAmount" value=""></span>
+                                    <input type="hidden" class="form-control" id="discountHead" name="discountHead" value="">
+                                </div>
+                                <div class="fsn-line-sub">
+                                    <label id="discountMsg" name="discountMsg"></label>
+                                    <label id="discountCount" name="discountCount"></label>
+                                </div>
+
+                                <div class="fsn-invoice-row" id="fullPaymentRow" style="display:none;">
+                                    <label>Full payment discount <span class="fsn-tag-success">Paying in full</span></label>
+                                    <span class="fsn-invoice-value"><span class="fsn-currency">₹</span><span id="msgAmount"></span></span>
+                                </div>
+
+                                <div class="fsn-invoice-row">
+                                    <label for="fineAmount">Fine</label>
+                                    <span class="fsn-invoice-value"><span class="fsn-currency">₹</span><input type="number" readonly="readonly" class="fsn-plain-input" id="fineAmount" name="fineAmount" value=""></span>
+                                </div>
+                                <input type="text" readonly="readonly" name="fineRemark" class="fsn-hint" id="fineRemark" value="">
+
+                                <div class="fsn-invoice-row fsn-total-row">
+                                    <label for="totalAmount">Total due</label>
+                                    <span class="fsn-invoice-value"><span class="fsn-currency">₹</span><input type="number" readonly="readonly" class="fsn-plain-input fsn-total-value" id="totalAmount" name="totalAmount" value=""></span>
+                                </div>
+
+                                <div class="fsn-invoice-row">
+                                    <label for="paidAmount">Amount paid*</label>
+                                    <span class="fsn-invoice-value">
+                                        <span class="fsn-currency">₹</span><input type="number" class="form-control fsn-input" id="paidAmount" name="paidAmount" value="" autocomplete="off" />
+                                        <span id="errmsg"></span>
+                                    </span>
+                                </div>
+
+                                <div class="fsn-invoice-row">
+                                    <label for="balanceAmount">Balance*</label>
+                                    <span class="fsn-invoice-value">
+                                        <span class="fsn-currency">₹</span><input type="number" readonly="readonly" class="fsn-plain-input" id="balanceAmount" name="balanceAmount" value="">
+                                        <span id="balanceStatusBadge" class="badge rounded-pill fsn-settled-badge" style="display:none;">Settled</span>
+                                    </span>
+                                </div>
+
+                                <div class="mb-2 mt-3">
+                                    <label for="paymentType" class="form-label mb-1" style="font-size:12.5px;color:#64748b;">Payment Type*</label>
+                                    <select id="paymentType" class="form-select" th:field="*{paymentType}" name="paymentType">
+                                        <option value="">Select</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Online">Online</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="feeRemark" class="form-label mb-1" style="font-size:12.5px;color:#64748b;">Remark</label>
+                                    <input type="text" class="form-control" id="feeRemark" name="feeRemark" value="">
+                                </div>
+
+                                <div class="text-end">
+                                    <button sms:access="FEE_SUBMIT:CREATE" onclick="checkMonths()" class="btn btn-primary px-4" id="feeSubmitBtn"><i class="bi bi-save2-fill"></i> Submit Fee</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" >
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:14px;border:none;box-shadow:0 12px 32px rgba(15,23,42,0.18);">
+                <div class="modal-header" style="border-bottom:1px solid #f1f5f9;">
+                    <h5 class="modal-title" id="exampleModalLabel"><i class="bi bi-telephone-plus-fill text-primary me-2"></i>Update Contact</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Enter the student's new 10-digit mobile number. This becomes the primary contact used for SMS and calls.</p>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
+                        <input type="text" inputmode="numeric" maxlength="10" class="form-control" id="updatedContactNumber" placeholder="Enter mobile no." required>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid #f1f5f9;">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><i class="bi bi-x-square"></i> Close</button>
+                    <button type="button" class="btn btn-primary" id="updateContactBtn"><i class="bi bi-pencil-square"></i> Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+        const successMessage = [[${success}]];
+        if (successMessage) {
+            showWarningMsg("success", successMessage, "Success");
+        }
+
+        const infoMessage = [[${info}]];
+        if (infoMessage) {
+            showWarningMsg("info", infoMessage, "Info");
+        }
+
+        const errorMessage = [[${error}]];
+        if (errorMessage) {
+            showWarningMsg("error", errorMessage, "Error");
+        }
+
+
+        // Event listener for dynamically added button
+        $(document).on('click', '.dynamic-btn', function() {
+            $('#myModal').modal('show');
+        });
+
+        /* ── Display-only helpers: "Settled" badge on zero balance, invoice subtitle ── */
+        function refreshBalanceDisplay(){
+            let raw = $('#balanceAmount').val();
+            let bal = parseFloat(raw);
+            if(raw !== '' && !isNaN(bal) && bal === 0){
+                $('#balanceAmount').hide();
+                $('#balanceStatusBadge').show();
+            } else {
+                $('#balanceAmount').show();
+                $('#balanceStatusBadge').hide();
+            }
+        }
+
+        function updateInvoiceSubtitle(){
+            let checkedMonths = [];
+            $('.monthcheckbox').each(function(){
+                if($(this).is(':enabled') && $(this).is(':checked')){
+                    checkedMonths.push($(this).attr('id'));
+                }
+            });
+            if(checkedMonths.length === 0){
+                $('#invoiceSubtitle').text('Select months to begin');
+            } else if(checkedMonths.length === 1){
+                $('#invoiceSubtitle').text('1 month · ' + checkedMonths[0]);
+            } else {
+                $('#invoiceSubtitle').text(checkedMonths.length + ' months · ' + checkedMonths[0] + '–' + checkedMonths[checkedMonths.length-1]);
+            }
+        }
+
+        /* ── Mid Year Migration Discount (admin-only, config-gated field) ────────── */
+        let baseTotalBeforeMigrationDiscount = 0;
+
+        function applyMigrationDiscount(){
+            const row = document.getElementById('migrationDiscountRow');
+            if(!row) return; // not rendered at all for this user (th:if was false server-side)
+            let discountVal = parseFloat($('#migrationDiscountAmount').val());
+            if(isNaN(discountVal) || discountVal < 0) discountVal = 0;
+            let newTotal = baseTotalBeforeMigrationDiscount - discountVal;
+            if(newTotal < 0) newTotal = 0;
+            $('#totalAmount').val(newTotal);
+            $('#balanceAmount').val('0');
+            $('#paidAmount').val(newTotal);
+            refreshBalanceDisplay();
+        }
+
+        // Numeric-only (digits + a single decimal point)
+        $('#migrationDiscountAmount').on('keypress', function(e){
+            const char = String.fromCharCode(e.which);
+            if(e.which !== 8 && e.which !== 0 && !/[0-9.]/.test(char)){
+                return false;
+            }
+            if(char === '.' && $(this).val().indexOf('.') !== -1){
+                return false;
+            }
+        });
+        $('#migrationDiscountAmount').on('input', applyMigrationDiscount);
+
+        $("#paidAmount").keypress(function (e) {
+            //if the letter is not digit then display error and don't type anything
+            if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
+                //display error message
+                $("#errmsg").html("Digits Only").show().fadeOut("slow");
+                return false;
+            }
+        });
+
+        $('#paidAmount').keyup(function() {
+            var ta = $('#totalAmount').val();
+            //var ba = 0;
+
+            $('#balanceAmount').val((ta-$(this).val()));
+            refreshBalanceDisplay();
+
+        });
+
+        /* ── Student search with infinite scroll ─────────────────── */
+        let _searchQuery = '';
+        let _searchPage  = 0;
+        let _searchMore  = false;
+        let _searchLoading = false;
+        let _searchDebounceTimer = null;
+
+        const renderStudentRow = (student) => {
+            let srval = student.classSrNo != null && student.classSrNo != '' ? ' / ' + student.classSrNo : ' / -';
+            return `<a onclick="loadStudentData(${student.id})" href="#" class='list-group-item list-group-item-action'>${student.student.studentName} / ${student.student.fatherName} / ${student.grade.gradeName}-${student.section.sectionName}${srval}</a>`;
+        };
+
+        const fetchStudents = (query, page, append) => {
+            if (_searchLoading) return;
+            _searchLoading = true;
+            let url = `${contextPath}searchStudentForFeePage/${encodeURIComponent(query)}?page=${page}`;
+            fetch(url).then(r => r.json()).then(students => {
+                _searchLoading = false;
+                // Response is a plain array (page size = 10); if we got 10 rows there may be more
+                _searchMore = students.length === 10;
+                if (!append) {
+                    // First page — build fresh list
+                    let html = `<div class='list-group' id='student-list-group'>`;
+                    students.forEach(s => { html += renderStudentRow(s); });
+                    html += `</div>`;
+                    $(".search-result").html(html).show();
+                } else {
+                    // Append rows to existing list
+                    students.forEach(s => {
+                        $('#student-list-group').append(renderStudentRow(s));
+                    });
+                }
+            }).catch(() => { _searchLoading = false; });
+        };
+
+        const searchStuName = () => {
+            clearTimeout(_searchDebounceTimer);
+            let query = $("#search-input").val();
+            if (query.trim().length > 2) {
+                // Debounced — fires once 300ms after the last change (typed or pasted),
+                // instead of hitting the DB on every keystroke. No "already searched this
+                // value" guard — always re-fetch once the debounce settles, so retyping
+                // back to an earlier value still works.
+                _searchDebounceTimer = setTimeout(() => {
+                    _searchQuery = query;
+                    _searchPage  = 0;
+                    fetchStudents(query, 0, false);
+                }, 300);
+            } else {
+                _searchQuery = '';
+                $(".search-result").hide();
+            }
+        };
+
+        // Infinite scroll: scroll doesn't bubble so bind directly on the element
+        document.querySelector('.search-result').addEventListener('scroll', function() {
+            if (!_searchMore || _searchLoading) return;
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 40) {
+                _searchPage++;
+                fetchStudents(_searchQuery, _searchPage, true);
+            }
+        });
+
+        const loadStudentData=(id)=>{
+            $(".search-result").hide();
+            $("#search-input").val('');
+            resetMonthsSelection();
+            if(id>0){
+                resetMonthCheckBoxes();
+                resetFeeFields(0);
+                console.log("id::::"+id);
+                let url = `${contextPath}getStudentDetailForFee/${id}`;
+                fetch(url).then(response => {
+                    return response.json();
+                }).then((data) => {
+                    console.log(data);
+                    console.log(data.student);
+                    if('noAcademicStudent' in data){
+                        //toastr["warning"](data.noAcademicStudent,"Message");
+                        showWarningMsg("warning",data.noAcademicStudent,"Message");
+                        setFeeRelatedData(data, 0)
+                    } else{
+                        if('noFeeDate' in data){
+                            //toastr["warning"](data.noFeeDate,"Message");
+                            showWarningMsg("warning",data.noFeeDate,"Message");
+                        } else{
+                            setFeeRelatedData(data, 1);
+                        }
+                        if('Paid_Month_Error' in data){
+                            //toastr["info"](data.Paid_Month_Error,"Message");
+                        } else{
+                            if(data.PaidMonths!=null){
+                                let j = 0;
+                                let month_checkboxes = $('.monthcheckbox');
+                                month_checkboxes.each(function() {
+                                    // Check if the value matches any value in the array
+                                    if (data.PaidMonths.includes($(this).attr('id'))) {
+                                        // Make the checkbox checked and disabled
+                                        $(this).prop('checked', true);
+                                        $(this).prop('disabled', true);
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        const resetMonthsSelection = ()=>{
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                $(this).prop('checked', false);
+                $(this).prop('disabled', false);
+            });
+        }
+
+        function formatDate(dateString, dlen) {
+            // Parse the date string
+            const date = new Date(dateString);
+
+            // Helper function to get month abbreviation
+            const getMonthAbbreviation = (monthIndex) => {
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return months[monthIndex];
+            };
+
+            // Extract day, month, and year from the date
+            const day = date.getDate();
+            const month = getMonthAbbreviation(date.getMonth());
+            const year = date.getFullYear();
+            const hrs = date.getHours();
+            const mins = date.getMinutes();
+            const seconds = date.getSeconds();
+
+            // Format the date in dd-MMM-yyyy
+            if(dlen === 'short'){
+                return `${String(day).padStart(2, '0')}/${month}/${year}`;
+            }
+            return `${String(day).padStart(2, '0')}/${month}/${year} ${hrs}:${mins}:${seconds}`;
+        }
+
+        function setFeeRelatedData(data, flag){
+            if(flag===1){
+                $(".studname").html(`${data.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
+                $(".fname").html(`${data.student.fatherName}`);
+                $(".mname").html(`${data.student.motherName}`);
+                $(".contactno").html(`${data.student.mobile1}`);
+
+                $(".cmedium").html(`${data.student.medium}`);
+                $(".cgrade").html(`${data.student.grade}`);
+                $(".csection").html(`${data.student.section}`);
+                $(".csr").html(`${data.student.classSrNo==null?"":data.student.classSrNo}`);
+
+                $('#academicStudentId').val(`${data.student.academicId}`);
+                $('#StudentId').val(`${data.student.id}`);
+                $('#gradeId').val(`${data.student.gradeId}`);
+                let feeSubmissiondate = formatDate(data.feeDate.feeDate, 'short');
+                $("#feedate").val(feeSubmissiondate);
+                let todayDate = formatDate(data.todayDate, 'full');
+                $("#feesubmissiondate").val(todayDate);
+                $("#previousBalance").val(`${data.previousBalance}`);
+                if(data.previousBalance>0){
+                    $("#previousBalance").addClass("text-bg-warning");
+                } else{
+                    $("#previousBalance").removeClass("text-bg-warning");
+                }
+                baseTotalBeforeMigrationDiscount = 0;
+            } else{
+                $(".studname").html(``);
+                $(".fname").html(``);
+                $(".mname").html(``);
+                $(".contactno").html(``);
+
+                $(".cmedium").html(``);
+                $(".cgrade").html(``);
+                $(".csection").html(``);
+                $(".csr").html(``);
+                $("#feedate").val('');
+                $("#feesubmissiondate").val('');
+                $('#academicStudentId').val('');
+                $('#gradeId').val('');
+                $("#previousBalance").val('');
+                $("#previousBalance").addClass("");
+                baseTotalBeforeMigrationDiscount = 0;
+            }
+        }
+
+        $('.monthcheckbox').on('click', async function (e){
+            console.log("Value clicked "+$(this));
+            const academicStudentId = $('#academicStudentId').val();
+            if(academicStudentId === null || academicStudentId === ''){
+                showWarningMsg("error","No Student found.\nPlease select a student for fee submission.","Message")
+                //toastr["error"]("No Student found.\nPlease select a student for fee submission.","Message");
+                resetMonthCheckBoxes();
+                return;
+            }
+            let checkBoxes = "";
+            let monthArr = "";
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                if($(this).is(':enabled') && $(this).is(':checked')){
+                    if(checkBoxes===""){
+                        checkBoxes = $(this).attr("id");
+                    } else{
+                        checkBoxes = checkBoxes + "-" + $(this).attr("id");
+                    }
+                }
+                if($(this).is(':enabled')){
+                    monthArr = monthArr + $(this).attr("id") + "-";
+                }
+            });
+            //check all checkboxes selected in a sequence or not?
+            const sequenceResult = checkMonthSequence(checkBoxes.split("-"));
+            if(sequenceResult === false){
+                //toastr["warning"]("Selection Not Allowed.\nPlease select month in sequence","Message");
+                showWarningMsg("warning","Selection Not Allowed.\nPlease select month in sequence","Message")
+                resetMonthCheckBoxes();
+                resetFeeFields(0);
+                return;
+            }
+            let total = 0;
+            $('#feeTable').find("tr:gt(0)").remove();
+            resetFeeFields(1);
+            const gradeId = $('#gradeId').val();
+            let prevBalAmount = 0;
+            let tot = 0;
+            prevBalAmount = parseInt($('#previousBalance').val());
+            console.log("academicStudentId ------ "+academicStudentId);
+            const requestBody = {
+                checkBoxes: checkBoxes,
+                gradeId: gradeId,
+                academicStudentId: academicStudentId
+            };
+            //let url = `${window.location.origin}/getFeeDetailsBasedOnMonth/${checkBoxes}/${gradeId}/${academicStudentId}`;
+            await calculateFee(requestBody);
+
+            await calculateDiscount(requestBody);
+            await calculateFine(requestBody);
+
+            // Mid Year Migration Discount subtracts from the total the same way the other
+            // discounts above already do - captured here (after fee+discount+fine are all in)
+            // so re-typing the amount doesn't compound across repeated keystrokes.
+            baseTotalBeforeMigrationDiscount = parseFloat($('#totalAmount').val()) || 0;
+            applyMigrationDiscount();
+            updateInvoiceSubtitle();
+
+            // resetFeeFields(1) above unconditionally strips the orange "balance due" styling
+            // from Previous Balance on every month click and nothing puts it back - restore it
+            // here based on the same value that was already loaded for this student.
+            if(parseFloat($('#previousBalance').val()) > 0){
+                $('#previousBalance').addClass('text-bg-warning');
+            }
+        });
+
+        async function calculateFee(requestBody){
+            let url = `${contextPath}getFeeDetailsBasedOnMonth`;
+            let total = 0;
+            let prevBalAmount = 0;
+            let tot = 0;
+            prevBalAmount = parseInt($('#previousBalance').val());
+            try{
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                const data = await response.json();
+                console.log(data);
+                let headList = data.feelist;
+                let olist = data.paymentlist;
+                //alert(olist);
+                if(headList!=null) {
+                    let options = '';
+                    let feeAmountSum = 0;
+                    tot = tot + prevBalAmount;
+                    for (let i = 0; i < headList.length; i++) {
+                        let value = headList[i];
+                        $('#feeTable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ value.feehead+'</td><td>'+ value.quantity +'</td><td>₹'+value.amount+'<input type="hidden" name="headName" value="'+value.feehead+'###'+value.amount+'###'+ value.feeid +'" /></td></tr>');
+                        tot = tot + value.amount;
+                        feeAmountSum = feeAmountSum + value.amount;
+                    }
+                    $('#invoiceFeeAmount').text(feeAmountSum);
+                    if(olist.amount>0){
+                        $("#msgLabel").html("<strong>Full Payment: </strong>").show();
+                        $("#msgAmount").html(olist.amount).show();
+                        $('#fullPaymentRow').show();
+                        tot = tot - olist.amount;
+                        //alert(olist.amount);
+                        $('#fullPaymentAmount').val(olist.amount);
+                    }
+                    else{
+                        $('#fullPaymentAmount').val(0.0);
+                        $('#fullPaymentRow').hide();
+                    }
+                    console.log("TOT:  "+$('#discountAmount').val());
+                    $('#totalAmount').val(tot);
+                    $('#balanceAmount').val("0");
+                    $('#paidAmount').val(tot);
+                    refreshBalanceDisplay();
+                }
+            }catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+                //toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fetch operation: " + error,"Error")
+            }
+        }
+
+        async function calculateDiscount(requestBody){
+            let url = `${contextPath}getDiscountDetailsBasedOnMonth`;
+            let tot = $('#totalAmount').val();
+            console.log("TOTAL AMT: "+tot +"   ::: ");
+            try {
+                // Await the fetch request
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                // Check if the response is not ok
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                // Await the response JSON parsing
+                const data = await response.json();
+                console.log("discount Data:", data);
+
+                // Process the data as needed
+                let headList = data.discountlist;
+                console.log("<><><><> >>."+tot)
+                if(headList!=null) {
+                    let options = '';
+                    for (let i = 0; i < headList.length; i++) {
+                        const value = headList[i];
+                        console.log("value<><><> "+value);
+                        $('#discountAmount').val(value.amount);
+                        $('#discountHead').val(value.discountHeadName);
+                        $('#discountMsg').text(value.discountHeadName);
+                        $('#discountCount').text("("+value.quantity+" x ₹"+value.amt+" : ₹"+value.amount+")")
+                        tot = tot - value.amount;
+                        $('#totalAmount').val(tot);
+                        $('#balanceAmount').val("0");
+                        $('#paidAmount').val(tot);
+                        refreshBalanceDisplay();
+                    }
+                }
+
+            } catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+                //toastr["error"]("There was a problem with the fetch operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fetch operation: " + error,"Error")
+            }
+        }
+
+        async function calculateFine(requestBody){
+            //getFineDetailsBasedOnMonth
+            let subDate = $('#feesubmissiondate').val();
+            let feeDate = $('#feedate').val();
+            const newRequestBody = {
+                ...requestBody,
+                'submissionDate' : subDate,
+                'feeDate' : feeDate,
+            };
+            console.log("requestbody---------------------"+newRequestBody);
+            let url = `${contextPath}getFineDetailsBasedOnMonth`;
+            let tot = $('#totalAmount').val();
+            console.log("TOTAL AMT: "+tot +"   ::: ");
+            try {
+                // Await the fetch request
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newRequestBody)
+                });
+
+                // Check if the response is not ok
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+
+                // Await the response JSON parsing
+                const data = await response.json();
+                console.log("fine Data:", data);
+
+                // Process the data as needed
+                let headList = data.fineamount;
+                if(headList!=null) {
+                    if($.isNumeric(headList) && headList!=0)
+                    {
+                        $('#fineAmount').val(headList);
+                        $('#fineRemark').val("FINE APPLICABLE");
+                        $('#fineAmount').addClass('fsn-fine-active');
+                        $('#fineRemark').addClass('fsn-fine-active-hint');
+                    }
+                    else{
+                        $('#fineAmount').val(headList);
+                        $('#fineRemark').val("FINE NOT APPLICABLE");
+                        $('#fineAmount').removeClass('fsn-fine-active');
+                        $('#fineRemark').removeClass('fsn-fine-active-hint');
+                    }
+                    tot = parseInt(tot) + parseInt(headList);
+                    $('#totalAmount').val(tot);
+                    $('#balanceAmount').val("0");
+                    $('#paidAmount').val(tot);
+                    refreshBalanceDisplay();
+                }
+            } catch (error) {
+                console.error('There was a problem with the fine operation:', error);
+                //toastr["error"]("There was a problem with the fine operation: " + error, "Error");
+                showWarningMsg("error","There was a problem with the fine operation: " + error,"Error")
+            }
+        }
+
+        function checkMonthSequence(monthArr){
+            let monthsInOrder = [];
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                if($(this).is(':enabled')){
+                    monthsInOrder.push($(this).attr("id"));
+                }
+            });
+            // Get the indices of the months in the input list
+            if(monthsInOrder.indexOf(monthArr[0])!=0){
+                return false;
+            }
+            const indices = monthArr.map(month => monthsInOrder.indexOf(month));
+            indices.sort((a, b) => a - b);
+            // Check for missing months
+            for (let i = 0; i < indices.length - 1; i++) {
+                if (indices[i + 1] - indices[i] !== 1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function resetFeeFields(flag){
+            if(flag === 0){
+                $('#feeTable tr').slice(1).remove();
+            }
+            $('#discountAmount').val('');
+            $('#discountHead').val('');
+            $('#discountMsg').val('');
+            $('#discountCount').val('');
+            $('#fineAmount').val('').removeClass('fsn-fine-active');
+            $('#fineRemark').val('').removeClass('fsn-fine-active-hint');
+            $('#totalAmount').val('');
+            $('#balanceAmount').val('');
+            $('#paidAmount').val('');
+            $('#remark').val('');
+            $('#discountHead').val('');
+            $('#discountMsg').text('');
+            $('#discountCount').text('');
+            $('#msgLabel').html('').hide();
+            $('#msgAmount').html('').hide();
+            $('#fullPaymentRow').hide();
+            $('#fullPaymentAmount').val('');
+            $('#previousBalance').removeClass("text-bg-warning");
+            $('#invoiceFeeAmount').text('0');
+            updateInvoiceSubtitle();
+            refreshBalanceDisplay();
+            if(flag === 0){
+                // Only clear the migration-discount value on a full reset (new student being
+                // loaded), not on every month re-check - the admin's entered amount should
+                // persist while they're still adjusting months for the same student.
+                $('#migrationDiscountAmount').val('');
+                baseTotalBeforeMigrationDiscount = 0;
+            }
+        }
+
+        function resetMonthCheckBoxes(){
+            let month_checkboxes = $('.monthcheckbox');
+            month_checkboxes.each(function() {
+                if($(this).is(':enabled') && $(this).is(':checked')){
+                    //$(this).is('checked', false);
+                    $(this).prop('checked', false);
+                }
+            });
+        }
+
+        $('#updateContactBtn').click(function() {
+            const contactNumber = $('#updatedContactNumber').val();
+            const studentId = $('#StudentId').val();
+
+            if (contactNumber === '') {
+                //toastr["error"]("Contact number cannot be empty","Missing");
+                showWarningMsg("error","Contact number cannot be empty","Missing");
+                return;
+            }
+
+            // Validate contact number
+            const isNumeric = /^\d{10}$/.test(contactNumber);
+            if (!isNumeric) {
+                //toastr["error"]("Contact number must be exactly 10 digits and contain only numbers.","Message");
+                showWarningMsg("error","Contact number must be exactly 10 digits and contain only numbers.","Message");
+                return;
+            }
+
+            // Example API URL and data
+            //const apiUrl = 'https://example.com/api/updateContact';
+            const apiUrl = `${contextPath}updateContact`;
+            const requestData = {
+                contactNumber: contactNumber,
+                stuId: studentId
+            };
+
+            // Make the API call
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    //toastr["success"](data.success,"Success");
+                    showWarningMsg("success",data.success,"Success");
+                    $('#myModal').modal('hide');
+                } else if(data.error){
+                    //toastr["error"](data.error,"Error");
+                    showWarningMsg("error",data.error,"Error");
+                } else if(data.empty_response){
+
+                } else {
+                    //toastr["error"]("Failed to update contact number","Error");
+                    showWarningMsg("error","Failed to update contact number","Error");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                //toastr["error"]("An error occurred while updating the contact number","Error");
+                showWarningMsg("error","An error occurred while updating the contact number","Error");
+            });
+        });
+
+        function checkMonths(){
+            event.preventDefault();
+            if($('#academicStudentId').val().toString()===''){
+                showWarningMsg("error","Student is missing, please select a student!","Message");
+                return false;
+            }
+
+            if($("#feedate").val().toString()===''){
+                //toastr["warning"]("Fee Date is missing!","Message");
+                showWarningMsg("error","Fee Date is missing!","Message");
+                return false;
+            }
+            if($("#totalAmount").val().toString()===''){
+                showWarningMsg("error","Total Amount is missing!","Message");
+                //toastr["warning"]("Total Amount is missing!","Message");
+                return false;
+            }
+            if($("#paidAmount").val().toString()===''){
+                //toastr["warning"]("Paid Amount is missing!","Message");
+                showWarningMsg("error","Paid Amount is missing!","Message");
+                return false;
+            }
+            if($("#balanceAmount").val().toString()===''){
+                //toastr["warning"]("Balance Amount is missing!","Message");
+                showWarningMsg("error","Balance Amount is missing!","Message");
+                return false;
+            }
+            if($("#paymentType").val().toString()===''){
+                showWarningMsg("error","Payment type is missing!","Message");
+                return false;
+            }
+            if($('#feeTable > tbody > tr').length === 0){
+                showWarningMsg("error","No fee heads added. Please add at least one fee head before submitting.","Message");
+                return false;
+            }
+
+            // Validation: last month of session selected → balance must be zero
+            const allMonthCheckboxes = $('.monthcheckbox');
+            const lastMonthCheckbox = allMonthCheckboxes.last();
+            const isLastMonthSelected = lastMonthCheckbox.is(':enabled') && lastMonthCheckbox.is(':checked');
+            if (isLastMonthSelected) {
+                const balanceAmt = parseFloat($('#balanceAmount').val()) || 0;
+                if (balanceAmt > 0) {
+                    showWarningMsg("error", "Balance amount must be zero when submitting the last month of the session. Please pay the full amount.", "Validation Error");
+                    return false;
+                }
+            }
+
+            $('#feeSubmitBtn').attr('disabled',true);
+            document.forms.feesubmission.submit();
+            return true;
+        }
+
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "600",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+            toastr[msgType](msg,headerValue);
+        }
+
+    </script>
+
+</section>
+</body>
+</html>

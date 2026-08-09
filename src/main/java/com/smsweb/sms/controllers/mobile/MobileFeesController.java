@@ -107,12 +107,32 @@ public class MobileFeesController {
             totalDiscount = totalDiscount.add(orZero(fs.getDiscountAmount()));
         }
 
+        // previousBalance — dues carried in from before this session (a prior
+        // year's unpaid balance at migration time, or an opening balance set
+        // via the admin's Opening Balance upload). Same fallback chain the
+        // office's own Fee Submission entry form already uses (see
+        // FeeSubmissionRestController): the latest fee submission's stored
+        // running balance already has any carried-forward amount baked in
+        // (the office form folds it in when the submission is made), so it
+        // fully supersedes openingBalance once at least one submission
+        // exists. Only fall back to the raw openingBalance field when
+        // nothing has been submitted for this student yet this session.
+        BigDecimal previousBalance;
+        FeeSubmission lastSubmission = feeSubmissionService.getLastFeeSubmissionOfStudentForBalance(
+                resolved.getSchool().getId(), resolved.getAcademicYear().getId(), resolved.getId());
+        if (lastSubmission != null && lastSubmission.getFeeSubmissionBalance() != null) {
+            previousBalance = orZero(lastSubmission.getFeeSubmissionBalance().getBalanceAmount());
+        } else {
+            previousBalance = orZero(resolved.getOpeningBalance());
+        }
+
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("totalPaid",       totalPaid);
-        summary.put("totalBalance",    totalBalance);
-        summary.put("totalFine",       totalFine);
-        summary.put("totalDiscount",   totalDiscount);
-        summary.put("submissionCount", submissions.size());
+        summary.put("totalPaid",        totalPaid);
+        summary.put("totalBalance",     totalBalance);
+        summary.put("totalFine",        totalFine);
+        summary.put("totalDiscount",    totalDiscount);
+        summary.put("submissionCount",  submissions.size());
+        summary.put("previousBalance",  previousBalance);
 
         return ResponseEntity.ok(ApiResponse.success(summary));
     }
