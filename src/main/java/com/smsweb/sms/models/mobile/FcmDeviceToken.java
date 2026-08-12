@@ -5,14 +5,20 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * NEW entity — one row per physical device that has registered for push
- * notifications, pointed at whichever student it's currently logged in as.
+ * One row per (physical device, student) pair. A single device token can
+ * have several rows — one per child in the signed-in parent's family — so
+ * that a push aimed at any sibling reaches this device, not just whichever
+ * child is currently active in the app.
  *
- * The token itself is unique per row (not per student): if the same phone
- * switches from Child A to Child B, re-registering moves this same row's
- * academicStudent to B rather than creating a duplicate — a device should
- * only ever receive pushes for whichever child it's currently signed in as.
- * A family with two children on two separate phones simply gets two rows.
+ * Changed 2026-08-12: previously the token column was unique on its own,
+ * meaning one device could only ever be registered against ONE student at a
+ * time (whichever was last active), so a push targeted at a sibling the
+ * parent wasn't currently viewing found zero rows and was never even
+ * attempted. PushNotificationService.registerDevice() now upserts one row
+ * per family member (via the same SiblingGroup-first, FamilyAccount-fallback
+ * lookup MobileAuthController already uses for the Switch Student screen),
+ * so "family" here correctly includes non-blood wards under one guardian's
+ * mobile number, not just literal siblings.
  *
  * Not a secret like MobileRefreshToken — this is just "where to deliver a
  * push," so it's stored as plain text, no hashing needed.
@@ -21,8 +27,9 @@ import java.time.LocalDateTime;
 @Table(
     name = "fcm_device_tokens",
     indexes = {
-        @Index(name = "idx_fdt_token", columnList = "token", unique = true),
-        @Index(name = "idx_fdt_student", columnList = "academic_student_id")
+        @Index(name = "idx_fdt_token", columnList = "token"),
+        @Index(name = "idx_fdt_student", columnList = "academic_student_id"),
+        @Index(name = "idx_fdt_token_student", columnList = "token, academic_student_id", unique = true)
     }
 )
 public class FcmDeviceToken {
@@ -35,7 +42,7 @@ public class FcmDeviceToken {
     @JoinColumn(name = "academic_student_id", nullable = false)
     private AcademicStudent academicStudent;
 
-    @Column(name = "token", nullable = false, length = 255, unique = true)
+    @Column(name = "token", nullable = false, length = 255)
     private String token;
 
     @Column(name = "created_at", nullable = false)
