@@ -55,8 +55,8 @@
 
                 </div>
                 <div id="btn-classes" style="display: none;" class="row">
-                    <div class="col-md-5">
-
+                    <div class="col-md-5 pt-5">
+                        <span id="badgedDivBottom" align="right" class="align-self-end"></span>
                     </div>
                     <div class="col-md-6 mb-5 pt-5">
                         <button sms:access="STUDENT_ATTENDANCE_MARK:CREATE" type="button" class="btn btn-primary" id="save-sr-from-table" onclick="saveAttendance()"><i class="bi bi-save2-fill"></i> Save </button>
@@ -236,6 +236,7 @@
           });
           let str = "<button type='button' class='btn btn-primary disabled'>Total Student <span class='badge rounded-pill text-bg-info'>"+totalStudent+"</span></button>&nbsp;<button type='button' class='btn btn-success disabled'>Present <span class='badge rounded-pill text-bg-light'>"+presentStudent+"</span></button>&nbsp;<button type='button' class='btn btn-danger disabled'>Absent <span class='badge rounded-pill text-bg-warning'>"+absentStudent+"</span></button><br/><br/>"
           $("#badgedDiv").html(str);
+          $("#badgedDivBottom").html(str);
           $("#badgePDiv").show();
       }
 

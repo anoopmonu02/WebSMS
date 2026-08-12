@@ -802,14 +802,17 @@ public class FeeSubmissionService {
                 //Saving fee submission object
                 Map<String, Map> feeDataMap = getColumnsValue(paramsMap, feeSubmissionModelColumns);
                 if(feeDataMap!=null){
-                    boolean proceedFlag = false;
+                    // canSubmitFee/findMaxSubmissionDate removed — it rejected a submission
+                    // whenever its (client-captured, load-time) date wasn't strictly after the
+                    // MOST RECENT fee submission across the ENTIRE database, with no school or
+                    // student scoping. Under normal concurrent use, any other submission
+                    // anywhere in the system landing in the gap between this form loading and
+                    // the user clicking Submit would trip this and reject the whole form with a
+                    // misleading "less than the last submitted date" error. No real business
+                    // rule depended on this ordering, and it has no relationship to receipt
+                    // numbering (that's a fully independent counter).
+                    boolean proceedFlag = true;
                     Map feeMap = feeDataMap.get("FeeSubmission");
-                    Date submissionDate = (Date)feeMap.get("feesubmissiondate");
-                    if (feeSubmissionRepository.canSubmitFee(submissionDate)) {
-                        proceedFlag = true;
-                    } else {
-                        proceedFlag = false;
-                    }
                     if(proceedFlag){
                         // Validation: if last month of session is being submitted, balance must be zero
                         Map<String, MonthMaster> feeMonMapCheck = feeDataMap.get("FeeSubmission_mon");
@@ -931,8 +934,6 @@ public class FeeSubmissionService {
                         } catch (Exception pushEx) {
                             log.warn("Fee submission push notification skipped for feeSubmissionId={}", feeSubmission.getId(), pushEx);
                         }
-                    } else{
-                        resultMap.put("fee_submission_not_allowed", "Fee Submission not allowed, Current submission date is less than the last submitted date.");
                     }
                 }
             }
