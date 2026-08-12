@@ -4,12 +4,16 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.*;
 import com.smsweb.sms.models.mobile.FcmDeviceToken;
 import com.smsweb.sms.models.student.AcademicStudent;
+import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.repositories.mobile.FcmDeviceTokenRepository;
+import com.smsweb.sms.services.student.AcademicStudentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,9 +32,15 @@ public class PushNotificationService {
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
 
     private final FcmDeviceTokenRepository tokenRepository;
+    private final AcademicStudentService academicStudentService;
+    private final FamilyAccountService familyAccountService;
 
-    public PushNotificationService(FcmDeviceTokenRepository tokenRepository) {
+    public PushNotificationService(FcmDeviceTokenRepository tokenRepository,
+                                    AcademicStudentService academicStudentService,
+                                    FamilyAccountService familyAccountService) {
         this.tokenRepository = tokenRepository;
+        this.academicStudentService = academicStudentService;
+        this.familyAccountService = familyAccountService;
     }
 
     private boolean isEnabled() {
@@ -40,36 +50,84 @@ public class PushNotificationService {
     // ── Device registration (called from the mobile app after login) ────────
 
     /**
-     * Registers (or moves) a device token to point at the given student.
-     * Upserts on the token itself — a single physical device only ever gets
-     * one row, re-pointed to whichever student it's currently logged in as
-     * (e.g. after switching child on the same phone).
+     * Every student this device's push token should be registered against —
+     * the given student plus every other student sharing the same parent
+     * mobile. Mirrors MobileAuthController's Switch Student lookup exactly
+     * (SiblingGroup first, FamilyAccount-by-mobile1 fallback), so a device
+     * always receives pushes for precisely the set of children the app's
+     * switcher shows — including a guardian's case where one mobile number
+     * covers wards who aren't blood siblings (e.g. a nephew/niece).
+     */
+    private List<AcademicStudent> resolveFamily(AcademicStudent student) {
+        String mobile = student.getStudent().getMobile1();
+        if (mobile == null || mobile.isBlank()) {
+            FamilyAccount fa = student.getStudent().getFamilyAccount();
+            if (fa != null) mobile = fa.getMobile();
+        }
+        if (mobile == null || mobile.isBlank()) return List.of(student);
+
+        List<AcademicStudent> family = academicStudentService.findSiblingsByMobile(mobile);
+        if (family.isEmpty()) {
+            FamilyAccount fa = familyAccountService.findActive(mobile).orElse(null);
+            family = fa != null ? academicStudentService.findActiveByFamilyAccount(fa) : List.of();
+        }
+        return family.isEmpty() ? List.of(student) : family;
+    }
+
+    /**
+     * Registers this device's push token against every student in the
+     * signed-in parent's family, not just the one currently active in the
+     * app. One token now maps to N rows (one per family student — see
+     * FcmDeviceToken's composite unique index on token+academicStudent), so
+     * a push targeted at a sibling the parent isn't currently viewing still
+     * reaches this device instead of finding zero registered tokens.
+     *
+     * Also sweeps away any existing row for this same token that points at
+     * a student OUTSIDE the current family — guards against a token that
+     * previously belonged to a different family's device (e.g. a shared or
+     * resold phone) permanently leaking pushes to the wrong household.
      */
     public void registerDevice(AcademicStudent academicStudent, String token) {
         if (token == null || token.isBlank()) return;
         LocalDateTime now = LocalDateTime.now();
-        FcmDeviceToken row = tokenRepository.findByToken(token).orElse(null);
-        if (row == null) {
-            tokenRepository.save(new FcmDeviceToken(academicStudent, token, now, now));
-        } else {
-            row.setAcademicStudent(academicStudent);
-            row.setUpdatedAt(now);
-            tokenRepository.save(row);
+        List<AcademicStudent> family = resolveFamily(academicStudent);
+
+        for (AcademicStudent member : family) {
+            FcmDeviceToken row = tokenRepository
+                    .findByTokenAndAcademicStudent_Id(token, member.getId())
+                    .orElse(null);
+            if (row == null) {
+                tokenRepository.save(new FcmDeviceToken(member, token, now, now));
+            } else {
+                row.setUpdatedAt(now);
+                tokenRepository.save(row);
+            }
         }
+
+        Set<Long> familyIds = family.stream().map(AcademicStudent::getId).collect(Collectors.toSet());
+        for (FcmDeviceToken existing : tokenRepository.findAllByToken(token)) {
+            if (!familyIds.contains(existing.getAcademicStudent().getId())) {
+                log.info("Removing out-of-family FCM token row: token=...{} studentId={}",
+                        tail(token), existing.getAcademicStudent().getId());
+                tokenRepository.delete(existing);
+            }
+        }
+
+        log.info("Device registered: token=...{} familyStudentIds={}", tail(token), familyIds);
     }
 
     /**
-     * Unregisters a device token — but only if it currently belongs to the
-     * calling student. Without this check, any authenticated mobile user
-     * could unregister an arbitrary device token (e.g. a leaked/observed
-     * one) and silently kill another family's push notifications.
+     * Unregisters a device token from the WHOLE family — but only if it
+     * currently belongs to the calling student, so any authenticated mobile
+     * user can't unregister an arbitrary token (e.g. a leaked/observed one)
+     * and silently kill another family's push notifications. Deletes every
+     * row for this token, not just the calling student's, since logging out
+     * on a shared device should stop pushes for every sibling on it too.
      */
     public void unregisterDevice(String token, Long academicStudentId) {
         if (token == null || token.isBlank()) return;
-        FcmDeviceToken row = tokenRepository.findByToken(token).orElse(null);
-        if (row == null) return; // already gone — nothing to do
-        if (row.getAcademicStudent() == null
-                || !row.getAcademicStudent().getId().equals(academicStudentId)) {
+        boolean owns = tokenRepository.existsByTokenAndAcademicStudent_Id(token, academicStudentId);
+        if (!owns) {
             log.warn("unregisterDevice: token does not belong to academicStudentId={} — ignored", academicStudentId);
             return;
         }
