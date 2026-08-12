@@ -6,6 +6,7 @@ import com.smsweb.sms.models.mobile.FcmDeviceToken;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.repositories.mobile.FcmDeviceTokenRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -100,7 +101,19 @@ public class PushNotificationService {
      * builds that don't read it are unaffected. Lets the Flutter app switch
      * to the right child before deep-linking, for a parent who has this
      * push's student as a sibling of, not currently, their active child.
+     *
+     * @Transactional is required here (not on the private sendOne/cleanup
+     * path — self-invoked private methods bypass Spring's proxy, so the
+     * annotation has no effect there) because dead-token cleanup below does
+     * a repository delete, which needs an active EntityManager transaction.
+     * Without it, the very first dead token in a batch throws
+     * TransactionRequiredException, which is only caught by this method's
+     * own outer catch — aborting delivery to every remaining
+     * student/device in the same call. (Root-caused 2026-08-12 from
+     * production logs: a stale token from an app reinstall triggered this
+     * exact abort, silently blocking the whole notification batch.)
      */
+    @Transactional
     public void sendToStudents(List<AcademicStudent> students, String title, String body, String type) {
         try {
             if (!isEnabled()) {
@@ -109,12 +122,32 @@ public class PushNotificationService {
             }
             if (students == null || students.isEmpty()) return;
 
+            log.info("Push send starting: type={} title={} recipientStudents={}",
+                    type, title, students.size());
+
+            int totalTokens = 0;
+            int sent = 0;
+            int failed = 0;
+            int removed = 0;
+
             for (AcademicStudent student : students) {
                 List<FcmDeviceToken> tokens = tokenRepository.findAllByAcademicStudent_Id(student.getId());
+                if (tokens.isEmpty()) {
+                    log.debug("No registered device tokens for studentId={} — nothing to send.", student.getId());
+                    continue;
+                }
+                totalTokens += tokens.size();
                 for (FcmDeviceToken deviceToken : tokens) {
-                    sendOne(deviceToken.getToken(), title, body, type, student.getId());
+                    switch (sendOne(deviceToken.getToken(), title, body, type, student.getId())) {
+                        case SENT -> sent++;
+                        case FAILED -> failed++;
+                        case REMOVED -> removed++;
+                    }
                 }
             }
+
+            log.info("Push send finished: type={} recipientStudents={} tokensAttempted={} sent={} failed={} deadTokensRemoved={}",
+                    type, students.size(), totalTokens, sent, failed, removed);
         } catch (Exception e) {
             log.warn("sendToStudents failed — push notification skipped, caller unaffected", e);
         }
@@ -125,7 +158,10 @@ public class PushNotificationService {
         sendToStudents(students, title, body, TYPE_COMPLAINT);
     }
 
-    private void sendOne(String token, String title, String body, String type, Long academicStudentId) {
+    /** Outcome of a single-token send attempt — rolled up into the summary log line in sendToStudents. */
+    private enum SendResult { SENT, FAILED, REMOVED }
+
+    private SendResult sendOne(String token, String title, String body, String type, Long academicStudentId) {
         Message.Builder builder = Message.builder()
                 .setToken(token)
                 .setNotification(Notification.builder().setTitle(title).setBody(body).build())
@@ -135,16 +171,38 @@ public class PushNotificationService {
         }
         Message message = builder.build();
         try {
-            FirebaseMessaging.getInstance().send(message);
+            String messageId = FirebaseMessaging.getInstance().send(message);
+            log.info("Push sent OK: studentId={} type={} messageId={} token=...{}",
+                    academicStudentId, type, messageId, tail(token));
+            return SendResult.SENT;
         } catch (FirebaseMessagingException e) {
             if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED
                     || e.getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT) {
                 // App was uninstalled, or the token is otherwise dead — stop trying it.
-                log.info("Removing dead FCM token: {}", e.getMessagingErrorCode());
-                tokenRepository.deleteByToken(token);
+                log.info("Push token dead, removing: studentId={} errorCode={} token=...{}",
+                        academicStudentId, e.getMessagingErrorCode(), tail(token));
+                try {
+                    tokenRepository.deleteByToken(token);
+                    return SendResult.REMOVED;
+                } catch (Exception cleanupEx) {
+                    // Never let a cleanup failure abort delivery to the rest of the
+                    // batch — log it and move on; the dead row just gets retried
+                    // (and re-logged) on the next send instead of blocking today's.
+                    log.warn("Failed to remove dead FCM token (non-fatal — will retry cleanup next send): studentId={} token=...{}",
+                            academicStudentId, tail(token), cleanupEx);
+                    return SendResult.FAILED;
+                }
             } else {
-                log.warn("Failed to send push notification", e);
+                log.warn("Push send failed: studentId={} type={} errorCode={} token=...{}",
+                        academicStudentId, type, e.getMessagingErrorCode(), tail(token), e);
+                return SendResult.FAILED;
             }
         }
+    }
+
+    /** Last 8 chars of a token, for log correlation without dumping the full value repeatedly. */
+    private static String tail(String token) {
+        if (token == null) return "";
+        return token.length() <= 8 ? token : token.substring(token.length() - 8);
     }
 }

@@ -45,9 +45,6 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
                                                         @Param("academicYearId") Long academicYearId,
                                                         @Param("studentIds") List<Long> studentIds);
 
-    @Query("SELECT MAX(f.feeSubmissionDate) FROM FeeSubmission f")
-    Date findMaxSubmissionDate();
-
     @Query(value = "select ((select m.priority from month_master mm join month_mapping m on m.month_master_id=mm.id where mm.month_name=:monthName and m.academic_year_id=:academicId and m.school_id=:schoolId)-" +
             "(select m.priority from month_master mm join month_mapping m on m.month_master_id=mm.id where mm.month_name=monthname(curdate()) and m.academic_year_id=:academicId and m.school_id=:schoolId)) " +
             "as Result",
@@ -57,12 +54,6 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     @Query(value = "SELECT DATEDIFF(STR_TO_DATE(:feeSubmissionDate, '%d/%b/%Y'), CURDATE()) AS DTDIFF", nativeQuery = true)
     int getDateDifference(@Param("feeSubmissionDate") String feeSubmissionDate);
 
-
-
-    default boolean canSubmitFee(Date submissionDate) {
-        Date maxSubmissionDate = findMaxSubmissionDate();
-        return maxSubmissionDate == null || submissionDate.after(maxSubmissionDate);
-    }
 
     Optional<FeeSubmission> findByReceiptNoAndStatusAndSchool_IdAndAcademicYear_Id(String receipt_no, String status, Long school_id, Long academic_id);
 
