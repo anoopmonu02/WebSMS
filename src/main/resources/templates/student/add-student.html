@@ -411,7 +411,7 @@
           <a class="btn btn-info" th:href="@{/student/student}"><i class="bi bi-arrow-left-circle-fill"></i> Back to List</a>
         </div>
         <div class="col-md-6 mb-5">
-          <button type="submit" class="btn btn-primary"><i class="bi bi-save2-fill"></i> Save</button>
+          <button type="submit" class="btn btn-primary" id="studentSaveBtn"><i class="bi bi-save2-fill"></i> Save</button>
         </div>
       </form>
     </div>
@@ -475,8 +475,16 @@
       });
 
       //validating the phone and email data
+      // Re-entrancy guard: checked first thing in the submit handler below, before any
+      // validation runs. A fast double-click or a repeated Enter-key submit can queue a
+      // second 'submit' event before the button's disabled state (set at the bottom of this
+      // handler) takes effect - this flag closes that gap regardless of DOM-attribute timing.
+      let studentSubmitInProgress = false;
       $("#myForm").submit(function (e) {
         e.preventDefault(); // Always prevent submission until all checks pass
+        if (studentSubmitInProgress) {
+          return false; // already submitting from an earlier click/Enter this page load
+        }
 
         const mobile1 = $("#mobile1").val().trim();
         const email = $("#email").val().trim();
@@ -585,6 +593,8 @@
         }
 
         // If all validations pass, submit the form
+        studentSubmitInProgress = true;
+        $("#studentSaveBtn").prop("disabled", true);
         this.submit();
       });
 

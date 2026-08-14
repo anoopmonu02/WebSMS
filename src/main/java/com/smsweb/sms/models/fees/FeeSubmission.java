@@ -131,6 +131,18 @@ public class FeeSubmission {
 
     private String paymentType;
 
+    /**
+     * Idempotency guard for the Fee Submission form. A fresh UUID is minted server-side every
+     * time the Fee Submission page is loaded (see FeeSubmissionController#getFeeSubmissionForm /
+     * #getFeeSubmissionFormNew) and carried back as a hidden field on submit. Unique-constrained
+     * so a second POST carrying the same token - from a double-click, an Enter-key resubmit, or
+     * a browser back-and-resubmit - can never create a second row for the same submission; see
+     * FeeSubmissionService#save. Nullable so existing historical rows (saved before this field
+     * existed) are unaffected - MySQL allows any number of NULLs in a unique column.
+     */
+    @Column(unique = true, length = 64)
+    private String submissionToken;
+
     @Override
     public String toString() {
         return "FeeSubmission{" +

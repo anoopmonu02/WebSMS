@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.util.CollectionUtils;
@@ -781,7 +782,7 @@ public class FeeSubmissionService {
             return "UC";
         } else if (lowerCaseName.contains("school")) {
             return "US";
-        } else if (lowerCaseName.contains("demo")) {
+        } else if (lowerCaseName.contains("sansthan")) {
             return "DM";
         }
 
@@ -794,6 +795,27 @@ public class FeeSubmissionService {
         Map resultMap = new HashMap();
         try{
             if(paramsMap!=null && !paramsMap.isEmpty()) {
+                // Idempotency guard: the Fee Submission form embeds a fresh token minted at
+                // page-load (see FeeSubmissionController#getFeeSubmissionForm /
+                // #getFeeSubmissionFormNew). If this exact token was already saved, this POST
+                // is a resubmission of the same form instance - double-click, Enter-key
+                // resubmit, or a browser back-and-resubmit - not a new fee submission. Return
+                // the existing record instead of creating a duplicate, and do it before any of
+                // the receipt-number generation / entity-building below so a rejected duplicate
+                // never burns a receipt sequence number.
+                String submissionToken = (paramsMap.containsKey("submissionToken") && paramsMap.get("submissionToken").length > 0)
+                        ? paramsMap.get("submissionToken")[0] : null;
+                if(submissionToken != null && !submissionToken.isBlank()){
+                    Optional<FeeSubmission> alreadySubmitted = feeSubmissionRepository.findBySubmissionToken(submissionToken);
+                    if(alreadySubmitted.isPresent()){
+                        FeeSubmission existing = alreadySubmitted.get();
+                        log.info("Duplicate fee submission POST detected for submissionToken={}, returning existing feeSubmissionId={}", submissionToken, existing.getId());
+                        resultMap.put("student", existing.getAcademicStudent());
+                        resultMap.put("Feesubmission", existing);
+                        resultMap.put("feeid", existing.getId());
+                        return resultMap;
+                    }
+                }
                 SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyyyyhhmmss");
                 List<String> feeSubmissionModelColumns = Arrays.asList("feesubmissiondate", "academicStudent.id", "fullPaymentAmount", "fineAmount", "fineRemark", "discountAmount", "discountHead", "totalAmount",
                         "paidAmount", "balanceAmount", "feeRemark", "headName", "months","previousBalance","paymentType", "migrationDiscountAmount");
@@ -831,6 +853,50 @@ public class FeeSubmissionService {
                                         return resultMap;
                                     }
                                 }
+                            }
+                        }
+
+                        // Validation: reject if any selected month already has an Active
+                        // fee-submission for this student this academic year. The Fee
+                        // Submission page only disables checkboxes for months it already knew
+                        // about at load time (see FeeSubmissionController#getFeeSubmissionForm's
+                        // getPaidMonths-driven UI hint) - that snapshot can go stale (two tabs,
+                        // two staff members, a page left open) or be bypassed entirely by a
+                        // direct POST. This is the authoritative, server-side version of the
+                        // same check: same underlying query as getPaidMonths() for consistency,
+                        // but compared by MonthMaster id rather than name string so a renamed
+                        // month is still recognized correctly. Runs before receipt-number
+                        // generation / entity-building below so a rejected duplicate doesn't
+                        // burn a receipt sequence number.
+                        if (feeMonMapCheck != null && !feeMonMapCheck.isEmpty()
+                                && feeMap != null && feeMap.containsKey("academicStudent.id")) {
+                            AcademicStudent studentForMonthCheck = (AcademicStudent) feeMap.get("academicStudent.id");
+                            List<FeeSubmission> existingActiveSubmissions = feeSubmissionRepository
+                                    .findAllBySchoolIdAndAcademicIdAndAcademicStudentId(school.getId(), academicYear.getId(), studentForMonthCheck.getId());
+                            Set<Long> alreadyPaidMonthIds = new HashSet<>();
+                            if (existingActiveSubmissions != null) {
+                                for (FeeSubmission existingSubmission : existingActiveSubmissions) {
+                                    if (existingSubmission.getFeeSubmissionMonths() == null) continue;
+                                    for (FeeSubmissionMonths existingMonth : existingSubmission.getFeeSubmissionMonths()) {
+                                        if (existingMonth.getMonthMaster() != null) {
+                                            alreadyPaidMonthIds.add(existingMonth.getMonthMaster().getId());
+                                        }
+                                    }
+                                }
+                            }
+                            List<String> duplicateMonthNames = new ArrayList<>();
+                            for (Map.Entry<String, MonthMaster> monthEntry : feeMonMapCheck.entrySet()) {
+                                MonthMaster requestedMonth = monthEntry.getValue();
+                                if (requestedMonth != null && alreadyPaidMonthIds.contains(requestedMonth.getId())) {
+                                    duplicateMonthNames.add(monthEntry.getKey());
+                                }
+                            }
+                            if (!duplicateMonthNames.isEmpty()) {
+                                log.warn("Rejected fee submission for academicStudentId={} - months already paid: {}",
+                                        studentForMonthCheck.getId(), duplicateMonthNames);
+                                resultMap.put("fee_submission_not_allowed",
+                                        "Fee for " + String.join(", ", duplicateMonthNames) + " has already been submitted for this student. Please refresh the page and try again.");
+                                return resultMap;
                             }
                         }
 
@@ -873,6 +939,7 @@ public class FeeSubmissionService {
                             feeSubmission.setSchool(school);
                             feeSubmission.setStatus("Active");
                             feeSubmission.setPaymentType(feeMap.containsKey("paymentType")?feeMap.get("paymentType").toString().trim():null);
+                            feeSubmission.setSubmissionToken(submissionToken);
                         }
                         List<FeeSubmissionSub> submissionSubList = new ArrayList<>();
                         Map<Feehead, BigDecimal> feeSubMap = feeDataMap.get("FeeSubmission_sub");
@@ -909,7 +976,24 @@ public class FeeSubmissionService {
                         feeSubmission.setFeeSubmissionMonths(submissionMonthsList);
                         feeSubmission.setCreatedBy(userService.getLoggedInUser());
                         feeSubmission.setPreviousFeeBalanceRemark(""+paramsMap.get("previousBalance")[0]);
-                        feeSubmissionRepository.save(feeSubmission);
+                        try{
+                            feeSubmissionRepository.save(feeSubmission);
+                        } catch (DataIntegrityViolationException dive){
+                            // Lost a genuine concurrent-request race against an identical
+                            // submission (same submissionToken) that the pre-check above didn't
+                            // catch because both requests passed it before either had committed.
+                            // The unique constraint on FeeSubmission.submissionToken is the real
+                            // guarantee here; the pre-check above is just the fast, common-case
+                            // path that avoids burning a receipt number on the loser. Don't touch
+                            // the repository again in this now-rollback-only transaction - signal
+                            // the controller to look the winning row up fresh instead.
+                            log.warn("Duplicate-key race on fee submission for submissionToken={}", submissionToken, dive);
+                            resultMap.clear();
+                            if(submissionToken != null && !submissionToken.isBlank()){
+                                resultMap.put("duplicate_submission_token", submissionToken);
+                            }
+                            return resultMap;
+                        }
                         resultMap.put("Feesubmission", feeSubmission);
                         resultMap.put("feeid", feeSubmission.getId());
 
@@ -943,6 +1027,18 @@ public class FeeSubmissionService {
             resultMap.put("error", e.getLocalizedMessage());
         }
         return resultMap;
+    }
+
+    /**
+     * Fresh, standalone lookup by the Fee Submission form's idempotency token - deliberately
+     * separate from save() so it always runs in its own new transaction. Used by
+     * FeeSubmissionController after a duplicate-key race (see save()'s DataIntegrityViolationException
+     * handling) to fetch the row that actually won, without touching the already
+     * rollback-marked transaction from the failed insert attempt.
+     */
+    @Transactional(readOnly = true)
+    public Optional<FeeSubmission> findBySubmissionToken(String submissionToken){
+        return feeSubmissionRepository.findBySubmissionToken(submissionToken);
     }
 
     public Map<String, Map> getColumnsValue(Map<String, String[]> paramsMap, List<String> columnsList){

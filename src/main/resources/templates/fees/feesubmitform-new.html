@@ -127,6 +127,7 @@
                     <input type="hidden" name="academic_id" id="academic_id" th:field="*{academicYear.id}"/>
                     <input type="hidden" id="StudentId" value="" name="StudentId">
                     <input type="hidden" id="gradeId" value="" name="gradeId">
+                    <input type="hidden" id="submissionToken" name="submissionToken" th:value="${submissionToken}">
 
                     <!--Other Fee Detail-->
                     <div class="row">
@@ -306,6 +307,13 @@
     <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         const contextPath = /*[[@{/}]]*/ '/';
+        // Re-entrancy guard for the Submit Fee button - checked first thing in checkMonths()
+        // below. Disabling the button alone (further down) doesn't close a fast double/triple
+        // click: two click events can already be queued before the disabled attribute takes
+        // effect, and checkMonths() would otherwise run to completion (and submit) both times.
+        // This flag is set synchronously the instant the first click starts, so every later
+        // invocation this page load - however it was triggered - short-circuits immediately.
+        let feeSubmitInProgress = false;
         const successMessage = [[${success}]];
         if (successMessage) {
             showWarningMsg("success", successMessage, "Success");
@@ -953,6 +961,10 @@
 
         function checkMonths(){
             event.preventDefault();
+            if(feeSubmitInProgress){
+                // Already submitting from an earlier click/Enter-key this page load - ignore.
+                return false;
+            }
             if($('#academicStudentId').val().toString()===''){
                 showWarningMsg("error","Student is missing, please select a student!","Message");
                 return false;
@@ -999,6 +1011,7 @@
                 }
             }
 
+            feeSubmitInProgress = true;
             $('#feeSubmitBtn').attr('disabled',true);
             document.forms.feesubmission.submit();
             return true;

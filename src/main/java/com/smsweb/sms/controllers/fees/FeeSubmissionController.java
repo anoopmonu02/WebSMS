@@ -78,6 +78,10 @@ public class FeeSubmissionController extends BaseController {
         // ROLE_ADMIN/ROLE_SUPERADMIN), not tied to any specific student. See
         // FeeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser for the full rule.
         model.addAttribute("migrationDiscountEnabled", feeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser());
+        // Fresh token per page load - carried back as a hidden field and used server-side
+        // (FeeSubmissionService#save) to detect a resubmission of this exact form instance
+        // (double-click, Enter-key resubmit, browser back-and-resubmit) so it's never saved twice.
+        model.addAttribute("submissionToken", UUID.randomUUID().toString());
         return "fees/feesubmitform";
     }
 
@@ -103,6 +107,10 @@ public class FeeSubmissionController extends BaseController {
         model.addAttribute("feesubmissionobj", new FeeSubmission());
         model.addAttribute("hasMonthMapping", !monthMappingList.isEmpty());
         model.addAttribute("migrationDiscountEnabled", feeSubmissionService.isMigrationDiscountFieldEnabledForCurrentUser());
+        // Fresh token per page load - carried back as a hidden field and used server-side
+        // (FeeSubmissionService#save) to detect a resubmission of this exact form instance
+        // (double-click, Enter-key resubmit, browser back-and-resubmit) so it's never saved twice.
+        model.addAttribute("submissionToken", UUID.randomUUID().toString());
         return "fees/feesubmitform-new";
     }
 
@@ -119,6 +127,22 @@ public class FeeSubmissionController extends BaseController {
             if(responseMap!=null){
                 if(responseMap.containsKey("fee_submission_not_allowed")){
                     redirectAttributes.addFlashAttribute("error", responseMap.get("fee_submission_not_allowed"));
+                    return "redirect:/fees/fee-submit-form";
+                }
+                if(responseMap.containsKey("duplicate_submission_token")){
+                    // Lost a genuine concurrent-request race against an identical submission
+                    // (same token) - the other request's row already won and committed.
+                    // Look it up fresh (separate transaction from the rolled-back one in
+                    // FeeSubmissionService#save) and send the user to that receipt instead of
+                    // creating - or erroring on - a second one.
+                    String token = (String) responseMap.get("duplicate_submission_token");
+                    Optional<FeeSubmission> existing = feeSubmissionService.findBySubmissionToken(token);
+                    if(existing.isPresent()){
+                        FeeSubmission feeSubmission = existing.get();
+                        redirectAttributes.addFlashAttribute("success","Fees Submitted for: "+feeSubmission.getAcademicStudent().getStudent().getStudentName());
+                        return "redirect:/fees/receipt-print/"+feeSubmission.getId();
+                    }
+                    redirectAttributes.addFlashAttribute("error","This fee submission may already be recorded. Please check the receipt list before submitting again.");
                     return "redirect:/fees/fee-submit-form";
                 }
                 if(responseMap.containsKey("Feesubmission")){

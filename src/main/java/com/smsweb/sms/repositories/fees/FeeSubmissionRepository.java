@@ -30,6 +30,15 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     int countAllByAcademicYear_IdAndSchool_IdAndAcademicStudent_IdAndStatus(Long academic_id, Long school_id, Long astudent_id, String status);
 
     /**
+     * Idempotency lookup for the Fee Submission form's submissionToken (see
+     * FeeSubmissionController#getFeeSubmissionForm / #getFeeSubmissionFormNew and
+     * FeeSubmissionService#save). Used to detect a resubmission of the exact same form
+     * instance (double-click, Enter-key resubmit, browser back-and-resubmit) so it can be
+     * treated as "already saved" instead of creating a second FeeSubmission row.
+     */
+    Optional<FeeSubmission> findBySubmissionToken(String submissionToken);
+
+    /**
      * Batch existence check: which of these students have AT LEAST ONE Active fee-submission
      * row this academic year (regardless of month or current balance). Used to distinguish
      * "has submitted, latest balance is genuinely 0" from "never submitted this year — the
