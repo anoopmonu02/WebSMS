@@ -131,6 +131,56 @@ public class SmsMessageService {
         return saved;
     }
 
+    /**
+     * Pushes an already-saved notification/complaint to an EXPLICITLY-supplied recipient
+     * list, rather than saved.getRecipients() the way saveSmsMessage() above does.
+     *
+     * Why this exists: saveSmsMessage()'s push fires immediately at save time using
+     * whatever smsMessage.getRecipients() already held right then. That's correct for
+     * every existing caller (STUDENT notifications, fee reminders, birthday/absent
+     * notices, complaints) because they all populate recipients before calling save().
+     * CLASS and ALL notifications don't — their actual recipient set is only known AFTER
+     * SmsMessageController materializes it into sms_message_recipients (a native bulk
+     * INSERT...SELECT, run after save() for performance — see
+     * SmsMessageService.materializeClassRecipients/materializeSchoolRecipients), so at
+     * save() time saved.getRecipients() is empty for them and saveSmsMessage()'s push
+     * silently no-ops (sendToStudents returns immediately on an empty list). This method
+     * is called right after that materialization, with the same recipient set resolved
+     * via a plain read query (see AcademicStudentService.findAllActiveBySchool /
+     * findAllActiveBySchoolGradeSection), so CLASS/ALL notifications actually get pushed.
+     *
+     * Deliberately NOT folded into saveSmsMessage() itself — doing so would mean either
+     * pre-populating smsMessage.recipients before save (which would make Hibernate write
+     * sms_message_recipients a second time via the owning-side @ManyToMany collection,
+     * duplicating/conflicting with the native materialize insert) or restructuring the
+     * shared method's timing, either of which risks changing behaviour for its other
+     * callers. This keeps saveSmsMessage() and the materialize* methods completely
+     * untouched and only adds a new, additive call path.
+     */
+    public void pushToRecipients(SmsMessage saved, List<AcademicStudent> recipients) {
+        log.info("Inside pushToRecipients — messageId={}, recipientCount={}",
+                saved != null ? saved.getId() : null, recipients == null ? 0 : recipients.size());
+        if (saved == null || recipients == null || recipients.isEmpty()) return;
+
+        boolean isComplaint    = SmsMessage.MESSAGE_TYPE_COMPLAINT.equals(saved.getMessageType());
+        boolean isNotification = SmsMessage.MESSAGE_TYPE_NOTIFICATION.equals(saved.getMessageType());
+        if (!isComplaint && !isNotification) return;
+
+        // Same push-body construction as saveSmsMessage() above, kept in sync on purpose so
+        // a CLASS/ALL notification's push looks identical to a STUDENT notification's push.
+        String body = (saved.getConversations() != null && !saved.getConversations().isEmpty())
+                ? saved.getConversations().get(0).getContent()
+                : "";
+        if (saved.getAttachments() != null && !saved.getAttachments().isEmpty()) {
+            body += (body.isEmpty() ? "" : "\n") + "📎 " + saved.getAttachments().size()
+                    + (saved.getAttachments().size() == 1 ? " attachment" : " attachments");
+        }
+        String pushType = isComplaint
+                ? PushNotificationService.TYPE_COMPLAINT
+                : PushNotificationService.TYPE_NOTIFICATION;
+        pushNotificationService.sendToStudents(recipients, saved.getSmsHeading(), body, pushType);
+    }
+
     /** See SmsMessageRepository.existsTodaysMessageForStudentAndHeading — dedup guard for the daily birthday job. */
     public boolean existsTodaysMessageForStudentAndHeading(Long academicStudentId, String heading) {
         return smsMessageRepository.existsTodaysMessageForStudentAndHeading(academicStudentId, heading);

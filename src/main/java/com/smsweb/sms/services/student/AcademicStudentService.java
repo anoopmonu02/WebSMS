@@ -248,4 +248,27 @@ public class AcademicStudentService {
         log.info("Inside findEnrolledSections");
         return academicStudentRepository.findEnrolledSections(schoolId, academicYearId);
     }
+
+    /**
+     * Every currently-Active student of this school — used by SmsMessageController's
+     * notification-send endpoints to resolve the actual push-recipient list for an
+     * ALL-recipient notification, AFTER SmsMessageService.materializeSchoolRecipients has
+     * already written the same set into sms_message_recipients. Same filter as that
+     * native query (school + Active, no academic-year scoping) so the push list always
+     * matches who the notification was actually materialized for.
+     */
+    public List<AcademicStudent> findAllActiveBySchool(Long schoolId) {
+        log.info("Inside findAllActiveBySchool");
+        return academicStudentRepository.findAllBySchool_IdAndStatus(schoolId, "Active");
+    }
+
+    /**
+     * Every currently-Active student of this school in the given grade+section — used the
+     * same way as findAllActiveBySchool above, but for a CLASS-recipient notification,
+     * matching SmsMessageService.materializeClassRecipients's native query exactly.
+     */
+    public List<AcademicStudent> findAllActiveBySchoolGradeSection(Long schoolId, Long gradeId, Long sectionId) {
+        log.info("Inside findAllActiveBySchoolGradeSection");
+        return academicStudentRepository.findAllBySchool_IdAndGrade_IdAndSection_IdAndStatus(schoolId, gradeId, sectionId, "Active");
+    }
 }
