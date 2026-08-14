@@ -49,6 +49,15 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     List<AcademicStudent> findAllBySchool_IdAndAcademicYear_IdAndStatus(Long school, Long academic_year, String status);
     List<AcademicStudent> findAllBySchool_IdAndStatus(Long school, String status);
 
+    /**
+     * Same filter as SmsMessageRepository.insertClassRecipients's native query (school +
+     * grade + section + Active, deliberately NOT academic-year-scoped, to stay consistent
+     * with what actually gets materialized into sms_message_recipients for a CLASS
+     * notification) - see SmsMessageService.pushToRecipients / SmsMessageController's two
+     * notification-send endpoints.
+     */
+    List<AcademicStudent> findAllBySchool_IdAndGrade_IdAndSection_IdAndStatus(Long school, Long grade, Long section, String status);
+
     List<AcademicStudent> findAllByStudent_IdAndStatus(Long student, String status);
 
     /**

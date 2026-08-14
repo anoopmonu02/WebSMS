@@ -392,8 +392,16 @@ public class SmsMessageController extends BaseController {
             // whole platform, and "Class" can't leak across branches that share a grade/section name.
             if (SmsMessage.RECIPIENT_TYPE_CLASS.equals(smsMessage.getRecipientType())) {
                 smsMessageService.materializeClassRecipients(smsMessage.getId(), school.getId(), classGradeId, classSectionId);
+                // Push fix: saveSmsMessage()'s own push step above ran before this class's
+                // recipients existed anywhere, so it silently no-op'd. Resolve the same set
+                // materializeClassRecipients just wrote and push to it explicitly now.
+                smsMessageService.pushToRecipients(smsMessage,
+                        academicStudentService.findAllActiveBySchoolGradeSection(school.getId(), classGradeId, classSectionId));
             } else if (SmsMessage.RECIPIENT_TYPE_ALL.equals(smsMessage.getRecipientType())) {
                 smsMessageService.materializeSchoolRecipients(smsMessage.getId(), school.getId());
+                // Same push fix as above, for the whole-school ("All") case.
+                smsMessageService.pushToRecipients(smsMessage,
+                        academicStudentService.findAllActiveBySchool(school.getId()));
             }
 
             return ResponseEntity.ok("Notification sent successfully.");
@@ -528,8 +536,16 @@ public class SmsMessageController extends BaseController {
 
             if (SmsMessage.RECIPIENT_TYPE_CLASS.equals(smsMessage.getRecipientType())) {
                 smsMessageService.materializeClassRecipients(smsMessage.getId(), school.getId(), classGradeId, classSectionId);
+                // Push fix: saveSmsMessage()'s own push step above ran before this class's
+                // recipients existed anywhere, so it silently no-op'd. Resolve the same set
+                // materializeClassRecipients just wrote and push to it explicitly now.
+                smsMessageService.pushToRecipients(smsMessage,
+                        academicStudentService.findAllActiveBySchoolGradeSection(school.getId(), classGradeId, classSectionId));
             } else if (SmsMessage.RECIPIENT_TYPE_ALL.equals(smsMessage.getRecipientType())) {
                 smsMessageService.materializeSchoolRecipients(smsMessage.getId(), school.getId());
+                // Same push fix as above, for the whole-school ("All") case.
+                smsMessageService.pushToRecipients(smsMessage,
+                        academicStudentService.findAllActiveBySchool(school.getId()));
             }
 
             return ResponseEntity.ok(Map.of(

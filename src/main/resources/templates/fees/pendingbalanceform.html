@@ -392,8 +392,18 @@
             }
         });
 
+        // Re-entrancy guard: checked first thing in validateAndSubmit() below. The
+        // saveBalanceBtn.disabled attribute is already flipped on/off elsewhere in this file
+        // for unrelated reasons (amount validation, student load) - relying on it alone to
+        // detect "a submit is already in flight" would fight with that other logic, so this is
+        // a separate flag dedicated to that one purpose.
+        let balanceSubmitInProgress = false;
+
         // ── Validation before POST ────────────────────────────────────────────
         const validateAndSubmit = () => {
+            if (balanceSubmitInProgress) {
+                return; // already submitting from an earlier click this page load
+            }
             const asId        = document.getElementById('academicStudentId').value;
             const total       = parseFloat(document.getElementById('totalAmount').value) || 0;
             const submitted   = parseFloat(document.getElementById('submitAmount').value) || 0;
@@ -424,6 +434,8 @@
                 return;
             }
             document.getElementById('paymentTypeErr').textContent = '';
+            balanceSubmitInProgress = true;
+            document.getElementById('saveBalanceBtn').disabled = true;
             document.querySelector('form[name="collectbalance"]').submit();
         };
 
