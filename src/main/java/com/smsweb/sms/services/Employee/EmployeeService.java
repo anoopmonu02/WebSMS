@@ -238,6 +238,83 @@ public class EmployeeService {
         return false;
     }
 
+    /**
+     * Friendly display label for a role name — matches the badge labels already
+     * used in user-role.html's Roles column, so the Manage Roles modal shows the
+     * exact same text as the badge the user is revoking.
+     */
+    private String roleDisplayLabel(String roleName) {
+        if (roleName == null) return "";
+        switch (roleName) {
+            case "ROLE_SUPERADMIN":
+            case "ROLE_ADMIN":      return "Super Admin";
+            case "ROLE_STAFF":      return "Admin";
+            case "ROLE_TEACHER":    return "Teacher";
+            case "ROLE_ACCOUNTENT": return "Accountant";
+            case "ROLE_STUDENT":    return "Student";
+            default:                return roleName.replace("ROLE_", "");
+        }
+    }
+
+    /**
+     * Roles currently assigned to an employee, with role IDs — used to populate
+     * the Manage Roles / Revoke modal (the older getExistingRoleNames only
+     * returns display strings, no ID, so it can't be used to build a revoke call).
+     * Each entry: {"roleId": Long, "roleName": String (display label)}.
+     */
+    public List<Map<String, Object>> getExistingRolesDetailed(Long employeeId) {
+        log.info("Inside getExistingRolesDetailed");
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
+        if (employee == null) return new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Roles role : employee.getUserEntity().getRoles()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("roleId", role.getId());
+            row.put("roleName", roleDisplayLabel(role.getName()));
+            result.add(row);
+        }
+        return result;
+    }
+
+    /**
+     * The target UserEntity id for a given employee — used by the controller's
+     * self-lockout guard (checked BEFORE calling removeRoleFromUser) so it can
+     * compare against the logged-in user without this service needing to know
+     * anything about "who is calling".
+     */
+    public Long getUserIdForEmployee(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
+        return employee != null ? employee.getUserEntity().getId() : null;
+    }
+
+    /**
+     * Removes a role from an employee's user account.
+     * Returns false if the employee/role don't exist or the role isn't currently
+     * assigned. Callers must apply any authorization/self-lockout checks (see
+     * GlobalController's revoke endpoint) BEFORE calling this — this method just
+     * performs the removal.
+     */
+    public boolean removeRoleFromUser(Long employeeId, Long roleId) {
+        log.info("Inside removeRoleFromUser - employeeId={}, roleId={}", employeeId, roleId);
+        try {
+            Employee employee = employeeRepository.findById(employeeId).orElse(null);
+            Roles role = roleRepository.findById(roleId).orElse(null);
+            if (employee == null || role == null) {
+                return false;
+            }
+            UserEntity user = employee.getUserEntity();
+            if (!user.getRoles().contains(role)) {
+                return false;
+            }
+            user.getRoles().remove(role);
+            userService.saveUser(user);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public School getLoggedInEmployeeSchool(){
         log.info("Inside getLoggedInEmployeeSchool");
         Employee employee = employeeRepository.findByUserEntity(userService.getLoggedInUser());

@@ -20,6 +20,7 @@
                         <th>Name</th>
                         <th>Mobile</th>
                         <th>Roles</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody class="table-group-divider">
@@ -46,6 +47,14 @@
                                              #strings.replace(role.name,'ROLE_',''))))))}">
                             </span>
                         </td>
+                        <td>
+                            <button th:if="${emp.value != null and emp.key.userEntity.username != #authentication.name}"
+                                    sms:access="ADMIN_USERROLE:DELETE"
+                                    type="button" class="btn btn-sm btn-danger" title="Manage roles"
+                                    th:attr="onclick=|openManageRolesModal(${emp.key.id}, '${#strings.escapeJavaScript(emp.key.employeeName)}')|">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -57,10 +66,61 @@
             </div>
         </div>
     </div>
+
+    <!-- Manage Roles Modal -->
+    <div class="modal fade" id="manageRolesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock me-1"></i>Manage Roles — <span id="manageRolesUserName"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:15%">SNo</th>
+                                <th>Role Name</th>
+                                <th style="width:20%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manageRolesTbody">
+                        </tbody>
+                    </table>
+                    <p id="manageRolesEmptyMsg" class="text-center text-muted mt-3" style="display:none;">No roles assigned.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Revoke Modal -->
+    <div class="modal fade" id="confirmRevokeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Confirm Revoke</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmRevokeMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmRevokeBtn" onclick="doRevoke()"><i class="bi bi-shield-x"></i> Revoke</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script th:src="@{/js/toastr.min.js}"></script>
     <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
         const successMessage = [[${success}]];
         if (successMessage) {
             showMsg("success", successMessage, "Success");
@@ -74,6 +134,17 @@
         const errorMessage = [[${error}]];
         if (errorMessage) {
             showMsg("error", errorMessage, "Error");
+        }
+
+        // A revoke on the previous page load leaves a message here for us to
+        // show post-reload (see doRevoke() below) — shown once, then cleared.
+        const revokeMsg = sessionStorage.getItem('userRoleRevokeMsg');
+        if (revokeMsg) {
+            sessionStorage.removeItem('userRoleRevokeMsg');
+            try {
+                const parsed = JSON.parse(revokeMsg);
+                showMsg(parsed.type, parsed.msg, parsed.header);
+            } catch (e) { /* ignore malformed value */ }
         }
 
         function showMsg(msgType, msg, headerValue){
@@ -95,6 +166,99 @@
               "hideMethod": "fadeOut"
             }
             toastr[msgType](msg,headerValue);
+        }
+
+        function escHtml(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        // ── Manage Roles / Revoke ───────────────────────────────────────────
+        let currentEmployeeId = null;
+        let currentEmployeeName = '';
+        let pendingRevokeRoleId = null;
+        let pendingRevokeRoleName = '';
+
+        function openManageRolesModal(employeeId, employeeName) {
+            currentEmployeeId = employeeId;
+            currentEmployeeName = employeeName;
+            $('#manageRolesUserName').text(employeeName);
+            loadManageRolesList();
+            new bootstrap.Modal(document.getElementById('manageRolesModal')).show();
+        }
+
+        function loadManageRolesList() {
+            const $tbody = $('#manageRolesTbody').empty();
+            $('#manageRolesEmptyMsg').hide();
+            $.ajax({
+                url: `${contextPath}admin/api/user-role/existing-roles-detailed/${currentEmployeeId}`,
+                type: 'GET',
+                success: function(roles) {
+                    if (!roles || roles.length === 0) {
+                        $('#manageRolesEmptyMsg').show();
+                        return;
+                    }
+                    roles.forEach(function(r, idx) {
+                        $tbody.append(
+                            `<tr>
+                                <td>${idx + 1}</td>
+                                <td>${escHtml(r.roleName)}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger" title="Remove"
+                                            onclick="confirmRevoke(${r.roleId}, '${escHtml(r.roleName).replace(/'/g, "\\'")}')">
+                                        <i class="bi bi-dash-circle-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>`
+                        );
+                    });
+                },
+                error: function(xhr, status, error) {
+                    showMsg("error", "Error loading roles: " + error, "Error");
+                }
+            });
+        }
+
+        function confirmRevoke(roleId, roleName) {
+            pendingRevokeRoleId = roleId;
+            pendingRevokeRoleName = roleName;
+            $('#confirmRevokeMessage').text(
+                `Remove the "${roleName}" role from ${currentEmployeeName}? This cannot be undone.`
+            );
+            new bootstrap.Modal(document.getElementById('confirmRevokeModal')).show();
+        }
+
+        function doRevoke() {
+            if (!currentEmployeeId || !pendingRevokeRoleId) return;
+            $('#confirmRevokeBtn').prop('disabled', true);
+            $.ajax({
+                url: `${contextPath}admin/api/user-role/revoke`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ employeeId: currentEmployeeId, roleId: pendingRevokeRoleId }),
+                success: function(response) {
+                    bootstrap.Modal.getInstance(document.getElementById('confirmRevokeModal'))?.hide();
+                    if (response === "Role revoked successfully") {
+                        // Reload so the underlying table's Roles badges reflect the
+                        // change (they're server-rendered, not duplicated in JS —
+                        // avoids the badge color/label mapping drifting out of sync).
+                        sessionStorage.setItem('userRoleRevokeMsg', JSON.stringify({
+                            type: 'success', msg: response, header: 'Success'
+                        }));
+                        window.location.reload();
+                    } else {
+                        showMsg("info", response, "Message");
+                        loadManageRolesList();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    bootstrap.Modal.getInstance(document.getElementById('confirmRevokeModal'))?.hide();
+                    showMsg("error", "Error revoking role: " + error, "Error");
+                },
+                complete: function() {
+                    $('#confirmRevokeBtn').prop('disabled', false);
+                }
+            });
         }
     </script>
 </section>

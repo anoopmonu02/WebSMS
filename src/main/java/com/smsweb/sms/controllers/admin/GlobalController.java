@@ -1338,6 +1338,64 @@ public class GlobalController extends BaseController {
         return ResponseEntity.status(400).body("Unexpected error occurred");
     }
 
+    // Roles currently assigned to an employee, WITH role IDs — feeds the Manage
+    // Roles / Revoke modal. getExistingRoles (above) only returns display
+    // strings, no ID, so it can't be used to build a revoke call.
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.VIEW)
+    @GetMapping("/api/user-role/existing-roles-detailed/{employeeId}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
+    public ResponseEntity<?> getExistingRolesDetailed(@PathVariable("employeeId") Long employeeId) {
+        log.info("Inside getExistingRolesDetailed");
+        try {
+            return ResponseEntity.ok(employeeService.getExistingRolesDetailed(employeeId));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error fetching roles: " + e.getMessage());
+        }
+    }
+
+    // Revoke a role from a user. Restricted to ROLE_SUPERADMIN/ROLE_ADMIN — same
+    // access level the whole Role-User Mapping page already requires. A user can
+    // never revoke their OWN Super Admin (ROLE_SUPERADMIN/ROLE_ADMIN) role here —
+    // that guard is enforced below regardless of who's logged in, to prevent an
+    // accidental self-lockout with nobody left to undo it.
+    @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.DELETE)
+    @PostMapping("/api/user-role/revoke")
+    @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
+    public ResponseEntity<?> revokeRoleUserMapping(@RequestBody Map<String, Long> payload){
+        log.info("Inside revokeRoleUserMapping");
+        try {
+            log.debug("revokeRoleUserMapping payload={}", payload);
+            if(payload == null){
+                return ResponseEntity.status(400).body("Unexpected error occurred");
+            }
+            Long employeeId = payload.get("employeeId");
+            Long roleId = payload.get("roleId");
+            if(employeeId == null || roleId == null){
+                return ResponseEntity.status(400).body("employeeId and roleId are required");
+            }
+
+            Roles role = roleRepository.findById(roleId).orElse(null);
+            boolean isSuperAdminRole = role != null &&
+                    ("ROLE_SUPERADMIN".equals(role.getName()) || "ROLE_ADMIN".equals(role.getName()));
+            if(isSuperAdminRole){
+                Long targetUserId = employeeService.getUserIdForEmployee(employeeId);
+                Long loggedInUserId = userService.getLoggedInUser() != null ? userService.getLoggedInUser().getId() : null;
+                if(targetUserId != null && targetUserId.equals(loggedInUserId)){
+                    return ResponseEntity.ok("You cannot revoke your own Super Admin role.");
+                }
+            }
+
+            boolean removed = employeeService.removeRoleFromUser(employeeId, roleId);
+            if(!removed){
+                return ResponseEntity.ok("Either unable to revoke the role or it is not currently assigned");
+            } else{
+                return ResponseEntity.ok("Role revoked successfully");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error revoking role: " + e.getMessage());
+        }
+    }
+
     private boolean isSuperAdminLoggedIn(){
         try{
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
