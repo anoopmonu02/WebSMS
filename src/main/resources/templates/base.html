@@ -828,7 +828,7 @@
                             </a>
                         </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')" class="sidebar-item">
-                            <a class="sidebar-link" th:href="@{/admin/mobile-users}">
+                            <a class="sidebar-link" sms:access="ADMIN_MOBILE_USERS:VIEW" th:href="@{/admin/mobile-users}">
                                 <i class="bi bi-phone text-info"></i>
                                 <span>Mobile Users</span>
                             </a>

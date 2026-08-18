@@ -451,6 +451,10 @@ public class RoleInitializer {
                     "ADMIN_STUDENT_REGIONAL",
                     "Download/upload regional-language (e.g. Hindi) name & address details for students");
 
+            seed(screenRepo, "Admin", "Mobile Users",
+                    "ADMIN_MOBILE_USERS",
+                    "View mobile app family accounts; reset a family's password or force-logout their sessions");
+
             // ════════════════════════════════════════════════════════════════
             // MODULE: MESSAGE / COMMUNICATION
             // ════════════════════════════════════════════════════════════════

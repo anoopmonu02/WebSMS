@@ -1,7 +1,9 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.dto.MobileUserRowDto;
 import com.smsweb.sms.dto.MobileUserStatsDto;
+import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
 import org.slf4j.Logger;
@@ -22,15 +24,22 @@ import java.util.Map;
  * Global, not scoped to a school/session — one mobile number's FamilyAccount
  * can span branches, same as Family Migration and Mobile Sessions Cleanup.
  *
- * Same gating as the closely-related Mobile Sessions Cleanup screen
- * (ROLE_ADMIN/ROLE_SUPERADMIN, plain @PreAuthorize — this feature area doesn't
- * use the finer-grained @CheckAccess/AppScreen system, matching that precedent).
+ * Gating: base role check stays ROLE_ADMIN/ROLE_SUPERADMIN/ROLE_STAFF via
+ * @PreAuthorize (unchanged). On top of that, each endpoint now also goes
+ * through the finer-grained @CheckAccess/AppScreen system (screen key
+ * ADMIN_MOBILE_USERS) — ROLE_ADMIN/ROLE_SUPERADMIN bypass it as always
+ * (see PermissionService.isSuperOrAdmin), but a ROLE_STAFF user only gets
+ * in once someone explicitly grants ADMIN_MOBILE_USERS on the User
+ * Permissions screen, same as every other gated admin screen. This used to
+ * be a deliberate exception (matching Mobile Sessions Cleanup, which still
+ * is one) — changed because Mobile Users was visible to every STAFF login
+ * regardless of granted permissions.
  *
- * GET  /admin/mobile-users                     — page
- * GET  /admin/mobile-users/list?search=...     — stats + searchable row list (JSON)
- * GET  /admin/mobile-users/generate-password   — one random temp password (JSON)
- * POST /admin/mobile-users/{id}/reset-password — admin sets a new password for a family
- * POST /admin/mobile-users/{id}/force-logout   — revokes every active session for a family
+ * GET  /admin/mobile-users                     — page                         [VIEW]
+ * GET  /admin/mobile-users/list?search=...     — stats + searchable row list  [VIEW]
+ * GET  /admin/mobile-users/generate-password   — one random temp password (JSON, ungated — no data access)
+ * POST /admin/mobile-users/{id}/reset-password — admin sets a new password    [EDIT]
+ * POST /admin/mobile-users/{id}/force-logout   — revokes every active session [EDIT]
  */
 @Controller
 @RequestMapping("/admin/mobile-users")
@@ -45,6 +54,7 @@ public class MobileUserController {
         this.familyAccountService = familyAccountService;
     }
 
+    @CheckAccess(screen = "ADMIN_MOBILE_USERS", type = AccessType.VIEW)
     @GetMapping
     public String view(Model model) {
         log.info("Inside mobile users page");
@@ -54,6 +64,7 @@ public class MobileUserController {
         return "admin/mobileUsers";
     }
 
+    @CheckAccess(screen = "ADMIN_MOBILE_USERS", type = AccessType.VIEW)
     @GetMapping("/list")
     @ResponseBody
     public ResponseEntity<?> list(@RequestParam(required = false, defaultValue = "") String search) {
@@ -81,6 +92,7 @@ public class MobileUserController {
         return ResponseEntity.ok(Map.of("password", familyAccountService.generateTempPassword()));
     }
 
+    @CheckAccess(screen = "ADMIN_MOBILE_USERS", type = AccessType.EDIT)
     @PostMapping("/{id}/reset-password")
     @ResponseBody
     public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> payload) {
@@ -103,6 +115,7 @@ public class MobileUserController {
         }
     }
 
+    @CheckAccess(screen = "ADMIN_MOBILE_USERS", type = AccessType.EDIT)
     @PostMapping("/{id}/force-logout")
     @ResponseBody
     public ResponseEntity<?> forceLogout(@PathVariable Long id) {
