@@ -269,6 +269,18 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
                                  @Param("academicYearId") Long academicYearId,
                                  @Param("status") String status);
 
+    /**
+     * Fee-medium migration: same grade+section headcount breakdown as getGradesAndSectionList
+     * above, but also split by medium -- returns [gradeName, sectionName, gradeId, sectionId,
+     * mediumId, mediumName, totalStudents]. Used by calculateTotalGradewiseFees so a section
+     * with more than one medium's students gets each medium's own headcount, instead of one
+     * blended count that would otherwise be multiplied by a single (now ambiguous) fee amount.
+     */
+    @Query(value = "SELECT a.grade.gradeName, a.section.sectionName, a.grade.id as gradeId, a.section.id as sectionId, a.medium.id as mediumId, a.medium.mediumName as mediumName, count(a.student.id) as TotalStudents FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = UPPER(:status) AND UPPER(a.student.status) = UPPER(:status) group by a.grade, a.section, a.medium")
+    List<Object[]> getGradesAndSectionListByMedium(@Param("schoolId") Long schoolId,
+                                 @Param("academicYearId") Long academicYearId,
+                                 @Param("status") String status);
+
     /** Returns distinct Grade entities that have enrolled active students — used for sidebar in summary reports */
     @Query("SELECT DISTINCT a.grade FROM AcademicStudent a WHERE a.academicYear.id = :academicYearId AND a.school.id = :schoolId AND UPPER(a.status) = 'ACTIVE' ORDER BY a.grade.gradeName")
     List<com.smsweb.sms.models.universal.Grade> findEnrolledGrades(@Param("schoolId") Long schoolId,

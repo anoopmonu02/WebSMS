@@ -24,6 +24,16 @@
         </select>
       </div>
       <div class="col-auto">
+        <label for="feemedium" class="form-label">Select Medium</label>
+      </div>
+      <div class="col-auto">
+
+        <select id="feemedium" class="form-select" name="feemedium">
+          <option value="">Select Medium</option>
+          <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}">Medium</option>
+        </select>
+      </div>
+      <div class="col-auto">
          <label for="aa" class="visually-hidden">Button</label>
         &nbsp;<button id="aa" class="btn btn-primary" onclick="loadFeeData()"><i class="bi bi-search"></i> Get Fee</button>
       </div>
@@ -46,6 +56,9 @@
         </div>
         <div class="col-md-4">
           &nbsp;<input type="hidden" name="grade" id="grade" th:field="*{feeClassMaps[0].grade}" />
+        </div>
+        <div class="col-md-4">
+          &nbsp;<input type="hidden" name="medium" id="medium" th:field="*{feeClassMaps[0].medium}" />
         </div>
 
         <div id="result">
@@ -143,9 +156,14 @@
     const loadFeeData=()=>{
       $('#result').html('');
       let classId = $('#feeclass').val();
+      let mediumId = $('#feemedium').val();
+      if (!classId || !mediumId) {
+        toastr["warning"]("Please select both Grade and Medium.", "Warning");
+        return;
+      }
       console.log("------------------------------------");
       $.ajax({
-        url: `${contextPath}admin/fee-class/getAllFeeData/`+classId, // URL of the Spring Boot endpoint
+        url: `${contextPath}admin/fee-class/getAllFeeData/`+classId+`/`+mediumId, // URL of the Spring Boot endpoint
         type: 'POST',
         success: function(response) {
           let tableContent = '';
@@ -170,6 +188,7 @@
               tableContent += '</tbody></table>';
               $('#result').html(tableContent);
               $('#grade').val(classId);
+              $('#medium').val(mediumId);
               document.getElementById("savebtn").disabled = false;
             }
             else{

@@ -15,6 +15,7 @@ import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Feehead;
 import com.smsweb.sms.models.universal.Grade;
+import com.smsweb.sms.models.universal.Medium;
 import com.smsweb.sms.models.universal.MonthMaster;
 import com.smsweb.sms.repositories.users.RoleRepository;
 import com.smsweb.sms.services.Employee.EmployeeService;
@@ -56,6 +57,7 @@ public class GlobalController extends BaseController {
     private final FineService fineService;
     private final FineheadService fineheadService;
     private final FeeclassmapService feeclassmapService;
+    private final MediumService mediumService;
     private final FeemonthmapService feemonthmapService;
     private final FeeheadService feeheadService;
     private final DiscountService discountService;
@@ -75,7 +77,7 @@ public class GlobalController extends BaseController {
 
     @Autowired
     public GlobalController(AcademicyearService academicyearService, SchoolService schoolService, MonthmappingService monthmappingService, MonthMasterService monthMasterService,
-                            FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService,
+                            FeedateService feedateService, FineService fineService, FineheadService fineheadService, FeeclassmapService feeclassmapService, MediumService mediumService,
                             FeeheadService feeheadService, GradeService gradeService, FeemonthmapService feemonthmapService, DiscountclassmapService discountclassmapService,
                             DiscountService discountService, DiscountmonthmapService discountmonthmapService, FullpaymentService fullpaymentService, UserService userService, EmployeeService employeeService, RoleRepository roleRepository, AcademicYearHolder academicYearHolder, SchoolHolder schoolHolder, HolidayService holidayService, ExaminationService examinationService){
         this.academicyearService = academicyearService;
@@ -86,6 +88,7 @@ public class GlobalController extends BaseController {
         this.fineService = fineService;
         this.fineheadService = fineheadService;
         this.feeclassmapService = feeclassmapService;
+        this.mediumService = mediumService;
         this.feeheadService = feeheadService;
         this.gradeService = gradeService;
         this.feemonthmapService = feemonthmapService;
@@ -512,15 +515,16 @@ public class GlobalController extends BaseController {
         log.info("Inside getAddFeeClassMappingForm");
         //model.addAttribute("feeheads", feeheadService.getAllFeeheads());
         model.addAttribute("grades", gradeService.getAllGrades());
+        model.addAttribute("mediums", mediumService.getAllMediums());
         FeeClassMapWrapper feeClassMapWrapper = new FeeClassMapWrapper();
         model.addAttribute("feeClassMapWrapper", feeClassMapWrapper);
         return "admin/add-feeclassmap";
     }
 
     @CheckAccess(screen = "ADMIN_FEE_CLASS", type = AccessType.VIEW)
-    @PostMapping("/fee-class/getAllFeeData/{classId}")
+    @PostMapping("/fee-class/getAllFeeData/{classId}/{mediumId}")
     @ResponseBody
-    public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId, HttpSession session, Model model){
+    public Map<String, Map<String, String>> getAllFeeData(@PathVariable("classId")Long classId, @PathVariable("mediumId")Long mediumId, HttpSession session, Model model){
         log.info("Inside getAllFeeData");
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
@@ -533,7 +537,8 @@ public class GlobalController extends BaseController {
                 model.addAttribute("errorMessage", "Academic Year not found in session");
                 responseMap.put("error", new HashMap<>()); // Redirect to an error page or display an error message
             }
-            List<FeeClassMap> feeClassMapList = feeclassmapService.getAllFeeClassMappingByGrade(classId, school.getId(), academicYear.getId());
+            // Fee-medium migration: mapping is now keyed by grade + medium, not grade alone.
+            List<FeeClassMap> feeClassMapList = feeclassmapService.getAllFeeClassMappingByGrade(classId, mediumId, school.getId(), academicYear.getId());
             List<Feehead> feeheadList = feeheadService.getAllFeeheads();
             if(feeClassMapList!=null && !feeClassMapList.isEmpty()){
                 feeClassMapList.forEach(fcm -> {
@@ -578,10 +583,14 @@ public class GlobalController extends BaseController {
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = feeClassMaps.get(0).getGrade();
+            // Fee-medium migration: medium is bound from the form the same way grade already is
+            // (one value for the whole wrapper, reapplied to every row for consistency).
+            Medium medium = feeClassMaps.get(0).getMedium();
             for (FeeClassMap fee : feeClassMaps) {
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setGrade(grade);
+                fee.setMedium(medium);
                 fee.setCreatedBy(userService.getLoggedInUser());
                 feeClassMapList.add(feeclassmapService.save(fee));
             }
@@ -607,6 +616,7 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid fee-class Id:" + id));
         model.addAttribute("feeclassmap",feeClassMap);
         model.addAttribute("gradename",feeClassMap.getGrade().getGradeName());
+        model.addAttribute("mediums", mediumService.getAllMediums());
         return "admin/edit-feeclassmap";
     }
 

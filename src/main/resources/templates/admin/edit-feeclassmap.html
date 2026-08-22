@@ -28,12 +28,22 @@
           <div class="col-md-3">
             &nbsp;<input type="hidden" name="grade" id="grade" th:field="*{grade}" />
              <input type="hidden" name="feehead" id="feehead" th:field="*{feehead}" />
+             <input type="hidden" name="medium" id="medium" th:field="*{medium}" />
           </div>
           <div class="col-md-4">
             <label for="grade1" class="form-label">Grade</label>
             <input type="text"  class="form-control" id="grade1" name="grade1" th:field="*{grade.gradeName}" readonly="readonly"/>
 
             <p class="text-danger" th:if="${#fields.hasErrors('grade')}" th:errors="*{grade}">Grade Error</p>
+          </div>
+          <div class="col-md-7">
+            &nbsp;
+          </div>
+          <div class="col-md-4">
+            <label for="medium1" class="form-label">Medium</label>
+            <input type="text"  class="form-control" id="medium1" name="medium1" th:field="*{medium.mediumName}" readonly="readonly"/>
+
+            <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">Medium Error</p>
           </div>
           <div class="col-md-7">
             &nbsp;

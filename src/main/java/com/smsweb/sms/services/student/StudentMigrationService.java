@@ -410,13 +410,14 @@ public class StudentMigrationService {
                 AcademicStudent academicStudent = academicStudentRepository.findById(academicStudentId).orElse(null);
                 if (academicStudent == null || academicStudent.getStudent() == null
                         || academicStudent.getSchool() == null || academicStudent.getAcademicYear() == null
-                        || academicStudent.getGrade() == null) {
+                        || academicStudent.getGrade() == null || academicStudent.getMedium() == null) {
                     result.put(academicStudentId, BigDecimal.ZERO);
                     continue;
                 }
                 Long schoolId = academicStudent.getSchool().getId();
                 Long academicYearId = academicStudent.getAcademicYear().getId();
                 Long gradeId = academicStudent.getGrade().getId();
+                Long mediumId = academicStudent.getMedium().getId();
 
                 List<MonthMapping> allMonthMappings = monthmappingRepository
                         .findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYearId, schoolId);
@@ -455,7 +456,7 @@ public class StudentMigrationService {
                             ? "Admission Fee" : "Annual Fee";
                     List<Object[]> amtHeadList = feeclassmapRepository.findAmountAndFeeHeadNames(
                             academicYearId, schoolId,
-                            unpaidMonths.stream().map(MonthMaster::getId).collect(Collectors.toList()), gradeId);
+                            unpaidMonths.stream().map(MonthMaster::getId).collect(Collectors.toList()), gradeId, mediumId);
                     if (amtHeadList != null) {
                         for (Object[] row : amtHeadList) {
                             if (row != null && row.length >= 2 && row[0] instanceof BigDecimal

@@ -245,10 +245,20 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     BigDecimal getTodayTotalFeeSubmission(@Param("school") Long school,
                                           @Param("academic") Long academic);
 
-    @Query("SELECT SUM(f.amount), f.grade.id, f.grade.gradeName FROM FeeClassMap f where f.school.id = :school AND f.academicYear.id = :academic AND f.grade.id in(:gradeIds) GROUP BY f.grade.id, f.grade.gradeName")
+    // Note: unused anywhere in the codebase as of the fee-medium migration (Aug 2026) — updated
+    // for consistency with getGradewiseTutionFeesCurrentMonth rather than left stale, since it's
+    // zero-risk to change (no caller to break).
+    @Query("SELECT SUM(f.amount), f.grade.id, f.grade.gradeName FROM FeeClassMap f where f.school.id = :school AND f.academicYear.id = :academic AND f.grade.id in(:gradeIds) AND f.medium.id = :mediumId GROUP BY f.grade.id, f.grade.gradeName")
     List<Object[]> getGradewiseTutionFees(@Param("school") Long school,
-                                      @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds);
+                                      @Param("academic") Long academic, @Param("gradeIds") List<Long> gradeIds,
+                                      @Param("mediumId") Long mediumId);
 
+    /**
+     * Medium-aware tuition lookup used by FeeSubmissionService#calculateTotalGradewiseFees.
+     * (Fee-medium migration: the previous grade-only 3-arg overload was removed once that
+     * caller switched over — without the fcm.medium_id filter it would SUM across every medium
+     * in a grade once a grade has more than one, silently inflating the gradewise-income report.)
+     */
     @Query(value = """
             SELECT SUM(fcm.amount) AS monthlyFee, fcm.grade_id, g.grade_name
             FROM fee_class_map fcm
@@ -262,6 +272,7 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             WHERE fcm.school_id = :school
                 AND fcm.academic_year_id = :academic
                 AND fcm.grade_id IN (:gradeIds)
+                AND fcm.medium_id = :mediumId
                 AND LOWER(mm.month_name) = LOWER(MONTHNAME(CURDATE()))
                 AND fmm.is_applicable = true
                 AND LOWER(fh.fee_head_name) = 'monthly fee'
@@ -269,7 +280,8 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
             """, nativeQuery = true)
     List<Object[]> getGradewiseTutionFeesCurrentMonth(@Param("school") Long school,
                                                       @Param("academic") Long academic,
-                                                      @Param("gradeIds") List<Long> gradeIds);
+                                                      @Param("gradeIds") List<Long> gradeIds,
+                                                      @Param("mediumId") Long mediumId);
 
     /*@Query("""
     SELECT COUNT(s.academicStudent.id) AS studentCount,

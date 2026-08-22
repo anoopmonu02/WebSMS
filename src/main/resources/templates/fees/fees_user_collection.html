@@ -461,11 +461,12 @@
                         console.log("feeSubmission.paymentType---"+feeSubmission.paymentType+"  receipt: "+feeSubmission.receiptNo);
                         totalAmountSubmitted+=feeSubmission.paidAmount;
                         totalAmount+=feeSubmission.totalAmount;
-                        if(feeSubmission.paymentType==='Online'){
-                            onlineAmount+=feeSubmission.paidAmount;
-                        } else {
-                            cashAmount+=feeSubmission.paidAmount;
-                        }
+                        // Cash/Online split now comes from the server (FeeSubmissionService#toLeanMap),
+                        // which uses the FeeSubmissionPaymentBreakup table for "Both" rows and falls
+                        // back to the old paymentType-based split for legacy rows. Fallback to 0 here
+                        // only guards against an unexpected missing field, not normal operation.
+                        cashAmount += feeSubmission.cashAmount || 0;
+                        onlineAmount += feeSubmission.onlineAmount || 0;
                         counter++;
                     });
                     const totalCols = selectedOption === 'range' ? 13 : 12;
