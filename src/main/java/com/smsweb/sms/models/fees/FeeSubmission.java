@@ -108,6 +108,15 @@ public class FeeSubmission {
     @JsonManagedReference
     private List<FeeSubmissionSub> feeSubmissionSub = new ArrayList<>();
 
+    /**
+     * Per-mode (Cash/Online) amount breakup for this submission - see
+     * FeeSubmissionPaymentBreakup's own javadoc for the full cardinality rules.
+     * Same cascade/ownership pattern as feeSubmissionSub above.
+     */
+    @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<FeeSubmissionPaymentBreakup> paymentBreakup = new ArrayList<>();
+
     @OneToMany(mappedBy = "feeSubmission", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<FeeSubmissionMonths> feeSubmissionMonths = new ArrayList<>();

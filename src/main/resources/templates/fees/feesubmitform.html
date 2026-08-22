@@ -172,8 +172,18 @@
                                                 <option value="">Select</option>
                                                 <option value="Cash">Cash</option>
                                                 <option value="Online">Online</option>
+                                                <option value="Both">Both (Cash + Online)</option>
                                             </select>
-
+                                            <div id="paymentBreakupSummary" class="small mt-1" style="display:none;">
+                                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> <span id="paymentBreakupSummaryText"></span></span>
+                                                <a href="javascript:void(0)" id="editBreakupLink" class="ms-2">Edit split</a>
+                                            </div>
+                                            <!-- Populated from the Cash+Online breakup modal below - the actual
+                                                 values FeeSubmissionService#save reads for a "Both" submission. -->
+                                            <input type="hidden" id="cashAmount" name="cashAmount" value="">
+                                            <input type="hidden" id="cashRemark" name="cashRemark" value="">
+                                            <input type="hidden" id="onlineAmount" name="onlineAmount" value="">
+                                            <input type="hidden" id="onlineRemark" name="onlineRemark" value="">
                                         </div>
                                     </div>
                                     <div class="mb-3 row">
@@ -239,6 +249,59 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-square"></i> Close</button>
                     <button type="button" class="btn btn-primary" id="updateContactBtn"><i class="bi bi-pencil-square"></i> Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cash + Online Payment Breakup Modal ("Both" payment type) -->
+    <div class="modal fade" id="paymentBreakupModal" tabindex="-1" aria-labelledby="paymentBreakupModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentBreakupModalLabel"><i class="bi bi-cash-coin me-2"></i>Split Payment — Cash + Online</h5>
+                    <button type="button" class="btn-close" id="paymentBreakupCloseX" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Enter how much was collected in each mode. The two amounts must add up to the Paid Amount.</p>
+
+                    <div class="card mb-3" style="border-left: 4px solid #198754;">
+                        <div class="card-body py-3">
+                            <label class="form-label fw-semibold text-success mb-2"><i class="bi bi-cash-stack me-1"></i>Cash</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="number" min="0.01" step="0.01" class="form-control" id="breakupCashAmount" placeholder="Amount *" autocomplete="off">
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control" id="breakupCashRemark" placeholder="Remark (optional)" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3" style="border-left: 4px solid #0d6efd;">
+                        <div class="card-body py-3">
+                            <label class="form-label fw-semibold text-primary mb-2"><i class="bi bi-credit-card me-1"></i>Online</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="number" min="0.01" step="0.01" class="form-control" id="breakupOnlineAmount" placeholder="Amount *" autocomplete="off">
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control" id="breakupOnlineRemark" placeholder="Remark (optional)" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background:#f8f9fa;">
+                        <span class="small text-muted">Cash + Online: <strong id="breakupTotalValue">₹0.00</strong></span>
+                        <span class="small text-muted">Paid Amount: <strong id="breakupTargetValue">₹0.00</strong></span>
+                    </div>
+                    <div id="breakupValidationMsg" class="small text-danger mt-2" style="display:none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="paymentBreakupCancelBtn"><i class="bi bi-x-square"></i> Close</button>
+                    <button type="button" class="btn btn-primary" id="paymentBreakupSaveBtn" disabled><i class="bi bi-check2-circle"></i> Save Split</button>
                 </div>
             </div>
         </div>
@@ -318,6 +381,133 @@
 
             $('#balanceAmount').val((ta-$(this).val()));
 
+        });
+
+        /* ── Cash + Online payment breakup ("Both" payment type) ────────────
+           Static-backdrop modal (data-bs-backdrop="static" data-bs-keyboard=
+           "false" on the modal itself) - can only be dismissed via its own
+           Close/X or a validated Save, never by clicking outside or Esc.
+           breakupConfirmed tracks whether the CURRENT "Both" selection has a
+           valid, saved split; checkMonths() below refuses to submit if it's
+           false. */
+        let breakupConfirmed = false;
+
+        function currentPaidAmountForBreakup() {
+            return parseFloat($('#paidAmount').val()) || 0;
+        }
+
+        function moneyFmt(n) {
+            return '₹' + (isNaN(n) ? '0.00' : n.toFixed(2));
+        }
+
+        function updateBreakupTotals() {
+            const cashVal = $('#breakupCashAmount').val();
+            const onlineVal = $('#breakupOnlineAmount').val();
+            const cash = parseFloat(cashVal) || 0;
+            const online = parseFloat(onlineVal) || 0;
+            const target = currentPaidAmountForBreakup();
+            const total = cash + online;
+            $('#breakupTotalValue').text(moneyFmt(total));
+            $('#breakupTargetValue').text(moneyFmt(target));
+
+            let valid = true;
+            let msg = '';
+            if (cashVal === '' || onlineVal === '') {
+                valid = false;
+            } else if (cash <= 0 || online <= 0) {
+                valid = false;
+                msg = 'Both Cash and Online amounts must be greater than zero.';
+            } else if (Math.round(total * 100) !== Math.round(target * 100)) {
+                valid = false;
+                msg = 'Cash + Online must equal the Paid Amount (' + moneyFmt(target) + ').';
+            }
+            $('#breakupValidationMsg').text(msg).toggle(!!msg);
+            $('#paymentBreakupSaveBtn').prop('disabled', !valid);
+            return valid;
+        }
+
+        function openPaymentBreakupModal() {
+            if (currentPaidAmountForBreakup() <= 0) {
+                showWarningMsg('error', 'Please enter the Paid Amount before choosing "Both".', 'Message');
+                $('#paymentType').val('');
+                return;
+            }
+            updateBreakupTotals();
+            new bootstrap.Modal(document.getElementById('paymentBreakupModal')).show();
+        }
+
+        function resetBreakupFieldsFromHidden() {
+            $('#breakupCashAmount').val($('#cashAmount').val());
+            $('#breakupCashRemark').val($('#cashRemark').val());
+            $('#breakupOnlineAmount').val($('#onlineAmount').val());
+            $('#breakupOnlineRemark').val($('#onlineRemark').val());
+        }
+
+        $('#paymentType').on('change', function() {
+            if ($(this).val() === 'Both') {
+                $('#breakupCashAmount, #breakupCashRemark, #breakupOnlineAmount, #breakupOnlineRemark').val('');
+                openPaymentBreakupModal();
+            } else {
+                // Switched away from "Both" - clear any previously captured split
+                // so a stale breakup never rides along with a Cash-only/Online-
+                // only submission.
+                breakupConfirmed = false;
+                $('#cashAmount, #cashRemark, #onlineAmount, #onlineRemark').val('');
+                $('#paymentBreakupSummary').hide();
+            }
+        });
+
+        $('#breakupCashAmount, #breakupOnlineAmount').on('input', updateBreakupTotals);
+
+        $('#paymentBreakupSaveBtn').on('click', function() {
+            if (!updateBreakupTotals()) return;
+            $('#cashAmount').val($('#breakupCashAmount').val());
+            $('#cashRemark').val($('#breakupCashRemark').val());
+            $('#onlineAmount').val($('#breakupOnlineAmount').val());
+            $('#onlineRemark').val($('#breakupOnlineRemark').val());
+            breakupConfirmed = true;
+            $('#paymentBreakupSummaryText').text(
+                'Split: Cash ' + moneyFmt(parseFloat($('#breakupCashAmount').val())) +
+                ' + Online ' + moneyFmt(parseFloat($('#breakupOnlineAmount').val()))
+            );
+            $('#paymentBreakupSummary').show();
+            bootstrap.Modal.getInstance(document.getElementById('paymentBreakupModal'))?.hide();
+        });
+
+        function closePaymentBreakupModalWithoutSaving() {
+            if (!breakupConfirmed) {
+                // Never confirmed a valid split for this "Both" selection - revert
+                // the dropdown so the form can't be submitted with "Both" picked
+                // but no breakup recorded.
+                $('#paymentType').val('');
+            }
+            bootstrap.Modal.getInstance(document.getElementById('paymentBreakupModal'))?.hide();
+        }
+        $('#paymentBreakupCancelBtn, #paymentBreakupCloseX').on('click', closePaymentBreakupModalWithoutSaving);
+
+        $('#editBreakupLink').on('click', function() {
+            resetBreakupFieldsFromHidden();
+            openPaymentBreakupModal();
+        });
+
+        // If Paid Amount changes after a split was confirmed (e.g. another fee
+        // head added afterward), the split may no longer add up - flag it and
+        // force the user back into the modal before they can submit.
+        $('#paidAmount').on('input', function() {
+            if ($('#paymentType').val() === 'Both' && breakupConfirmed) {
+                const cash = parseFloat($('#cashAmount').val()) || 0;
+                const online = parseFloat($('#onlineAmount').val()) || 0;
+                const target = currentPaidAmountForBreakup();
+                if (Math.round((cash + online) * 100) !== Math.round(target * 100)) {
+                    breakupConfirmed = false;
+                    $('#paymentBreakupSummaryText').html('<span class="text-danger">Split no longer matches Paid Amount — <a href="javascript:void(0)" id="reopenBreakupForMismatch">review split</a></span>');
+                }
+            }
+        });
+
+        $(document).on('click', '#reopenBreakupForMismatch', function() {
+            resetBreakupFieldsFromHidden();
+            openPaymentBreakupModal();
         });
 
         /* ── Student search with infinite scroll ─────────────────── */
@@ -782,6 +972,14 @@
                 // persist while they're still adjusting months for the same student.
                 $('#migrationDiscountAmount').val('');
                 baseTotalBeforeMigrationDiscount = 0;
+
+                // Same reasoning for Payment Type + any confirmed Cash/Online split - a new
+                // student is a fresh submission, so a "Both" breakup entered for the previous
+                // student must never silently carry over.
+                $('#paymentType').val('');
+                $('#cashAmount, #cashRemark, #onlineAmount, #onlineRemark').val('');
+                $('#paymentBreakupSummary').hide();
+                if (typeof breakupConfirmed !== 'undefined') breakupConfirmed = false;
             }
         }
 
@@ -885,6 +1083,10 @@
             }
             if($("#paymentType").val().toString()===''){
                 showWarningMsg("error","Payment type is missing!","Message");
+                return false;
+            }
+            if($("#paymentType").val().toString() === 'Both' && !breakupConfirmed){
+                showWarningMsg("error","Please complete the Cash/Online split for payment type \"Both\" before submitting.","Message");
                 return false;
             }
             if($('#feeTable > tbody > tr').length === 0){

@@ -29,9 +29,14 @@ public class FeeclassmapService {
         return feeclassmapRepository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
     }
 
-    public List<FeeClassMap> getAllFeeClassMappingByGrade(Long grade_id, Long school_id, Long academic_id){
-        log.info("Inside getAllFeeClassMappingByGrade");
-        return feeclassmapRepository.findAllByGrade_IdAndSchool_IdAndAcademicYear_Id(grade_id,school_id, academic_id);
+    /**
+     * Medium-aware lookup for the Fee Class Mapping admin screen. (Fee-medium migration: the
+     * previous grade-only 3-arg overload was removed once GlobalController's fee-class
+     * endpoints switched over to passing mediumId, Step 8.)
+     */
+    public List<FeeClassMap> getAllFeeClassMappingByGrade(Long grade_id, Long medium_id, Long school_id, Long academic_id){
+        log.info("Inside getAllFeeClassMappingByGrade (medium-aware)");
+        return feeclassmapRepository.findAllByGrade_IdAndMedium_IdAndSchool_IdAndAcademicYear_Id(grade_id, medium_id, school_id, academic_id);
     }
 
     @Transactional
