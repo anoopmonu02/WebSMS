@@ -307,36 +307,52 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
     List<Object[]> getStudentDiscountSummary(@Param("academicYearId") Long academicYearId,
                                              @Param("schoolId") Long schoolId, @Param("grade") String grade, @Param("section") String section);*/
 
+    /*
+     * Discount-medium migration: added "(a.medium_id = dc.medium_id OR dc.medium_id IS NULL)",
+     * same defensive OR-NULL style already used for grade_id below. Without it, once a grade
+     * has more than one medium (each with its own discount_class_map row for the same
+     * discounthead), a student would JOIN to EVERY medium variant of that discounthead
+     * instead of just their own - fanning out COUNT(s.academic_student_id) across duplicate
+     * rows and blending mismatched amounts, not just picking the wrong single amount. This
+     * mirrors the exact bug already fixed for tuition fees in
+     * AcademicStudentRepository#getGradesAndSectionListByMedium /
+     * FeeSubmissionService#calculateTotalGradewiseFees. The Java caller
+     * (calculateTotalGradewiseFees) already sums studentCount/total across every row this
+     * query returns, so no Java-side change is needed - a grade+section with two mediums at
+     * different discount amounts now correctly returns two GROUP BY rows instead of one
+     * blended/duplicated one.
+     */
     @Query(value = """
-    SELECT 
+    SELECT
         COUNT(s.academic_student_id) AS student_count,
         IFNULL(dc.amount, 0) AS amount,
         (COUNT(s.academic_student_id) * IFNULL(dc.amount, 0)) AS total,
         g.grade_name AS gradeName,
         sec.section_name AS sectionName
     FROM academic_students a
-    JOIN student_discount s 
+    JOIN student_discount s
         ON a.id = s.academic_student_id
-    JOIN discount_class_map dc 
+    JOIN discount_class_map dc
         ON dc.discounthead_id = s.discount_head_id
         AND s.academic_year_id = dc.academic_year_id
         AND s.school_id = dc.school_id
-    JOIN discount_month_map dm 
+    JOIN discount_month_map dm
         ON s.school_id = dm.school_id
         AND s.academic_year_id = dm.academic_year_id
         AND s.discount_head_id = dm.discounthead_id
-    JOIN grade g 
+    JOIN grade g
         ON a.grade_id = g.id
-    JOIN section sec 
+    JOIN section sec
         ON a.section_id = sec.id
     WHERE (LOWER(s.status) = 'active')
-      AND s.academic_year_id = :academicYearId  
-      AND s.school_id = :schoolId                
+      AND s.academic_year_id = :academicYearId
+      AND s.school_id = :schoolId
       AND dm.month_master_id = MONTH(curdate())
       AND g.grade_name = :gradeName
       AND sec.section_name = :sectionName
       AND dm.is_applicable = true
       AND (a.grade_id = dc.grade_id OR dc.grade_id IS NULL)
+      AND (a.medium_id = dc.medium_id OR dc.medium_id IS NULL)
     GROUP BY a.grade_id, a.section_id, dc.amount
 """, nativeQuery = true)
     List<Object[]> getStudentDiscountSummary(

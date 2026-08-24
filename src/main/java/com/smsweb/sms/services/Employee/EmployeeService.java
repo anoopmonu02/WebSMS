@@ -288,6 +288,24 @@ public class EmployeeService {
     }
 
     /**
+     * School-ownership check for the User-Role Mapping API endpoints (existing-roles,
+     * existing-roles-detailed, save, revoke). A ROLE_ADMIN is scoped to one school (see
+     * GlobalController#getUserRoleList's own school-filtered employee list) but the four
+     * AJAX endpoints previously trusted whatever employeeId the client sent with no
+     * server-side check that it actually belonged to that admin's school - letting a
+     * ROLE_ADMIN view/assign/revoke roles for an employee at a DIFFERENT school just by
+     * changing the id in the request. Callers should skip this check entirely for
+     * ROLE_SUPERADMIN, which is intentionally cross-school (mirrors isSuperAdminLoggedIn()
+     * bypassing the same filter in getUserRoleList).
+     */
+    public boolean employeeBelongsToSchool(Long employeeId, Long schoolId) {
+        if (employeeId == null || schoolId == null) return false;
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
+        return employee != null && employee.getSchool() != null
+                && schoolId.equals(employee.getSchool().getId());
+    }
+
+    /**
      * Removes a role from an employee's user account.
      * Returns false if the employee/role don't exist or the role isn't currently
      * assigned. Callers must apply any authorization/self-lockout checks (see

@@ -256,6 +256,28 @@
             .replace(/'/g, '&#39;');
     }
 
+    // Cash/Online cell content for a single fee-submission row. Both cashAmount and
+    // onlineAmount always come pre-computed from the server (FeeSubmissionService#toLeanMap,
+    // uses fee_submission_payment_breakup for "Both" rows, falls back to the plain
+    // paymentType-based split for Cash/Online/legacy rows) — this only decides which
+    // column(s) to actually show a value in vs leave blank, based on paymentType.
+    function paymentSplitCells(feeSubmission) {
+        let paymentType = (feeSubmission.paymentType || '').trim().toLowerCase();
+        let cashCell = '';
+        let onlineCell = '';
+        if (paymentType === 'both') {
+            cashCell = `&#8377; ${feeSubmission.cashAmount}`;
+            onlineCell = `&#8377; ${feeSubmission.onlineAmount}`;
+        } else if (paymentType === 'online') {
+            onlineCell = `&#8377; ${feeSubmission.onlineAmount}`;
+        } else {
+            // 'cash' or legacy/unknown paymentType - server already defaults non-Online rows
+            // to cashAmount = full paidAmount, so this covers Cash and any legacy row correctly.
+            cashCell = `&#8377; ${feeSubmission.cashAmount}`;
+        }
+        return { cashCell, onlineCell };
+    }
+
     const validateAndSubmit=()=>{
       const selectedOption = $('input[name="dateOption"]:checked').val();
       let url = "";
@@ -390,10 +412,12 @@
                             <th>Months</th>
                             ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
                             <th>Receipt No</th>
-                            <th>Total Amount</th>
-                            <th>Balance Amount</th>
-                            <th>Paid Amount</th>
+                            <th>Total Amt</th>
+                            <th>Balance Amt</th>
+                            <th>Paid Amt</th>
                             <th>Payment</th>
+                            <th>Cash</th>
+                            <th>Online</th>
                             <!--<th>Fine Amount</th>
                             <th>Discount Amount</th>-->
                             <th>User</th>
@@ -440,6 +464,7 @@
                         }
                         console.log(feeSubmission.createdBy);
                         console.log(feeSubmission.createdByName );
+                        let { cashCell, onlineCell } = paymentSplitCells(feeSubmission);
                         tblData += `<tr>
                                 <td>${counter}</td>
                                 <td>${escHtml(feeSubmission.academicStudent.grade.gradeName)} - ${escHtml(feeSubmission.academicStudent.section.sectionName)}</td>
@@ -453,6 +478,8 @@
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                                 <td>${escHtml(feeSubmission.paymentType) || '-'}</td>
+                                <td class="text-end">${cashCell}</td>
+                                <td class="text-end">${onlineCell}</td>
                                <!--<td class="text-end">&#8377; ${feeSubmission.fineAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.discountAmount}</td>-->
                                 <td>${escHtml(feeSubmission.createdByName)}</td>
@@ -469,7 +496,7 @@
                         onlineAmount += feeSubmission.onlineAmount || 0;
                         counter++;
                     });
-                    const totalCols = selectedOption === 'range' ? 13 : 12;
+                    const totalCols = selectedOption === 'range' ? 15 : 14;
                     const col1 = Math.floor(totalCols / 4);
                     const col2 = Math.floor(totalCols / 4);
                     const col3 = Math.floor(totalCols / 4);
@@ -530,10 +557,12 @@
                             <th>Months</th>
                             ${selectedOption === 'range' ? '<th>Submission Date</th>' : ''}
                             <th>Receipt No</th>
-                            <th>Total Amount</th>
-                            <th>Balance Amount</th>
-                            <th>Paid Amount</th>
+                            <th>Total Amt</th>
+                            <th>Balance Amt</th>
+                            <th>Paid Amt</th>
                             <th>Payment</th>
+                            <th>Cash</th>
+                            <th>Online</th>
                             <th>User</th>
                         </tr>
                     </thead>
@@ -563,6 +592,7 @@
                             });
                             month_names = monthArr.join(', ');
                         }
+                        let { cashCell, onlineCell } = paymentSplitCells(feeSubmission);
                         cTblData += `<tr class="table-danger">
                                 <td>${cCounter}</td>
                                 <td>${escHtml(feeSubmission.academicStudent.grade.gradeName)} - ${escHtml(feeSubmission.academicStudent.section.sectionName)}</td>
@@ -576,6 +606,8 @@
                                 <td class="text-end">&#8377; ${feeSubmission.balanceAmount}</td>
                                 <td class="text-end">&#8377; ${feeSubmission.paidAmount}</td>
                                 <td>${escHtml(feeSubmission.paymentType) || '-'}</td>
+                                <td class="text-end">${cashCell}</td>
+                                <td class="text-end">${onlineCell}</td>
                                 <td>${escHtml(feeSubmission.createdByName)}</td>
                             </tr>`;
                         cCounter++;

@@ -304,8 +304,14 @@ public class FeeSubmissionService {
                                 schoolId, academicYearId, academicStudentId, "Active");
                 if (activeDiscount.isPresent() && activeDiscount.get().getDiscounthead() != null) {
                     Long discountId = activeDiscount.get().getDiscounthead().getId();
-                    List<Object[]> discountRows = discountclassmapRepository.findDiscountDetailsPerMonth(
-                            academicYearId, schoolId, monthIds, gradeId, discountId);
+                    // Discount-medium migration: reuses the same mediumId already resolved above
+                    // for the fee lookup, same fallback rule (null only in the defensive case
+                    // where forStudent itself couldn't be resolved).
+                    List<Object[]> discountRows = mediumId != null
+                            ? discountclassmapRepository.findDiscountDetailsPerMonth(
+                                    academicYearId, schoolId, monthIds, gradeId, discountId, mediumId)
+                            : discountclassmapRepository.findDiscountDetailsPerMonth(
+                                    academicYearId, schoolId, monthIds, gradeId, discountId);
                     if (discountRows != null) {
                         for (Object[] row : discountRows) {
                             BigDecimal amt = row[0] != null ? new BigDecimal(row[0].toString()) : BigDecimal.ZERO;
@@ -657,7 +663,7 @@ public class FeeSubmissionService {
             List<Object[]> discountData = discountclassmapRepository
                     .findAmountAndDiscountHeadNames(
                             academicId, schoolId, refMonthIdList,
-                            gradeId, existingDiscount.getDiscounthead().getId());
+                            gradeId, existingDiscount.getDiscounthead().getId(), mediumId);
 
             BigDecimal discount1Month = BigDecimal.ZERO;
             if(discountData != null && !discountData.isEmpty()){
@@ -730,7 +736,15 @@ public class FeeSubmissionService {
                 discountId = studentDiscount.getDiscounthead().getId();
             }
 
-            List<Object[]> discountData = discountclassmapRepository.findAmountAndDiscountHeadNames(academic_id, school_id, monIdList, grade_id, discountId);
+            // Discount-medium migration: resolve this student's own medium (falls back to the
+            // grade-only overload below only if it can't be resolved - shouldn't happen for a
+            // valid academic_stu_id, same defensive fallback used in getMonthlyFeeTable).
+            AcademicStudent discountStudent = academicStudentRepository.findById(academic_stu_id).orElse(null);
+            Long discountMediumId = (discountStudent != null && discountStudent.getMedium() != null)
+                    ? discountStudent.getMedium().getId() : null;
+            List<Object[]> discountData = discountMediumId != null
+                    ? discountclassmapRepository.findAmountAndDiscountHeadNames(academic_id, school_id, monIdList, grade_id, discountId, discountMediumId)
+                    : discountclassmapRepository.findAmountAndDiscountHeadNames(academic_id, school_id, monIdList, grade_id, discountId);
             if(discountData!=null && !discountData.isEmpty()){
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 for (Object[] result : discountData) {
@@ -1405,7 +1419,7 @@ public class FeeSubmissionService {
                                     //BigDecimal discountAmt = BigDecimal.ZERO;
                                     StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(school.getId(), academicYear.getId(), academicStudent.getId(),"Active").orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), restMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId(), mediumId);
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
@@ -1508,7 +1522,7 @@ public class FeeSubmissionService {
                                     BigDecimal discountAmt = BigDecimal.ZERO;
                                     StudentDiscount studentDiscount = studentDiscountRepository.findBySchool_IdAndAcademicYear_IdAndAcademicStudent_IdAndStatus(school.getId(), academicYear.getId(), academicStudent.getId(),"Active").orElse(null);
                                     if(studentDiscount!=null){
-                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId());
+                                        List<Object[]> disAmtHeadList = discountclassmapRepository.findAmountAndDiscountHeadNames(academicYear.getId(), school.getId(), allMonthsList.stream().map(MonthMaster::getId).collect(Collectors.toList()),gradeId, studentDiscount.getDiscounthead().getId(), mediumId);
                                         if(disAmtHeadList!=null && !disAmtHeadList.isEmpty()){
                                             for(Object[] rowData : disAmtHeadList){
                                                 if(studentDiscount.getDiscounthead().getDiscountName().equalsIgnoreCase(rowData[1].toString())){
@@ -2058,7 +2072,7 @@ public class FeeSubmissionService {
                                         BigDecimal discountAppliedForMonth = BigDecimal.ZERO;
                                         //Calculating Discount based on month
                                         if (discountAmt.compareTo(BigDecimal.ZERO) > 0 && feeSubmission.getDiscounthead()!=null) {
-                                            List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId());
+                                            List<Object[]> discountBasedOnMonths = discountclassmapRepository.findAmountAndDiscountHeadNames(academicId, school.getId(), monthIdList, Long.parseLong(grade), feeSubmission.getDiscounthead().getId(), Long.parseLong(medium));
                                             feeDetailMap.put("discountApplied", BigDecimal.valueOf(0.0));
                                             if(discountBasedOnMonths!=null && !discountBasedOnMonths.isEmpty()){
                                                 discountAppliedForMonth = (discountBasedOnMonths.get(0)[0]!=null)?new BigDecimal(""+discountBasedOnMonths.get(0)[0]): BigDecimal.valueOf(0.0);
@@ -2702,9 +2716,15 @@ public class FeeSubmissionService {
                     StudentDiscount stuDiscount = discountByStudentId.get(stu.getId());
                     if (stuDiscount != null) {
                         try {
-                            List<Object[]> disRows = discountclassmapRepository.findAmountAndDiscountHeadNames(
-                                    academicYear.getId(), school.getId(), unpaidMonthIds,
-                                    gradeId, stuDiscount.getDiscounthead().getId());
+                            // Discount-medium migration: reuses stuMediumId already resolved above
+                            // for the fee lookup, with the same null-safe fallback.
+                            List<Object[]> disRows = stuMediumId != null
+                                    ? discountclassmapRepository.findAmountAndDiscountHeadNames(
+                                            academicYear.getId(), school.getId(), unpaidMonthIds,
+                                            gradeId, stuDiscount.getDiscounthead().getId(), stuMediumId)
+                                    : discountclassmapRepository.findAmountAndDiscountHeadNames(
+                                            academicYear.getId(), school.getId(), unpaidMonthIds,
+                                            gradeId, stuDiscount.getDiscounthead().getId());
                             if (disRows != null) {
                                 for (Object[] dr : disRows) {
                                     if (dr[0] != null) discountAmt = discountAmt.add((BigDecimal) dr[0]);
