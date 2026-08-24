@@ -19,6 +19,7 @@
           <tr>
             <th>#</th>
             <th>Grade</th>
+            <th>Medium</th>
             <th>Feehead</th>
             <th>Amount</th>
             <th>Description</th>
@@ -30,6 +31,7 @@
           <tr th:each="dcmap,iterStat : ${discountclasses}">
             <td th:text="${iterStat.index + 1}"></td><!--th:rowspan="${#lists.size(fcmap.feeClassMapSubs)}"-->
             <td th:text="${dcmap.grade.gradeName}"></td>
+            <td th:text="${dcmap.medium.mediumName}"></td>
             <td th:text="${dcmap.discounthead.discountName}"></td>
             <td th:text="${dcmap.amount}"></td>
             <td th:text="${dcmap.description}"></td>
@@ -111,7 +113,7 @@
                 titleAttr: 'Excel',
                 title: 'Discount-Grade Mapping Data export',
                 exportOptions: {
-                  columns: [0, 1, 2, 3, 4]
+                  columns: [0, 1, 2, 3, 4, 5]
                 }
               },
               {
@@ -126,7 +128,7 @@
                 titleAttr: 'PDF',
                 title: 'Discount-Grade Mapping Data export',
                 exportOptions: {
-                  columns: [0, 1, 2, 3, 4]
+                  columns: [0, 1, 2, 3, 4, 5]
                 }
               },
               'colvis'
@@ -139,7 +141,7 @@
         ],
         pageLength: 25,
         columnDefs: [
-          { "orderable": false, "targets": [0,5] } // Disable sorting on the first and fourth columns
+          { "orderable": false, "targets": [0,6] } // Disable sorting on the first and Actions columns
         ]
       });
       $(".buttons-excel, .buttons-csv, .buttons-pdf").each(function() {

@@ -153,7 +153,7 @@ public class SiblingDiscountController extends BaseController {
         }
 
         // Validate if the Sibling Discount is mapped to the student's grade
-        Optional<DiscountClassMap> optionalDiscountClassMap = discountclassmapService.getDiscountClassMapByDiscountName("Sibling Discount", discountYearId, loggedInSchoolId, student.getGrade().getId());
+        Optional<DiscountClassMap> optionalDiscountClassMap = discountclassmapService.getDiscountClassMapByDiscountName("Sibling Discount", discountYearId, loggedInSchoolId, student.getGrade().getId(), student.getMedium().getId());
         if (optionalDiscountClassMap.isEmpty()) {
             responseMap.put("error", "Sibling Discount is not mapped to Grade: " + student.getGrade().getGradeName() + ". Please configure the mapping first.");
             return responseMap;

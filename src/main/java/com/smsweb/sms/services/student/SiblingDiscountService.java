@@ -71,7 +71,7 @@ public class SiblingDiscountService {
                 if(stuId!=null && groupId!=null){
                     Optional<AcademicStudent> student = academicStudentRepository.findById(stuId);
                     if(student.isPresent()){
-                        Optional<DiscountClassMap> discountClassMap = discountclassmapRepository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id("Sibling Discount", academicYear.getId(), school.getId(), student.get().getGrade().getId());
+                        Optional<DiscountClassMap> discountClassMap = discountclassmapRepository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_IdAndMedium_Id("Sibling Discount", academicYear.getId(), school.getId(), student.get().getGrade().getId(), student.get().getMedium().getId());
                         if(discountClassMap.isPresent()){
                             StudentDiscount studentDiscount = new StudentDiscount();
                             studentDiscount.setAcademicStudent(student.get());

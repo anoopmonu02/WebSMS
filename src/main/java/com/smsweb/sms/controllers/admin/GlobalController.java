@@ -851,15 +851,16 @@ public class GlobalController extends BaseController {
     public String getAddDiscountClassMappingForm(Model model){
         log.info("Inside getAddDiscountClassMappingForm");
         model.addAttribute("grades", gradeService.getAllGrades());
+        model.addAttribute("mediums", mediumService.getAllMediums());
         DiscountClassMapWrapper discountClassMapWrapper = new DiscountClassMapWrapper();
         model.addAttribute("discountClassMapWrapper", discountClassMapWrapper);
         return "admin/add-discountclassmap";
     }
 
     @CheckAccess(screen = "ADMIN_DISCOUNT_CLASS", type = AccessType.VIEW)
-    @PostMapping("/discount-class/getAllDiscountData/{classId}")
+    @PostMapping("/discount-class/getAllDiscountData/{classId}/{mediumId}")
     @ResponseBody
-    public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId, Model model){
+    public Map<String, Map<String, String>> getAllDiscountData(@PathVariable("classId")Long classId, @PathVariable("mediumId")Long mediumId, Model model){
         log.info("Inside getAllDiscountData");
         Map<String, Map<String, String>> responseMap = new HashMap<>();
         //map - fee - amount
@@ -868,7 +869,8 @@ public class GlobalController extends BaseController {
             Set<String> processedDiscountHeads = new HashSet<>();
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
-            List<DiscountClassMap> discountClassMapList = discountclassmapService.getAllDiscountClassMappingByGrade(school.getId(), academicYear.getId(), classId);
+            // Discount-medium migration: mapping is now keyed by grade + medium, not grade alone.
+            List<DiscountClassMap> discountClassMapList = discountclassmapService.getAllDiscountClassMappingByGrade(school.getId(), academicYear.getId(), classId, mediumId);
             List<Discounthead> discountheadList = discountService.getAllDiscountheads();
             if(discountClassMapList!=null && !discountClassMapList.isEmpty()){
                 discountClassMapList.forEach(fcm -> {
@@ -912,10 +914,14 @@ public class GlobalController extends BaseController {
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear)model.getAttribute("academicYear");
             Grade grade = discountClassMaps.get(0).getGrade();
+            // Discount-medium migration: medium is bound from the form the same way grade
+            // already is (one value for the whole wrapper, reapplied to every row).
+            Medium medium = discountClassMaps.get(0).getMedium();
             for (DiscountClassMap fee : discountClassMaps) {
                 fee.setAcademicYear(academicYear);
                 fee.setSchool(school);
                 fee.setGrade(grade);
+                fee.setMedium(medium);
                 fee.setCreatedBy(userService.getLoggedInUser());
                 discountClassMapList.add(discountclassmapService.save(fee));
             }
@@ -941,6 +947,7 @@ public class GlobalController extends BaseController {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid discount-class Id:" + id));
         model.addAttribute("discountclassmap",discountClassMap);
         model.addAttribute("gradename",discountClassMap.getGrade().getGradeName());
+        model.addAttribute("mediums", mediumService.getAllMediums());
         return "admin/edit-discountclassmap";
     }
 
@@ -1316,9 +1323,18 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.VIEW)
     @GetMapping("/api/user-role/existing-roles/{employeeId}")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
-    public ResponseEntity<?> getExistingRoles(@PathVariable("employeeId") Long employeeId) {
+    public ResponseEntity<?> getExistingRoles(@PathVariable("employeeId") Long employeeId, Model model) {
         log.info("Inside getExistingRoles");
         try {
+            // School-ownership check (see EmployeeService#employeeBelongsToSchool javadoc) -
+            // a ROLE_ADMIN may only view roles for an employee at their own school.
+            // ROLE_SUPERADMIN is intentionally cross-school, same bypass as getUserRoleList.
+            if (!isSuperAdminLoggedIn()) {
+                School school = (School) model.getAttribute("school");
+                if (school == null || !employeeService.employeeBelongsToSchool(employeeId, school.getId())) {
+                    return ResponseEntity.status(403).body("You do not have access to this employee.");
+                }
+            }
             List<String> roleNames = employeeService.getExistingRoleNames(employeeId);
             return ResponseEntity.ok(roleNames);
         } catch (Exception e) {
@@ -1328,13 +1344,21 @@ public class GlobalController extends BaseController {
 
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.CREATE)
     @PostMapping("/api/user-role/save")
-    public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload){
+    public ResponseEntity<?> saveRoleUserMapping(@RequestBody Map<String, Long> payload, Model model){
         log.info("Inside saveRoleUserMapping");
         try {
             log.debug("saveRoleUserMapping payload={}", payload);
             if(payload!=null){
                 Long employeeId = payload.get("employeeId");
                 Long roleId = payload.get("roleId");
+                // School-ownership check - a ROLE_ADMIN may only assign roles to an employee
+                // at their own school. ROLE_SUPERADMIN is intentionally cross-school.
+                if (!isSuperAdminLoggedIn()) {
+                    School school = (School) model.getAttribute("school");
+                    if (school == null || !employeeService.employeeBelongsToSchool(employeeId, school.getId())) {
+                        return ResponseEntity.status(403).body("You do not have access to this employee.");
+                    }
+                }
                 boolean b = employeeService.saveRoleUserMapping(employeeId, roleId);
                 if(!b){
                     return ResponseEntity.ok("Either unable to assign the Role to User or Role already assigned");
@@ -1354,9 +1378,16 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.VIEW)
     @GetMapping("/api/user-role/existing-roles-detailed/{employeeId}")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
-    public ResponseEntity<?> getExistingRolesDetailed(@PathVariable("employeeId") Long employeeId) {
+    public ResponseEntity<?> getExistingRolesDetailed(@PathVariable("employeeId") Long employeeId, Model model) {
         log.info("Inside getExistingRolesDetailed");
         try {
+            // School-ownership check - see getExistingRoles above for the same reasoning.
+            if (!isSuperAdminLoggedIn()) {
+                School school = (School) model.getAttribute("school");
+                if (school == null || !employeeService.employeeBelongsToSchool(employeeId, school.getId())) {
+                    return ResponseEntity.status(403).body("You do not have access to this employee.");
+                }
+            }
             return ResponseEntity.ok(employeeService.getExistingRolesDetailed(employeeId));
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error fetching roles: " + e.getMessage());
@@ -1371,7 +1402,7 @@ public class GlobalController extends BaseController {
     @CheckAccess(screen = "ADMIN_USERROLE", type = AccessType.DELETE)
     @PostMapping("/api/user-role/revoke")
     @PreAuthorize("hasAnyRole('ROLE_SUPERADMIN','ROLE_ADMIN')")
-    public ResponseEntity<?> revokeRoleUserMapping(@RequestBody Map<String, Long> payload){
+    public ResponseEntity<?> revokeRoleUserMapping(@RequestBody Map<String, Long> payload, Model model){
         log.info("Inside revokeRoleUserMapping");
         try {
             log.debug("revokeRoleUserMapping payload={}", payload);
@@ -1382,6 +1413,14 @@ public class GlobalController extends BaseController {
             Long roleId = payload.get("roleId");
             if(employeeId == null || roleId == null){
                 return ResponseEntity.status(400).body("employeeId and roleId are required");
+            }
+
+            // School-ownership check - see getExistingRoles above for the same reasoning.
+            if (!isSuperAdminLoggedIn()) {
+                School school = (School) model.getAttribute("school");
+                if (school == null || !employeeService.employeeBelongsToSchool(employeeId, school.getId())) {
+                    return ResponseEntity.status(403).body("You do not have access to this employee.");
+                }
             }
 
             Roles role = roleRepository.findById(roleId).orElse(null);

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.Discounthead;
 import com.smsweb.sms.models.universal.Grade;
+import com.smsweb.sms.models.universal.Medium;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +23,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_discountclassmap", columnNames = {"grade_id", "discounthead_id", "academic_year_id", "school_id"})})
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_discountclassmap", columnNames = {"grade_id", "medium_id", "discounthead_id", "academic_year_id", "school_id"})})
 public class DiscountClassMap {
 
     @Id
@@ -50,6 +51,11 @@ public class DiscountClassMap {
     @JoinColumn(name = "grade_id")
     @NotNull(message = "Grade should be available")
     private Grade grade;
+
+    @ManyToOne
+    @JoinColumn(name = "medium_id")
+    @NotNull(message = "Medium should be available")
+    private Medium medium;
 
     @ManyToOne
     @JoinColumn(name = "discounthead_id")

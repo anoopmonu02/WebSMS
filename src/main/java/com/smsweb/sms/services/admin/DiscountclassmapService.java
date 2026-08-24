@@ -36,9 +36,9 @@ public class DiscountclassmapService {
         return repository.findAllBySchool_IdAndAcademicYear_Id(school_id, academic_id);
     }
 
-    public List<DiscountClassMap> getAllDiscountClassMappingByGrade(Long school_id, Long academic_id, Long grade_id){
-        log.info("Inside getAllDiscountClassMappingByGrade");
-        return repository.findAllByGrade_IdAndSchool_IdAndAcademicYear_Id(grade_id,school_id, academic_id);
+    public List<DiscountClassMap> getAllDiscountClassMappingByGrade(Long school_id, Long academic_id, Long grade_id, Long medium_id){
+        log.info("Inside getAllDiscountClassMappingByGrade (medium-aware)");
+        return repository.findAllByGrade_IdAndMedium_IdAndSchool_IdAndAcademicYear_Id(grade_id, medium_id, school_id, academic_id);
     }
 
     @Transactional
@@ -61,6 +61,16 @@ public class DiscountclassmapService {
     public Optional<DiscountClassMap> getDiscountClassMapByDiscountName(String discountName, Long academic_id, Long school_id, Long grade_id){
         log.info("Inside getDiscountClassMapByDiscountName");
         return repository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_Id(discountName, academic_id, school_id, grade_id);
+    }
+
+    /**
+     * Medium-aware overload (Discount-medium migration) — used by SiblingDiscountController /
+     * SiblingDiscountService, both of which already have an AcademicStudent (and therefore its
+     * medium) resolved before calling this.
+     */
+    public Optional<DiscountClassMap> getDiscountClassMapByDiscountName(String discountName, Long academic_id, Long school_id, Long grade_id, Long medium_id){
+        log.info("Inside getDiscountClassMapByDiscountName (medium-aware)");
+        return repository.findByDiscounthead_DiscountNameAndAcademicYear_IdAndSchool_IdAndGrade_IdAndMedium_Id(discountName, academic_id, school_id, grade_id, medium_id);
     }
 
     public String delete(Long id){
