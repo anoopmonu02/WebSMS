@@ -28,7 +28,6 @@
           <div class="col-md-3">
             &nbsp;<input type="hidden" name="grade" id="grade" th:field="*{grade}" />
              <input type="hidden" name="discounthead" id="discounthead" th:field="*{discounthead}" />
-             <input type="hidden" name="medium" id="medium" th:field="*{medium}" />
           </div>
           <div class="col-md-4">
             <label for="grade1" class="form-label">Grade</label>
@@ -40,8 +39,12 @@
             &nbsp;
           </div>
           <div class="col-md-4">
-            <label for="medium1" class="form-label">Medium</label>
-            <input type="text"  class="form-control" id="medium1" name="medium1" th:field="*{medium.mediumName}" readonly="readonly"/>
+            <label for="medium" class="form-label">Medium</label>
+            <select id="medium" th:field="*{medium}" class="form-select" name="medium">
+              <option value="">Select Medium</option>
+              <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
+                      th:selected="${medium} == ${discountclassmap.medium}">medium</option>
+            </select>
 
             <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">Medium Error</p>
           </div>

@@ -3,6 +3,7 @@ package com.smsweb.sms.models.admin;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.universal.Grade;
+import com.smsweb.sms.models.universal.Medium;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,7 @@ import java.util.Date;
 @Getter
 @Setter
 @Entity
-@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_full_payment_discount",columnNames = {"grade_id", "academic_year_id", "school_id"})})
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uk_full_payment_discount",columnNames = {"grade_id", "medium_id", "academic_year_id", "school_id"})})
 
 public class FullPayment {
 
@@ -49,6 +50,11 @@ public class FullPayment {
     @JoinColumn(name = "grade_id")
     @NotNull(message = "Grade should be available")
     private Grade grade;
+
+    @ManyToOne
+    @JoinColumn(name = "medium_id")
+    @NotNull(message = "Medium should be available")
+    private Medium medium;
 
     @Column(columnDefinition = "TEXT")
     @Size(max = 500, message = "Description should not exceed 500 chars")

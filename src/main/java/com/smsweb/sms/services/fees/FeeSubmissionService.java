@@ -574,7 +574,9 @@ public class FeeSubmissionService {
             if(monthCount == 12){
                 lst.put("lastDate", new Date());
                 lst.put("amount", 0.0);
-                FullPayment fullPayment = fullpaymentRepository.findBySchool_IdAndAcademicYear_IdAndGrade_Id(school_id, academic_id, grade_id).orElse(null);
+                // Full-Payment migration: medium-aware lookup, reusing the mediumId already
+                // resolved above for the fee lookup (see comment there — non-null by this point).
+                FullPayment fullPayment = fullpaymentRepository.findBySchool_IdAndAcademicYear_IdAndGrade_IdAndMedium_Id(school_id, academic_id, grade_id, mediumId).orElse(null);
                 if(fullPayment != null){
                     if(new Date().compareTo(fullPayment.getPaymentLastDate()) <= 0){
                         StudentDiscount existingDiscount = studentDiscountRepository
