@@ -625,6 +625,7 @@ public class GlobalController extends BaseController {
     public String updateFeeClassMap(@Valid @ModelAttribute("feeclassmap")FeeClassMap feeClassMap, BindingResult result, Model model, RedirectAttributes ra){
         log.info("Inside updateFeeClassMap");
         if(result.hasErrors()){
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/edit-feeclassmap";
         }
         try{
@@ -634,6 +635,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/edit-feeclassmap";
         }
         return "redirect:/admin/fee-class";
@@ -956,6 +958,7 @@ public class GlobalController extends BaseController {
     public String updateDiscountClassMap(@Valid @ModelAttribute("discountclassmap")DiscountClassMap discountClassMap, BindingResult result, Model model, RedirectAttributes ra){
         log.info("Inside updateDiscountClassMap");
         if(result.hasErrors()){
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/edit-discountclassmap";
         }
         try{
@@ -965,6 +968,7 @@ public class GlobalController extends BaseController {
         }catch(Exception e){
             e.printStackTrace();
             model.addAttribute("error","Error: "+e.getLocalizedMessage());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/edit-discountclassmap";
         }
         return "redirect:/admin/discount-class";
@@ -1181,6 +1185,7 @@ public class GlobalController extends BaseController {
     public String getAddFullPaymentForm(Model model){
         log.info("Inside getAddFullPaymentForm");
         model.addAttribute("grades", gradeService.getAllGrades());
+        model.addAttribute("mediums", mediumService.getAllMediums());
         model.addAttribute("fullpayment", new FullPayment());
         return "admin/add-fullpayment";
     }
@@ -1191,6 +1196,7 @@ public class GlobalController extends BaseController {
         log.info("Inside saveFullPayment");
         if(result.hasErrors()){
             model.addAttribute("grades", gradeService.getAllGrades());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/add-fullpayment";
         }
         try{
@@ -1207,14 +1213,17 @@ public class GlobalController extends BaseController {
         }catch(UniqueConstraintsException de){
             model.addAttribute("error", de.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/add-fullpayment";
         } catch(ObjectNotSaveException oe){
             model.addAttribute("error", oe.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/add-fullpayment";
         } catch(Exception e){
             model.addAttribute("error", e.getLocalizedMessage());
             model.addAttribute("grades", gradeService.getAllGrades());
+            model.addAttribute("mediums", mediumService.getAllMediums());
             return "admin/add-fullpayment";
         }
         return "redirect:/admin/full-payment-discount";
@@ -1226,6 +1235,7 @@ public class GlobalController extends BaseController {
         FullPayment fullPayment = fullpaymentService.getFullPaymentById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid full-payment Id:" + id));
         model.addAttribute("fullpayment",fullPayment);
+        model.addAttribute("mediums", mediumService.getAllMediums());
         return "admin/edit-fullpayment";
     }
 

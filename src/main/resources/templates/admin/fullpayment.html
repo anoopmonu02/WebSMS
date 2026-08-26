@@ -21,6 +21,7 @@
             <th>Academic Year</th>
             <th>Payment Date</th>
             <th>Grade</th>
+            <th>Medium</th>
             <th>Amount</th>
             <th>Description</th>
             <th>Actions</th>
@@ -33,6 +34,7 @@
             <td th:text="${fullpayment.academicYear.sessionFormat}"></td>
             <td th:text="${#dates.format(fullpayment.paymentLastDate, 'dd/MMM/yyyy')}"></td>
             <td th:text="${fullpayment.grade.gradeName}"></td>
+            <td th:text="${fullpayment.medium.mediumName}"></td>
             <td th:text="${fullpayment.amount}"></td>
             <td th:text="${fullpayment.description}"></td>
             <td style="white-space: nowrap" class="text-center">

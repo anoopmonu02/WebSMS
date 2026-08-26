@@ -27,6 +27,19 @@
           &nbsp;
         </div>
 
+        <div class="col-md-5">
+          <label for="medium" class="form-label">Medium</label>
+          <select id="medium" th:field="*{medium}" class="form-select" name="medium">
+            <option value="">Select Medium</option>
+            <option th:each="medium : ${mediums}" th:value="${medium.id}" th:text="${medium.mediumName}"
+                    th:selected="${medium} == ${fullpayment.medium}">medium</option>
+          </select>
+          <p class="text-danger" th:if="${#fields.hasErrors('medium')}" th:errors="*{medium}">medium Error</p>
+        </div>
+        <div class="col-md-7">
+          &nbsp;
+        </div>
+
         <div class="col-md-3">
           <label for="frequency" class="form-label">Last Date</label>
           <input type="text"  class="form-control" id="frequency" name="frequency" th:field="*{paymentLastDate}" />
