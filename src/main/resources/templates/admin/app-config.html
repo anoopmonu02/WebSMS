@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>App Config</title></head>
+<body>
+<section>
+<style>
+  .config-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; height: 100%; }
+  .config-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .form-switch .form-check-input { width: 3em; height: 1.6em; cursor: pointer; margin: 0; }
+  .form-switch .form-check-input:checked { background-color: #198754; border-color: #198754; }
+  .status-text-on  { color: #198754; font-weight: 700; white-space: nowrap; }
+  .status-text-off { color: #b02a37; font-weight: 700; white-space: nowrap; }
+  .save-spinner { display: none; }
+  .char-count { font-size: .78rem; color: #6c757d; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-sliders text-primary me-2"></i>App Config
+      </h4>
+      <p class="text-muted small mb-0">Global switches for the platform — Admin / Super Admin only</p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <!-- Tabs (currently one — Mobile App; more configs will land here later) -->
+  <ul class="nav nav-pills mb-4" id="configTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-mobile-btn" type="button">
+        <i class="bi bi-phone me-1"></i>Mobile App
+      </button>
+    </li>
+  </ul>
+
+  <!-- ═══════════════ MOBILE APP TAB ═══════════════ -->
+  <div id="pane-mobile"
+       th:data-mobile-access-url="@{/admin/app-config/mobile-access}"
+       th:data-mobile-message-url="@{/admin/app-config/mobile-message}">
+    <div class="row g-3">
+
+      <!-- Column 1 — Mobile App Access -->
+      <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-phone-vibrate me-2"></i>Mobile App Access</span>
+            <div class="d-flex align-items-center gap-2">
+              <span id="mobileAccessStatusText"
+                    th:text="${mobileAccessEnabled} ? 'Enabled' : 'Disabled'"
+                    th:class="${mobileAccessEnabled} ? 'status-text-on' : 'status-text-off'"></span>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="mobileAccessSwitch"
+                       th:checked="${mobileAccessEnabled}">
+              </div>
+              <span class="spinner-border spinner-border-sm text-secondary save-spinner" id="mobileAccessSpinner" role="status">
+                <span class="visually-hidden">Saving…</span>
+              </span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="mb-1">
+              Controls whether the mobile app can reach the server at all. When turned
+              <strong>off</strong>, every mobile API request is blocked and the app shows a
+              maintenance screen to all students/families — across every school.
+            </p>
+            <p class="mb-0 small text-muted">The web (admin/staff) portal is never affected by this switch.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2 — Maintenance Screen Message -->
+      <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3">
+            <i class="bi bi-chat-square-text me-2"></i>Maintenance Screen Message
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-2">Shown to mobile app users while access is disabled.</p>
+            <textarea class="form-control mb-2" id="mobileMaintenanceMessage" rows="3" maxlength="255"
+                      th:text="${maintenanceMessage}"></textarea>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="char-count"><span id="msgCharCount">0</span>/255</span>
+              <button type="button" class="btn btn-primary btn-sm" id="saveMessageBtn">
+                <span class="spinner-border spinner-border-sm save-spinner" id="messageSpinner" role="status"></span>
+                <i class="bi bi-check-lg me-1"></i>Save Message
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script type="text/javascript" th:inline="none">
+// Everything below is deliberately wrapped in a single DOMContentLoaded handler.
+// base.html loads jQuery/toastr in <script> tags AFTER the page content (this
+// section is injected higher up in the DOM, via th:replace="${content}", than the
+// script includes near the end of <body>) — so any top-level statement here that
+// touches `toastr` or `$` immediately at parse time (e.g. a bare `toastr.options = {...}`
+// outside a function) throws "toastr is not defined" and silently kills the ENTIRE
+// script block, including anything below it in the same <script> tag. That was the
+// original bug: the switch's change-listener registration never ran, so toggling it
+// did nothing but flip the native checkbox visually — no save, no label update, no
+// toast. DOMContentLoaded fires only after all earlier synchronous <script src> tags
+// (jQuery, toastr, bootstrap) have already executed, so everything is safely deferred
+// into this one callback instead.
+document.addEventListener('DOMContentLoaded', function () {
+  toastr.options = {
+    "closeButton": true,
+    "debug": false,
+    "newestOnTop": true,
+    "progressBar": false,
+    "positionClass": "toast-top-right",
+    "preventDuplicates": false,
+    "onclick": null,
+    "showDuration": "600",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000",
+    "showEasing": "swing",
+    "hideEasing": "linear",
+    "showMethod": "fadeIn",
+    "hideMethod": "fadeOut"
+  };
+
+  var msgBox = document.getElementById('mobileMaintenanceMessage');
+  var countEl = document.getElementById('msgCharCount');
+  function updateCount() { countEl.textContent = msgBox.value.length; }
+  updateCount();
+  msgBox.addEventListener('input', updateCount);
+
+  document.getElementById('mobileAccessSwitch').addEventListener('change', function () {
+    saveMobileAccess(this.checked, this);
+  });
+
+  document.getElementById('saveMessageBtn').addEventListener('click', saveMaintenanceMessage);
+
+  function saveMobileAccess(enabled, switchEl) {
+    var spinner = document.getElementById('mobileAccessSpinner');
+    var statusText = document.getElementById('mobileAccessStatusText');
+    switchEl.disabled = true;
+    spinner.style.display = 'inline-block';
+
+    $.ajax({
+      url: document.getElementById('pane-mobile').dataset.mobileAccessUrl,
+      type: 'POST',
+      data: { enabled: enabled },
+      success: function (resp) {
+        statusText.textContent = resp.enabled ? 'Enabled' : 'Disabled';
+        statusText.className = resp.enabled ? 'status-text-on' : 'status-text-off';
+        toastr.success(resp.message, 'Success');
+      },
+      error: function (xhr) {
+        // Revert the switch — the DB save didn't happen, so the UI must not claim otherwise.
+        switchEl.checked = !enabled;
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Could not save — please try again.';
+        toastr.error(msg, 'Error');
+      },
+      complete: function () {
+        switchEl.disabled = false;
+        spinner.style.display = 'none';
+      }
+    });
+  }
+
+  function saveMaintenanceMessage() {
+    var btn = document.getElementById('saveMessageBtn');
+    var spinner = document.getElementById('messageSpinner');
+    var message = msgBox.value.trim();
+    if (!message) {
+      toastr.error("Message can't be empty.", 'Error');
+      return;
+    }
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+
+    $.ajax({
+      url: document.getElementById('pane-mobile').dataset.mobileMessageUrl,
+      type: 'POST',
+      data: { message: message },
+      success: function (resp) {
+        toastr.success(resp.message, 'Success');
+      },
+      error: function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Could not save — please try again.';
+        toastr.error(msg, 'Error');
+      },
+      complete: function () {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
+</section>
+</body>
+</html>
