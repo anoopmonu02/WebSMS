@@ -62,6 +62,18 @@ public class MobileAuthController {
         this.loginAttemptService    = loginAttemptService;
     }
 
+    // ── GET /api/v1/auth/ping ─────────────────────────────────────────────────
+    // NEW (feature: mobile-app maintenance mode). Deliberately trivial and public —
+    // the mobile app's MaintenanceScreen polls this on "Try Again" purely to detect
+    // whether MaintenanceModeFilter (registered ahead of every /api/v1/** route,
+    // including this one) is still returning 503. A non-503 response here — this
+    // 200, or even a 401/404 from some other check — always means maintenance is over.
+
+    @GetMapping("/ping")
+    public ResponseEntity<ApiResponse<?>> ping() {
+        return ResponseEntity.ok(ApiResponse.success("pong", null));
+    }
+
     // ── POST /api/v1/auth/login ───────────────────────────────────────────────
 
     @PostMapping("/login")

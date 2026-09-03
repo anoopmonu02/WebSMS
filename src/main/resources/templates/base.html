@@ -828,6 +828,12 @@
                             </a>
                         </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/app-config}">
+                                <i class="bi bi-sliders text-primary"></i>
+                                <span>App Config</span>
+                            </a>
+                        </li>
+                        <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/mobile-sessions}">
                                 <i class="bi bi-shield-lock text-info"></i>
                                 <span>Mobile Sessions Cleanup</span>
