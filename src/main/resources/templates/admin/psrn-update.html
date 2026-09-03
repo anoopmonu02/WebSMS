@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      th:replace="~{base::Layout(~{::section})}">
+<head><meta charset="UTF-8"><title>PSRN-based PEN/Apaar Update</title></head>
+<body>
+<section>
+<style>
+  .upload-zone {
+    border: 2.5px dashed #6c757d; border-radius: 16px; padding: 60px 30px;
+    text-align: center; background: #f8f9fa; transition: all .25s ease; cursor: pointer;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: #0d6efd; background: #e9f0ff; }
+  .upload-zone .upload-icon { font-size: 3.5rem; color: #6c757d; transition: color .25s; }
+  .upload-zone:hover .upload-icon { color: #0d6efd; }
+  .stat-pill { border-radius: 50px; padding: 6px 18px; font-size: .85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-import { font-size: 1rem; padding: 10px 28px; border-radius: 8px; font-weight: 600; }
+  .row-ready    { background: #f0fff4 !important; }
+  .row-warning  { background: #fffbf0 !important; }
+  .row-conflict { background: #fdeaea !important; }
+  .row-skip     { background: #f4f4f4 !important; }
+  .row-error    { background: #fff5f5 !important; }
+  .row-updated  { background: #eafaf0 !important; }
+  .result-stat-card { border-radius: 12px; border: 0; box-shadow: 0 2px 10px rgba(0,0,0,.08); text-align: center; padding: 18px 8px; }
+  .result-stat-num  { font-size: 2.1rem; font-weight: 800; line-height: 1; }
+  .diff-old { text-decoration: line-through; color: #b02a37; }
+  .diff-new { color: #198754; font-weight: 600; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2 flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-upc-scan text-primary me-2"></i>PSRN-based PEN No / Apaar ID Update
+      </h4>
+      <p class="text-muted small mb-0">Bulk-update government PEN/Apaar IDs by matching students on PSRN — Super Admin only</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a th:href="@{/admin/psrn-update/reset}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+      </a>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div th:if="${error}" class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <div th:if="${success}" class="alert alert-success alert-dismissible fade show py-2" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 1 — Upload
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${preview==null and result==null}">
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+          <div class="card-body p-4">
+            <form th:action="@{/admin/psrn-update/preview}" method="post"
+                  enctype="multipart/form-data" id="uploadForm">
+
+              <label class="form-label fw-semibold">Update Type</label>
+              <select class="form-select mb-4" id="targetField" name="targetField" required>
+                <option value="">— Select PEN No or Apaar ID —</option>
+                <option value="PEN_NO">PEN No</option>
+                <option value="APAAR_ID">Apaar ID</option>
+              </select>
+
+              <div class="upload-zone" id="uploadZone" onclick="document.getElementById('xlsFile').click()">
+                <div class="upload-icon mb-3"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                <h5 class="fw-semibold mb-1">Click or drag &amp; drop your Excel file</h5>
+                <p class="text-muted small mb-3">Supports .xls and .xlsx formats</p>
+                <input type="file" name="file" id="xlsFile" accept=".xls,.xlsx" class="d-none" required/>
+                <div id="fileInfo" class="d-none mt-2">
+                  <span class="badge bg-primary fs-6 px-3 py-2" id="fileName"></span>
+                </div>
+              </div>
+
+              <div class="alert alert-info d-flex gap-2 align-items-start mt-4 py-3 small">
+                <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+                <div>
+                  The sheet must contain a <strong>PSRN#</strong> column plus the column matching
+                  your selected update type (<strong>PEN No</strong> or <strong>Apaar ID</strong>).
+                  <strong>Student Name / Father Name / Mother Name / Grade / Sec</strong> columns,
+                  if present, are used only to flag mismatches for your review — they never block
+                  the match. PSRN is matched globally, no school needs to be selected first.
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-import w-100 mt-2" id="uploadBtn" disabled>
+                <span class="normal-state"><i class="bi bi-search me-2"></i>Parse &amp; Preview Data</span>
+                <span class="loading-state d-none">
+                  <span class="spinner-border spinner-border-sm me-2"></span>Parsing file, please wait…
+                </span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
+          <div class="card-header bg-dark text-white fw-semibold" style="border-radius:14px 14px 0 0;">
+            <i class="bi bi-list-check me-2"></i>How Each Row Is Handled
+          </div>
+          <div class="card-body">
+            <ul class="small mb-0" style="line-height:1.9;">
+              <li><span class="badge bg-success">READY</span> — no existing value, no mismatch. Updated.</li>
+              <li><span class="badge bg-warning text-dark">WARNING</span> — name/father/mother/grade/section differ. Updated only if you confirm.</li>
+              <li><span class="badge bg-danger">CONFLICT</span> — DB already has a <em>different</em> value. Never auto-updated, listed for manual review.</li>
+              <li><span class="badge bg-secondary">SKIP</span> — sheet value is blank, or already matches the DB. Left untouched.</li>
+              <li><span class="badge bg-dark">ERROR</span> — PSRN missing/not found, or value fails the digit-format check.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /step 1 -->
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 2 — Preview
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${preview!=null}">
+
+    <div th:if="${!preview.missingOptionalColumns.isEmpty()}" class="alert alert-warning py-2 small">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      These columns were not found in the sheet, so the mismatch check was skipped for them:
+      <strong th:text="${#strings.listJoin(preview.missingOptionalColumns, ', ')}"></strong>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <span class="stat-pill bg-light border"><i class="bi bi-people-fill text-secondary"></i>Total <strong th:text="${preview.totalRows}">0</strong></span>
+      <span class="stat-pill bg-success bg-opacity-15 text-success border border-success"><i class="bi bi-check-circle-fill"></i>Ready <strong th:text="${preview.readyCount}">0</strong></span>
+      <span class="stat-pill bg-warning bg-opacity-15 text-warning border border-warning"><i class="bi bi-exclamation-triangle-fill"></i>Warning <strong th:text="${preview.warningCount}">0</strong></span>
+      <span class="stat-pill bg-danger bg-opacity-15 text-danger border border-danger"><i class="bi bi-shield-x"></i>Conflict <strong th:text="${preview.conflictCount}">0</strong></span>
+      <span class="stat-pill bg-secondary bg-opacity-15 text-secondary border border-secondary"><i class="bi bi-skip-forward-fill"></i>Skip <strong th:text="${preview.skipBlankCount + preview.skipAlreadySetCount}">0</strong></span>
+      <span class="stat-pill bg-dark bg-opacity-15 text-dark border border-dark"><i class="bi bi-x-circle-fill"></i>Error <strong th:text="${preview.errorCount}">0</strong></span>
+      <div class="ms-auto d-flex gap-2">
+        <a th:href="@{/admin/psrn-update}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Re-upload</a>
+        <form th:action="@{/admin/psrn-update/execute}" method="post" id="executeForm">
+          <input type="hidden" name="includeWarnings" id="includeWarnings" value="false"/>
+          <button type="submit" id="proceedBtn" class="btn btn-success btn-import"
+                  th:disabled="${!preview.hasUpdatableRows}"
+                  th:attr="data-warning-count=${preview.warningCount}">
+            <span class="normal-state"><i class="bi bi-database-fill-up me-2"></i>Proceed</span>
+            <span class="loading-state d-none"><span class="spinner-border spinner-border-sm me-2"></span>Processing, please wait…</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm mb-0" id="previewTable">
+            <thead class="table-dark">
+            <tr>
+              <th>#</th><th>PSRN</th><th>Status</th>
+              <th>Sheet Value</th><th>DB Value</th>
+              <th>Student Name (sheet / DB)</th><th>Father (sheet / DB)</th><th>Mother (sheet / DB)</th>
+              <th>Grade (sheet / DB)</th><th>Sec (sheet / DB)</th><th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${preview.rows}"
+                th:classappend="${r.status=='READY'}?'row-ready':(${r.status=='WARNING'}?'row-warning':(${r.status=='CONFLICT'}?'row-conflict':(${r.status=='ERROR'}?'row-error':'row-skip')))">
+              <td th:text="${r.rowNum}"></td>
+              <td th:text="${r.psrnRaw}"></td>
+              <td><span class="badge"
+                        th:classappend="${r.status=='READY'}?'bg-success':(${r.status=='WARNING'}?'bg-warning text-dark':(${r.status=='CONFLICT'}?'bg-danger':(${r.status=='ERROR'}?'bg-dark':'bg-secondary')))"
+                        th:text="${r.status}"></span></td>
+              <td th:text="${r.sheetValue}"></td>
+              <td th:text="${r.dbValue}"></td>
+              <td><span th:classappend="${#lists.contains(r.mismatchFields,'Student Name')}?'text-danger fw-semibold':''" th:text="${r.sheetStudentName}"></span> / <span class="text-muted" th:text="${r.dbStudentName}"></span></td>
+              <td><span th:classappend="${#lists.contains(r.mismatchFields,'Father Name')}?'text-danger fw-semibold':''" th:text="${r.sheetFatherName}"></span> / <span class="text-muted" th:text="${r.dbFatherName}"></span></td>
+              <td><span th:classappend="${#lists.contains(r.mismatchFields,'Mother Name')}?'text-danger fw-semibold':''" th:text="${r.sheetMotherName}"></span> / <span class="text-muted" th:text="${r.dbMotherName}"></span></td>
+              <td><span th:classappend="${#lists.contains(r.mismatchFields,'Grade')}?'text-danger fw-semibold':''" th:text="${r.sheetGrade}"></span> / <span class="text-muted" th:text="${r.dbGrade}"></span></td>
+              <td><span th:classappend="${#lists.contains(r.mismatchFields,'Section')}?'text-danger fw-semibold':''" th:text="${r.sheetSection}"></span> / <span class="text-muted" th:text="${r.dbSection}"></span></td>
+              <td class="small" th:text="${r.message}"></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /step 2 -->
+
+  <!-- ════════════════════════════════════════════════════════════════
+       STEP 3 — Result
+  ════════════════════════════════════════════════════════════════ -->
+  <div th:if="${result!=null}">
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-2">
+        <div class="result-stat-card bg-success bg-opacity-10">
+          <div class="result-stat-num text-success" th:text="${result.updatedCount}">0</div>
+          <div class="small fw-semibold text-success">Updated</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="result-stat-card bg-danger bg-opacity-10">
+          <div class="result-stat-num text-danger" th:text="${result.conflictCount}">0</div>
+          <div class="small fw-semibold text-danger">Conflicts</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="result-stat-card bg-warning bg-opacity-10">
+          <div class="result-stat-num text-warning" th:text="${result.warningCount}">0</div>
+          <div class="small fw-semibold text-warning">Not Confirmed</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="result-stat-card bg-secondary bg-opacity-10">
+          <div class="result-stat-num text-secondary" th:text="${result.skipBlankCount + result.skipAlreadySetCount}">0</div>
+          <div class="small fw-semibold text-secondary">Skipped</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <div class="result-stat-card bg-dark bg-opacity-10">
+          <div class="result-stat-num text-dark" th:text="${result.errorCount}">0</div>
+          <div class="small fw-semibold text-dark">Errors</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-2 d-flex align-items-center justify-content-center">
+        <a th:href="@{/admin/psrn-update/reset}" class="btn btn-primary w-100"><i class="bi bi-arrow-repeat me-1"></i>New Upload</a>
+      </div>
+    </div>
+
+    <div class="alert alert-danger py-2 small" th:if="${result.conflictCount > 0}">
+      <i class="bi bi-shield-x me-2"></i><strong th:text="${result.conflictCount}"></strong>
+      row(s) had an existing, different value in the DB and were <strong>not</strong> updated — review the CONFLICT rows below.
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm mb-0" id="resultTable">
+            <thead class="table-dark">
+            <tr>
+              <th>#</th><th>PSRN</th><th>Status</th><th>Student</th>
+              <th>Sheet → DB Value</th><th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="r : ${result.rows}"
+                th:classappend="${r.status=='UPDATED'}?'row-updated':(${r.status=='WARNING'}?'row-warning':(${r.status=='CONFLICT'}?'row-conflict':(${r.status=='ERROR'}?'row-error':'row-skip')))">
+              <td th:text="${r.rowNum}"></td>
+              <td th:text="${r.psrnRaw}"></td>
+              <td><span class="badge"
+                        th:classappend="${r.status=='UPDATED'}?'bg-success':(${r.status=='WARNING'}?'bg-warning text-dark':(${r.status=='CONFLICT'}?'bg-danger':(${r.status=='ERROR'}?'bg-dark':'bg-secondary')))"
+                        th:text="${r.status}"></span></td>
+              <td th:text="${r.dbStudentName != null ? r.dbStudentName : r.sheetStudentName}"></td>
+              <td>
+                <span th:if="${r.status=='UPDATED'}"><span class="diff-old" th:text="${r.dbValue}"></span> → <span class="diff-new" th:text="${r.sheetValue}"></span></span>
+                <span th:unless="${r.status=='UPDATED'}" th:text="${r.sheetValue}"></span>
+              </td>
+              <td class="small" th:text="${r.message}"></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /step 3 -->
+
+</div>
+
+<!-- ── Mismatch confirmation modal ── -->
+<div class="modal fade" id="mismatchModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Mismatched Rows Found</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong id="mismatchCount">0</strong> row(s) have a Student Name / Father Name / Mother Name / Grade / Section
+          that doesn't match the database, even though the PSRN matched correctly.</p>
+        <p class="mb-0">You can go back and re-check the sheet, or proceed anyway — mismatched rows will still have
+          their PEN No / Apaar ID updated if you proceed. Conflicting rows (existing different value) are never
+          updated either way.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-arrow-left me-1"></i>Go Back &amp; Re-validate
+        </button>
+        <button type="button" class="btn btn-warning" id="proceedAnywayBtn">
+          <i class="bi bi-check2-circle me-1"></i>Proceed Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+<script th:src="@{/js/toastr.min.js}"></script>
+
+<script type="text/javascript" th:inline="javascript">
+  const successMessage = [[${success}]];
+  if (successMessage) { toastr.success(successMessage, "Success"); }
+  const errorMessage = [[${error}]];
+  if (errorMessage) { toastr.error(errorMessage, "Error"); }
+</script>
+
+<script type="text/javascript" th:inline="none">
+  /* ── File input UX ── */
+  const xlsFile = document.getElementById('xlsFile');
+  const targetField = document.getElementById('targetField');
+  const uploadBtn = document.getElementById('uploadBtn');
+  function refreshUploadBtn() {
+    if (!uploadBtn) return;
+    uploadBtn.disabled = !(xlsFile && xlsFile.files.length > 0 && targetField && targetField.value);
+  }
+  if (xlsFile) {
+    xlsFile.addEventListener('change', function () {
+      if (this.files.length > 0) {
+        document.getElementById('fileInfo').classList.remove('d-none');
+        document.getElementById('fileName').textContent = this.files[0].name;
+      }
+      refreshUploadBtn();
+    });
+  }
+  if (targetField) { targetField.addEventListener('change', refreshUploadBtn); }
+
+  /* ── Upload spinner ── */
+  $('#uploadForm').on('submit', function () {
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    btn.querySelector('.normal-state').classList.add('d-none');
+    btn.querySelector('.loading-state').classList.remove('d-none');
+  });
+
+  /* ── Execute: intercept submit if there are WARNING rows, show confirm modal first ── */
+  $('#executeForm').on('submit', function (e) {
+    const btn = document.getElementById('proceedBtn');
+    const warningCount = parseInt(btn ? btn.getAttribute('data-warning-count') : '0', 10) || 0;
+    const includeWarnings = document.getElementById('includeWarnings').value === 'true';
+
+    if (warningCount > 0 && !includeWarnings) {
+      e.preventDefault();
+      document.getElementById('mismatchCount').textContent = warningCount;
+      const modal = new bootstrap.Modal(document.getElementById('mismatchModal'));
+      modal.show();
+      return false;
+    }
+
+    btn.disabled = true;
+    btn.querySelector('.normal-state').classList.add('d-none');
+    btn.querySelector('.loading-state').classList.remove('d-none');
+  });
+
+  document.getElementById('proceedAnywayBtn')?.addEventListener('click', function () {
+    document.getElementById('includeWarnings').value = 'true';
+    const modalEl = document.getElementById('mismatchModal');
+    bootstrap.Modal.getInstance(modalEl)?.hide();
+    $('#executeForm').trigger('submit');
+  });
+
+  /* ── DataTables ── */
+  $(document).ready(function () {
+    if ($('#previewTable').length) {
+      $('#previewTable').DataTable({ pageLength: 25, lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'All']] });
+    }
+    if ($('#resultTable').length) {
+      $('#resultTable').DataTable({ pageLength: 25, lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'All']] });
+    }
+  });
+</script>
+
+</section>
+</body>
+</html>

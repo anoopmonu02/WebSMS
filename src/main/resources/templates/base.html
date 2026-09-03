@@ -821,6 +821,12 @@
                                 <span>Previous Balance</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/psrn-update}">
+                                <i class="bi bi-upc-scan text-info"></i>
+                                <span>PEN/Apaar Update</span>
+                            </a>
+                        </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/mobile-sessions}">
                                 <i class="bi bi-shield-lock text-info"></i>

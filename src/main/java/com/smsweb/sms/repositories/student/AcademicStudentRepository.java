@@ -317,6 +317,16 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     @Query("SELECT a FROM AcademicStudent a WHERE a.student.id = :studentId AND a.status = 'Active' ORDER BY a.id DESC")
     List<AcademicStudent> findAllActiveByStudentIdOrderByIdDesc(@Param("studentId") Long studentId);
 
+    /**
+     * The single current (not-yet-superseded) enrollment row for a student — see the
+     * isMigrated doc comment on findActiveByMobile above for why this is the authoritative
+     * "current grade/section" signal, not Student.grade/Student.section directly (those are
+     * an admission-time snapshot on the Student entity itself and are NOT updated by
+     * AcademicStudentService.updateGradeSection or by promotion/migration — only the
+     * AcademicStudent row is). Used by PsrnBulkUpdateService's mismatch check.
+     */
+    Optional<AcademicStudent> findByStudent_IdAndStatusAndIsMigrated(Long studentId, String status, Boolean isMigrated);
+
     // ── Mobile API queries ────────────────────────────────────────────────────
 
     /**
