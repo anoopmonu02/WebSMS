@@ -313,6 +313,16 @@
           <input type="text" id="aadharNo" class="form-control" th:field="*{aadharNo}">
           <p class="text-danger" th:if="${#fields.hasErrors('aadharNo')}" th:errors="*{aadharNo}">aadharNo Error</p>
         </div>
+        <div class="col-md-4">
+          <label for="apaarId" class="form-label">Apaar ID</label>
+          <input type="text" id="apaarId" class="form-control" th:field="*{apaarId}">
+          <p class="text-danger" th:if="${#fields.hasErrors('apaarId')}" th:errors="*{apaarId}">apaarId Error</p>
+        </div>
+        <div class="col-md-4">
+          <label for="penNo" class="form-label">PEN Number</label>
+          <input type="text" id="penNo" class="form-control" th:field="*{penNo}">
+          <p class="text-danger" th:if="${#fields.hasErrors('penNo')}" th:errors="*{penNo}">PEN No Error</p>
+        </div>
 
         <!-- Submit Button -->
         <hr/>
