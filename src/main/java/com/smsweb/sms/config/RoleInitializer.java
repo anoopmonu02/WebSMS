@@ -80,6 +80,16 @@ public class RoleInitializer {
                 });
             }
 
+            // ── Migrate: rename 2 Fee Report screens to match their new sidebar labels ──
+            // seed() below only INSERTS when a screenKey is missing — it never updates an
+            // already-seeded row's screenName, so the sidebar (base.html) and this page's
+            // menu labels changing on their own doesn't touch what's already in app_screen.
+            // This block re-syncs the two that were renamed, on every app startup, for this
+            // DB and every existing customer DB — no manual SQL needed per install.
+            renameScreen(screenRepo, "FEE_REPORT_USER_WISE", "Date-wise Collection");
+            renameScreen(screenRepo, "FEE_REPORT_DEPOSITED", "Student Month-wise Fee Report");
+            renameScreen(screenRepo, "FEE_REPORT_PENDING", "Pending Fee");
+
             // ════════════════════════════════════════════════════════════════
             // MODULE: STUDENT
             // ════════════════════════════════════════════════════════════════
@@ -286,7 +296,7 @@ public class RoleInitializer {
 
             // ── Fee Reports ──────────────────────────────────────────────────
 
-            seed(screenRepo, "Fees", "User-wise Collection Report",
+            seed(screenRepo, "Fees", "Date-wise Collection",
                     "FEE_REPORT_USER_WISE",
                     "View fee collection report grouped by user/accountant");
 
@@ -302,7 +312,7 @@ public class RoleInitializer {
                     "FEE_REPORT_TOTAL_SUBMITTED",
                     "View total fee submitted detail report");
 
-            seed(screenRepo, "Fees", "Pending Fee Report",
+            seed(screenRepo, "Fees", "Pending Fee",
                     "FEE_REPORT_PENDING",
                     "View total pending fee report");
 
@@ -310,7 +320,7 @@ public class RoleInitializer {
                     "FEE_REPORT_CANCELLED",
                     "View list of cancelled fee payments");
 
-            seed(screenRepo, "Fees", "Total Deposited Fee",
+            seed(screenRepo, "Fees", "Student Month-wise Fee Report",
                     "FEE_REPORT_DEPOSITED",
                     "View total deposited fee report");
 
@@ -477,5 +487,17 @@ public class RoleInitializer {
         if (repo.findByScreenKey(screenKey).isEmpty()) {
             repo.save(new AppScreen(module, screenName, screenKey, description));
         }
+    }
+
+    /** One-time-per-difference rename: updates an already-seeded screen's display
+     *  name if it doesn't already match, and does nothing otherwise (safe to leave
+     *  running on every startup — becomes a no-op once every DB has caught up). */
+    private void renameScreen(AppScreenRepository repo, String screenKey, String newScreenName) {
+        repo.findByScreenKey(screenKey).ifPresent(screen -> {
+            if (!newScreenName.equals(screen.getScreenName())) {
+                screen.setScreenName(newScreenName);
+                repo.save(screen);
+            }
+        });
     }
 }
