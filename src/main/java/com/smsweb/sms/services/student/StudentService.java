@@ -382,6 +382,11 @@ public class StudentService {
                 existingStudent.setRelationship(student.getRelationship());
                 existingStudent.setStudentType(student.getStudentType());
                 existingStudent.setAadharNo(student.getAadharNo());
+                // Apaar ID / PEN No are already collected at registration (add-student.html) and
+                // updated in bulk via PsrnBulkUpdateService — this is what makes them editable
+                // one-at-a-time from the Edit Student screen too (feature: Edit/Show Apaar+PEN).
+                existingStudent.setApaarId(student.getApaarId());
+                existingStudent.setPenNo(student.getPenNo());
                 existingStudent.setUpdatedBy(userService.getLoggedInUser());
                 existingStudent = repository.saveAndFlush(existingStudent);
                 // Ensure FamilyAccount exists (creates one if mobile changed or new)
