@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Update Student Details (Group-wise)</div>
+        <hr/>
+      </div>
+    </div>
+    <div class="row mt-3 pb-3">
+      <div class="col-md-2">
+        <label for="medium" class="form-label">Medium</label>
+        <select name="medium" id="medium" class="form-select">
+          <option value="">Select Medium</option>
+          <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="grade" class="form-label">Grade</label>
+        <select name="grade" id="grade" class="form-select">
+          <option value="">Select Grade</option>
+          <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="section" class="form-label">Section</label>
+        <select name="section" id="section" class="form-select">
+          <option value="">Select Section</option>
+          <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="dataGroup" class="form-label">Select Data</label>
+        <select name="dataGroup" id="dataGroup" class="form-select">
+          <option value="">Select Data</option>
+          <option th:each="grp : ${fieldGroups}" th:value="${grp.key}" th:text="${grp.label}">Group</option>
+        </select>
+      </div>
+      <div class="col-md-3 align-self-end">
+        <button type="button" class="btn btn-primary" id="getListBtn"><i class="bi bi-search"></i> Get Student List</button>
+      </div>
+    </div>
+    <hr/>
+
+    <div class="col-12" id="student-data-container"></div>
+
+    <div id="btn-save-row" style="display:none;" class="row">
+      <div class="col-12 text-center mb-5 pt-4">
+        <button type="button" class="btn btn-primary" id="saveDataBtn"><i class="bi bi-save2-fill"></i> Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="saveConfirmModal" tabindex="-1" aria-labelledby="saveConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saveConfirmModalLabel"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Confirm Save</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">You are about to update <span class="fw-bold fs-5 text-primary" id="saveConfirmCount">0</span> student record(s).</p>
+          <p class="text-muted small mb-0" id="saveConfirmSkippedNote"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmSaveDataBtn">
+            <span class="normal-state"><i class="bi bi-check-lg"></i> Yes, Save</span>
+            <span class="loading-state d-none">
+              <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+  <script th:src="@{/js/flatpickr.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    const CATEGORIES = /*[[${categories}]]*/ [];
+    const CASTS = /*[[${casts}]]*/ [];
+    const BANKS = /*[[${banks}]]*/ [];
+    const PROVINCES = /*[[${provinces}]]*/ [];
+    const BLOOD_GROUPS = /*[[${bloodGroups}]]*/ [];
+    const BODY_TYPES = /*[[${bodyTypes}]]*/ [];
+    const RELIGIONS = /*[[${religions}]]*/ [];
+
+    const GENDER_OPTIONS = [
+      { value: 'MALE', label: 'Male' },
+      { value: 'FEMALE', label: 'Female' },
+      { value: 'NO_PREFERENCE', label: 'No Preference' }
+    ];
+
+    // Fields where the user must only be able to TYPE digits (no letters, no
+    // decimal points) — enforced live via the delegated 'input' handler below,
+    // same convention add-student.html already uses via its .intfields class.
+    const NUMERIC_ONLY_FIELDS = [
+      'mobile1', 'mobile2', 'pincode', 'aadharNo', 'penNo', 'apaarId',
+      'accountNo', 'height', 'weight', 'distanceFromSchool'
+    ];
+
+    // Fixed/bounded field lengths, enforced live via the HTML maxlength
+    // attribute (typing simply stops accepting more once the max is reached,
+    // for both digit-only and free-text fields) so a value can never become
+    // "too long" — the matching VALIDATORS entry below still catches "too
+    // short"/wrong-length on blur.
+    const FIELD_MAX_LENGTHS = {
+      mobile1: 10,
+      mobile2: 10,
+      pincode: 6,
+      aadharNo: 12,
+      penNo: 11,
+      apaarId: 12,
+      distanceFromSchool: 2,
+      height: 3,
+      weight: 3,
+      ifscCode: 11,
+      classSrNo: 5
+    };
+
+    function numericOnlyClass(fieldKey) {
+      return NUMERIC_ONLY_FIELDS.includes(fieldKey) ? ' numeric-only-input' : '';
+    }
+
+    function maxLengthAttr(fieldKey) {
+      const maxLen = FIELD_MAX_LENGTHS[fieldKey];
+      return maxLen ? ` maxlength="${maxLen}"` : '';
+    }
+
+    // Delegated (not re-bound per render) so it applies to every row the table
+    // ever renders, including rows added after a later "Get Student List" click.
+    // Only strips non-digits — the live length cap itself is the native HTML
+    // maxlength attribute (see maxLengthAttr above), which works for every
+    // field including alphanumeric ones like IFSC and SR No.
+    $(document).on('input', '.numeric-only-input', function () {
+      this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    let currentGroupKey = '';
+    let currentFields = [];
+
+    function validateMandatoryFilters() {
+      const medium = $('#medium').val();
+      const grade = $('#grade').val();
+      const section = $('#section').val();
+      const dataGroup = $('#dataGroup').val();
+      if (!medium || !grade || !section || !dataGroup) {
+        showMsg('error', 'Medium/Grade/Section/Select Data are all mandatory', 'Warning');
+        return false;
+      }
+      return true;
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function optionsHtml(list, nameKey, selectedId) {
+      let html = '<option value="">Select</option>';
+      list.forEach(item => {
+        const sel = (selectedId !== null && selectedId !== undefined && String(selectedId) === String(item.id)) ? 'selected' : '';
+        html += `<option value="${item.id}" ${sel}>${escapeHtml(item[nameKey])}</option>`;
+      });
+      return html;
+    }
+
+    function fixedOptionsHtml(list, selectedValue) {
+      let html = '<option value="">Select</option>';
+      list.forEach(opt => {
+        const value = (typeof opt === 'string') ? opt : opt.value;
+        const label = (typeof opt === 'string') ? opt : opt.label;
+        const sel = (selectedValue === value) ? 'selected' : '';
+        html += `<option value="${escapeHtml(value)}" ${sel}>${escapeHtml(label)}</option>`;
+      });
+      return html;
+    }
+
+    function widgetHtml(field, rowUuid, value) {
+      const inputId = `${field.key}_${rowUuid}`;
+      switch (field.widget) {
+        case 'SELECT':
+          if (field.key === 'gender') {
+            return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(GENDER_OPTIONS, value)}</select>`;
+          }
+          if (field.key === 'religion') {
+            return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(RELIGIONS, value)}</select>`;
+          }
+          if (field.key === 'bloodGroup') {
+            return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(BLOOD_GROUPS, value)}</select>`;
+          }
+          if (field.key === 'bodyType') {
+            return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(BODY_TYPES, value)}</select>`;
+          }
+          return `<input type="text" class="form-control field-input" data-field="${field.key}" id="${inputId}" value="${escapeHtml(value)}" data-original-value="${escapeHtml(value)}">`;
+        case 'SELECT_LOOKUP': {
+          let list = [], nameKey = 'name';
+          if (field.key === 'category') { list = CATEGORIES; nameKey = 'categoryName'; }
+          else if (field.key === 'cast') { list = CASTS; nameKey = 'castName'; }
+          else if (field.key === 'bank') { list = BANKS; nameKey = 'bankName'; }
+          else if (field.key === 'province') { list = PROVINCES; nameKey = 'provinceName'; }
+          const selId = value && typeof value === 'object' ? value.id : null;
+          return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${selId !== null && selId !== undefined ? selId : ''}">${optionsHtml(list, nameKey, selId)}</select>`;
+        }
+        case 'SELECT_CITY': {
+          const selId = value && typeof value === 'object' ? value.id : '';
+          // Rendered empty on purpose: initializeCityDropdowns() (called right after
+          // the table is injected) fetches the real city list per distinct Province
+          // present in the result set and populates + preselects every row's City
+          // dropdown from it, so the user gets the FULL list of cities for their
+          // province on first load, not just the one already-saved value.
+          return `<select class="form-select field-input city-select" data-field="${field.key}" id="${inputId}" data-selected-city="${selId}"><option value="">Select City</option></select>`;
+        }
+        case 'TEXTAREA':
+          return `<textarea class="form-control field-input" data-field="${field.key}" id="${inputId}" rows="2" data-original-value="${escapeHtml(value)}">${escapeHtml(value)}</textarea>`;
+        case 'NUMBER':
+          return `<input type="text" inputmode="numeric" class="form-control field-input${numericOnlyClass(field.key)}" data-field="${field.key}" id="${inputId}" value="${value !== null && value !== undefined ? value : ''}" data-original-value="${value !== null && value !== undefined ? value : ''}"${maxLengthAttr(field.key)}>`;
+        case 'DATE':
+          return `<input type="text" class="form-control field-input dob-input" data-field="${field.key}" id="${inputId}" value="${escapeHtml(value)}" data-original-value="${escapeHtml(value)}">`;
+        case 'EMAIL':
+          return `<input type="email" class="form-control field-input" data-field="${field.key}" id="${inputId}" value="${escapeHtml(value)}" data-original-value="${escapeHtml(value)}">`;
+        case 'CHECKBOX':
+          return `<input type="checkbox" class="form-check form-check-input field-input" data-field="${field.key}" id="${inputId}" ${value ? 'checked' : ''} data-original-value="${value ? 'true' : 'false'}">`;
+        default:
+          return `<input type="text" class="form-control field-input${numericOnlyClass(field.key)}" data-field="${field.key}" id="${inputId}" value="${escapeHtml(value)}" data-original-value="${escapeHtml(value)}"${maxLengthAttr(field.key)}>`;
+      }
+    }
+
+    function renderTable(rows) {
+      let headerCols = '<th>SNo</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>PSRN</th>';
+      currentFields.forEach(f => headerCols += `<th>${escapeHtml(f.label)}</th>`);
+      let html = `<table class="table table-bordered table-sm" id="update-table"><thead><tr>${headerCols}</tr></thead><tbody class="table-group-divider">`;
+      rows.forEach(row => {
+        html += `<tr data-uuid="${row.uuid}"><td>${row.sno}</td><td>${escapeHtml(row.studentName)}</td><td>${escapeHtml(row.fatherName)}</td><td>${escapeHtml(row.motherName)}</td><td>${escapeHtml(row.psrn)}</td>`;
+        currentFields.forEach(f => {
+          html += `<td>${widgetHtml(f, row.uuid, row.values[f.key])}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      $('#student-data-container').html(html);
+      $('#btn-save-row').show();
+      initializeCityDropdowns();
+      wireBlurValidation();
+      wireProvinceCityCascade();
+      initializeDobPickers();
+    }
+
+    function initializeDobPickers() {
+      $('.dob-input').each(function () {
+        const el = this;
+        flatpickr(el, {
+          altInput: true,
+          altFormat: 'd/M/Y',   // displayed to the user: dd/MMM/yyyy
+          dateFormat: 'Y-m-d',  // kept on the real input: what Save sends, ISO yyyy-MM-dd
+          altInputClass: 'form-control',
+          allowInput: false,
+          maxDate: 'today',
+          onChange: function () {
+            // Make sure the existing blur/change validation wiring (which listens
+            // on the real .field-input element) still fires when a date is picked.
+            $(el).trigger('change');
+          }
+        });
+      });
+    }
+
+    /**
+     * Populates every row's (initially empty) City dropdown with the FULL list of
+     * cities for that row's currently-selected Province, and preselects whichever
+     * city was already saved (from data-selected-city). Rows are grouped by
+     * Province id first so a class where most students share the same Province
+     * fires one /cities lookup per distinct Province, not one per row.
+     */
+    function initializeCityDropdowns() {
+      const provinceGroups = {};
+      $('.field-input[data-field="province"]').each(function () {
+        const provinceId = $(this).val();
+        if (!provinceId) return;
+        const citySelect = $(this).closest('tr').find('.field-input[data-field="city"]');
+        if (citySelect.length === 0) return;
+        if (!provinceGroups[provinceId]) provinceGroups[provinceId] = [];
+        provinceGroups[provinceId].push(citySelect);
+      });
+      Object.keys(provinceGroups).forEach(provinceId => {
+        $.ajax({
+          type: 'GET',
+          url: `${contextPath}student/student/cities`,
+          data: { provinceId: provinceId },
+          success: function (cities) {
+            provinceGroups[provinceId].forEach(citySelect => {
+              const targetCityId = citySelect.attr('data-selected-city');
+              citySelect.empty().append('<option value="">Select City</option>');
+              (cities || []).forEach(c => {
+                const sel = (targetCityId && String(targetCityId) === String(c.id)) ? 'selected' : '';
+                citySelect.append(`<option value="${c.id}" ${sel}>${escapeHtml(c.cityName)}</option>`);
+              });
+            });
+          },
+          error: function () {
+            showMsg('error', 'Unable to load cities for a selected Province', 'Error');
+          }
+        });
+      });
+    }
+
+    function wireProvinceCityCascade() {
+      $('.field-input[data-field="province"]').on('change', function () {
+        const row = $(this).closest('tr');
+        const provinceId = $(this).val();
+        const citySelect = row.find('.field-input[data-field="city"]');
+        citySelect.empty().append('<option value="">Select City</option>');
+        if (!provinceId) return;
+        $.ajax({
+          type: 'GET',
+          url: `${contextPath}student/student/cities`,
+          data: { provinceId: provinceId },
+          success: function (cities) {
+            (cities || []).forEach(c => {
+              citySelect.append(`<option value="${c.id}">${escapeHtml(c.cityName)}</option>`);
+            });
+          },
+          error: function () {
+            showMsg('error', 'Unable to load cities for the selected Province', 'Error');
+          }
+        });
+      });
+    }
+
+    const VALIDATORS = {
+      email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'Please enter a valid email address',
+      mobile1: v => (v === '' || /^[0-9]{10}$/.test(v)) ? null : 'Mobile number must be exactly 10 digits',
+      mobile2: v => (v === '' || /^[0-9]{10}$/.test(v)) ? null : 'Mobile number must be exactly 10 digits',
+      pincode: v => (v === '' || /^[0-9]{6}$/.test(v)) ? null : 'Pincode must be a 6-digit number',
+      aadharNo: v => (v === '' || /^[0-9]{12}$/.test(v)) ? null : 'Aadhar number must be exactly 12 digits',
+      penNo: v => (v === '' || /^[0-9]{11}$/.test(v)) ? null : 'PEN number must be exactly 11 digits',
+      apaarId: v => (v === '' || /^[0-9]{12}$/.test(v)) ? null : 'Apaar Id must be exactly 12 digits',
+      accountNo: v => (v === '' || /^[0-9]+$/.test(v)) ? null : 'Account number must contain digits only',
+      height: v => (v === '' || /^[0-9]{2,3}$/.test(v)) ? null : 'Height must be 2 or 3 digits',
+      weight: v => (v === '' || /^[0-9]{2,3}$/.test(v)) ? null : 'Weight must be 2 or 3 digits',
+      distanceFromSchool: v => (v === '' || /^[0-9]{1,2}$/.test(v)) ? null : 'Distance from school must be 1 or 2 digits',
+      dob: v => v !== '' ? null : 'Please enter a valid date of birth',
+      address: v => v !== '' ? null : 'This field is required',
+      fatherQualification: v => v !== '' ? null : 'This field is required',
+      motherQualification: v => v !== '' ? null : 'This field is required',
+      fatherOccupation: v => v !== '' ? null : 'This field is required',
+      branchName: v => v !== '' ? null : 'This field is required',
+      ifscCode: v => v === '' ? 'This field is required' : (v.length <= 11 ? null : 'IFSC code must not exceed 11 characters'),
+      classSrNo: v => (v === '' || v.length <= 5) ? null : 'SR No must not exceed 5 characters',
+      gender: v => v !== '' ? null : 'Please select a value',
+      religion: v => v !== '' ? null : 'Please select a value',
+      bloodGroup: v => v !== '' ? null : 'Please select a value',
+      bodyType: v => v !== '' ? null : 'Please select a value'
+    };
+
+    function checkEmailAvailability(input) {
+      const email = input.val().trim();
+      if (!email) return;
+      const row = input.closest('tr');
+      const uuid = row.attr('data-uuid');
+      fetch(`${contextPath}checkStudentEmailAvailability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, excludeUuid: uuid })
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.available) {
+            input.addClass('is-invalid');
+            showMsg('error', 'This email is already used by another student', 'Error');
+          }
+        })
+        .catch(() => {});
+    }
+
+    function wireBlurValidation() {
+      $('.field-input').off('blur change').on('blur change', function () {
+        const $el = $(this);
+        const field = $el.data('field');
+        let value = $el.is(':checkbox') ? $el.is(':checked') : $el.val();
+        $el.removeClass('is-invalid');
+        if (typeof value === 'string') {
+          value = value.trim();
+          if (['mobile1', 'mobile2', 'pincode', 'aadharNo', 'penNo', 'apaarId', 'accountNo', 'height', 'weight', 'distanceFromSchool'].includes(field)) {
+            value = value.replace(/[^0-9]/g, '');
+            $el.val(value);
+          }
+        }
+        if (VALIDATORS[field]) {
+          const error = VALIDATORS[field](value);
+          if (error) {
+            $el.addClass('is-invalid');
+            showMsg('error', error, 'Validation');
+            return;
+          }
+        }
+        if (field === 'email' && typeof value === 'string' && value !== '') {
+          checkEmailAvailability($el);
+        }
+      });
+    }
+
+    $('#getListBtn').on('click', function () {
+      if (!validateMandatoryFilters()) return;
+      const requestData = {
+        mediumId: $('#medium').val(),
+        gradeId: $('#grade').val(),
+        sectionId: $('#section').val(),
+        groupKey: $('#dataGroup').val()
+      };
+      fetch(`${contextPath}getStudentsByFieldGroup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      })
+        .then(response => {
+          if (!response.ok) { throw new Error('Network response was not ok'); }
+          return response.json();
+        })
+        .then(data => {
+          if (typeof data === 'string') {
+            $('#student-data-container').empty();
+            $('#btn-save-row').hide();
+            showMsg('warning', data, 'No Data');
+            return;
+          }
+          currentGroupKey = data.groupKey;
+          currentFields = data.fields;
+          renderTable(data.rows);
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'An error occurred while fetching students', 'Error');
+        });
+    });
+
+    /**
+     * Answers "did the user actually change this field?" by comparing its current
+     * value against the baseline every widget was stamped with at render time
+     * (data-original-value, or data-selected-city for the City dropdown, which
+     * starts empty and only gets its real options filled in after the table
+     * renders — see initializeCityDropdowns). Used to skip untouched rows on Save
+     * rather than re-writing/re-timestamping records nothing happened to.
+     */
+    function isFieldChanged($el) {
+      if ($el.is(':checkbox')) {
+        const original = $el.attr('data-original-value') === 'true';
+        return $el.is(':checked') !== original;
+      }
+      if ($el.hasClass('city-select')) {
+        const original = $el.attr('data-selected-city') || '';
+        return String($el.val() || '') !== String(original);
+      }
+      const original = $el.attr('data-original-value') || '';
+      return String($el.val() || '').trim() !== String(original).trim();
+    }
+
+    function markFieldSaved($el) {
+      if ($el.is(':checkbox')) {
+        $el.attr('data-original-value', $el.is(':checked') ? 'true' : 'false');
+      } else if ($el.hasClass('city-select')) {
+        $el.attr('data-selected-city', $el.val() || '');
+      } else {
+        $el.attr('data-original-value', $el.val() || '');
+      }
+    }
+
+    // Toggles a Save-type button between its normal label and a spinner +
+    // "Saving…" state, matching the pattern already used in
+    // mid-session-migration.html so this page's confirm dialog looks and
+    // behaves the same as the rest of the app.
+    function setLoading(btnId, isLoading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = isLoading;
+      btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+      btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+    }
+
+    let saveConfirmModalInstance = null;
+    let pendingSaveRows = null;
+    let pendingRowElementsByUuid = null;
+    let pendingSkippedUnchangedCount = 0;
+
+    function performSave() {
+      fetch(`${contextPath}saveStudentFieldGroup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupKey: currentGroupKey, rows: pendingSaveRows })
+      })
+        .then(r => r.json())
+        .then(data => {
+          const results = data.results || [];
+          const failed = results.filter(r => !r.success);
+          const passed = results.filter(r => r.success);
+
+          // Re-baseline every field that actually saved, so clicking Save again
+          // with no further edits correctly reports "no changes" a second time
+          // instead of re-sending the same values forever.
+          passed.forEach(r => {
+            const $row = pendingRowElementsByUuid[r.uuid];
+            if ($row) {
+              $row.find('.field-input').each(function () { markFieldSaved($(this)); });
+            }
+          });
+
+          if (saveConfirmModalInstance) {
+            saveConfirmModalInstance.hide();
+          }
+
+          const skippedNote = pendingSkippedUnchangedCount > 0 ? `, ${pendingSkippedUnchangedCount} unchanged (skipped)` : '';
+          if (failed.length === 0) {
+            showMsg('success', `${passed.length} record(s) saved successfully${skippedNote}`, 'Updated');
+          } else {
+            showMsg('warning', `${passed.length} saved${skippedNote}, ${failed.length} failed. First error: ${failed[0].message}`, 'Partial Save');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'An error occurred while saving. Please try again.', 'Error');
+        })
+        .finally(() => {
+          setLoading('confirmSaveDataBtn', false);
+          pendingSaveRows = null;
+          pendingRowElementsByUuid = null;
+        });
+    }
+
+    $('#saveDataBtn').on('click', function () {
+      // Nothing was ever loaded, or the loaded list has zero rows - there is
+      // nothing to save, so say that plainly rather than falling through to
+      // a generic "no changes" message below.
+      const $tableRows = $('#update-table tbody tr');
+      if ($('#update-table').length === 0 || $tableRows.length === 0) {
+        showMsg('error', 'There is nothing to save. Please select Medium/Grade/Section/Select Data and click "Get Student List" first.', 'Nothing to Save');
+        return;
+      }
+
+      let hasError = false;
+      $('.field-input').each(function () {
+        if ($(this).hasClass('is-invalid')) hasError = true;
+      });
+      if (hasError) {
+        showMsg('error', 'Please fix the highlighted fields before saving', 'Error');
+        return;
+      }
+
+      const rows = [];
+      const rowElementsByUuid = {};
+      let skippedUnchangedCount = 0;
+
+      $tableRows.each(function () {
+        const $row = $(this);
+        const uuid = $row.attr('data-uuid');
+        const values = {};
+        let rowChanged = false;
+        $row.find('.field-input').each(function () {
+          const $el = $(this);
+          const field = $el.data('field');
+          values[field] = $el.is(':checkbox') ? $el.is(':checked') : $el.val();
+          if (isFieldChanged($el)) rowChanged = true;
+        });
+        if (rowChanged) {
+          rows.push({ uuid: uuid, values: values });
+          rowElementsByUuid[uuid] = $row;
+        } else {
+          skippedUnchangedCount++;
+        }
+      });
+
+      if (rows.length === 0) {
+        showMsg('error', 'No changes detected. Please modify at least one field before saving.', 'Nothing to Save');
+        return;
+      }
+
+      // Stash the computed payload for the modal's confirm button, then show
+      // the "look good?" confirmation with the exact record count before
+      // anything is actually sent to the server.
+      pendingSaveRows = rows;
+      pendingRowElementsByUuid = rowElementsByUuid;
+      pendingSkippedUnchangedCount = skippedUnchangedCount;
+
+      $('#saveConfirmCount').text(rows.length);
+      $('#saveConfirmSkippedNote').text(skippedUnchangedCount > 0 ? `${skippedUnchangedCount} unchanged row(s) will be skipped.` : '');
+
+      if (!saveConfirmModalInstance) {
+        saveConfirmModalInstance = new bootstrap.Modal(document.getElementById('saveConfirmModal'));
+      }
+      saveConfirmModalInstance.show();
+    });
+
+    $('#confirmSaveDataBtn').on('click', function () {
+      if (!pendingSaveRows || pendingSaveRows.length === 0) {
+        return;
+      }
+      setLoading('confirmSaveDataBtn', true);
+      performSave();
+    });
+  </script>
+</section>
+</body>
+</html>
