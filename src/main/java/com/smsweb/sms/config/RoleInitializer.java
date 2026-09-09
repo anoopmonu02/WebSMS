@@ -144,6 +144,13 @@ public class RoleInitializer {
                     "STUDENT_EDIT_AADHAR",
                     "Update Aadhaar number for students");
 
+            // Bulk-update a chosen group of student detail fields (gender/qualifications,
+            // religion/category/caste, address/city/pincode, bank details, height/weight,
+            // health/eye issue, mobiles, and more) for every student in a Medium/Grade/Section
+            seed(screenRepo, "Student", "Update Student Details (Group-wise)",
+                    "STUDENT_UPDATE_DETAILS",
+                    "Bulk-update a chosen group of student fields for all students in a Medium/Grade/Section");
+
             // Student lookup / cross-year search
             seed(screenRepo, "Student", "Search Student",
                     "STUDENT_SEARCH",
@@ -163,6 +170,11 @@ public class RoleInitializer {
             seed(screenRepo, "Student", "ID Card Print",
                     "STUDENT_ID_CARD",
                     "Print ID cards for students by medium, grade and section");
+
+            // Grade-wise student health report (height/weight/health & eye issue/photo)
+            seed(screenRepo, "Student", "Student Health Report (Grade-wise)",
+                    "STUDENT_HEALTH_REPORT",
+                    "View/print the student health report for a medium/grade/section");
 
             // Grade-wise bulk photo download (images + matching Excel sheet, zipped)
             seed(screenRepo, "Student", "Grade-wise Images Download",

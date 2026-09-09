@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Student Health Report (Grade-wise)</div>
+        <hr/>
+      </div>
+    </div>
+    <div class="row mt-3 pb-3">
+      <div class="col-md-2">
+        <label for="medium" class="form-label">Medium</label>
+        <select name="medium" id="medium" class="form-select">
+          <option value="">Select Medium</option>
+          <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="grade" class="form-label">Grade</label>
+        <select name="grade" id="grade" class="form-select">
+          <option value="">Select Grade</option>
+          <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="section" class="form-label">Section</label>
+        <select name="section" id="section" class="form-select">
+          <option value="">Select Section</option>
+          <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+        </select>
+      </div>
+      <div class="col-md-2">&nbsp;</div>
+      <div class="col-md-2 align-self-end">
+        <button type="button" class="btn btn-primary" id="getListBtn"><i class="bi bi-search"></i> Get List</button>
+      </div>
+    </div>
+    <hr/>
+
+    <div class="row" id="report-toolbar-row" style="display:none;">
+      <div class="col-12 mb-3 text-end">
+        <button type="button" class="btn btn-outline-success" id="printReportBtn"><i class="bi bi-printer-fill"></i> Print Report</button>
+      </div>
+    </div>
+
+    <div class="col-12 table-responsive" id="health-report-table-container"></div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    let currentRows = [];
+    let currentFilterLabel = '';
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "600",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Yes/No rendered with a relatable icon rather than plain text, per the
+    // reviewed feature request - a heart-pulse icon for Health Issue, an eye
+    // icon for Eye Issue, green check when clear either way.
+    function issueBadge(hasIssue, iconWhenYes) {
+      if (hasIssue) {
+        return `<span class="text-danger"><i class="bi ${iconWhenYes} me-1"></i>Yes</span>`;
+      }
+      return `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>No</span>`;
+    }
+
+    function buildTableHtml(rows) {
+      let html = '<table class="table table-hover table-bordered table-striped table-sm align-middle" id="health-report-table">';
+      html += '<thead class="table-light"><tr>' +
+        '<th>SNo</th><th>Grade-Section</th><th>SR No</th><th>Student Name</th>' +
+        '<th>Father Name</th><th>Mother Name</th><th>Address</th><th>Mobile No1</th><th>Mobile No2</th>' +
+        '<th>Body Type</th><th>Blood Group</th><th>Height</th><th>Weight</th>' +
+        '<th>Health Issue</th><th>Eye Issue</th><th>Image</th></tr></thead><tbody class="table-group-divider">';
+
+      rows.forEach((r, idx) => {
+        const gradeSection = [r.gradeName, r.sectionName].filter(Boolean).join(' - ');
+        const imgUrl = r.pic ? (contextPath + 'student/images/' + encodeURIComponent(r.pic)) : '';
+        const imgHtml = imgUrl
+          ? `<img src="${imgUrl}" alt="Photo" style="width:45px;height:45px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span class="text-muted small" style="display:none;">No Photo</span>`
+          : '<span class="text-muted small">No Photo</span>';
+
+        html += '<tr>' +
+          `<td>${idx + 1}</td>` +
+          `<td>${escapeHtml(gradeSection)}</td>` +
+          `<td>${escapeHtml(r.classSrNo)}</td>` +
+          `<td>${escapeHtml(r.studentName)}</td>` +
+          `<td>${escapeHtml(r.fatherName)}</td>` +
+          `<td>${escapeHtml(r.motherName)}</td>` +
+          `<td>${escapeHtml(r.address)}</td>` +
+          `<td>${escapeHtml(r.mobile1)}</td>` +
+          `<td>${escapeHtml(r.mobile2)}</td>` +
+          `<td>${escapeHtml(r.bodyType)}</td>` +
+          `<td>${escapeHtml(r.bloodGroup)}</td>` +
+          `<td>${r.height !== null && r.height !== undefined ? escapeHtml(r.height) : '-'}</td>` +
+          `<td>${r.weight !== null && r.weight !== undefined ? escapeHtml(r.weight) : '-'}</td>` +
+          `<td>${issueBadge(r.haveHealthIssues, 'bi-heart-pulse-fill')}</td>` +
+          `<td>${issueBadge(r.haveEyeIssue, 'bi-eye-fill')}</td>` +
+          `<td>${imgHtml}</td>` +
+          '</tr>';
+      });
+
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function validateFilters() {
+      const medium = $('#medium').val();
+      const grade = $('#grade').val();
+      const section = $('#section').val();
+      if (!medium || !grade || !section) {
+        showMsg('warning', 'Medium, Grade and Section are all mandatory.', 'Warning');
+        return false;
+      }
+      return true;
+    }
+
+    $('#getListBtn').on('click', function () {
+      if (!validateFilters()) return;
+
+      currentFilterLabel = $('#medium option:selected').text() + ' / ' +
+        $('#grade option:selected').text() + ' / ' + $('#section option:selected').text();
+
+      fetch(`${contextPath}getStudentsForHealthReport`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medium: $('#medium').val(), grade: $('#grade').val(), section: $('#section').val() })
+      })
+        .then(response => {
+          if (!response.ok) { throw new Error('Network response was not ok'); }
+          return response.json();
+        })
+        .then(data => {
+          currentRows = Array.isArray(data) ? data : [];
+          if (currentRows.length === 0) {
+            $('#health-report-table-container').html('<p class="text-muted text-center py-4">No students found for the selected Medium/Grade/Section.</p>');
+            $('#report-toolbar-row').hide();
+            showMsg('warning', 'No students found for the given criteria.', 'No Data');
+            return;
+          }
+          $('#health-report-table-container').html(buildTableHtml(currentRows));
+          $('#report-toolbar-row').show();
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'An error occurred while fetching the report.', 'Error');
+        });
+    });
+
+    // Print in popup window (same pattern as fee-receipt / id-card-print).
+    function printDiv(divId, title) {
+      const el = document.getElementById(divId);
+      if (!el || el.children.length === 0) {
+        showMsg('warning', 'No data to print', 'Warning');
+        return;
+      }
+
+      const printWindow = window.open('', 'PRINT', 'height=900,width=1200,top=50,left=100');
+      if (!printWindow) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return;
+      }
+
+      printWindow.document.write('<html><head><title>' + title + '</title>');
+      printWindow.document.write(
+        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" ' +
+        'integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">'
+      );
+      printWindow.document.write(`<style>
+        @page { size: A4 landscape; margin: 8mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 10px; font-family: 'Segoe UI', Arial, sans-serif; }
+        table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        th, td { padding: 4px 6px; border: 1px solid #999; text-align: left; }
+        thead th { background: #eee; }
+        h4 { margin: 0 0 4px 0; }
+        p.meta { margin: 0 0 10px 0; color: #555; font-size: 12px; }
+      </style>`);
+      printWindow.document.write('</head><body>');
+      printWindow.document.write('<h4>Student Health Report (Grade-wise)</h4>');
+      printWindow.document.write('<p class="meta">' + escapeHtml(currentFilterLabel) +
+        ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString() + '</p>');
+      printWindow.document.write(el.innerHTML);
+      printWindow.document.write('</body></html>');
+
+      printWindow.document.close();
+      printWindow.focus();
+
+      setTimeout(function () {
+        printWindow.print();
+        printWindow.close();
+      }, 1000);
+    }
+
+    $('#printReportBtn').on('click', function () {
+      printDiv('health-report-table-container', 'Student Health Report');
+    });
+  </script>
+</section>
+</body>
+</html>
