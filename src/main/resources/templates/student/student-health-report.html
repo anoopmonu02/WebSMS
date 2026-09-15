@@ -9,11 +9,17 @@
   <div class="container-fluid px-3">
     <div class="row mt-2">
       <div class="col-md-12">
-        <div class="card-header fs-3">Student Health Report (Grade-wise)</div>
+        <div class="card-header fs-3">Student Health Report</div>
         <hr/>
       </div>
     </div>
     <div class="row mt-3 pb-3">
+      <div class="col-md-2">
+        <label for="academicYear" class="form-label">Academic Year</label>
+        <select name="academicYear" id="academicYear" class="form-select">
+          <option th:each="ay : ${academicYears}" th:value="${ay.id}" th:text="${ay.sessionFormat}">Academic Year</option>
+        </select>
+      </div>
       <div class="col-md-2">
         <label for="medium" class="form-label">Medium</label>
         <select name="medium" id="medium" class="form-select">
@@ -22,21 +28,14 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label for="grade" class="form-label">Grade</label>
-        <select name="grade" id="grade" class="form-select">
-          <option value="">Select Grade</option>
-          <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+        <label for="health" class="form-label">Health</label>
+        <select name="health" id="health" class="form-select">
+          <option value="">Select Health</option>
+          <option th:each="h : ${healthOptions}" th:value="${h}" th:text="${h}">Health</option>
         </select>
       </div>
-      <div class="col-md-2">
-        <label for="section" class="form-label">Section</label>
-        <select name="section" id="section" class="form-select">
-          <option value="">Select Section</option>
-          <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
-        </select>
-      </div>
-      <div class="col-md-2">&nbsp;</div>
-      <div class="col-md-2 align-self-end">
+      <div class="col-md-3">&nbsp;</div>
+      <div class="col-md-3 align-self-end">
         <button type="button" class="btn btn-primary" id="getListBtn"><i class="bi bi-search"></i> Get List</button>
       </div>
     </div>
@@ -60,21 +59,11 @@
 
     function showMsg(msgType, msg, headerValue) {
       toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": false,
-        "progressBar": false,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "600",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+        "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+        "showMethod": "fadeIn", "hideMethod": "fadeOut"
       };
       toastr[msgType](msg, headerValue);
     }
@@ -82,16 +71,10 @@
     function escapeHtml(value) {
       if (value === null || value === undefined) return '';
       return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // Yes/No rendered with a relatable icon rather than plain text, per the
-    // reviewed feature request - a heart-pulse icon for Health Issue, an eye
-    // icon for Eye Issue, green check when clear either way.
     function issueBadge(hasIssue, iconWhenYes) {
       if (hasIssue) {
         return `<span class="text-danger"><i class="bi ${iconWhenYes} me-1"></i>Yes</span>`;
@@ -139,11 +122,11 @@
     }
 
     function validateFilters() {
+      const academicYear = $('#academicYear').val();
       const medium = $('#medium').val();
-      const grade = $('#grade').val();
-      const section = $('#section').val();
-      if (!medium || !grade || !section) {
-        showMsg('warning', 'Medium, Grade and Section are all mandatory.', 'Warning');
+      const health = $('#health').val();
+      if (!academicYear || !medium || !health) {
+        showMsg('warning', 'Academic Year, Medium and Health are all mandatory.', 'Warning');
         return false;
       }
       return true;
@@ -152,13 +135,17 @@
     $('#getListBtn').on('click', function () {
       if (!validateFilters()) return;
 
-      currentFilterLabel = $('#medium option:selected').text() + ' / ' +
-        $('#grade option:selected').text() + ' / ' + $('#section option:selected').text();
+      currentFilterLabel = $('#academicYear option:selected').text() + ' / ' +
+        $('#medium option:selected').text() + ' / ' + $('#health option:selected').text();
 
       fetch(`${contextPath}getStudentsForHealthReport`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medium: $('#medium').val(), grade: $('#grade').val(), section: $('#section').val() })
+        body: JSON.stringify({
+          academicYearId: $('#academicYear').val(),
+          medium: $('#medium').val(),
+          bodyType: $('#health').val()
+        })
       })
         .then(response => {
           if (!response.ok) { throw new Error('Network response was not ok'); }
@@ -167,7 +154,7 @@
         .then(data => {
           currentRows = Array.isArray(data) ? data : [];
           if (currentRows.length === 0) {
-            $('#health-report-table-container').html('<p class="text-muted text-center py-4">No students found for the selected Medium/Grade/Section.</p>');
+            $('#health-report-table-container').html('<p class="text-muted text-center py-4">No students found for the selected Academic Year/Medium/Health.</p>');
             $('#report-toolbar-row').hide();
             showMsg('warning', 'No students found for the given criteria.', 'No Data');
             return;
@@ -181,20 +168,14 @@
         });
     });
 
-    // Print in popup window (same pattern as fee-receipt / id-card-print).
     function printDiv(divId, title) {
       const el = document.getElementById(divId);
       if (!el || el.children.length === 0) {
         showMsg('warning', 'No data to print', 'Warning');
         return;
       }
-
       const printWindow = window.open('', 'PRINT', 'height=900,width=1200,top=50,left=100');
-      if (!printWindow) {
-        alert('Popup blocked! Please allow popups for this site.');
-        return;
-      }
-
+      if (!printWindow) { alert('Popup blocked! Please allow popups for this site.'); return; }
       printWindow.document.write('<html><head><title>' + title + '</title>');
       printWindow.document.write(
         '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" ' +
@@ -211,19 +192,14 @@
         p.meta { margin: 0 0 10px 0; color: #555; font-size: 12px; }
       </style>`);
       printWindow.document.write('</head><body>');
-      printWindow.document.write('<h4>Student Health Report (Grade-wise)</h4>');
+      printWindow.document.write('<h4>Student Health Report</h4>');
       printWindow.document.write('<p class="meta">' + escapeHtml(currentFilterLabel) +
         ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString() + '</p>');
       printWindow.document.write(el.innerHTML);
       printWindow.document.write('</body></html>');
-
       printWindow.document.close();
       printWindow.focus();
-
-      setTimeout(function () {
-        printWindow.print();
-        printWindow.close();
-      }, 1000);
+      setTimeout(function () { printWindow.print(); printWindow.close(); }, 1000);
     }
 
     $('#printReportBtn').on('click', function () {

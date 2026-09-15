@@ -151,6 +151,14 @@ public class RoleInitializer {
                     "STUDENT_UPDATE_DETAILS",
                     "Bulk-update a chosen group of student fields for all students in a Medium/Grade/Section");
 
+            // Bulk photo upload for every student in a Medium/Grade/Section - each
+            // row uploads and saves its own photo immediately (not the batch
+            // Save-Changes pattern Update Student Details uses), reusing the exact
+            // same image storage/serving path as add/edit student.
+            seed(screenRepo, "Student", "Update Student Images (Group-wise)",
+                    "STUDENT_UPDATE_IMAGES",
+                    "Bulk-upload a photo for each student in a Medium/Grade/Section");
+
             // Student lookup / cross-year search
             seed(screenRepo, "Student", "Search Student",
                     "STUDENT_SEARCH",
@@ -171,10 +179,12 @@ public class RoleInitializer {
                     "STUDENT_ID_CARD",
                     "Print ID cards for students by medium, grade and section");
 
-            // Grade-wise student health report (height/weight/health & eye issue/photo)
-            seed(screenRepo, "Student", "Student Health Report (Grade-wise)",
+            // Student health report (height/weight/health & eye issue/photo), filtered
+            // by Academic Year + Medium + Health (Student.bodyType) - not grade/section,
+            // since results can span every grade/section in the selected Medium.
+            seed(screenRepo, "Student", "Student Health Report",
                     "STUDENT_HEALTH_REPORT",
-                    "View/print the student health report for a medium/grade/section");
+                    "View/print the student health report for an academic year/medium/health selection");
 
             // Grade-wise bulk photo download (images + matching Excel sheet, zipped)
             seed(screenRepo, "Student", "Grade-wise Images Download",

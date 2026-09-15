@@ -57,7 +57,31 @@ public class DropdownService {
     }
 
     public List<String> getBodyTypes() {
-        return Arrays.asList("NORMAL", "BLIND", "PHYSICALLY CHALLENGED", "OTHER");
+        return Arrays.asList("NORMAL", "PERSON WITH A DISABILITY");
+    }
+
+    /**
+     * Father/Mother Qualification dropdown for add-student, edit-student, and
+     * Update Student Details (Group-wise). Key = label shown to the user,
+     * value = what actually gets stored — deliberately already UPPERCASE so it
+     * matches Student's existing @PreUpdate auto-uppercase behavior on these two
+     * fields (see Student.toUpperCase()) and the values already present in the
+     * database (confirmed via "select distinct father_qualification/mother_qualification
+     * from students" — existing data already uses "GRADUATE/EQUIVALENT" and
+     * "POST GRADUATE/EQUIVALENT"), so nothing needs to be migrated and nothing
+     * gets silently rewritten out from under the dropdown after a save.
+     */
+    public Map<String, String> getQualifications() {
+        Map<String, String> qualifications = new LinkedHashMap<>();
+        qualifications.put("Illiterate", "ILLITERATE");
+        qualifications.put("Upto 5th", "UPTO 5TH");
+        qualifications.put("Upto 8th", "UPTO 8TH");
+        qualifications.put("Upto 10th", "UPTO 10TH");
+        qualifications.put("Upto 12th/equivalent", "UPTO 12TH/EQUIVALENT");
+        qualifications.put("Graduate/equivalent", "GRADUATE/EQUIVALENT");
+        qualifications.put("Post Graduate/equivalent", "POST GRADUATE/EQUIVALENT");
+        qualifications.put("Doctorate/equivalent", "DOCTORATE/EQUIVALENT");
+        return qualifications;
     }
 
     public List<String> getReligions(){

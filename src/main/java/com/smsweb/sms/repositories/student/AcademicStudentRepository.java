@@ -94,6 +94,19 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
             @Param("academicYearId") Long academicYearId,
             @Param("medium") Long medium);
 
+    // Backs the "Student Health Report" filter of Academic Year + Medium + Health
+    // (Student.bodyType) — joins to Student since bodyType lives there, not on
+    // AcademicStudent itself. Mirrors findAllStudentsDetails' exact school+
+    // academicYear+medium+status='Active' scoping above, just with the added
+    // Student join and case-insensitive bodyType match (values are the fixed
+    // "NORMAL"/"PERSON WITH A DISABILITY" pair from DropdownService.getBodyTypes()).
+    @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId AND a.medium.id = :medium AND UPPER(s.bodyType) = UPPER(:bodyType) AND a.status = 'Active'")
+    List<AcademicStudent> findAllStudentsByMediumAndBodyType(
+            @Param("schoolId") Long schoolId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("medium") Long medium,
+            @Param("bodyType") String bodyType);
+
 
     @Query("SELECT f FROM AcademicStudent f WHERE f.school.id = :schoolId AND f.academicYear.id = :academicYearId AND f.medium.id = :medium")
     List<AcademicStudent> findAllStudentsDetailsBySession(

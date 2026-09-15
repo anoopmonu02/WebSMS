@@ -163,6 +163,7 @@ public class StudentController extends BaseController {
         model.addAttribute("bloodGroups", dropdownService.getBloodGroups());
         model.addAttribute("religions", dropdownService.getReligions());
         model.addAttribute("bodyTypes", dropdownService.getBodyTypes());
+        model.addAttribute("qualifications", dropdownService.getQualifications());
         return model;
     }
 

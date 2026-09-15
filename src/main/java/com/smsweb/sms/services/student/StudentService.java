@@ -456,6 +456,13 @@ public class StudentService {
         return academicStudentRepository.findAllBySchool_IdAndMedium_IdAndGrade_IdAndSection_IdAndAcademicYear_IdAndStatusIgnoreCase(school, medium, grade, section, academic, "Active");
     }
 
+    // Backs the "Student Health Report" filter of Academic Year + Medium + Health
+    // (Student.bodyType) - see AcademicStudentRepository.findAllStudentsByMediumAndBodyType.
+    public List<AcademicStudent> getAllStudentsByMediumAndBodyType(Long medium, Long academic, Long school, String bodyType){
+        log.info("Inside getAllStudentsByMediumAndBodyType");
+        return academicStudentRepository.findAllStudentsByMediumAndBodyType(school, academic, medium, bodyType);
+    }
+
     @Transactional
     public String deleteStudent(Long id){
         log.info("Inside deleteStudent");

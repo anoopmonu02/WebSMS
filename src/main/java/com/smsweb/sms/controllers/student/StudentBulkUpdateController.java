@@ -43,6 +43,7 @@ public class StudentBulkUpdateController extends BaseController {
         model.addAttribute("bloodGroups", dropdownService.getBloodGroups());
         model.addAttribute("bodyTypes", dropdownService.getBodyTypes());
         model.addAttribute("religions", dropdownService.getReligions());
+        model.addAttribute("qualifications", dropdownService.getQualifications());
         return "student/update-student-details";
     }
 }
