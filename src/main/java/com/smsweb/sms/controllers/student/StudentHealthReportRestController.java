@@ -2,7 +2,6 @@ package com.smsweb.sms.controllers.student;
 
 import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.controllers.BaseController;
-import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.mobile.StudentHealthInfo;
 import com.smsweb.sms.models.permission.AccessType;
@@ -18,16 +17,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * NEW, isolated REST controller backing "Student Health Report (Grade-wise)".
- * Mapped at the same flat (no class-level prefix) scheme StudentRestController
- * already uses for its AJAX endpoints (e.g. getStudentsForIdCard) — does not
- * modify that existing controller or any of its endpoints.
+ * REST controller backing "Student Health Report". Filters are Academic
+ * Year + Medium + Health (Student.bodyType) - see StudentHealthReportController
+ * for why Grade/Section are not filters here.
  *
  * Role gate matches StudentHealthReportController (the page) and the
  * sidebar's "Student Report" sub-group in base.html exactly.
@@ -38,6 +37,8 @@ public class StudentHealthReportRestController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(StudentHealthReportRestController.class);
 
+    private static final List<String> VALID_BODY_TYPES = List.of("NORMAL", "PERSON WITH A DISABILITY");
+
     @Autowired
     private StudentService studentService;
 
@@ -46,30 +47,36 @@ public class StudentHealthReportRestController extends BaseController {
 
     @CheckAccess(screen = "STUDENT_HEALTH_REPORT", type = AccessType.VIEW)
     @PostMapping("/getStudentsForHealthReport")
-    public java.util.List<Map<String, Object>> getStudentsForHealthReport(
+    public List<Map<String, Object>> getStudentsForHealthReport(
             @RequestBody Map<String, String> requestBody, Model model) {
         log.info("Inside getStudentsForHealthReport");
 
         Long mediumId = parseLong(requestBody != null ? requestBody.get("medium") : null);
-        Long gradeId = parseLong(requestBody != null ? requestBody.get("grade") : null);
-        Long sectionId = parseLong(requestBody != null ? requestBody.get("section") : null);
-        if (mediumId == null || gradeId == null || sectionId == null) {
-            return java.util.Collections.emptyList();
+        Long academicYearId = parseLong(requestBody != null ? requestBody.get("academicYearId") : null);
+        String bodyType = requestBody != null ? requestBody.get("bodyType") : null;
+        boolean bodyTypeValid = bodyType != null && VALID_BODY_TYPES.stream().anyMatch(v -> v.equalsIgnoreCase(bodyType.trim()));
+        if (mediumId == null || academicYearId == null || !bodyTypeValid) {
+            return Collections.emptyList();
         }
 
         School school = (School) model.getAttribute("school");
-        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
-        if (school == null || academicYear == null) {
-            return java.util.Collections.emptyList();
+        // school comes from the session (BaseController), never from the request -
+        // it's what scopes the client-supplied academicYearId/mediumId below, the
+        // same implicit school-scoping pattern the "Total Deposited Fee" report
+        // uses (every downstream query ANDs the session's school.getId() together
+        // with the client-supplied id, so another school's id simply matches zero
+        // rows instead of needing a separate explicit ownership check).
+        if (school == null) {
+            return Collections.emptyList();
         }
 
-        List<AcademicStudent> students = studentService.getAllStudentsByGrade(
-                mediumId, gradeId, sectionId, academicYear.getId(), school.getId());
+        List<AcademicStudent> students = studentService.getAllStudentsByMediumAndBodyType(
+                mediumId, academicYearId, school.getId(), bodyType.trim());
         if (students.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
-        // One batch query for the whole class's health info instead of a
+        // One batch query for the whole result set's health info instead of a
         // separate lookup per student (avoids an N+1 query pattern).
         List<Long> academicStudentIds = students.stream()
                 .map(AcademicStudent::getId)

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Update Student Images (Group-wise)</div>
+        <hr/>
+      </div>
+    </div>
+    <div class="row mt-3 pb-3">
+      <div class="col-md-2">
+        <label for="medium" class="form-label">Medium</label>
+        <select name="medium" id="medium" class="form-select">
+          <option value="">Select Medium</option>
+          <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="grade" class="form-label">Grade</label>
+        <select name="grade" id="grade" class="form-select">
+          <option value="">Select Grade</option>
+          <option th:each="grade : ${grades}" th:value="${grade.id}" th:text="${grade.gradeName}">Grade</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="section" class="form-label">Section</label>
+        <select name="section" id="section" class="form-select">
+          <option value="">Select Section</option>
+          <option th:each="section : ${sections}" th:value="${section.id}" th:text="${section.sectionName}">Section</option>
+        </select>
+      </div>
+      <div class="col-md-3">&nbsp;</div>
+      <div class="col-md-3 align-self-end">
+        <button type="button" class="btn btn-primary" id="getListBtn"><i class="bi bi-search"></i> Get Student List</button>
+      </div>
+    </div>
+    <hr/>
+
+    <div class="col-12" id="student-data-container"></div>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <a th:href="@{'/student/update-student-details'}" class="btn btn-outline-primary"><i class="bi bi-arrow-left-circle me-1"></i>Update Student Details</a>
+      </div>
+    </div>
+  </div>
+
+  <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+  <script th:src="@{/js/toastr.min.js}"></script>
+  <script type="text/javascript" th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+
+    function showMsg(msgType, msg, headerValue) {
+      toastr.options = {
+        "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+        "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+        "showDuration": "600", "hideDuration": "1000", "timeOut": "5000",
+        "extendedTimeOut": "1000", "showEasing": "swing", "hideEasing": "linear",
+        "showMethod": "fadeIn", "hideMethod": "fadeOut"
+      };
+      toastr[msgType](msg, headerValue);
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function validateMandatoryFilters() {
+      const medium = $('#medium').val();
+      const grade = $('#grade').val();
+      const section = $('#section').val();
+      if (!medium || !grade || !section) {
+        showMsg('error', 'Medium/Grade/Section are all mandatory', 'Warning');
+        return false;
+      }
+      return true;
+    }
+
+    function photoThumbHtml(uuid, pic) {
+      const imgUrl = pic ? (contextPath + 'student/images/' + encodeURIComponent(pic)) : '';
+      if (!imgUrl) {
+        return `<span class="text-muted small" id="currentPic_${uuid}">No Photo</span>`;
+      }
+      return `<img id="currentPic_${uuid}" src="${imgUrl}" alt="Photo" style="width:60px;height:60px;object-fit:cover;border-radius:4px;" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'text-muted small',id:'currentPic_${uuid}',textContent:'No Photo'}));">`;
+    }
+
+    // Toggles a row's Save button between its normal label and a spinner +
+    // "Saving…" state, same pattern update-student-details.html's confirm-save
+    // button already uses, so this page's rows look and behave the same way.
+    function setLoading(btnId, isLoading) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.disabled = isLoading;
+      btn.querySelector('.normal-state').classList.toggle('d-none', isLoading);
+      btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
+    }
+
+    function renderTable(rows) {
+      let html = `<table class="table table-bordered table-sm" id="update-table">
+        <thead><tr>
+          <th>SNo</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>PSRN</th>
+          <th>Current Photo</th><th>New Photo</th><th>Action</th>
+        </tr></thead><tbody class="table-group-divider">`;
+
+      rows.forEach(row => {
+        const uuid = row.uuid;
+        html += `<tr data-uuid="${uuid}">
+          <td>${row.sno}</td>
+          <td>${escapeHtml(row.studentName)}</td>
+          <td>${escapeHtml(row.fatherName)}</td>
+          <td>${escapeHtml(row.motherName)}</td>
+          <td>${escapeHtml(row.psrn)}</td>
+          <td>${photoThumbHtml(uuid, row.pic)}</td>
+          <td>
+            <input type="file" accept="image/*" class="form-control form-control-sm image-file-input" data-uuid="${uuid}" id="fileInput_${uuid}">
+            <img id="previewImg_${uuid}" alt="Preview" style="display:none;width:60px;height:60px;object-fit:cover;border-radius:4px;margin-top:6px;">
+          </td>
+          <td>
+            <button type="button" class="btn btn-primary btn-sm row-save-btn" data-uuid="${uuid}" id="saveBtn_${uuid}" disabled>
+              <span class="normal-state"><i class="bi bi-save2-fill"></i> Save</span>
+              <span class="loading-state d-none"><span class="spinner-border spinner-border-sm me-1"></span>Saving&hellip;</span>
+            </button>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      $('#student-data-container').html(html);
+    }
+
+    $('#getListBtn').on('click', function () {
+      if (!validateMandatoryFilters()) return;
+      const requestData = {
+        mediumId: $('#medium').val(),
+        gradeId: $('#grade').val(),
+        sectionId: $('#section').val()
+      };
+      fetch(`${contextPath}getStudentsForImageUpload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      })
+        .then(response => {
+          if (!response.ok) { throw new Error('Network response was not ok'); }
+          return response.json();
+        })
+        .then(data => {
+          if (typeof data === 'string') {
+            $('#student-data-container').empty();
+            showMsg('warning', data, 'No Data');
+            return;
+          }
+          renderTable(data.rows);
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'An error occurred while fetching students', 'Error');
+        });
+    });
+
+    // Delegated (not re-bound per render) so it applies to every row the table
+    // ever renders, including rows added after a later "Get Student List" click.
+    $(document).on('change', '.image-file-input', function () {
+      const uuid = $(this).data('uuid');
+      const file = this.files && this.files[0] ? this.files[0] : null;
+      const $preview = $(`#previewImg_${uuid}`);
+      const $saveBtn = $(`#saveBtn_${uuid}`);
+      if (!file) {
+        $preview.hide().attr('src', '');
+        $saveBtn.prop('disabled', true);
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      $preview.attr('src', objectUrl).show();
+      $saveBtn.prop('disabled', false);
+    });
+
+    $(document).on('click', '.row-save-btn', function () {
+      const uuid = $(this).data('uuid');
+      const btnId = `saveBtn_${uuid}`;
+      const studentName = $(this).closest('tr').find('td').eq(1).text().trim();
+      const fileInput = document.getElementById(`fileInput_${uuid}`);
+      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!file) {
+        showMsg('error', 'Please choose an image to upload.', 'Nothing to Save');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('uuid', uuid);
+      formData.append('file', file);
+
+      setLoading(btnId, true);
+      fetch(`${contextPath}saveStudentImage`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => {
+          if (!response.ok) { throw new Error('Network response was not ok'); }
+          return response.json();
+        })
+        .then(data => {
+          if (data && data.success) {
+            const imgUrl = contextPath + 'student/images/' + encodeURIComponent(data.pic) + '?v=' + Date.now();
+            const $currentPic = $(`#currentPic_${uuid}`);
+            if ($currentPic.is('img')) {
+              $currentPic.attr('src', imgUrl);
+            } else {
+              $currentPic.replaceWith(`<img id="currentPic_${uuid}" src="${imgUrl}" alt="Photo" style="width:60px;height:60px;object-fit:cover;border-radius:4px;">`);
+            }
+            fileInput.value = '';
+            $(`#previewImg_${uuid}`).hide().attr('src', '');
+            $(`#${btnId}`).prop('disabled', true);
+            showMsg('success', (studentName ? 'Photo saved for ' + studentName : (data.message || 'Photo saved')), 'Saved');
+          } else {
+            showMsg('error', (data && data.message) ? data.message : 'Unable to save the photo.', 'Error');
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showMsg('error', 'An error occurred while saving the photo. Please try again.', 'Error');
+        })
+        .finally(() => {
+          setLoading(btnId, false);
+        });
+    });
+  </script>
+</section>
+</body>
+</html>

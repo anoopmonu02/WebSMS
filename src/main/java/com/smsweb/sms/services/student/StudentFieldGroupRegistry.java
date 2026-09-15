@@ -60,8 +60,8 @@ public class StudentFieldGroupRegistry {
         )));
         GROUPS.add(new GroupDef("GENDER_QUALIFICATION", "Gender, Father Qualification, Mother Qualification", List.of(
                 new FieldDef("gender", "Gender", Widget.SELECT),
-                new FieldDef("fatherQualification", "Father Qualification", Widget.TEXT),
-                new FieldDef("motherQualification", "Mother Qualification", Widget.TEXT)
+                new FieldDef("fatherQualification", "Father Qualification", Widget.SELECT),
+                new FieldDef("motherQualification", "Mother Qualification", Widget.SELECT)
         )));
         GROUPS.add(new GroupDef("RELIGION_CATEGORY_CASTE", "Religion, Category, Caste", List.of(
                 new FieldDef("religion", "Religion", Widget.SELECT),
@@ -84,8 +84,10 @@ public class StudentFieldGroupRegistry {
                 new FieldDef("height", "Height", Widget.NUMBER),
                 new FieldDef("weight", "Weight", Widget.NUMBER)
         )));
-        GROUPS.add(new GroupDef("HEALTH_EYE_ISSUE", "Have Health Issue, Have Eye Issue", List.of(
+        GROUPS.add(new GroupDef("HEALTH_EYE_ISSUE", "Body Type, Have Health Issue, Health Issue Description, Have Eye Issue", List.of(
+                new FieldDef("bodyType", "Body Type", Widget.SELECT),
                 new FieldDef("haveHealthIssues", "Have Health Issue", Widget.CHECKBOX),
+                new FieldDef("healthIssueDescription", "Health Issue Description", Widget.TEXT),
                 new FieldDef("haveEyeIssue", "Have Eye Issue", Widget.CHECKBOX)
         )));
         GROUPS.add(new GroupDef("MOBILE1_MOBILE2", "Mobile1, Mobile2", List.of(
@@ -115,9 +117,6 @@ public class StudentFieldGroupRegistry {
         )));
         GROUPS.add(new GroupDef("BLOOD_GROUP", "Blood Group", List.of(
                 new FieldDef("bloodGroup", "Blood Group", Widget.SELECT)
-        )));
-        GROUPS.add(new GroupDef("BODY_TYPE", "Body Type", List.of(
-                new FieldDef("bodyType", "Body Type", Widget.SELECT)
         )));
     }
 

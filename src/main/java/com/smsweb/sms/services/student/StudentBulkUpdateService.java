@@ -70,6 +70,15 @@ public class StudentBulkUpdateService {
     private UserService userService;
 
     private static final Set<String> GENDER_VALUES = Set.of("MALE", "FEMALE", "NO_PREFERENCE");
+
+    // Kept in sync with DropdownService.getQualifications()'s values (the
+    // uppercase codes, not the display labels) — Father/Mother Qualification
+    // is optional, but if a value IS sent it must be one of these, same
+    // defense-in-depth precedent as GENDER_VALUES/BODY_TYPE below.
+    private static final Set<String> QUALIFICATION_VALUES = Set.of(
+            "ILLITERATE", "UPTO 5TH", "UPTO 8TH", "UPTO 10TH", "UPTO 12TH/EQUIVALENT",
+            "GRADUATE/EQUIVALENT", "POST GRADUATE/EQUIVALENT", "DOCTORATE/EQUIVALENT"
+    );
     private static final Pattern DIGITS_ONLY = Pattern.compile("^[0-9]+$");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
@@ -143,7 +152,9 @@ public class StudentBulkUpdateService {
             }
             case "HEALTH_EYE_ISSUE": {
                 Optional<StudentHealthInfo> hi = studentHealthInfoService.getByAcademicStudentId(as.getId());
+                values.put("bodyType", nvl(s.getBodyType()));
                 values.put("haveHealthIssues", hi.map(StudentHealthInfo::getHaveHealthIssues).orElse(false));
+                values.put("healthIssueDescription", hi.map(StudentHealthInfo::getHealthIssueDescription).orElse(""));
                 values.put("haveEyeIssue", hi.map(StudentHealthInfo::getHaveEyeIssue).orElse(false));
                 break;
             }
@@ -174,9 +185,6 @@ public class StudentBulkUpdateService {
                 break;
             case "BLOOD_GROUP":
                 values.put("bloodGroup", nvl(s.getBloodGroup()));
-                break;
-            case "BODY_TYPE":
-                values.put("bodyType", nvl(s.getBodyType()));
                 break;
             default:
                 break;
@@ -233,9 +241,17 @@ public class StudentBulkUpdateService {
             case "GENDER_QUALIFICATION": {
                 String gender = str(values.get("gender"));
                 if (!GENDER_VALUES.contains(gender)) return "Please select a valid Gender.";
+                String fatherQualification = str(values.get("fatherQualification"));
+                String motherQualification = str(values.get("motherQualification"));
+                if (!fatherQualification.isBlank() && !QUALIFICATION_VALUES.contains(fatherQualification)) {
+                    return "Please select a valid Father Qualification.";
+                }
+                if (!motherQualification.isBlank() && !QUALIFICATION_VALUES.contains(motherQualification)) {
+                    return "Please select a valid Mother Qualification.";
+                }
                 s.setGender(gender);
-                s.setFatherQualification(str(values.get("fatherQualification")));
-                s.setMotherQualification(str(values.get("motherQualification")));
+                s.setFatherQualification(fatherQualification);
+                s.setMotherQualification(motherQualification);
                 studentRepository.save(s);
                 return null;
             }
@@ -303,12 +319,27 @@ public class StudentBulkUpdateService {
                 return null;
             }
             case "HEALTH_EYE_ISSUE": {
+                String bodyType = str(values.get("bodyType"));
+                if (bodyType.isBlank()) return "Please select a Body Type.";
+                boolean isNormal = "NORMAL".equals(bodyType);
+                boolean isDisability = "PERSON WITH A DISABILITY".equals(bodyType);
+                if (!isNormal && !isDisability) return "Please select a valid Body Type.";
                 boolean haveHealth = boolVal(values.get("haveHealthIssues"));
                 boolean haveEye = boolVal(values.get("haveEyeIssue"));
+                String desc = str(values.get("healthIssueDescription"));
+                if (isNormal) {
+                    // Normal body type cannot carry a health/eye issue flag, regardless
+                    // of what the client sent — enforced here too, not just in the UI.
+                    haveHealth = false;
+                    haveEye = false;
+                } else if (!haveHealth && !haveEye) {
+                    return "For 'Person With A Disability', please select Have Health Issue or Have Eye Issue (or both).";
+                }
+                s.setBodyType(bodyType);
+                studentRepository.save(s);
                 StudentHealthInfo existing = studentHealthInfoService.getByAcademicStudentId(as.getId()).orElse(null);
                 Integer height = existing != null ? existing.getHeight() : null;
                 Integer weight = existing != null ? existing.getWeight() : null;
-                String desc = existing != null ? existing.getHealthIssueDescription() : null;
                 studentHealthInfoService.updateForStudent(as, height, weight, haveHealth, haveEye, desc, actor);
                 return null;
             }
@@ -383,11 +414,6 @@ public class StudentBulkUpdateService {
             }
             case "BLOOD_GROUP": {
                 s.setBloodGroup(str(values.get("bloodGroup")));
-                studentRepository.save(s);
-                return null;
-            }
-            case "BODY_TYPE": {
-                s.setBodyType(str(values.get("bodyType")));
                 studentRepository.save(s);
                 return null;
             }

@@ -94,6 +94,9 @@
     const BLOOD_GROUPS = /*[[${bloodGroups}]]*/ [];
     const BODY_TYPES = /*[[${bodyTypes}]]*/ [];
     const RELIGIONS = /*[[${religions}]]*/ [];
+    // Map of { "Display Label": "STORED_CODE" } from DropdownService.getQualifications().
+    const QUALIFICATIONS = /*[[${qualifications}]]*/ {};
+    const QUALIFICATION_OPTIONS = Object.entries(QUALIFICATIONS).map(([label, value]) => ({ value, label }));
 
     const GENDER_OPTIONS = [
       { value: 'MALE', label: 'Male' },
@@ -144,6 +147,81 @@
     // field including alphanumeric ones like IFSC and SR No.
     $(document).on('input', '.numeric-only-input', function () {
       this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
+    /**
+     * Cross-field rule for the merged Body Type / Have Health Issue / Health
+     * Issue Description / Have Eye Issue group (HEALTH_EYE_ISSUE):
+     *   - Body Type = NORMAL: Have Health Issue and Have Eye Issue are forced
+     *     off and disabled in that row - a Normal student cannot carry either flag.
+     *   - Body Type = PERSON WITH A DISABILITY: at least one of Have Health
+     *     Issue / Have Eye Issue must be checked (both enabled, neither forced).
+     * Returns an error string to show via a toast, or null when the row is fine.
+     * Safe to call on a row that isn't this group at all (no bodyType field in
+     * it) or on a row where Body Type hasn't been picked yet - both are no-ops.
+     */
+    function applyHealthEyeIssueRule($row) {
+      const $bodyType = $row.find('.field-input[data-field="bodyType"]');
+      if ($bodyType.length === 0) return null;
+      const $health = $row.find('.field-input[data-field="haveHealthIssues"]');
+      const $eye = $row.find('.field-input[data-field="haveEyeIssue"]');
+      const bodyType = $bodyType.val();
+
+      const isNormal = bodyType === 'NORMAL';
+      $health.prop('disabled', isNormal);
+      $eye.prop('disabled', isNormal);
+      if (isNormal) {
+        $health.prop('checked', false).removeClass('is-invalid');
+        $eye.prop('checked', false).removeClass('is-invalid');
+        return null;
+      }
+
+      if (bodyType === 'PERSON WITH A DISABILITY') {
+        const eitherChecked = $health.is(':checked') || $eye.is(':checked');
+        if (!eitherChecked) {
+          $health.addClass('is-invalid');
+          $eye.addClass('is-invalid');
+          return 'For "Person With A Disability", please select Have Health Issue or Have Eye Issue (or both)';
+        }
+      }
+      $health.removeClass('is-invalid');
+      $eye.removeClass('is-invalid');
+      return null;
+    }
+
+    /**
+     * Initial-render-only counterpart to applyHealthEyeIssueRule(): mirrors each
+     * row's already-saved Body Type into the disabled state of its Health/Eye
+     * Issue checkboxes, WITHOUT forcing them unchecked and WITHOUT flagging
+     * anything invalid. This group existed before this rule did, so some
+     * already-saved rows may not satisfy it yet (e.g. Normal + a checked issue
+     * from before this restriction existed) - loading the page must never
+     * silently rewrite or block-save a row nobody touched this session. The
+     * full rule (auto-uncheck, "at least one required") only engages once the
+     * user actively changes Body Type or a checkbox in that row - see the
+     * delegated 'change' handler below.
+     */
+    function setHealthEyeIssueDisabledState($row) {
+      const $bodyType = $row.find('.field-input[data-field="bodyType"]');
+      if ($bodyType.length === 0) return;
+      const $health = $row.find('.field-input[data-field="haveHealthIssues"]');
+      const $eye = $row.find('.field-input[data-field="haveEyeIssue"]');
+      const isNormal = $bodyType.val() === 'NORMAL';
+      $health.prop('disabled', isNormal);
+      $eye.prop('disabled', isNormal);
+    }
+
+    function applyHealthEyeIssueRuleToAllRows() {
+      $('#update-table tbody tr').each(function () {
+        setHealthEyeIssueDisabledState($(this));
+      });
+    }
+
+    $(document).on('change', '.field-input[data-field="bodyType"], .field-input[data-field="haveHealthIssues"], .field-input[data-field="haveEyeIssue"]', function () {
+      const error = applyHealthEyeIssueRule($(this).closest('tr'));
+      if (error) {
+        showMsg('error', error, 'Validation');
+      }
     });
 
     function showMsg(msgType, msg, headerValue) {
@@ -227,6 +305,9 @@
           if (field.key === 'bodyType') {
             return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(BODY_TYPES, value)}</select>`;
           }
+          if (field.key === 'fatherQualification' || field.key === 'motherQualification') {
+            return `<select class="form-select field-input" data-field="${field.key}" id="${inputId}" data-original-value="${escapeHtml(value)}">${fixedOptionsHtml(QUALIFICATION_OPTIONS, value)}</select>`;
+          }
           return `<input type="text" class="form-control field-input" data-field="${field.key}" id="${inputId}" value="${escapeHtml(value)}" data-original-value="${escapeHtml(value)}">`;
         case 'SELECT_LOOKUP': {
           let list = [], nameKey = 'name';
@@ -279,6 +360,7 @@
       wireBlurValidation();
       wireProvinceCityCascade();
       initializeDobPickers();
+      applyHealthEyeIssueRuleToAllRows();
     }
 
     function initializeDobPickers() {
@@ -376,8 +458,6 @@
       distanceFromSchool: v => (v === '' || /^[0-9]{1,2}$/.test(v)) ? null : 'Distance from school must be 1 or 2 digits',
       dob: v => v !== '' ? null : 'Please enter a valid date of birth',
       address: v => v !== '' ? null : 'This field is required',
-      fatherQualification: v => v !== '' ? null : 'This field is required',
-      motherQualification: v => v !== '' ? null : 'This field is required',
       fatherOccupation: v => v !== '' ? null : 'This field is required',
       branchName: v => v !== '' ? null : 'This field is required',
       ifscCode: v => v === '' ? 'This field is required' : (v.length <= 11 ? null : 'IFSC code must not exceed 11 characters'),
@@ -546,7 +626,13 @@
           if (failed.length === 0) {
             showMsg('success', `${passed.length} record(s) saved successfully${skippedNote}`, 'Updated');
           } else {
-            showMsg('warning', `${passed.length} saved${skippedNote}, ${failed.length} failed. First error: ${failed[0].message}`, 'Partial Save');
+            const namedFailures = failed.slice(0, 3).map(r => {
+              const $row = pendingRowElementsByUuid[r.uuid];
+              const name = $row ? $row.find('td').eq(1).text().trim() : r.uuid;
+              return `${name}: ${r.message}`;
+            }).join('; ');
+            const moreFailed = failed.length > 3 ? ` (+${failed.length - 3} more)` : '';
+            showMsg('warning', `${passed.length} saved${skippedNote}, ${failed.length} failed — ${namedFailures}${moreFailed}`, 'Partial Save');
           }
         })
         .catch(err => {
@@ -604,6 +690,37 @@
 
       if (rows.length === 0) {
         showMsg('error', 'No changes detected. Please modify at least one field before saving.', 'Nothing to Save');
+        return;
+      }
+
+      // Comprehensive pre-save check: wireBlurValidation only flags a field
+      // is-invalid once the user actually blurs/changes it, so a required
+      // field left at its original blank value (e.g. a student who never had
+      // a Gender saved) sails past the "hasError" scan above, the Confirm
+      // Save dialog promises a count that isn't actually achievable, and the
+      // student only finds out via a generic "1 failed" message after
+      // confirming. Re-running every VALIDATORS check against every field of
+      // every row that's actually about to be sent - touched or not - catches
+      // this up front and names exactly which student/field needs fixing.
+      const rowErrors = [];
+      rows.forEach(row => {
+        const $row = rowElementsByUuid[row.uuid];
+        const studentName = $row ? $row.find('td').eq(1).text().trim() : row.uuid;
+        Object.keys(row.values).forEach(field => {
+          if (!VALIDATORS[field]) return;
+          const error = VALIDATORS[field](row.values[field]);
+          if (!error) return;
+          const $fieldEl = $row ? $row.find(`.field-input[data-field="${field}"]`) : null;
+          if ($fieldEl && $fieldEl.length) $fieldEl.addClass('is-invalid');
+          const fieldDef = currentFields.find(f => f.key === field);
+          rowErrors.push(`${studentName} - ${fieldDef ? fieldDef.label : field}: ${error}`);
+        });
+      });
+
+      if (rowErrors.length > 0) {
+        const preview = rowErrors.slice(0, 3).join('; ');
+        const more = rowErrors.length > 3 ? ` (+${rowErrors.length - 3} more)` : '';
+        showMsg('error', `Please fix the following before saving — ${preview}${more}`, 'Validation');
         return;
       }
 

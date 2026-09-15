@@ -266,6 +266,32 @@ public class FileHandleHelper {
         return sanitized.isEmpty() ? "file" : sanitized;
     }
 
+    /**
+     * Deletes a previously-saved STUDENT image file by filename, if it exists.
+     * Purely additive - does not change saveImage() or any other existing
+     * method's behavior, and is not called from the web add/edit-student
+     * flow (left exactly as-is, per the project owner's explicit choice -
+     * that flow still leaks orphaned files on re-upload). Called by the
+     * "Update Student Images (Group-wise)" bulk upload page and by the
+     * mobile app's profile-photo self-edit upload, right after a replacement
+     * photo has been saved successfully, so repeated re-uploads on those two
+     * paths no longer leave old files orphaned on disk forever (every
+     * saveImage()/compressAndSave() call mints a brand-new filename; nothing
+     * before this method ever cleaned up the one it replaces).
+     */
+    public void deleteStudentImage(String fileName) {
+        if (fileName == null || fileName.isBlank()) return;
+        try {
+            Path path = Paths.get(STUDENT_IMG_FOLDER_PATH, fileName);
+            boolean deleted = Files.deleteIfExists(path);
+            if (!deleted) {
+                log.info("Old student image '{}' was already absent, nothing to delete", fileName);
+            }
+        } catch (Exception e) {
+            log.warn("Could not delete old student image '{}': {}", fileName, e.getMessage());
+        }
+    }
+
     private Path saveImageInDirectory(String folderPath, String imageFileName, MultipartFile imageFile) throws IOException {
         Path path = Paths.get(folderPath, imageFileName);
         File directory = new File(folderPath);

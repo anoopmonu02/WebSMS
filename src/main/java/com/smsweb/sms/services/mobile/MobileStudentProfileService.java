@@ -41,6 +41,7 @@ public class MobileStudentProfileService {
     @Autowired private BankChangeLogRepository bankChangeLogRepository;
     @Autowired private StudentHealthInfoService studentHealthInfoService;
     @Autowired private MobileImageCompressionHelper imageCompressionHelper;
+    @Autowired private com.smsweb.sms.helper.FileHandleHelper fileHandleHelper;
 
     // ── Read ─────────────────────────────────────────────────────────────────
 
@@ -200,13 +201,24 @@ public class MobileStudentProfileService {
                 userEntity);
     }
 
-    /** Compresses + saves the uploaded photo, updates Student.pic, returns the new URL. */
+    /**
+     * Compresses + saves the uploaded photo, updates Student.pic, returns the
+     * new URL. If the student already had a photo, the previous file is
+     * deleted from disk once the new one has saved successfully, so repeated
+     * re-uploads from the mobile app don't leak orphaned files (same cleanup
+     * FileHandleHelper.deleteStudentImage() already does for the web bulk
+     * "Update Student Images (Group-wise)" page).
+     */
     @Transactional
     public String updatePhoto(AcademicStudent as, MultipartFile file) throws IOException {
         String fileName = imageCompressionHelper.compressAndSave(file);
         Student student = as.getStudent();
+        String previousPic = student.getPic();
         student.setPic(fileName);
         studentRepository.save(student);
+        if (previousPic != null && !previousPic.isBlank() && !previousPic.equals(fileName)) {
+            fileHandleHelper.deleteStudentImage(previousPic);
+        }
         return "/sms/api/v1/student/pic/" + fileName;
     }
 
