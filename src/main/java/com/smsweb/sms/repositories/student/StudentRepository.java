@@ -25,6 +25,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
      *  update (PsrnBulkUpdateService) to match a student without needing a school context. */
     Optional<Student> findByPsrn(Long psrn);
 
+    /** PEN No has no DB uniqueness constraint, so this can legitimately return 0, 1, or >1
+     *  rows. Used by PenApaarUpdateService (PEN-No-matched Apaar ID bulk update) to detect
+     *  an ambiguous match (>1) and never guess which student to update. */
+    List<Student> findAllByPenNo(String penNo);
+
     /** Diagnostic lookup (no school/status filter) — used to give a precise reason
      * (not found vs. inactive vs. wrong school) when a Regional-Details upload row fails to match. */
     Optional<Student> findByUuid(UUID uuid);
