@@ -51,6 +51,30 @@
     </div>
   </div>
 
+  <!-- ── Camera capture modal (shared across all rows — one camera stream at a time) ── -->
+  <div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-camera-fill me-2"></i>Capture Photo</h5>
+          <button type="button" class="btn-close" id="cameraModalCloseBtn" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div id="cameraError" class="alert alert-danger small d-none"></div>
+          <video id="cameraVideo" autoplay playsinline muted style="width:100%;max-height:60vh;background:#000;border-radius:8px;"></video>
+          <img id="cameraCapturedPreview" alt="Captured preview" class="d-none" style="width:100%;max-height:60vh;object-fit:contain;border-radius:8px;background:#000;">
+          <canvas id="cameraCanvas" class="d-none"></canvas>
+        </div>
+        <div class="modal-footer justify-content-center flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="cameraSwitchBtn"><i class="bi bi-arrow-repeat me-1"></i>Switch Camera</button>
+          <button type="button" class="btn btn-primary" id="cameraCaptureBtn"><i class="bi bi-camera me-1"></i>Capture</button>
+          <button type="button" class="btn btn-warning d-none" id="cameraRetakeBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Retake</button>
+          <button type="button" class="btn btn-success d-none" id="cameraUseBtn"><i class="bi bi-check2-circle me-1"></i>Use Photo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
@@ -106,6 +130,202 @@
       btn.querySelector('.loading-state').classList.toggle('d-none', !isLoading);
     }
 
+    // ── Camera capture (mobile/tablet "capture live" button next to the file input) ──
+    // Only offered when the browser actually supports getUserMedia (feature-detected
+    // once, at load) — on an unsupported/older browser the Capture button is simply
+    // never rendered and the plain file input (gallery/camera-app picker) still works
+    // exactly as before. Requires a secure context (HTTPS, or http://localhost) —
+    // Chrome silently refuses getUserMedia anywhere else, which the error handling
+    // below surfaces as a message rather than a silent failure.
+    const cameraSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+    // Captured-via-webcam files live here, keyed by uuid — kept separate from the
+    // native <input type="file">, because a File/FileList can't be assigned to a
+    // file input from JS. Save reads from here first, falling back to the file
+    // input, and a manual file pick always clears any pending capture for that row.
+    const capturedFiles = {};
+
+    // Client-side size cap for a webcam capture, independent of (but well under)
+    // FileHandleHelper's hard 2MB server-side limit — keeps uploads fast on mobile
+    // data and avoids a round-trip just to get rejected for size.
+    const CAMERA_MAX_DIMENSION = 1280;       // long edge, px
+    const CAMERA_MAX_BYTES = 1.5 * 1024 * 1024; // 1.5 MB
+    const CAMERA_MIN_QUALITY = 0.4;
+
+    let cameraStream = null;
+    let cameraTargetUuid = null;
+    let cameraFacingMode = 'environment'; // back camera by default — matches photographing a person/document, not a selfie
+    let cameraCapturedBlob = null;
+    let cameraHasMultipleInputs = false;
+
+    function showCameraError(msg) {
+      const $err = $('#cameraError');
+      $err.text(msg).removeClass('d-none');
+    }
+    function clearCameraError() {
+      $('#cameraError').addClass('d-none').text('');
+    }
+
+    function stopCameraStream() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+    }
+
+    function resetCameraModalUi() {
+      clearCameraError();
+      $('#cameraVideo').removeClass('d-none');
+      $('#cameraCapturedPreview').addClass('d-none').attr('src', '');
+      $('#cameraCaptureBtn').removeClass('d-none');
+      $('#cameraRetakeBtn').addClass('d-none');
+      $('#cameraUseBtn').addClass('d-none');
+      cameraCapturedBlob = null;
+    }
+
+    function startCameraStream() {
+      clearCameraError();
+      stopCameraStream();
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraFacingMode }, audio: false })
+        .then(stream => {
+          cameraStream = stream;
+          const video = document.getElementById('cameraVideo');
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.error('Camera access failed', err);
+          let msg = 'Unable to access the camera.';
+          if (err && err.name === 'NotAllowedError') {
+            msg = 'Camera permission was denied. Please allow camera access, or close this and choose a photo from your files instead.';
+          } else if (err && err.name === 'NotFoundError') {
+            msg = 'No camera was found on this device.';
+          } else if (window.isSecureContext === false) {
+            msg = 'Camera capture needs a secure (HTTPS) connection.';
+          }
+          showCameraError(msg);
+        });
+    }
+
+    function openCameraModal(uuid) {
+      if (!cameraSupported) {
+        showMsg('error', 'Camera capture is not supported in this browser.', 'Not Supported');
+        return;
+      }
+      cameraTargetUuid = uuid;
+      cameraFacingMode = 'environment';
+      resetCameraModalUi();
+
+      // Only show "Switch Camera" when the device actually reports more than one
+      // camera (front + back) — most desktops have exactly one, or none.
+      cameraHasMultipleInputs = false;
+      if (navigator.mediaDevices.enumerateDevices) {
+        navigator.mediaDevices.enumerateDevices()
+          .then(devices => {
+            cameraHasMultipleInputs = devices.filter(d => d.kind === 'videoinput').length > 1;
+            $('#cameraSwitchBtn').toggleClass('d-none', !cameraHasMultipleInputs);
+          })
+          .catch(() => { $('#cameraSwitchBtn').addClass('d-none'); });
+      }
+
+      const modalEl = document.getElementById('cameraModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+      startCameraStream();
+    }
+
+    // Downscales to CAMERA_MAX_DIMENSION on the long edge, then re-encodes as JPEG,
+    // stepping quality down until under CAMERA_MAX_BYTES (or CAMERA_MIN_QUALITY is hit).
+    function captureFrameAsBlob(callback) {
+      const video = document.getElementById('cameraVideo');
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) { callback(null); return; }
+
+      let tw = vw, th = vh;
+      const longEdge = Math.max(vw, vh);
+      if (longEdge > CAMERA_MAX_DIMENSION) {
+        const scale = CAMERA_MAX_DIMENSION / longEdge;
+        tw = Math.round(vw * scale);
+        th = Math.round(vh * scale);
+      }
+
+      const canvas = document.getElementById('cameraCanvas');
+      canvas.width = tw;
+      canvas.height = th;
+      canvas.getContext('2d').drawImage(video, 0, 0, tw, th);
+
+      let quality = 0.85;
+      function attempt() {
+        canvas.toBlob(blob => {
+          if (!blob) { callback(null); return; }
+          if (blob.size <= CAMERA_MAX_BYTES || quality <= CAMERA_MIN_QUALITY) {
+            callback(blob);
+          } else {
+            quality = Math.max(CAMERA_MIN_QUALITY, quality - 0.15);
+            attempt();
+          }
+        }, 'image/jpeg', quality);
+      }
+      attempt();
+    }
+
+    $('#cameraCaptureBtn').on('click', function () {
+      captureFrameAsBlob(function (blob) {
+        if (!blob) {
+          showCameraError('Could not capture a photo — please try again.');
+          return;
+        }
+        cameraCapturedBlob = blob;
+        stopCameraStream(); // freeze on the captured frame; camera light off while the user decides
+        const objectUrl = URL.createObjectURL(blob);
+        $('#cameraCapturedPreview').attr('src', objectUrl).removeClass('d-none');
+        $('#cameraVideo').addClass('d-none');
+        $('#cameraCaptureBtn').addClass('d-none');
+        $('#cameraRetakeBtn').removeClass('d-none');
+        $('#cameraUseBtn').removeClass('d-none');
+      });
+    });
+
+    $('#cameraRetakeBtn').on('click', function () {
+      resetCameraModalUi();
+      startCameraStream();
+    });
+
+    $('#cameraUseBtn').on('click', function () {
+      if (!cameraCapturedBlob || !cameraTargetUuid) return;
+      const uuid = cameraTargetUuid;
+      const file = new File([cameraCapturedBlob], `capture_${uuid}_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      capturedFiles[uuid] = file;
+
+      // Clear any manually-picked file for this row so there's exactly one
+      // pending source of truth, then refresh the row's preview/Save state.
+      const fileInput = document.getElementById(`fileInput_${uuid}`);
+      if (fileInput) fileInput.value = '';
+      const objectUrl = URL.createObjectURL(file);
+      $(`#previewImg_${uuid}`).attr('src', objectUrl).show();
+      $(`#saveBtn_${uuid}`).prop('disabled', false);
+
+      const modalEl = document.getElementById('cameraModal');
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+    });
+
+    document.getElementById('cameraModalCloseBtn')?.addEventListener('click', function () {
+      const modalEl = document.getElementById('cameraModal');
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+    });
+
+    $('#cameraSwitchBtn').on('click', function () {
+      cameraFacingMode = (cameraFacingMode === 'environment') ? 'user' : 'environment';
+      resetCameraModalUi();
+      startCameraStream();
+    });
+
+    // Safety net: whatever closed the modal (X button, backdrop, ESC), always
+    // release the camera — a stream left open keeps the camera indicator lit.
+    document.getElementById('cameraModal')?.addEventListener('hidden.bs.modal', function () {
+      stopCameraStream();
+      cameraTargetUuid = null;
+    });
+
     function renderTable(rows) {
       let html = `<table class="table table-bordered table-sm" id="update-table">
         <thead><tr>
@@ -115,6 +335,9 @@
 
       rows.forEach(row => {
         const uuid = row.uuid;
+        const captureBtnHtml = cameraSupported
+          ? `<button type="button" class="btn btn-outline-secondary btn-sm capture-photo-btn flex-shrink-0" data-uuid="${uuid}" title="Capture Photo" aria-label="Capture Photo"><i class="bi bi-camera-fill"></i></button>`
+          : '';
         html += `<tr data-uuid="${uuid}">
           <td>${row.sno}</td>
           <td>${escapeHtml(row.studentName)}</td>
@@ -123,7 +346,10 @@
           <td>${escapeHtml(row.psrn)}</td>
           <td>${photoThumbHtml(uuid, row.pic)}</td>
           <td>
-            <input type="file" accept="image/*" class="form-control form-control-sm image-file-input" data-uuid="${uuid}" id="fileInput_${uuid}">
+            <div class="d-flex align-items-center gap-1">
+              ${captureBtnHtml}
+              <input type="file" accept="image/*" class="form-control form-control-sm image-file-input" data-uuid="${uuid}" id="fileInput_${uuid}">
+            </div>
             <img id="previewImg_${uuid}" alt="Preview" style="display:none;width:60px;height:60px;object-fit:cover;border-radius:4px;margin-top:6px;">
           </td>
           <td>
@@ -176,6 +402,8 @@
       const file = this.files && this.files[0] ? this.files[0] : null;
       const $preview = $(`#previewImg_${uuid}`);
       const $saveBtn = $(`#saveBtn_${uuid}`);
+      // A manual pick always supersedes a pending webcam capture for this row.
+      delete capturedFiles[uuid];
       if (!file) {
         $preview.hide().attr('src', '');
         $saveBtn.prop('disabled', true);
@@ -186,12 +414,20 @@
       $saveBtn.prop('disabled', false);
     });
 
+    $(document).on('click', '.capture-photo-btn', function () {
+      const uuid = $(this).data('uuid');
+      openCameraModal(uuid);
+    });
+
     $(document).on('click', '.row-save-btn', function () {
       const uuid = $(this).data('uuid');
       const btnId = `saveBtn_${uuid}`;
       const studentName = $(this).closest('tr').find('td').eq(1).text().trim();
       const fileInput = document.getElementById(`fileInput_${uuid}`);
-      const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      // A captured-via-webcam file (if any) takes priority; otherwise fall back
+      // to whatever's in the native file input. Only one is ever populated at a
+      // time — see the change/capture handlers above.
+      const file = capturedFiles[uuid] || (fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
       if (!file) {
         showMsg('error', 'Please choose an image to upload.', 'Nothing to Save');
         return;
@@ -219,7 +455,8 @@
             } else {
               $currentPic.replaceWith(`<img id="currentPic_${uuid}" src="${imgUrl}" alt="Photo" style="width:60px;height:60px;object-fit:cover;border-radius:4px;">`);
             }
-            fileInput.value = '';
+            delete capturedFiles[uuid];
+            if (fileInput) fileInput.value = '';
             $(`#previewImg_${uuid}`).hide().attr('src', '');
             $(`#${btnId}`).prop('disabled', true);
             showMsg('success', (studentName ? 'Photo saved for ' + studentName : (data.message || 'Photo saved')), 'Saved');

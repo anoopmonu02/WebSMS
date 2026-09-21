@@ -50,6 +50,28 @@
     <div class="col-12 table-responsive" id="health-report-table-container"></div>
   </div>
 
+  <!-- ── Photo hover-preview (floating, appended to body so it's never clipped by the
+       table's own borders/overflow — positioned by JS next to the cursor) ── -->
+  <div id="healthPhotoHoverPreview" style="display:none;position:fixed;z-index:3000;padding:4px;background:#fff;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;">
+    <img id="healthPhotoHoverPreviewImg" alt="Photo preview" style="display:block;width:220px;height:220px;object-fit:cover;border-radius:6px;background:#000;">
+  </div>
+
+  <!-- ── Photo full-size preview modal (click/tap — works the same on touch devices,
+       where hover doesn't apply) ── -->
+  <div class="modal fade" id="healthPhotoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="healthPhotoModalLabel">Photo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="healthPhotoModalImg" src="" alt="Student photo" style="max-width:100%;max-height:70vh;object-fit:contain;border-radius:8px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
@@ -93,8 +115,10 @@
       rows.forEach((r, idx) => {
         const gradeSection = [r.gradeName, r.sectionName].filter(Boolean).join(' - ');
         const imgUrl = r.pic ? (contextPath + 'student/images/' + encodeURIComponent(r.pic)) : '';
+        // data-full/data-name feed the hover-preview and click modal below — the name is
+        // shown in the modal title so the enlarged photo is easy to tie back to the row.
         const imgHtml = imgUrl
-          ? `<img src="${imgUrl}" alt="Photo" style="width:45px;height:45px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span class="text-muted small" style="display:none;">No Photo</span>`
+          ? `<img src="${imgUrl}" alt="Photo" class="health-photo-thumb" data-full="${imgUrl}" data-name="${escapeHtml(r.studentName)}" style="width:45px;height:45px;object-fit:cover;border-radius:4px;cursor:zoom-in;" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span class="text-muted small" style="display:none;">No Photo</span>`
           : '<span class="text-muted small">No Photo</span>';
 
         html += '<tr>' +
@@ -120,6 +144,47 @@
       html += '</tbody></table>';
       return html;
     }
+
+    // ── Photo zoom: hover shows a larger floating preview next to the cursor (desktop),
+    // click/tap opens a full-size modal (works on touch devices too, where hover never
+    // fires). Delegated on .health-photo-thumb so it applies to every table the page
+    // ever renders, including a fresh one after a later "Get List" click.
+    const $hoverPreview = $('#healthPhotoHoverPreview');
+
+    function positionHoverPreview(e) {
+      const boxSize = 228; // 220px image + padding/border
+      const margin = 16;
+      let left = e.clientX + margin;
+      let top = e.clientY + margin;
+      if (left + boxSize + margin > window.innerWidth) left = e.clientX - boxSize - margin;
+      if (top + boxSize + margin > window.innerHeight) top = e.clientY - boxSize - margin;
+      $hoverPreview.css({ left: Math.max(margin, left) + 'px', top: Math.max(margin, top) + 'px' });
+    }
+
+    $(document).on('mouseenter', '.health-photo-thumb', function (e) {
+      const src = $(this).data('full');
+      if (!src) return;
+      $('#healthPhotoHoverPreviewImg').attr('src', src);
+      positionHoverPreview(e);
+      $hoverPreview.show();
+    });
+    $(document).on('mousemove', '.health-photo-thumb', function (e) {
+      positionHoverPreview(e);
+    });
+    $(document).on('mouseleave', '.health-photo-thumb', function () {
+      $hoverPreview.hide();
+    });
+
+    $(document).on('click', '.health-photo-thumb', function () {
+      const src = $(this).data('full');
+      const name = $(this).data('name');
+      if (!src) return;
+      $hoverPreview.hide();
+      $('#healthPhotoModalImg').attr('src', src);
+      $('#healthPhotoModalLabel').text(name ? ('Photo — ' + name) : 'Photo');
+      const modalEl = document.getElementById('healthPhotoModal');
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
 
     function validateFilters() {
       const academicYear = $('#academicYear').val();

@@ -827,6 +827,12 @@
                                 <span>PEN/Apaar Update</span>
                             </a>
                         </li>
+                        <li sec:authorize="hasRole('ROLE_SUPERADMIN')" class="sidebar-item">
+                            <a class="sidebar-link" th:href="@{/admin/pen-apaar-update}">
+                                <i class="bi bi-upc-scan text-secondary"></i>
+                                <span>PEN No &rarr; Apaar Update</span>
+                            </a>
+                        </li>
                         <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')" class="sidebar-item">
                             <a class="sidebar-link" th:href="@{/admin/app-config}">
                                 <i class="bi bi-sliders text-primary"></i>
