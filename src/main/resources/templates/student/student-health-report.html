@@ -6,6 +6,16 @@
 </head>
 <body>
 <section>
+<style>
+  /* The report table has enough columns that it can exceed the page width,
+     especially with Address/Health Description in play — force a reliable
+     horizontal scrollbar on the wrapping .table-responsive div (Bootstrap's
+     default overflow-x:auto only kicks in once the table itself is wider
+     than its container, which a min-width guarantees rather than letting
+     columns squish down to illegibility instead). */
+  #health-report-table { min-width: 1650px; }
+  #health-report-table-container.table-responsive { overflow-x: auto; }
+</style>
   <div class="container-fluid px-3">
     <div class="row mt-2">
       <div class="col-md-12">
@@ -107,10 +117,10 @@
     function buildTableHtml(rows) {
       let html = '<table class="table table-hover table-bordered table-striped table-sm align-middle" id="health-report-table">';
       html += '<thead class="table-light"><tr>' +
-        '<th>SNo</th><th>Grade-Section</th><th>SR No</th><th>Student Name</th>' +
-        '<th>Father Name</th><th>Mother Name</th><th>Address</th><th>Mobile No1</th><th>Mobile No2</th>' +
+        '<th>SNo</th><th>Grade</th><th>SR No</th><th>Student Name</th>' +
+        '<th>Father Name</th><th>Mother Name</th><th>Address</th><th>Mobile 1</th><th>Mobile 2</th>' +
         '<th>Body Type</th><th>Blood Group</th><th>Height</th><th>Weight</th>' +
-        '<th>Health Issue</th><th>Eye Issue</th><th>Image</th></tr></thead><tbody class="table-group-divider">';
+        '<th>Health Issue</th><th>Health Description</th><th>Eye Issue</th><th>Image</th></tr></thead><tbody class="table-group-divider">';
 
       rows.forEach((r, idx) => {
         const gradeSection = [r.gradeName, r.sectionName].filter(Boolean).join(' - ');
@@ -136,6 +146,7 @@
           `<td>${r.height !== null && r.height !== undefined ? escapeHtml(r.height) : '-'}</td>` +
           `<td>${r.weight !== null && r.weight !== undefined ? escapeHtml(r.weight) : '-'}</td>` +
           `<td>${issueBadge(r.haveHealthIssues, 'bi-heart-pulse-fill')}</td>` +
+          `<td>${r.healthIssueDescription ? escapeHtml(r.healthIssueDescription) : '-'}</td>` +
           `<td>${issueBadge(r.haveEyeIssue, 'bi-eye-fill')}</td>` +
           `<td>${imgHtml}</td>` +
           '</tr>';
