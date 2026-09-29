@@ -203,6 +203,15 @@ public class AcademicStudentService {
                 .findAllByAcademicYearAndSchoolAndStudentNames(Long.valueOf(academicYear), school, qry);
     }
 
+    /**
+     * Search Alumni feature — resolves one AcademicStudent by UUID, scoped to the
+     * caller's own school (thin wrapper over the repository method of the same name).
+     */
+    public Optional<AcademicStudent> findByUuidAndSchool(java.util.UUID uuid, Long school) {
+        log.info("Inside findByUuidAndSchool - uuid={}, school={}", uuid, school);
+        return academicStudentRepository.findByUuidAndSchool_Id(uuid, school);
+    }
+
     // ── Mobile login helpers ──────────────────────────────────────────────────
 
     /** Finds a single active student by SR number (classSrNo). */

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Student</title>
+</head>
+<body>
+<section>
+
+    <style>
+        #alumni-wrap{background:#f8fafc;border:1px solid #eef1f5;border-radius:10px;overflow:hidden;}
+        #alumni-header{padding:16px 24px 12px;border-bottom:1px solid #e2e8f0;background:#ffffff;}
+        #alumni-toolbar{padding:14px 24px;background:#ffffff;border-bottom:1px solid #eef1f5;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+        #alumni-body{display:flex;min-height:520px;}
+        #alumni-results{width:320px;border-right:1px solid #eef1f5;background:#ffffff;overflow-y:auto;max-height:640px;flex-shrink:0;}
+        .alumni-row{display:flex;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+        .alumni-row:hover{background:#f8fafc;}
+        .alumni-row.active{background:#eef4fe;border-left:3px solid #2563eb;padding-left:11px;}
+        .alumni-avatar{width:34px;height:34px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;flex-shrink:0;}
+        #alumni-profile{flex-grow:1;padding:20px 24px;overflow-y:auto;max-height:640px;}
+        .alumni-card{background:#fff;border:1px solid #eef1f5;border-radius:12px;padding:15px 17px;box-shadow:0 1px 2px rgba(15,23,42,.04);margin-bottom:14px;}
+        .alumni-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:9px;}
+        .alumni-field-row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:4px 0;border-bottom:1px dashed #f1f5f9;}
+        .alumni-field-row:last-child{border-bottom:none;}
+        .alumni-field-row span:first-child{color:#94a3b8;flex-shrink:0;}
+        .alumni-field-row span:last-child{font-weight:600;color:#0f172a;text-align:right;}
+        .alumni-chip{background:#eef4fe;color:#1d5fa8;font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;}
+        .alumni-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;background:#e2e8f0;color:#475569;border-radius:20px;padding:3px 10px;}
+        #alumni-footer-note{padding:9px 24px;border-top:1px solid #eef1f5;background:#ffffff;text-align:center;font-size:10.5px;color:#94a3b8;}
+        #alumni-photo-box{width:118px;height:148px;border-radius:10px;background:linear-gradient(145deg,#eaf2fc,#dde9fb);border:1px solid #dbe7fa;display:flex;align-items:center;justify-content:center;color:#a9c9f2;overflow:hidden;position:relative;flex-shrink:0;}
+        #alumni-photo-box img{width:100%;height:100%;object-fit:cover;}
+        #alumni-photo-zoom-btn{position:absolute;bottom:6px;right:6px;width:26px;height:26px;border-radius:50%;background:#fff;border:1px solid #dbe2ea;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(15,23,42,.18);color:#334155;}
+        #alumni-download-btn{width:118px;box-sizing:border-box;margin-top:8px;height:30px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:11.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;}
+        #alumni-download-btn.disabled{background:#cbd5e1;pointer-events:none;}
+        #alumni-empty-state{color:#94a3b8;font-size:13px;text-align:center;padding:60px 20px;}
+    </style>
+
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="card-header fs-3">Search Alumni</div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:20px;padding:6px 14px;">
+                        <i class="bi bi-lock-fill"></i> Read-only &middot; Scoped to your school
+                    </div>
+                </div>
+                <hr/>
+            </div>
+        </div>
+
+        <div id="alumni-wrap">
+            <div id="alumni-header">
+                <div style="font-size:12.5px;color:#64748b;">Find a student from any past session &middot; profile is view-only</div>
+            </div>
+
+            <div id="alumni-toolbar">
+                <div style="display:flex;flex-direction:column;gap:4px;width:220px;">
+                    <label for="alumni-session" class="form-label mb-0" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;">Session</label>
+                    <select id="alumni-session" class="form-select">
+                        <option value="">Select session&hellip;</option>
+                        <option th:each="ay : ${academicYears}" th:value="${ay.id}" th:text="${ay.sessionFormat}">Session</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1;max-width:420px;">
+                    <label for="alumni-query" class="form-label mb-0" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;">Search by name or SR No</label>
+                    <input type="text" id="alumni-query" class="form-control" placeholder="e.g. Ritika Sharma or SR-2045">
+                </div>
+                <button id="alumni-search-btn" type="button" class="btn btn-primary" onclick="searchAlumni()"><i class="bi bi-search"></i> Search</button>
+                <div style="flex-grow:1;"></div>
+                <div id="alumni-result-count" style="font-size:12px;color:#94a3b8;padding-bottom:9px;"></div>
+            </div>
+
+            <div id="alumni-body">
+                <div id="alumni-results">
+                    <div id="alumni-empty-state">Pick a session and search to see results here.</div>
+                </div>
+                <div id="alumni-profile">
+                    <div id="alumni-empty-state">Select a student from the list to view their profile.</div>
+                </div>
+            </div>
+
+            <div id="alumni-footer-note">
+                This record is confidential and access is logged &middot; visible only to authorized staff of your school &middot; not editable from this screen
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo zoom modal -->
+    <div class="modal fade" id="alumniPhotoModal" tabindex="-1" aria-labelledby="alumniPhotoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="alumniPhotoModalLabel">Photo</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="alumniPhotoModalImg" src="" alt="Student photo" style="max-width:100%;max-height:70vh;border-radius:8px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+    <script type="text/javascript" th:inline="javascript">
+        // Kept deliberately tiny and isolated in its own th:inline="javascript" block -
+        // this is the ONLY line here Thymeleaf needs to inline (the request context
+        // path). Everything else lives in the plain <script> below with no th:inline,
+        // specifically so none of that JS (template literals, ternaries, array
+        // literals - all of which can accidentally form Thymeleaf's own [[...]]/[(...)]
+        // inlining syntax, e.g. "[(" starting an array of parenthesized expressions)
+        // gets run through Thymeleaf's inliner at all.
+        const contextPath = /*[[@{/}]]*/ '/';
+    </script>
+    <script type="text/javascript">
+        function showWarningMsg(msgType, msg, headerValue){
+            toastr.options = {
+                "closeButton": true, "debug": false, "newestOnTop": false, "progressBar": false,
+                "positionClass": "toast-top-right", "preventDuplicates": false, "onclick": null,
+                "showDuration": "600", "hideDuration": "1000", "timeOut": "5000", "extendedTimeOut": "1000",
+                "showEasing": "swing", "hideEasing": "linear", "showMethod": "fadeIn", "hideMethod": "fadeOut"
+            };
+            toastr[msgType](msg, headerValue);
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        let selectedUuid = null;
+
+        function searchAlumni() {
+            const academicYear = $('#alumni-session').val();
+            const query = $('#alumni-query').val().trim();
+            if (!academicYear) {
+                showWarningMsg('error', 'Please select a session first', 'Error');
+                return;
+            }
+            if (query.length === 0) {
+                showWarningMsg('error', 'Please enter a name or SR No to search', 'Error');
+                return;
+            }
+            $('#alumni-results').html('<div class="text-center text-muted py-4" style="font-size:12.5px;">Searching&hellip;</div>');
+            $('#alumni-profile').html('<div id="alumni-empty-state">Select a student from the list to view their profile.</div>');
+            selectedUuid = null;
+
+            fetch(`${contextPath}searchAlumniData`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({academic_year: academicYear, query: query})
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then(data => {
+                renderResults(data || []);
+            })
+            .catch(() => {
+                $('#alumni-results').html('<div id="alumni-empty-state">Something went wrong. Please try again.</div>');
+                showWarningMsg('error', 'Unable to search students', 'Error');
+            });
+        }
+
+        function renderResults(list) {
+            $('#alumni-result-count').text(list.length + (list.length === 1 ? ' student found' : ' students found'));
+            if (!list.length) {
+                $('#alumni-results').html('<div id="alumni-empty-state">No students matched this search.</div>');
+                return;
+            }
+            let html = '';
+            list.forEach(item => {
+                const s = item.student || {};
+                const grade = item.grade ? item.grade.gradeName : '';
+                const section = item.section ? item.section.sectionName : '';
+                const gradeSection = (grade || section) ? `${grade}${section ? ' - ' + section : ''}` : '';
+                const sr = item.classSrNo ? `SR-${escapeHtml(item.classSrNo)}` : '';
+                const meta = [sr, gradeSection].filter(Boolean).join(' &middot; ');
+                const status = item.status || '';
+                html += `
+                    <div class="alumni-row" data-uuid="${escapeHtml(item.uuid)}" onclick="selectAlumni('${escapeHtml(item.uuid)}', this)">
+                        <div class="alumni-avatar"><i class="bi bi-person-fill"></i></div>
+                        <div style="flex-grow:1;min-width:0;">
+                            <div style="font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.studentName)}</div>
+                            <div style="font-size:11.5px;color:#64748b;">${meta}</div>
+                        </div>
+                        <div class="alumni-badge">${escapeHtml(status)}</div>
+                    </div>`;
+            });
+            $('#alumni-results').html(html);
+        }
+
+        function selectAlumni(uuid, rowEl) {
+            selectedUuid = uuid;
+            $('.alumni-row').removeClass('active');
+            if (rowEl) $(rowEl).addClass('active');
+            $('#alumni-profile').html('<div class="text-center text-muted py-5" style="font-size:12.5px;">Loading profile&hellip;</div>');
+
+            fetch(`${contextPath}getAlumniProfile/${uuid}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Not found');
+                    return res.json();
+                })
+                .then(data => renderProfile(data))
+                .catch(() => {
+                    $('#alumni-profile').html('<div id="alumni-empty-state">Could not load the profile for this student.</div>');
+                    showWarningMsg('error', 'Unable to load student profile', 'Error');
+                });
+        }
+
+        function fieldRow(label, value) {
+            return `<div class="alumni-field-row"><span>${escapeHtml(label)}</span><span>${(value === null || value === undefined || value === '') ? '-' : escapeHtml(value)}</span></div>`;
+        }
+
+        function renderProfile(data) {
+            const s = data.student || {};
+            const uuid = data.uuid;
+            const gradeName = data.grade ? data.grade.gradeName : '';
+            const sectionName = data.section ? data.section.sectionName : '';
+            const gradeSection = [gradeName, sectionName].filter(Boolean).join(' - ');
+            const session = data.academicYear ? data.academicYear.sessionFormat : '';
+            const medium = data.medium ? data.medium.mediumName : '';
+            const sr = data.classSrNo ? `SR-${escapeHtml(data.classSrNo)}` : '';
+            const hasPhoto = !!s.pic;
+            const photoViewUrl = hasPhoto ? `${contextPath}alumni-photo/${uuid}` : '';
+            const photoDownloadUrl = hasPhoto ? `${contextPath}alumni-photo/${uuid}?download=1` : '';
+
+            const heightWeight = (s.height || s.weight) ? `${s.height != null ? s.height + ' cm' : '-'} / ${s.weight != null ? s.weight + ' kg' : '-'}` : '-';
+            const category = s.category ? s.category.categoryName : '';
+            const cast = s.cast ? s.cast.castName : '';
+            const categoryCaste = (category || cast) ? [category, cast].filter(Boolean).join(' / ') : '-';
+            const province = s.province ? s.province.provinceName : '';
+            const city = s.city ? s.city.cityName : '';
+            const cityLine = [city, province].filter(Boolean).join(', ');
+            const dob = s.dob || '';
+            const passingYear = (s.passingYear !== null && s.passingYear !== undefined) ? s.passingYear : '';
+
+            const photoHtml = hasPhoto
+                ? `<img src="${photoViewUrl}" alt="${escapeHtml(s.studentName)}">
+                   <button id="alumni-photo-zoom-btn" title="Zoom photo" onclick="openAlumniPhotoZoom('${photoViewUrl}', '${escapeHtml(s.studentName)}')">
+                     <i class="bi bi-zoom-in"></i>
+                   </button>`
+                : `<i class="bi bi-person-fill" style="font-size:46px;"></i>`;
+
+            const downloadBtn = hasPhoto
+                ? `<a id="alumni-download-btn" href="${photoDownloadUrl}"><i class="bi bi-download"></i> Download Photo</a>`
+                : `<span id="alumni-download-btn" class="disabled"><i class="bi bi-download"></i> No Photo</span>`;
+
+            const html = `
+                <div class="alumni-card" style="display:flex;gap:20px;">
+                    <div>
+                        <div id="alumni-photo-box">${photoHtml}</div>
+                        ${downloadBtn}
+                    </div>
+                    <div style="flex-grow:1;">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <div style="font-size:19px;font-weight:700;">${escapeHtml(s.studentName)}</div>
+                            <span class="alumni-badge">${escapeHtml(data.status)}</span>
+                        </div>
+                        <div style="font-size:12.5px;color:#64748b;margin-top:4px;">${s.fatherName ? 'S/D of ' + escapeHtml(s.fatherName) : ''}${s.motherName ? ' &amp; ' + escapeHtml(s.motherName) : ''}</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                            ${session ? `<span class="alumni-chip">Session ${escapeHtml(session)}</span>` : ''}
+                            ${gradeSection ? `<span class="alumni-chip">Class ${escapeHtml(gradeSection)}</span>` : ''}
+                            ${sr ? `<span class="alumni-chip">${sr}</span>` : ''}
+                            ${medium ? `<span class="alumni-chip">${escapeHtml(medium)}</span>` : ''}
+                        </div>
+                        <div style="display:flex;gap:22px;margin-top:14px;font-size:12.5px;color:#475569;border-top:1px dashed #e2e8f0;padding-top:12px;flex-wrap:wrap;">
+                            <div>DOB&nbsp; ${escapeHtml(dob) || '-'}</div>
+                            <div>Gender&nbsp; ${escapeHtml(s.gender) || '-'}</div>
+                            <div>Mobile&nbsp; ${escapeHtml(s.mobile1) || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+                    <div class="alumni-card">
+                        <div class="alumni-card-title">Personal Information</div>
+                        ${fieldRow('Religion', s.religion)}
+                        ${fieldRow('Category / Caste', categoryCaste)}
+                        ${fieldRow('Nationality', s.nationality)}
+                        ${fieldRow('Blood Group', s.bloodGroup)}
+                        ${fieldRow('Body Type', s.bodyType)}
+                        ${fieldRow('Height / Weight', heightWeight)}
+                    </div>
+                    <div class="alumni-card">
+                        <div class="alumni-card-title">Contact Information</div>
+                        ${fieldRow('Address', s.address)}
+                        ${fieldRow('Landmark', s.landmark)}
+                        ${fieldRow('City / Province', cityLine)}
+                        ${fieldRow('Pincode', s.pincode)}
+                        ${fieldRow('Mobile 1 / 2', [s.mobile1, s.mobile2].filter(Boolean).join(' / '))}
+                        ${fieldRow('Email', s.email)}
+                    </div>
+                    <div class="alumni-card">
+                        <div class="alumni-card-title">Academic Record${session ? ' &middot; ' + escapeHtml(session) : ''}</div>
+                        ${fieldRow('Grade - Section', gradeSection)}
+                        ${fieldRow('PSRN', s.psrn)}
+                        ${fieldRow('PEN No', s.penNo)}
+                        ${fieldRow('Apaar ID', s.apaarNo)}
+                    </div>
+                    <div class="alumni-card">
+                        <div class="alumni-card-title">Exit / Previous School Details</div>
+                        ${fieldRow('Previous School', s.previousSchool)}
+                        ${fieldRow('Previous Class', s.previousClass)}
+                        ${fieldRow('TC No.', s.tcNo)}
+                        ${fieldRow('Passing Year', passingYear)}
+                        ${fieldRow('Removal Cause', s.removalCause)}
+                    </div>
+                    <div class="alumni-card">
+                        <div class="alumni-card-title">Emergency Contact</div>
+                        ${fieldRow('Contact Person', s.personName)}
+                        ${fieldRow('Contact Number', s.personContact)}
+                    </div>
+                </div>
+            `;
+            $('#alumni-profile').html(html);
+        }
+
+        function openAlumniPhotoZoom(url, name) {
+            $('#alumniPhotoModalImg').attr('src', url);
+            $('#alumniPhotoModalLabel').text('Photo — ' + name);
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('alumniPhotoModal'));
+            modal.show();
+        }
+
+        $('#alumni-query').on('keydown', function(e){
+            if (e.key === 'Enter') { e.preventDefault(); searchAlumni(); }
+        });
+    </script>
+
+</section>
+</body>
+</html>
