@@ -164,6 +164,15 @@ public class RoleInitializer {
                     "STUDENT_SEARCH",
                     "Search students across all academic years");
 
+            // Search Alumni — session + name/SR search across any past session, landing
+            // on a read-only full profile with photo zoom/download. Kept as its own
+            // screen (not reusing STUDENT_SEARCH) so it can be granted independently -
+            // it exposes more fields at once (contact, health, exit details, photo
+            // download) than the plain Search Student lookup.
+            seed(screenRepo, "Student", "Search Alumni",
+                    "STUDENT_ALUMNI_SEARCH",
+                    "Search a student from any past session and view their read-only profile with photo");
+
             // Session-wise student count report
             seed(screenRepo, "Student", "Student Report (Session)",
                     "STUDENT_REPORT_SESSION",

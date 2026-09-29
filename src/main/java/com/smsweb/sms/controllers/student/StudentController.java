@@ -724,5 +724,25 @@ public class StudentController extends BaseController {
 
     }
 
+    /**
+     * Search Alumni — session dropdown + name/SR search across ANY past session,
+     * landing on a read-only full profile (with photo zoom + download). Deliberately
+     * given NO method-level @PreAuthorize override, unlike searchStudent() above: this
+     * inherits the class-level @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN',
+     * 'ROLE_ACCOUNTENT','ROLE_STAFF')") as-is (no ROLE_TEACHER), and on top of that the
+     * @CheckAccess screen permission means only ROLE_ADMIN/ROLE_SUPERADMIN get in by
+     * default - ROLE_ACCOUNTENT/ROLE_STAFF only if explicitly granted STUDENT_ALUMNI_SEARCH
+     * via Set Permissions (PermissionService.hasAccess() auto-bypasses for admin/super-admin,
+     * everyone else needs a granted UserPermission row).
+     */
+    @CheckAccess(screen = "STUDENT_ALUMNI_SEARCH", type = AccessType.VIEW)
+    @GetMapping("/alumni-search")
+    public String alumniSearchForm(Model model){
+        log.info("Inside alumniSearchForm");
+        School school = (School)model.getAttribute("school");
+        List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());
+        model.addAttribute("academicYears", academicYears);
+        return "student/search-alumni";
+    }
 
 }

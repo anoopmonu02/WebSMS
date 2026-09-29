@@ -2357,6 +2357,97 @@ public class StudentService {
     }
 
     /**
+     * Search Alumni feature — full, read-only profile for ONE AcademicStudent record,
+     * built fresh rather than reusing/extending toLeanAcademicStudentMap() above.
+     * toLeanAcademicStudentMap() is shared by several other features (attendance,
+     * discount lists, exam results...) with a deliberately small field set; growing it
+     * here would risk changing payload shape those callers don't expect. This method
+     * exists purely to back the Search Alumni profile view and mirrors the same field
+     * set already shown (read-only) on show-student.html.
+     *
+     * Health info (height/weight/health & eye issue) is resolved directly from
+     * student_health_info for THIS EXACT AcademicStudent enrollment — not the
+     * student's current/active enrollment — since an alumni lookup is explicitly about
+     * a past session's record, which may differ from wherever the student is enrolled
+     * (or not enrolled) today.
+     */
+    public Map<String, Object> buildAlumniProfileMap(AcademicStudent as) {
+        log.info("Inside buildAlumniProfileMap");
+        Map<String, Object> aMap = new HashMap<>();
+        if (as == null || as.getStudent() == null) return aMap;
+
+        aMap.put("id", as.getId());
+        aMap.put("uuid", as.getUuid());
+        aMap.put("classSrNo", as.getClassSrNo());
+        aMap.put("status", as.getStatus() != null ? as.getStatus() : "");
+        if (as.getSchool() != null) {
+            aMap.put("school", Map.of("id", as.getSchool().getId(), "schoolName", as.getSchool().getSchoolName() != null ? as.getSchool().getSchoolName() : ""));
+        }
+        if (as.getAcademicYear() != null) {
+            aMap.put("academicYear", Map.of("id", as.getAcademicYear().getId(), "sessionFormat", as.getAcademicYear().getSessionFormat() != null ? as.getAcademicYear().getSessionFormat() : ""));
+        }
+        if (as.getGrade() != null) {
+            aMap.put("grade", Map.of("id", as.getGrade().getId(), "gradeName", as.getGrade().getGradeName() != null ? as.getGrade().getGradeName() : ""));
+        }
+        if (as.getSection() != null) {
+            aMap.put("section", Map.of("id", as.getSection().getId(), "sectionName", as.getSection().getSectionName() != null ? as.getSection().getSectionName() : ""));
+        }
+        if (as.getMedium() != null) {
+            aMap.put("medium", Map.of("id", as.getMedium().getId(), "mediumName", as.getMedium().getMediumName() != null ? as.getMedium().getMediumName() : ""));
+        }
+
+        Student s = as.getStudent();
+        Map<String, Object> stuMap = new HashMap<>();
+        stuMap.put("studentName",          s.getStudentName()          != null ? s.getStudentName()          : "");
+        stuMap.put("fatherName",           s.getFatherName()           != null ? s.getFatherName()           : "");
+        stuMap.put("fatherQualification",  s.getFatherQualification()  != null ? s.getFatherQualification()  : "");
+        stuMap.put("motherName",           s.getMotherName()           != null ? s.getMotherName()           : "");
+        stuMap.put("motherQualification",  s.getMotherQualification()  != null ? s.getMotherQualification()  : "");
+        stuMap.put("dob",                  s.getDob());
+        stuMap.put("gender",               s.getGender()                != null ? s.getGender()                : "");
+        stuMap.put("religion",             s.getReligion()               != null ? s.getReligion()               : "");
+        stuMap.put("nationality",          s.getNationality()           != null ? s.getNationality()           : "");
+        stuMap.put("bloodGroup",           s.getBloodGroup()            != null ? s.getBloodGroup()            : "");
+        stuMap.put("bodyType",             s.getBodyType()              != null ? s.getBodyType()              : "");
+        stuMap.put("description",          s.getDescription()           != null ? s.getDescription()           : "");
+        stuMap.put("psrn",                 s.getPsrn()                  != null ? s.getPsrn()                  : "");
+        stuMap.put("penNo",                s.getPenNo()                 != null ? s.getPenNo()                 : "");
+        stuMap.put("apaarNo",              s.getApaarId()               != null ? s.getApaarId()               : "");
+        stuMap.put("pic",                  s.getPic());
+        if (s.getCategory() != null) stuMap.put("category", Map.of("categoryName", s.getCategory().getCategoryName() != null ? s.getCategory().getCategoryName() : ""));
+        if (s.getCast() != null)     stuMap.put("cast",     Map.of("castName",     s.getCast().getCastName()     != null ? s.getCast().getCastName()     : ""));
+
+        // Contact
+        stuMap.put("address",              s.getAddress()               != null ? s.getAddress()               : "");
+        stuMap.put("landmark",             s.getLandmark()              != null ? s.getLandmark()              : "");
+        stuMap.put("pincode",              s.getPincode()               != null ? s.getPincode()               : "");
+        stuMap.put("mobile1",              s.getMobile1()               != null ? s.getMobile1()               : "");
+        stuMap.put("mobile2",              s.getMobile2()               != null ? s.getMobile2()               : "");
+        stuMap.put("email",                (s.getUserEntity() != null && s.getUserEntity().getEmail() != null) ? s.getUserEntity().getEmail() : "");
+        if (s.getProvince() != null) stuMap.put("province", Map.of("provinceName", s.getProvince().getProvinceName() != null ? s.getProvince().getProvinceName() : ""));
+        if (s.getCity() != null)     stuMap.put("city",     Map.of("cityName",     s.getCity().getCityName()     != null ? s.getCity().getCityName()     : ""));
+
+        // Previous academic / exit details
+        stuMap.put("previousSchool",       s.getPreviousSchool()        != null ? s.getPreviousSchool()        : "");
+        stuMap.put("previousClass",        s.getPreviousClass()         != null ? s.getPreviousClass()         : "");
+        stuMap.put("tcNo",                 s.getTcNo()                  != null ? s.getTcNo()                  : "");
+        stuMap.put("removalCause",         s.getRemovalCause()          != null ? s.getRemovalCause()          : "");
+        stuMap.put("passingYear",          s.getPassingYear());
+
+        // Emergency contact
+        stuMap.put("personName",           s.getPersonName()            != null ? s.getPersonName()            : "");
+        stuMap.put("personContact",        s.getPersonContact()         != null ? s.getPersonContact()         : "");
+
+        // Health info for THIS exact enrollment (student_health_info keyed by AcademicStudent.id)
+        Optional<com.smsweb.sms.models.mobile.StudentHealthInfo> healthInfo = studentHealthInfoService.getByAcademicStudentId(as.getId());
+        stuMap.put("height", healthInfo.map(com.smsweb.sms.models.mobile.StudentHealthInfo::getHeight).orElse(null));
+        stuMap.put("weight", healthInfo.map(com.smsweb.sms.models.mobile.StudentHealthInfo::getWeight).orElse(null));
+
+        aMap.put("student", stuMap);
+        return aMap;
+    }
+
+    /**
      * Full address (street address + city, in caps) shown in the "Student List (Session)"
      * report — same composition as the birth certificate. Skips appending the city if
      * that name is already present somewhere in the free-text address (common when the

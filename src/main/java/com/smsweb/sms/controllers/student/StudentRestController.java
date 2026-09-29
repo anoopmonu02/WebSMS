@@ -18,6 +18,7 @@ import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -1086,6 +1087,108 @@ public class StudentRestController extends BaseController {
             log.error("searchStudentData failed", e);
         }
         return ResponseEntity.ok(leanList);
+    }
+
+    // ── Search Alumni ────────────────────────────────────────────────────────
+
+    /**
+     * Same lookup as searchStudentData above (academicStudentService.searchStudentsAll,
+     * already scoped to school.getId()), gated by its own screen key so it can be granted
+     * to roles/users independently of "Search Student". Returns the same lean shape - the
+     * Search Alumni results list only needs name/SR/grade/status, the same as the results
+     * list on Search Student.
+     */
+    @CheckAccess(screen = "STUDENT_ALUMNI_SEARCH", type = AccessType.VIEW)
+    @PostMapping("/searchAlumniData")
+    public ResponseEntity<?> searchAlumniData(@RequestBody Map<String, String> requestBody, Model model){
+        log.info("Inside searchAlumniData");
+        School school = (School)model.getAttribute("school");
+        List<Map<String, Object>> leanList = new ArrayList<>();
+        try{
+            if(requestBody!=null){
+                String academicId = requestBody.getOrDefault("academic_year","0");
+                String query = requestBody.getOrDefault("query","");
+                List<AcademicStudent> rawList = academicStudentService.searchStudentsAll(query, academicId, school.getId());
+                if (rawList != null) {
+                    for (AcademicStudent as : rawList) leanList.add(studentService.toLeanAcademicStudentMap(as));
+                }
+            } else{
+                throw new IllegalArgumentException("request is not valid");
+            }
+        }catch(Exception e){
+            log.error("searchAlumniData failed", e);
+        }
+        return ResponseEntity.ok(leanList);
+    }
+
+    /**
+     * Full read-only profile for one AcademicStudent, by UUID. School-scoped via
+     * academicStudentRepository (through the service) - findByUuidAndSchool_Id() never
+     * matches a UUID belonging to another school, so there is nothing a client can pass
+     * here to read another school's alumni record. No status filter deliberately: an
+     * alumni's AcademicStudent row is very often no longer "Active".
+     */
+    @CheckAccess(screen = "STUDENT_ALUMNI_SEARCH", type = AccessType.VIEW)
+    @GetMapping("/getAlumniProfile/{uuid}")
+    public ResponseEntity<?> getAlumniProfile(@PathVariable("uuid") java.util.UUID uuid, Model model){
+        log.info("Inside getAlumniProfile");
+        School school = (School)model.getAttribute("school");
+        Optional<AcademicStudent> asOpt = academicStudentService.findByUuidAndSchool(uuid, school.getId());
+        if (asOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Student not found"));
+        }
+        return ResponseEntity.ok(studentService.buildAlumniProfileMap(asOpt.get()));
+    }
+
+    /**
+     * Serves (view) or downloads (?download=1) the alumni's photo. Unlike the existing
+     * /student/images/{filename} endpoint (which takes the filename directly from the
+     * client, checked only for path-traversal characters), this endpoint takes only the
+     * AcademicStudent's UUID - the filename is resolved server-side from that student's
+     * own `pic` column AFTER the same school-scoped lookup used by getAlumniProfile above,
+     * so a client can never request a file that isn't this student's own photo, let alone
+     * one belonging to another school. The canonical-path double-check below is kept as
+     * defense in depth even though the filename can no longer come from client input.
+     */
+    @CheckAccess(screen = "STUDENT_ALUMNI_SEARCH", type = AccessType.VIEW)
+    @GetMapping("/alumni-photo/{uuid}")
+    public ResponseEntity<Resource> getAlumniPhoto(@PathVariable("uuid") java.util.UUID uuid,
+                                                     @RequestParam(value = "download", required = false) String download,
+                                                     Model model) {
+        log.info("Inside getAlumniPhoto");
+        School school = (School) model.getAttribute("school");
+        Optional<AcademicStudent> asOpt = academicStudentService.findByUuidAndSchool(uuid, school.getId());
+        if (asOpt.isEmpty() || asOpt.get().getStudent() == null || asOpt.get().getStudent().getPic() == null
+                || asOpt.get().getStudent().getPic().isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+        String pic = asOpt.get().getStudent().getPic();
+        String studentName = asOpt.get().getStudent().getStudentName();
+        String safeName = pic.replaceAll("[^a-zA-Z0-9._ -]", "");
+        if (safeName.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            java.io.File base = new java.io.File(studentImageDirectory).getCanonicalFile();
+            java.io.File file = new java.io.File(base, safeName).getCanonicalFile();
+            if (!file.getPath().startsWith(base.getPath() + java.io.File.separator)) {
+                log.warn("Path traversal attempt blocked (alumni photo): requested={} resolved={}", pic, file.getPath());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            if (!file.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok();
+            if ("1".equals(download)) {
+                String ext = safeName.contains(".") ? safeName.substring(safeName.lastIndexOf('.')) : "";
+                String downloadName = (studentName != null && !studentName.isBlank() ? studentName.trim().replaceAll("[^a-zA-Z0-9 _-]", "") : "student-photo") + ext;
+                responseBuilder = responseBuilder.header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=\"" + downloadName + "\"");
+            }
+            return responseBuilder.body(new org.springframework.core.io.FileSystemResource(file));
+        } catch (IOException e) {
+            log.error("Error resolving alumni photo path: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @CheckAccess(screen = "STUDENT_DISCOUNT_LIST", type = AccessType.VIEW)

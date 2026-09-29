@@ -80,6 +80,16 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
     /** UUID is globally unique — use this for exam result upload to avoid academicYear/school mismatch issues */
     Optional<AcademicStudent> findByUuid(UUID uuid);
 
+    /**
+     * Search Alumni feature — resolves one AcademicStudent by its UUID, scoped to the
+     * caller's own school. No status filter: unlike getStudentDetail(uuid, school), this
+     * is meant to find a student's record from ANY past session (including one where the
+     * enrollment is no longer "Active"), so an alumni who passed out or migrated away is
+     * still found here as long as the record belongs to this school. School scoping is
+     * mandatory and non-optional so a UUID from another school never resolves.
+     */
+    Optional<AcademicStudent> findByUuidAndSchool_Id(UUID uuid, Long school_id);
+
     /** Opening-balance upload — primary: exact student name + grade + section + school + AY */
     @Query("SELECT a FROM AcademicStudent a JOIN a.student s WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId AND LOWER(a.grade.gradeName) = LOWER(:gradeName) AND LOWER(a.section.sectionName) = LOWER(:sectionName) AND LOWER(s.studentName) = LOWER(:studentName) AND a.status = 'Active'")
     List<AcademicStudent> findActiveByStudentNameAndGradeAndSection(@Param("studentName") String studentName, @Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId, @Param("gradeName") String gradeName, @Param("sectionName") String sectionName);

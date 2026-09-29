@@ -986,6 +986,7 @@
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_GRADEWISE_IMAGE_DOWNLOAD:VIEW" th:href="@{'/student/grade-wise-image-download'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Grade-wise Images Download</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_BOARD_REGISTRATION_CLASS9:VIEW" th:href="@{'/student/board-registration-class9'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Board Registration (Class 9)</span></a></li>
                                 <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT')" class="sidebar-item"><a sms:access="STUDENT_REPORT_ATTENDANCE_ANNUAL:VIEW" th:href="@{'/student/annual-attendance-report'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Attendance Report (Annual)</span></a></li>
+                                <li sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_ACCOUNTENT','ROLE_STAFF')" class="sidebar-item"><a sms:access="STUDENT_ALUMNI_SEARCH:VIEW" th:href="@{'/student/alumni-search'}" class="sidebar-link"><i class="bi bi-dot"></i><span>Search Alumni</span></a></li>
                             </ul>
                         </li>
                     </ul>
