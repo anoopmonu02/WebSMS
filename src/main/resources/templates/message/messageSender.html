@@ -173,7 +173,7 @@
                                             <input type="text" class="form-control form-control-sm" id="grievanceDueDate" placeholder="dd/MMM/yyyy" autocomplete="off">
                                         </div>
                                         <div class="text-danger small mb-2 d-none" id="grievanceFormError"></div>
-                                        <button type="button" class="btn btn-primary btn-sm px-3" onclick="saveGrievance()">
+                                        <button type="button" id="saveGrievanceBtn" class="btn btn-primary btn-sm px-3" onclick="saveGrievance()">
                                             <i class="bi bi-save2-fill me-1"></i>Save Grievance
                                         </button>
                                     </div>
@@ -254,7 +254,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-success" onclick="submitNewMessage()">Send <i class="bi bi-send"></i></button>
+                    <button type="button" id="submitNewMessageBtn" class="btn btn-success" onclick="submitNewMessage()">Send <i class="bi bi-send"></i></button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                 </div>
 
@@ -305,7 +305,7 @@
 
                 <!-- Modal Footer -->
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-success" onclick="sendNotification()">Send Message</button>
+                    <button type="button" id="sendNotificationBtn" class="btn btn-success" onclick="sendNotification()">Send Message</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
 
@@ -407,6 +407,106 @@
     <script th:src="@{/js/flatpickr.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         const contextPath = /*[[@{/}]]*/ '/';
+
+        // ---------------------------------------------------------------
+        // Shared "in-flight request" UI helpers — used by every submit
+        // action on this page (Complaint, Notification, Grievance Add,
+        // Grievance Close) so each one shows visible progress while its
+        // request is pending and can't be double-submitted or abandoned
+        // mid-flight (e.g. a notification still being sent to the whole
+        // school). Purely additive UI state: it does not change what any
+        // flow sends, nor how/when success or failure is decided — each
+        // flow's existing success/failure logic is unchanged, this just
+        // wraps it with visible busy state.
+        // ---------------------------------------------------------------
+
+        /**
+         * Puts a submit button into or out of a "busy" state: disabled,
+         * spinner + label shown, original label restored exactly on
+         * release. Idempotent — calling busy=true while already busy, or
+         * busy=false while already idle, is a no-op.
+         */
+        function setButtonBusy(btn, busy, busyLabel) {
+            if (!btn) return;
+            if (busy) {
+                if (btn.dataset.busy === "1") return;
+                btn.dataset.busy = "1";
+                btn.dataset.originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + (busyLabel || "Please wait...");
+            } else {
+                if (btn.dataset.busy !== "1") return;
+                delete btn.dataset.busy;
+                btn.disabled = false;
+                if (btn.dataset.originalHtml !== undefined) {
+                    btn.innerHTML = btn.dataset.originalHtml;
+                    delete btn.dataset.originalHtml;
+                }
+            }
+        }
+
+        /**
+         * While busy=true: disables every dismiss control inside the given
+         * modal (Cancel buttons, the close icon — whichever markup style
+         * that modal uses) and blocks Esc/backdrop/close-icon dismissal via
+         * Bootstrap's own cancelable 'hide.bs.modal' event, so an in-flight
+         * request can't be abandoned mid-flight. Restores normal dismiss
+         * behavior when busy=false. Safe to call on any modal element
+         * regardless of whether it's opened via the jQuery modal() plugin
+         * or the native bootstrap.Modal API — both are wired to the same
+         * underlying Bootstrap modal instance on this page.
+         */
+        function setModalBusyGuard(modalEl, busy) {
+            if (!modalEl) return;
+            const dismissEls = modalEl.querySelectorAll('[data-dismiss="modal"], [data-bs-dismiss="modal"], .btn-close, .close');
+            dismissEls.forEach(function (el) {
+                el.disabled = busy;
+                el.style.pointerEvents = busy ? "none" : "";
+                el.style.opacity = busy ? "0.5" : "";
+            });
+
+            if (busy) {
+                modalEl.dataset.busyGuard = "1";
+            } else {
+                delete modalEl.dataset.busyGuard;
+            }
+
+            if (!modalEl.dataset.busyGuardWired) {
+                modalEl.dataset.busyGuardWired = "1";
+                modalEl.addEventListener('hide.bs.modal', function (event) {
+                    if (modalEl.dataset.busyGuard === "1") {
+                        event.preventDefault();
+                    }
+                });
+            }
+        }
+
+        /**
+         * fetch() wrapper that aborts the request after timeoutMs and
+         * rejects with a clearly-labeled timeout error, so a hung request
+         * can't leave a submit button/modal stuck in its busy state
+         * forever. Does not change what is sent, how the response is read,
+         * or how success/failure is decided by the caller - a successful
+         * response is returned exactly as fetch() would return it; only a
+         * genuine timeout gets relabeled from the browser's generic
+         * AbortError into a message the existing .catch() handlers can
+         * show as-is.
+         */
+        function fetchWithTimeout(url, options, timeoutMs) {
+            const controller = new AbortController();
+            const timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+            const mergedOptions = Object.assign({}, options, { signal: controller.signal });
+            return fetch(url, mergedOptions)
+                .catch(function (err) {
+                    if (err && err.name === 'AbortError') {
+                        throw new Error('The request timed out. Please check your connection and try again.');
+                    }
+                    throw err;
+                })
+                .finally(function () {
+                    clearTimeout(timer);
+                });
+        }
 
         // Same flatpickr config used app-wide (student registration, fee reminder, etc.) — d/M/Y = dd/MMM/yyyy
         flatpickr("#grievanceDueDate", { dateFormat: "d/M/Y" });
@@ -969,57 +1069,73 @@
         function submitNewMessage() {
             const heading = document.getElementById("messageHeading").value.trim();
             const message = document.getElementById("messageText").value.trim();
+            const errorDiv = document.getElementById("modalError");
+            errorDiv.classList.add("d-none");
+            errorDiv.innerText = "";
 
             if (!heading || !message) {
-                const errorDiv = document.getElementById("modalError");
                 errorDiv.innerText = "Both heading and message are required.";
                 errorDiv.classList.remove("d-none");
                 return;
             }
             if(!selectedStudent){
-                const errorDiv = document.getElementById("modalError");
                 errorDiv.innerText = "No Student selected";
                 errorDiv.classList.remove("d-none");
                 return;
             }
-            // Proceed to send via AJAX (optional)
-            console.log("Sending:", { heading, message, student: selectedStudent.id });
-            sendNewMessage(heading, message, selectedStudent.id)
-
-
-            // Close modal and show success
-            $('#newMessageModal').modal('hide');
-            alert("Message sent!");
+            sendNewMessage(heading, message, selectedStudent.id);
+            // Modal close and success/failure messaging now happen inside
+            // sendNewMessage() itself, after the server actually responds —
+            // see the function below for why.
         }
 
         function sendNewMessage(message, smsConversation, studentId) {
             const url = `${contextPath}message/sendNewMessage`;
-            console.log("message-->"+message);
-            console.log("smsConversation-->"+smsConversation);
-            console.log("student--->"+studentId)
             const payload = {
                 heading: message,
                 message: smsConversation,
                 studentId: studentId
             };
+            const errorDiv = document.getElementById("modalError");
+            const btn = document.getElementById("submitNewMessageBtn");
+            const modalEl = document.getElementById("newMessageModal");
 
-            fetch(url, {
+            // Previously this modal closed and showed "Message sent!" the
+            // instant the button was clicked, without waiting for the
+            // server — a false-positive success message if the request
+            // later failed. It now waits for the actual response, same as
+            // the other message flows on this page, and shows visible
+            // progress (spinner + disabled controls) while it waits.
+            setButtonBusy(btn, true, "Sending...");
+            setModalBusyGuard(modalEl, true);
+
+            fetchWithTimeout(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
-            })
-                .then(response => {
+            }, 30000)
+                .then(function (response) {
                     if (response.ok) {
                         loadSmsMessagesForStudent(studentId);
+                        $('#newMessageModal').modal('hide');
+                        showWarningMsg("success", "Message sent successfully.", "Success");
                     } else {
-                        alert("Failed to send message.");
+                        return response.json().catch(function () { return {}; }).then(function (errBody) {
+                            errorDiv.innerText = errBody.error || "Failed to send message. Please try again.";
+                            errorDiv.classList.remove("d-none");
+                        });
                     }
                 })
-                .catch(error => {
+                .catch(function (error) {
                     console.error("Error sending message:", error);
-                    alert("Error sending message: " + error.message);
+                    errorDiv.innerText = "Network error while sending the message. Please check your connection and try again.";
+                    errorDiv.classList.remove("d-none");
+                })
+                .finally(function () {
+                    setButtonBusy(btn, false);
+                    setModalBusyGuard(modalEl, false);
                 });
         }
 
@@ -1084,11 +1200,25 @@
             }
 
             const url = `${contextPath}message/sendNewNotificationWithAttachments`;
-            fetch(url, {
+            const sendBtn = document.getElementById("sendNotificationBtn");
+            const notifModalEl = document.getElementById("notificationMessageModal");
+            // Visible progress while the request is in flight — for recipientType
+            // ALL/CLASS this can genuinely take several seconds server-side
+            // (file save + DB cascade + recipient fan-out + push notifications),
+            // so without this the UI looked identical whether it was working or
+            // stuck. Does not change when/how success or failure is decided below.
+            setButtonBusy(sendBtn, true, "Sending...");
+            setModalBusyGuard(notifModalEl, true);
+
+            // Longer timeout than the other flows: this request can include file
+            // uploads and, for recipientType ALL/CLASS, real server-side work
+            // (recipient fan-out + push notifications) that legitimately takes
+            // longer than a plain JSON POST.
+            fetchWithTimeout(url, {
                 method: 'POST',
                 body: formData,
                 credentials: 'include'
-            })
+            }, 60000)
                 .then(async response => {
                     if (response.ok) {
                         clearNotificationModalFields();
@@ -1148,6 +1278,10 @@
                             "hideMethod": "fadeOut"
                         }
                     }
+                })
+                .finally(() => {
+                    setButtonBusy(sendBtn, false);
+                    setModalBusyGuard(notifModalEl, false);
                 });
 
         }
@@ -1387,12 +1521,14 @@
 
             const url = `${contextPath}grievance/saveGrievance`;
             const payload = { title, description, studentId: selectedStudent.id, dueDate: dueDate };
+            const saveBtn = document.getElementById("saveGrievanceBtn");
+            setButtonBusy(saveBtn, true, "Saving...");
 
-            fetch(url, {
+            fetchWithTimeout(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            })
+            }, 30000)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
@@ -1412,6 +1548,9 @@
                 .catch(err => {
                     errDiv.innerText = "Error saving grievance: " + err.message;
                     errDiv.classList.remove("d-none");
+                })
+                .finally(() => {
+                    setButtonBusy(saveBtn, false);
                 });
         }
 
@@ -1486,31 +1625,34 @@
             if (!grievanceIdPendingClose) return;
 
             const btn = document.getElementById("closeGrievanceSubmitBtn");
-            btn.disabled = true;
+            const modalEl = document.getElementById('closeGrievanceModal');
+            setButtonBusy(btn, true, "Closing...");
+            setModalBusyGuard(modalEl, true);
             const url = `${contextPath}grievance/closeGrievance/${grievanceIdPendingClose}`;
-            fetch(url, {
+            fetchWithTimeout(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ remark })
-            })
+            }, 30000)
                 .then(res => res.json().then(data => ({ ok: res.ok, data })))
                 .then(({ ok, data }) => {
-                    btn.disabled = false;
                     if (!ok || data.error) {
                         errDiv.innerText = data.error || "Failed to close grievance.";
                         errDiv.classList.remove("d-none");
                         return;
                     }
-                    const modalEl = document.getElementById('closeGrievanceModal');
                     const modal = bootstrap.Modal.getInstance(modalEl);
                     if (modal) modal.hide();
                     showWarningMsg("success", "Grievance closed.", "Success");
                     if (selectedStudent) loadGrievancesForStudent(selectedStudent.id);
                 })
                 .catch(err => {
-                    btn.disabled = false;
                     errDiv.innerText = "Error closing grievance: " + err.message;
                     errDiv.classList.remove("d-none");
+                })
+                .finally(() => {
+                    setButtonBusy(btn, false);
+                    setModalBusyGuard(modalEl, false);
                 });
         }
         // === end Grievance ===

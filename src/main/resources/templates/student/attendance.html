@@ -5,6 +5,34 @@
   <meta charset="UTF-8">
   <title>UAIC - Student</title>
 
+  <!-- DataTables, added locally to this page only (not via the app-wide
+       page=='datatable' layout flag) so this page's own script bundle
+       (jquery-3.7.1.js + jquery-3.6.0.min.js, loaded below) is untouched
+       and nothing else on the page is affected. Used only for sortable
+       headers on the attendance table below - paging/search/info are
+       turned off in the init call so the table looks the same as before. -->
+  <link rel="stylesheet" th:href="@{/css/dataTables.bootstrap5.css}" />
+
+  <!-- Two prior attempts used CSS-generated icons (DataTables' own
+       classes, then a CSS ::after pseudo-element) and neither became
+       visible - most likely something elsewhere in this app's global
+       stylesheet strips or recolors generated content/pseudo-elements on
+       table headers (a common side effect of icon-font resets), which
+       would silently defeat either approach regardless of specificity
+       tricks. To rule that class of problem out entirely, the sort arrow
+       is now a real, visible text character written directly into the
+       header's own HTML (see renderStudentData() below) with an inline,
+       !important-forced style, rather than CSS-generated content - so
+       there is nothing left for another stylesheet to intercept. This
+       block now only restores the pointer cursor on the sortable headers. -->
+  <style>
+    #attendance-table-data thead > tr > th:nth-child(2),
+    #attendance-table-data thead > tr > th:nth-child(3),
+    #attendance-table-data thead > tr > th:nth-child(4),
+    #attendance-table-data thead > tr > th:nth-child(5) {
+      cursor: pointer;
+    }
+  </style>
 
 </head>
 <body>
@@ -73,6 +101,39 @@
   <script th:src="@{/js/toastr.min.js}"></script>
   <script type="text/javascript" th:inline="javascript">
       const contextPath = /*[[@{/}]]*/ '/';
+
+      // DataTables (for sortable headers on the attendance table below) is
+      // loaded dynamically here, after the window 'load' event, rather than
+      // as a plain <script> tag above. Reason: this page's layout
+      // (base.html) always re-loads jquery-3.6.0.min.js a second time of
+      // its own, AFTER this page's own content/scripts - that reload
+      // replaces window.jQuery with a brand new object, orphaning anything
+      // a plugin attached to the previous one. Loading DataTables only
+      // after 'load' (which fires once every initial script, including
+      // that later jQuery reload, has already run) guarantees it attaches
+      // to the jQuery instance that is actually still in use. Local to
+      // this page only - no change to base.html or any other page.
+      let dataTablesReady = false;
+      $(window).on('load', function () {
+          const dtScript = document.createElement('script');
+          dtScript.src = contextPath + 'js/dataTables.js';
+          dtScript.onload = function () {
+              const dtBsScript = document.createElement('script');
+              dtBsScript.src = contextPath + 'js/dataTables.bootstrap5.js';
+              dtBsScript.onload = function () {
+                  dataTablesReady = true;
+              };
+              dtBsScript.onerror = function () {
+                  console.warn('dataTables.bootstrap5.js failed to load - attendance table will render without sortable headers.');
+              };
+              document.body.appendChild(dtBsScript);
+          };
+          dtScript.onerror = function () {
+              console.warn('dataTables.js failed to load - attendance table will render without sortable headers.');
+          };
+          document.body.appendChild(dtScript);
+      });
+
       // Display success message
       const successMessage = [[${success}]];
       if (successMessage) {
@@ -174,7 +235,7 @@
           let stuAtt = Array.isArray(studentData.attendances) && studentData.attendances.length > 0
               ? studentData.attendances
               : [];
-          let tbl = '<table class="table table-bordered table-sm" id="attendance-table-data"><thead><th>#</th><th>Student Name</th><th>Father Name</th><th>Mother Name</th><th>SR</th><th class=""><input type="checkbox" class="form-check form-check-input" id="selectAllCbx" name="selectAllCbx" onclick="selectAll(this)"></th><th>Remark</th></thead><tbody class="table-group-divider">'
+          let tbl = '<table class="table table-bordered table-sm" id="attendance-table-data"><thead><th>#</th><th>Student Name<span id="sortIcon-1" style="color:#000 !important;font-weight:700 !important;margin-left:6px !important;font-size:0.85em !important;">&#8645;</span></th><th>Father Name<span id="sortIcon-2" style="color:#000 !important;font-weight:700 !important;margin-left:6px !important;font-size:0.85em !important;">&#8645;</span></th><th>Mother Name<span id="sortIcon-3" style="color:#000 !important;font-weight:700 !important;margin-left:6px !important;font-size:0.85em !important;">&#8645;</span></th><th>SR<span id="sortIcon-4" style="color:#000 !important;font-weight:700 !important;margin-left:6px !important;font-size:0.85em !important;">&#8645;</span></th><th class=""><input type="checkbox" class="form-check form-check-input" id="selectAllCbx" name="selectAllCbx" onclick="selectAll(this)"></th><th>Remark</th></thead><tbody class="table-group-divider">'
           stuAtt.forEach(function(att){
               console.log("--->>>>>"+att.academicStudent.id);
               console.log("--->>>>>"+att.isPresent);
@@ -207,6 +268,56 @@
           });
           tbl+='</tbody></table>';
           divTabId.html(tbl);
+
+          // Sorting only - paging/searching/info stay off so the table looks
+          // the same as before this was added. Re-initializing on every call
+          // is safe: divTabId.html(tbl) just replaced the previous
+          // #attendance-table-data element entirely with a brand new one, so
+          // there is no previous DataTable instance left attached to it -
+          // the isDataTable guard below is just defensive in case that ever
+          // changes. Columns: 0=#, 5=Present checkbox, 6=Remark text input -
+          // none of those are meaningful to sort on, so sorting is limited to
+          // Student Name / Father Name / Mother Name / SR (columns 1-4).
+          // No default sort order (order: []) - rows stay in the order the
+          // server returned them until the user clicks a header.
+          //
+          // Guarded by dataTablesReady (and a direct function check as a second
+          // safety net): if the lazy-loaded DataTables script hasn't finished
+          // yet, or failed to load, this is skipped entirely and the table
+          // just renders as a plain table with no sorting - marking
+          // attendance and saving must keep working either way, sorting is a
+          // pure enhancement on top, never a requirement for this function.
+          if (dataTablesReady && typeof $.fn.DataTable === 'function') {
+              if ($.fn.DataTable.isDataTable('#attendance-table-data')) {
+                  $('#attendance-table-data').DataTable().destroy();
+              }
+              const sortableColumnIndexes = [1, 2, 3, 4];
+              const updateSortIcons = (dtApi) => {
+                  const currentOrder = dtApi.order(); // array of entries like (1, 'asc')
+                  sortableColumnIndexes.forEach((colIdx) => {
+                      const iconEl = document.getElementById('sortIcon-' + colIdx);
+                      if (!iconEl) return;
+                      const activeOrder = currentOrder.find((o) => o[0] === colIdx);
+                      if (activeOrder) {
+                          iconEl.innerHTML = activeOrder[1] === 'asc' ? '&#8593;' : '&#8595;';
+                          iconEl.style.setProperty('color', '#0d6efd', 'important');
+                      } else {
+                          iconEl.innerHTML = '&#8645;';
+                          iconEl.style.setProperty('color', '#000', 'important');
+                      }
+                  });
+              };
+              const dtApi = $('#attendance-table-data').DataTable({
+                  paging: false,
+                  searching: false,
+                  info: false,
+                  order: [],
+                  columnDefs: [{ orderable: false, targets: [0, 5, 6] }]
+              });
+              updateSortIcons(dtApi);
+              dtApi.on('order.dt', () => updateSortIcons(dtApi));
+          }
+
           btndiv.show();
       }
 
