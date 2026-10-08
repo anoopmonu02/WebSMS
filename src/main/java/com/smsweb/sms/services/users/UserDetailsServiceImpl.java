@@ -37,6 +37,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             grantedAuthorities.add(new SimpleGrantedAuthority(role.getName()));
         });
 
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), grantedAuthorities);
+        // A login that has been switched off (for example by a strike-off) must not be able to sign in.
+        // A missing (null) flag counts as enabled, so no existing user is locked out by this check.
+        boolean enabled = !Boolean.FALSE.equals(user.getEnabled());
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(), user.getPassword(), enabled, true, true, true, grantedAuthorities);
     }
 }

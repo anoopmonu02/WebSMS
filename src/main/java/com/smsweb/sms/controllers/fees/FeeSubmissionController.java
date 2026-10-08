@@ -14,6 +14,8 @@ import com.smsweb.sms.services.fees.FeeSubmissionService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.tc.ExitFeeCollectionService;
+import com.smsweb.sms.models.tc.DueClearanceReceipt;
 import com.smsweb.sms.services.universal.GradeService;
 import com.smsweb.sms.services.universal.MediumService;
 import com.smsweb.sms.services.universal.SectionService;
@@ -49,6 +51,10 @@ public class FeeSubmissionController extends BaseController {
     private final MediumService mediumService;
     private final AcademicyearService academicyearService;
 
+    /** TC module: month limit and receipt for a struck-off student's dues. No effect on ordinary fees. */
+    @Autowired
+    private ExitFeeCollectionService exitFeeCollectionService;
+
     @Autowired
     public FeeSubmissionController(StudentService studentService, MonthmappingService mmService, FeeSubmissionService feeSubmissionService, AcademicStudentService academicStudentService, FeeReceiptService receiptService,
                                    GradeService gradeService, SectionService sectionService, MediumService mediumService, AcademicyearService academicyearService){
@@ -65,7 +71,7 @@ public class FeeSubmissionController extends BaseController {
 
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/fee-submit-form")
-    public String getFeeSubmissionForm(Model model){
+    public String getFeeSubmissionForm(@RequestParam(name = "exit", required = false) String exit, Model model){
         log.info("Inside getFeeSubmissionForm");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -82,6 +88,7 @@ public class FeeSubmissionController extends BaseController {
         // (FeeSubmissionService#save) to detect a resubmission of this exact form instance
         // (double-click, Enter-key resubmit, browser back-and-resubmit) so it's never saved twice.
         model.addAttribute("submissionToken", UUID.randomUUID().toString());
+        addExitPreselect(exit, school, academicYear, model);
         return "fees/feesubmitform";
     }
 
@@ -97,7 +104,7 @@ public class FeeSubmissionController extends BaseController {
      */
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.VIEW)
     @GetMapping("/fee-submit-form-new")
-    public String getFeeSubmissionFormNew(Model model){
+    public String getFeeSubmissionFormNew(@RequestParam(name = "exit", required = false) String exit, Model model){
         log.info("Inside getFeeSubmissionFormNew");
         School school = (School)model.getAttribute("school");
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
@@ -111,6 +118,7 @@ public class FeeSubmissionController extends BaseController {
         // (FeeSubmissionService#save) to detect a resubmission of this exact form instance
         // (double-click, Enter-key resubmit, browser back-and-resubmit) so it's never saved twice.
         model.addAttribute("submissionToken", UUID.randomUUID().toString());
+        addExitPreselect(exit, school, academicYear, model);
         return "fees/feesubmitform-new";
     }
 
@@ -123,6 +131,13 @@ public class FeeSubmissionController extends BaseController {
             log.debug("saveFeeSubmission request params: {}", paramMap.keySet());
             School school = (School)model.getAttribute("school");
             AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            // TC module: for a struck-off student only (null for everyone else) refuse months after the
+            // last date and part payments, before anything is saved.
+            ExitFeeCollectionService.Rejection exitRejection = exitFeeCollectionService.validateFeeSubmission(paramMap, school, academicYear);
+            if(exitRejection != null){
+                redirectAttributes.addFlashAttribute("error", exitRejection.getMessage());
+                return "redirect:/fees/fee-submit-form?exit=" + exitRejection.getExitUuid();
+            }
             Map responseMap = feeSubmissionService.save(paramMap, school, academicYear);
             if(responseMap!=null){
                 if(responseMap.containsKey("fee_submission_not_allowed")){
@@ -153,6 +168,13 @@ public class FeeSubmissionController extends BaseController {
                     }
                     AcademicStudent student = (AcademicStudent)responseMap.get("student");
                     redirectAttributes.addFlashAttribute("success","Fees Submitted for: "+student.getStudent().getStudentName());
+                    // TC module: a struck-off student's fee also gets a Due Clearance Receipt (null for an ordinary fee,
+                    // and for any failure, which is logged: the fee itself is already saved).
+                    DueClearanceReceipt dueReceipt = exitFeeCollectionService.afterFeeSaved(responseMap.get("feeid"), school, academicYear);
+                    if(dueReceipt != null){
+                        redirectAttributes.addFlashAttribute("success","Fees Submitted for: "+student.getStudent().getStudentName()+". Due Clearance Receipt "+dueReceipt.getReceiptNo()+" created.");
+                        return "redirect:/tc/receipts/"+dueReceipt.getUuid()+"/print";
+                    }
                     return "redirect:/fees/receipt-print/"+responseMap.get("feeid");
                 }
             }
@@ -160,6 +182,24 @@ public class FeeSubmissionController extends BaseController {
             e.printStackTrace();
         }
         return "redirect:/fees/fee-submit-form";
+    }
+
+    /** TC module: when the page is opened from an exit ({@code ?exit=}), preselect that student and its unpaid months. */
+    private void addExitPreselect(String exit, School school, AcademicYear academicYear, Model model){
+        if(exit == null || exit.isBlank()){
+            return;
+        }
+        try{
+            UUID exitUuid = UUID.fromString(exit.trim());
+            Long academicStudentId = exitFeeCollectionService.preselectAcademicStudentId(exitUuid, school, academicYear);
+            if(academicStudentId != null){
+                model.addAttribute("exitPreselectId", academicStudentId);
+                model.addAttribute("exitPreselectMonths", exitFeeCollectionService.outstandingMonths(exitUuid, school, academicYear));
+                model.addAttribute("exitPreselectUuid", exitUuid.toString());
+            }
+        }catch(Exception e){
+            log.warn("Could not preselect the exit student on the fee page: {}", e.getMessage());
+        }
     }
 
     @CheckAccess(screen = "FEE_RECEIPT_PRINT", type = AccessType.VIEW)

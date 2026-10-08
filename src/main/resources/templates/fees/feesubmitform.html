@@ -1135,6 +1135,38 @@
 
     </script>
 
+
+    <!-- TC module: opened from an exit's "Collect dues" button. Present only when the exit can be collected. -->
+    <div id="exitPreselect" th:if="${exitPreselectId != null}" hidden
+         th:data-id="${exitPreselectId}" th:data-months="${exitPreselectMonths}" th:data-exit="${exitPreselectUuid}"></div>
+    <script th:if="${exitPreselectId != null}">
+        $(function () {
+            var holder = document.getElementById('exitPreselect');
+            if (!holder || typeof loadStudentData !== 'function') { return; }
+            var id = parseInt(holder.getAttribute('data-id'), 10);
+            var months = (holder.getAttribute('data-months') || '').split(',')
+                .map(function (m) { return m.trim(); }).filter(function (m) { return m.length > 0; });
+            loadStudentData(id);
+            var tries = 0;
+            var timer = setInterval(function () {
+                tries++;
+                if (String($('#academicStudentId').val()) === String(id)) {
+                    clearInterval(timer);
+                    // Tick the unpaid months up to the last date: all but the last quietly, then click the last
+                    // one so the page works out fee, discount and fine once, exactly as for a manual selection.
+                    var boxes = [];
+                    $('.monthcheckbox').each(function () {
+                        if (!this.disabled && months.indexOf(this.id) >= 0) { boxes.push(this); }
+                    });
+                    if (boxes.length === 0) { return; }
+                    for (var i = 0; i < boxes.length - 1; i++) { boxes[i].checked = true; }
+                    boxes[boxes.length - 1].click();
+                } else if (tries > 50) {
+                    clearInterval(timer);
+                }
+            }, 200);
+        });
+    </script>
 </section>
 </body>
 </html>

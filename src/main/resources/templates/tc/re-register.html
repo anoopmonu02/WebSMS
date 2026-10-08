@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Re-register Student</title>
+</head>
+<body>
+<section>
+<style>
+  .rr-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .rr-label { font-size: .8rem; color: #6c757d; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus text-primary me-2"></i>Re-register Student</h4>
+      <p class="text-muted small mb-0">
+        For a student who left in an earlier session and collected a TC, and now returns. Find the student, then
+        register again with the details pre-filled. A new registration number and login are created.
+      </p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}" th:text="${success}"></div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <div class="card rr-card mb-3">
+    <div class="card-body">
+      <form method="get" th:action="@{/tc/re-register}" class="row g-2 align-items-end">
+        <div class="col-md-8 col-lg-6">
+          <label class="form-label small mb-1" for="rrQ">Student name, father, mother, SR no., registration no. or PSRN</label>
+          <input type="text" class="form-control" id="rrQ" name="q" th:value="${q}" minlength="2" maxlength="100"
+                 placeholder="Type at least 2 characters" autofocus>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Search</button>
+        </div>
+      </form>
+      <div class="small text-muted mt-2">
+        Only a student whose <strong>TC was issued by this school</strong> can be registered again here. A student who
+        left without a TC must first be issued one (Exited Students). A student who left before this feature was
+        introduced is registered as a new student on the normal Add Student page.
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info py-2" th:if="${searched != null and rows != null and #lists.isEmpty(rows)}">
+    No struck-off student matched. Check the spelling, or try the registration number.
+  </div>
+
+  <div class="card rr-card mb-3" th:if="${rows != null and not #lists.isEmpty(rows)}">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Student</th>
+            <th>Numbers</th>
+            <th>Left from</th>
+            <th>Exit</th>
+            <th>TC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="r : ${rows}">
+            <td>
+              <div class="fw-semibold" th:text="${r.studentName}"></div>
+              <div class="small text-muted">
+                Father: <span th:text="${r.fatherName}"></span> · Mother: <span th:text="${r.motherName}"></span>
+              </div>
+            </td>
+            <td class="small">
+              <div>Reg. no.: <span th:text="${r.registrationNo} ?: '—'"></span></div>
+              <div>PSRN: <span th:text="${r.psrn != null} ? ${r.psrn} : '—'"></span></div>
+              <div>SR no.: <span th:text="${r.srNo} ?: '—'"></span></div>
+            </td>
+            <td class="small">
+              <div>Class <span th:text="${r.className}"></span></div>
+              <div class="text-muted">Session <span th:text="${r.sessionName}"></span></div>
+              <div class="text-muted" th:text="${#temporals.format(r.exitDate, 'dd/MMM/yyyy')}"></div>
+            </td>
+            <td><span class="badge bg-secondary" th:text="${r.statusLabel}"></span></td>
+            <td class="small">
+              <span th:if="${r.tcNumber != null}">
+                No. <span th:text="${r.tcNumber}"></span>
+                <span class="text-muted" th:if="${r.tcIssueDate}" th:text="'(' + ${#temporals.format(r.tcIssueDate, 'dd/MMM/yyyy')} + ')'"></span>
+              </span>
+              <span th:unless="${r.tcNumber != null}" class="text-muted">None</span>
+            </td>
+            <td class="text-end">
+              <a class="btn btn-primary btn-sm" th:if="${r.eligible}" sms:access="TC_RE_REGISTER:CREATE"
+                 th:href="@{/tc/re-register/form/{u}(u=${r.exitUuid})}">
+                <i class="bi bi-person-plus me-1"></i>Register again
+              </a>
+              <div class="small text-danger text-start" th:unless="${r.eligible}" th:text="${r.note}"></div>
+              <a class="small d-inline-block mt-1" sms:access="TC_EXIT_LIST:VIEW"
+                 th:href="@{/tc/exits/{u}(u=${r.exitUuid})}">Exit record</a>
+              ·
+              <a class="small d-inline-block mt-1" sms:access="TC_EXIT_LIST:VIEW"
+                 th:href="@{/tc/timeline/{u}(u=${r.studentUuid})}">Timeline</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</section>
+</body>
+</html>

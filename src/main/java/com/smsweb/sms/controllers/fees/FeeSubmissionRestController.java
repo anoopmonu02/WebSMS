@@ -22,6 +22,7 @@ import com.smsweb.sms.services.student.SiblingGroupService;
 import com.smsweb.sms.services.student.StudentDiscountService;
 import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.users.UserService;
+import com.smsweb.sms.services.tc.ExitFeeCollectionService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -64,6 +65,10 @@ public class FeeSubmissionRestController extends BaseController {
 
     @Autowired
     private TemplateEngine templateEngine;
+
+    /** TC module: lets the fee page find a struck-off student whose dues are being collected. */
+    @Autowired
+    private ExitFeeCollectionService exitFeeCollectionService;
 
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
@@ -258,6 +263,11 @@ public class FeeSubmissionRestController extends BaseController {
         AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         AcademicStudent academicStudent = academicStudentService.searchStudentById(
                 id, academicYear.getId(), school.getId());
+        if (academicStudent == null) {
+            // Only reached when the normal lookup found nobody: a struck-off student whose approved exit
+            // is in this session. Returns null for everyone else, so normal behaviour is unchanged.
+            academicStudent = exitFeeCollectionService.findCollectable(id, school, academicYear);
+        }
 
         try {
             if (academicStudent != null) {

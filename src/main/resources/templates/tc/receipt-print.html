@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title th:text="'Due Clearance Receipt ' + ${r.receiptNo}">Due Clearance Receipt</title>
+<style>
+  :root { --ink:#1a1a1a; --muted:#555; --line:#222; --soft:#f3f3f3; }
+  * { box-sizing:border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color:var(--ink); background:#e9e9e9; margin:0; padding:24px 12px; }
+  .bar { max-width:760px; margin:0 auto 14px; display:flex; justify-content:space-between; align-items:center; }
+  .bar button, .bar a { font-size:13px; padding:6px 14px; border:1px solid #444; border-radius:4px; background:#fff; color:#111; cursor:pointer; text-decoration:none; }
+  .receipt { max-width:760px; margin:0 auto 24px; background:#fff; border:2px solid var(--line); padding:20px 24px 16px; position:relative; }
+  .wm { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:90px; font-weight:700; color:rgba(160,0,0,.12); transform:rotate(-20deg); pointer-events:none; letter-spacing:8px; }
+  .head { text-align:center; border-bottom:2px solid var(--line); padding-bottom:10px; }
+  .head .school { font-size:22px; font-weight:700; letter-spacing:.5px; }
+  .head .addr { font-size:12px; color:var(--muted); margin-top:2px; }
+  .title { text-align:center; font-size:16px; font-weight:700; margin:10px 0 8px; text-transform:uppercase; letter-spacing:1px; }
+  .copy { position:absolute; top:10px; right:14px; font-size:11px; border:1px solid var(--line); padding:2px 8px; border-radius:3px; }
+  .meta { display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; }
+  .meta b { font-size:15px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  .info td { padding:3px 4px; vertical-align:top; }
+  .info td.l { color:var(--muted); width:20%; }
+  .info td.v { font-weight:600; width:30%; }
+  .dues { margin-top:10px; }
+  .dues th, .dues td { border:1px solid var(--line); padding:5px 8px; }
+  .dues th { background:var(--soft); text-align:left; }
+  .dues td.n, .dues th.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .dues tr.sub td { background:#fafafa; }
+  .dues tr.total td { font-weight:700; background:var(--soft); }
+  .dues tr.waiver td { color:#7a1f1f; }
+  .words { font-size:13px; margin:10px 0 4px; }
+  .clear { margin-top:8px; border:1px dashed var(--line); padding:8px 10px; font-size:12.5px; line-height:1.5; }
+  .void { margin-top:8px; border:2px solid #a00; color:#a00; padding:6px 10px; font-size:13px; font-weight:700; }
+  .sign { display:flex; justify-content:space-between; margin-top:34px; font-size:12px; }
+  .sign div { width:30%; text-align:center; border-top:1px solid var(--line); padding-top:4px; }
+  .foot { margin-top:10px; font-size:11px; color:var(--muted); text-align:center; }
+  .cut { max-width:760px; margin:0 auto 24px; border-top:2px dashed #888; text-align:center; font-size:11px; color:#777; padding-top:2px; }
+  @media print { body { background:#fff; padding:0; } .bar { display:none; } .receipt { border-width:1.5px; page-break-inside:avoid; margin-bottom:10mm; } }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span>
+    <a th:href="@{/tc/receipts}">&larr; Receipts</a>
+    <a th:if="${r.exitUuid != null}" th:href="@{/tc/exits/{u}(u=${r.exitUuid})}">Exit page</a>
+    <a th:if="${r.feeSubmissionId != null}" th:href="@{/fees/receipt-print/{id}(id=${r.feeSubmissionId})}">Fee receipt</a>
+  </span>
+  <button type="button" onclick="window.print()">Print</button>
+</div>
+
+<th:block th:each="label, st : ${ {'Student Copy', 'Office Copy'} }">
+<div class="cut" th:unless="${st.first}">- - - - - - - - - - - - - cut here - - - - - - - - - - - - -</div>
+<div class="receipt">
+  <div class="wm" th:if="${r.voided}">VOIDED</div>
+  <div class="copy" th:text="${label}">Student Copy</div>
+  <div class="head">
+    <div class="school" th:text="${r.schoolName}"></div>
+    <div class="addr">
+      <span th:text="${r.schoolAddress}"></span>
+      <span th:if="${not #strings.isEmpty(r.schoolPhone)}"> &nbsp;|&nbsp; Phone: <span th:text="${r.schoolPhone}"></span></span>
+    </div>
+  </div>
+  <div class="title">Due Clearance Receipt</div>
+
+  <div class="meta">
+    <div>Receipt No: <b th:text="${r.receiptNo}"></b></div>
+    <div>Date: <b th:text="${#temporals.format(r.receiptDate, 'dd-MMM-yyyy')}"></b></div>
+  </div>
+
+  <table class="info">
+    <tr>
+      <td class="l">Student Name</td><td class="v" th:text="${r.studentName}"></td>
+      <td class="l">Father's Name</td><td class="v" th:text="${r.fatherName}"></td>
+    </tr>
+    <tr>
+      <td class="l">Class / Section</td><td class="v" th:text="${r.className}"></td>
+      <td class="l">Session</td><td class="v" th:text="${r.sessionName}"></td>
+    </tr>
+    <tr>
+      <td class="l">Registration No</td><td class="v" th:text="${r.registrationNo} ?: '-'"></td>
+      <td class="l">PSRN / SR No</td><td class="v" th:text="${(r.psrn ?: '-') + ' / ' + (r.srNo ?: '-')}"></td>
+    </tr>
+    <tr>
+      <td class="l">Last date at school</td><td class="v" th:text="${#temporals.format(r.exitDate, 'dd-MMM-yyyy')}"></td>
+      <td class="l">Reason</td><td class="v" th:text="${r.reasonLabel}"></td>
+    </tr>
+  </table>
+
+  <table class="dues">
+    <thead>
+      <tr><th>Particulars</th><th class="n" style="width:22%">Amount (Rs.)</th></tr>
+    </thead>
+    <tbody>
+      <tr th:if="${not #strings.isEmpty(r.breakdown['months'])}">
+        <td><span style="color:#555">Months:</span> <span th:text="${r.breakdown['months']}"></span></td><td></td>
+      </tr>
+      <tr th:if="${not #strings.isEmpty(r.breakdown['heads'])}">
+        <td><span style="color:#555">Fee heads:</span> <span th:text="${r.breakdown['heads']}"></span></td><td></td>
+      </tr>
+      <tr th:if="${r.breakdown['feesAndBalance'] != null}">
+        <td>Fees and balance carried in (less discount)</td>
+        <td class="n" th:text="${#numbers.formatDecimal(r.breakdown['feesAndBalance'], 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+      <tr th:if="${r.breakdown['fine'] != null and r.breakdown['fine'].signum() > 0}">
+        <td>Late fine</td>
+        <td class="n" th:text="${#numbers.formatDecimal(r.breakdown['fine'], 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+      <tr class="total">
+        <td th:text="'Total dues up to ' + ${#temporals.format(r.exitDate, 'dd-MMM-yyyy')}"></td>
+        <td class="n" th:text="${#numbers.formatDecimal(r.frozenAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+      <tr class="waiver" th:if="${r.discountAmount.signum() > 0}">
+        <td th:text="'Less: Waiver by Admin (Reason: ' + ${r.discountReason} + ')'"></td>
+        <td class="n" th:text="'- ' + ${#numbers.formatDecimal(r.discountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+      <tr class="total">
+        <td>Amount Received</td>
+        <td class="n" th:text="${#numbers.formatDecimal(r.amountPaid, 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+      <tr class="sub">
+        <td>Balance dues</td>
+        <td class="n" th:text="${#numbers.formatDecimal(r.balanceAfter, 1, 'COMMA', 2, 'POINT')}"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="words" th:if="${r.amountPaid.signum() > 0}"><b>Amount in words:</b> <span th:text="${r.amountInWords}"></span></div>
+  <table class="info" th:if="${r.amountPaid.signum() > 0}">
+    <tr>
+      <td class="l">Payment mode</td><td class="v" th:text="${r.paymentMode} ?: '-'"></td>
+      <td class="l">Reference No</td><td class="v" th:text="${r.referenceNo} ?: '-'"></td>
+    </tr>
+  </table>
+
+  <div class="void" th:if="${r.voided}">
+    THIS RECEIPT IS VOIDED<span th:if="${not #strings.isEmpty(r.voidReason)}" th:text="': ' + ${r.voidReason}"></span>
+  </div>
+  <div class="clear" th:unless="${r.voided}">
+    All dues of the student up to <b th:text="${#temporals.format(r.exitDate, 'dd-MMM-yyyy')}"></b> are cleared by this receipt.
+    This receipt is required for issue of the Transfer Certificate.
+  </div>
+
+  <div class="sign">
+    <div>Received by (Cashier)</div>
+    <div>Parent / Guardian</div>
+    <div>Principal / Admin</div>
+  </div>
+  <div class="foot">Computer generated receipt. Please keep it safe.</div>
+</div>
+</th:block>
+
+</body>
+</html>

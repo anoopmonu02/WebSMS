@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Due Clearance Register</title>
+</head>
+<body>
+<section>
+<style>
+  .rr-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .rr-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .rr-table th { white-space: nowrap; font-size: .85rem; }
+  .rr-table td { vertical-align: middle; }
+  .rr-total { font-size: 1.3rem; font-weight: 700; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-receipt text-primary me-2"></i>Due Clearance Register</h4>
+      <p class="text-muted small mb-0">Receipts issued when a leaving student cleared the dues.</p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}" th:text="${success}"></div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <div class="card rr-card mb-3">
+    <div class="card-body">
+      <form th:action="@{/tc/receipts}" method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small mb-1" for="rQ">Receipt no. or student</label>
+          <input type="text" class="form-control form-control-sm" id="rQ" name="q" th:value="${filter.q}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="rFrom">From</label>
+          <input type="date" class="form-control form-control-sm" id="rFrom" name="fromDate" th:value="${filter.fromDate}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="rTo">To</label>
+          <input type="date" class="form-control form-control-sm" id="rTo" name="toDate" th:value="${filter.toDate}">
+        </div>
+        <div class="col-md-2">
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" id="rVoid" name="includeVoided" value="true"
+                   th:checked="${filter.includeVoided}">
+            <label class="form-check-label small" for="rVoid">Show voided</label>
+          </div>
+        </div>
+        <div class="col-md-2 d-grid">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search me-1"></i>Search</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card rr-card"><div class="card-body py-2">
+        <div class="small text-muted">Collected (valid receipts)</div>
+        <div class="rr-total" th:text="'₹ ' + ${#numbers.formatDecimal(totals.paid(), 1, 'COMMA', 2, 'POINT')}"></div>
+      </div></div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card rr-card"><div class="card-body py-2">
+        <div class="small text-muted">Waived (valid receipts)</div>
+        <div class="rr-total" th:text="'₹ ' + ${#numbers.formatDecimal(totals.waived(), 1, 'COMMA', 2, 'POINT')}"></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card rr-card mb-4">
+    <div class="card-header py-2">
+      <i class="bi bi-list-ul me-2"></i>Receipts
+      <span class="text-muted fw-normal small ms-2" th:text="'(' + ${rows.totalElements} + ')'"></span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover rr-table mb-0">
+        <thead class="table-light">
+        <tr>
+          <th>Receipt</th><th>Date</th><th>Student</th><th>Class</th>
+          <th class="text-end">Paid</th><th class="text-end">Waived</th><th>Mode</th><th>Status</th><th style="width:120px"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${rows.empty}"><td colspan="9" class="text-center text-muted py-4">No receipts found.</td></tr>
+        <tr th:each="r : ${rows.content}" th:classappend="${r.recordStatus.name() == 'VOIDED'} ? 'text-muted'">
+          <td>
+            <span th:text="${r.receiptNo}"></span>
+            <div class="small text-muted" th:text="${r.mode.name() == 'LEDGER'} ? 'Dues ledger' : 'Fee screen'"></div>
+          </td>
+          <td th:text="${#temporals.format(r.receiptDate, 'dd/MMM/yyyy')}"></td>
+          <td th:text="${r.studentName}"></td>
+          <td th:text="${r.className}"></td>
+          <td class="text-end" th:text="${#numbers.formatDecimal(r.amountPaid, 1, 'COMMA', 2, 'POINT')}"></td>
+          <td class="text-end" th:text="${#numbers.formatDecimal(r.discountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+          <td>
+            <span th:text="${r.paymentMode} ?: '-'"></span>
+            <div class="small" th:if="${r.referenceNo}" th:text="${r.referenceNo}"></div>
+          </td>
+          <td>
+            <span class="badge bg-success" th:if="${r.recordStatus.name() == 'VALID'}">Valid</span>
+            <span class="badge bg-secondary" th:if="${r.recordStatus.name() == 'VOIDED'}" th:title="${r.voidReason}">Voided</span>
+          </td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
+            <a class="btn btn-outline-primary btn-sm py-0" th:href="@{/tc/exits/{u}(u=${r.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW">Exit</a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center" th:if="${rows.totalPages > 1}">
+      <span class="small text-muted" th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}"></span>
+      <div class="btn-group btn-group-sm">
+        <a class="btn btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
+           th:href="@{/tc/receipts(page=${rows.number - 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}">Previous</a>
+        <a class="btn btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
+           th:href="@{/tc/receipts(page=${rows.number + 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}">Next</a>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+</body>
+</html>

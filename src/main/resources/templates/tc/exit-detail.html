@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Exit Detail</title>
+</head>
+<body>
+<section>
+<style>
+  .ed-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .ed-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .ed-label { font-size: .8rem; color: #6c757d; }
+  .ed-value { font-weight: 600; }
+  .ed-amount { font-size: 1.8rem; font-weight: 700; }
+  .ex-badge { color: #fff; font-weight: 600; }
+  .tc-st-exited { background: #6c757d; }
+  .tc-st-approved { background: #0d6efd; }
+  .tc-st-tc_collected { background: #146c43; }
+  .tc-st-reactivated, .tc-st-re_registered { background: #6f42c1; }
+  .tc-st-cancelled { background: #dc3545; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-person-x text-danger me-2"></i><span th:text="${exit.studentName}"></span>
+        <span class="badge ex-badge ms-2 align-middle fs-6" th:classappend="'tc-st-' + ${#strings.toLowerCase(exit.status.name())}"
+              th:text="${exit.status.label}"></span>
+      </h4>
+      <p class="text-muted small mb-0">
+        Class <span th:text="${exit.className + ' ' + exit.sectionName + ' (' + exit.mediumName + ')'}"></span>
+        · Session <span th:text="${exit.sessionName}"></span>
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary btn-sm" th:if="${exit.studentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
+         th:href="@{/tc/timeline/{u}(u=${exit.studentUuid})}"><i class="bi bi-clock-history me-1"></i>Timeline</a>
+      <a class="btn btn-outline-secondary btn-sm" th:href="@{/tc/exits}"><i class="bi bi-arrow-left me-1"></i>Back to list</a>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}">
+    <span th:text="${success}"></span>
+    <a class="btn btn-sm btn-outline-success ms-2" target="_blank" th:if="${newReceiptUuid}" sms:access="TC_DUES:VIEW"
+       th:href="@{/tc/receipts/{u}/print(u=${newReceiptUuid})}"><i class="bi bi-printer me-1"></i>Print receipt</a>
+    <a class="btn btn-sm btn-outline-success ms-2" target="_blank" th:if="${newTcUuid}" sms:access="TC_REGISTER:VIEW"
+       th:href="@{/tc/certificates/{u}/print(u=${newTcUuid})}"><i class="bi bi-printer me-1"></i>Print TC</a>
+  </div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <div class="row g-3">
+
+    <!-- ═══════════ Left: student and exit ═══════════ -->
+    <div class="col-lg-6">
+      <div class="card ed-card mb-3">
+        <div class="card-header py-2"><i class="bi bi-person me-2"></i>Student</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6"><div class="ed-label">Father</div><div class="ed-value" th:text="${exit.fatherName}"></div></div>
+            <div class="col-6"><div class="ed-label">Mother</div><div class="ed-value" th:text="${exit.motherName}"></div></div>
+            <div class="col-6"><div class="ed-label">SR no.</div><div class="ed-value" th:text="${exit.srNo} ?: '—'"></div></div>
+            <div class="col-6"><div class="ed-label">Registration no.</div><div class="ed-value" th:text="${exit.registrationNo} ?: '—'"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card ed-card">
+        <div class="card-header py-2"><i class="bi bi-box-arrow-right me-2"></i>Strike-off</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6"><div class="ed-label">Reason</div><div class="ed-value" th:text="${exit.exitReason.label}"></div></div>
+            <div class="col-6" th:if="${exit.absentDays != null}">
+              <div class="ed-label">Days absent</div><div class="ed-value" th:text="${exit.absentDays}"></div>
+            </div>
+            <div class="col-6">
+              <div class="ed-label">Last date at school</div>
+              <div class="ed-value" th:text="${#temporals.format(exit.exitDate, 'dd/MMM/yyyy')}"></div>
+            </div>
+            <div class="col-6">
+              <div class="ed-label">Dues counted</div>
+              <div class="ed-value" th:text="${exit.includeLastMonth} ? 'Including the month of the last date' : 'Months before the last date'"></div>
+            </div>
+            <div class="col-6">
+              <div class="ed-label">Struck off by</div>
+              <div class="ed-value" th:text="${exit.createdByName} ?: '—'"></div>
+              <div class="small text-muted" th:if="${exit.creationDate}"
+                   th:text="${#temporals.format(exit.creationDate, 'dd/MMM/yyyy HH:mm')}"></div>
+            </div>
+            <div class="col-6">
+              <div class="ed-label">Login</div>
+              <div class="ed-value" th:text="${exit.loginDisabledByExit} ? 'Switched off by strike-off' : 'Not changed by strike-off'"></div>
+            </div>
+            <div class="col-12" th:if="${exit.remark}">
+              <div class="ed-label">Remark</div><div th:text="${exit.remark}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Right: dues, approval ═══════════ -->
+    <div class="col-lg-6">
+      <div class="card ed-card mb-3">
+        <div class="card-header py-2"><i class="bi bi-cash-coin me-2"></i>Dues</div>
+        <div class="card-body">
+          <div class="ed-label" th:text="${exit.duesFrozen} ? 'Dues (fixed at approval)' : 'Estimated dues (not fixed yet)'"></div>
+          <div class="ed-amount"
+               th:text="'₹ ' + ${#numbers.formatDecimal(exit.duesFrozen ? exit.frozenAmount : exit.calcAmount, 1, 'COMMA', 2, 'POINT')}"></div>
+          <div class="small text-warning" th:if="${exit.duesManual}">
+            Entered by hand<span th:if="${exit.duesManualReason}" th:text="': ' + ${exit.duesManualReason}"></span>
+          </div>
+
+          <div class="mt-3 small" th:if="${not #maps.isEmpty(exit.calcBreakdown)}">
+            <div class="fw-semibold mb-1">How this was worked out</div>
+            <div th:if="${not #strings.isEmpty(exit.calcBreakdown['cutoffMonth'])}">
+              <span class="text-muted">Counted up to:</span> <span th:text="${exit.calcBreakdown['cutoffMonth']}"></span>
+            </div>
+            <div th:if="${not #strings.isEmpty(exit.calcBreakdown['months'])}">
+              <span class="text-muted">Months:</span> <span th:text="${exit.calcBreakdown['months']}"></span>
+            </div>
+            <div th:if="${not #strings.isEmpty(exit.calcBreakdown['heads'])}">
+              <span class="text-muted">Fee heads:</span> <span th:text="${exit.calcBreakdown['heads']}"></span>
+            </div>
+            <div th:if="${exit.calcBreakdown['feesAndBalance']}">
+              <span class="text-muted">Fees and balance carried in (less discount):</span>
+              <span th:text="'₹ ' + ${exit.calcBreakdown['feesAndBalance']}"></span>
+            </div>
+            <div th:if="${exit.calcBreakdown['fine']}">
+              <span class="text-muted">Late fine:</span> <span th:text="'₹ ' + ${exit.calcBreakdown['fine']}"></span>
+            </div>
+            <div th:if="${not #strings.isEmpty(exit.calcBreakdown['note'])}" class="text-muted" th:text="${exit.calcBreakdown['note']}"></div>
+          </div>
+
+          <div class="small text-muted mt-3" th:if="${exit.duesFrozen and exit.frozenAt != null}"
+               th:text="'Fixed on ' + ${#temporals.format(exit.frozenAt, 'dd/MMM/yyyy HH:mm')}"></div>
+        </div>
+      </div>
+
+      <div class="card ed-card mb-3" th:if="${exit.approvedAt}">
+        <div class="card-header py-2"><i class="bi bi-check2-circle me-2"></i>Approval</div>
+        <div class="card-body">
+          <div class="ed-label">Approved by</div>
+          <div class="ed-value" th:text="${exit.approvedByName} ?: '—'"></div>
+          <div class="small text-muted" th:text="${#temporals.format(exit.approvedAt, 'dd/MMM/yyyy HH:mm')}"></div>
+          <div class="mt-2" th:if="${exit.approvalRemark}" th:text="${exit.approvalRemark}"></div>
+        </div>
+      </div>
+
+      <div class="card ed-card mb-3 border-danger" th:if="${exit.cancelledAt}">
+        <div class="card-header py-2 text-danger"><i class="bi bi-x-circle me-2"></i>Strike-off cancelled</div>
+        <div class="card-body">
+          <div class="ed-label">Cancelled by</div>
+          <div class="ed-value" th:text="${exit.cancelledByName} ?: '—'"></div>
+          <div class="small text-muted" th:text="${#temporals.format(exit.cancelledAt, 'dd/MMM/yyyy HH:mm')}"></div>
+          <div class="mt-2" th:text="${exit.cancelReason}"></div>
+        </div>
+      </div>
+
+      <div class="card ed-card mb-3 border-success" th:if="${exit.status.name() == 'REACTIVATED'}">
+        <div class="card-header py-2 text-success"><i class="bi bi-arrow-counterclockwise me-2"></i>Student reactivated</div>
+        <div class="card-body">
+          <div class="ed-label">Reactivated by</div>
+          <div class="ed-value" th:text="${exit.reactivatedByName} ?: '—'"></div>
+          <div class="small text-muted" th:if="${exit.reactivatedAt}"
+               th:text="${#temporals.format(exit.reactivatedAt, 'dd/MMM/yyyy HH:mm')}"></div>
+          <div class="mt-2" th:if="${exit.reactivateReason}" th:text="${exit.reactivateReason}"></div>
+          <div class="small text-muted mt-2">
+            The student is active again with the same registration number and login. Months after the last date
+            appear as normal dues on the Fee Submission screen.
+          </div>
+        </div>
+      </div>
+
+      <div class="card ed-card mb-3 border-primary" th:if="${exit.status.name() == 'RE_REGISTERED'}">
+        <div class="card-header py-2 text-primary"><i class="bi bi-person-plus me-2"></i>Registered again</div>
+        <div class="card-body">
+          <div class="ed-label">New registration no.</div>
+          <div class="ed-value" th:text="${exit.newRegistrationNo} ?: '—'"></div>
+          <a class="btn btn-outline-primary btn-sm mt-2" th:if="${exit.newStudentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
+             th:href="@{/tc/timeline/{u}(u=${exit.newStudentUuid})}"><i class="bi bi-clock-history me-1"></i>Timeline of both records</a>
+          <div class="small text-muted mt-2">This record stays Inactive with its login off. The new record has its own login.</div>
+        </div>
+      </div>
+
+      <!-- Actions (admin only; the buttons only appear when the step is allowed) -->
+      <div class="d-flex gap-2" th:if="${exit.canApprove or exit.canCancel or exit.canReactivate or exit.canReRegister}">
+        <button type="button" class="btn btn-success" th:if="${exit.canApprove}"
+                data-bs-toggle="modal" data-bs-target="#edApprove">
+          <i class="bi bi-check-lg me-1"></i>Approve
+        </button>
+        <button type="button" class="btn btn-outline-danger" th:if="${exit.canCancel}"
+                data-bs-toggle="modal" data-bs-target="#edCancel">
+          <i class="bi bi-x-lg me-1"></i>Cancel strike-off
+        </button>
+        <button type="button" class="btn btn-outline-success" th:if="${exit.canReactivate}"
+                data-bs-toggle="modal" data-bs-target="#edReactivate">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reactivate student
+        </button>
+        <a class="btn btn-primary" th:if="${exit.canReRegister}" sms:access="TC_RE_REGISTER:CREATE"
+           th:href="@{/tc/re-register/form/{u}(u=${exit.uuid})}">
+          <i class="bi bi-person-plus me-1"></i>Register again (new session)
+        </a>
+      </div>
+
+      <!-- ═══════════ Dues clearance and receipts ═══════════ -->
+      <div class="card ed-card mt-3" th:if="${exit.duesFrozen}">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-receipt me-2"></i>Dues clearance</span>
+          <span class="badge bg-success" th:if="${dues.cleared}">Cleared</span>
+          <span class="badge bg-warning text-dark" th:unless="${dues.cleared}">Pending</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 text-center">
+            <div class="col-4"><div class="ed-label">Fixed dues</div>
+              <div class="ed-value" th:text="'₹ ' + ${#numbers.formatDecimal(dues.frozenAmount, 1, 'COMMA', 2, 'POINT')}"></div></div>
+            <div class="col-4"><div class="ed-label">Cleared so far</div>
+              <div class="ed-value" th:text="'₹ ' + ${#numbers.formatDecimal(dues.settledAmount, 1, 'COMMA', 2, 'POINT')}"></div></div>
+            <div class="col-4"><div class="ed-label">Pending</div>
+              <div class="ed-value" th:classappend="${dues.pendingAmount.signum() > 0} ? 'text-danger' : 'text-success'"
+                   th:text="'₹ ' + ${#numbers.formatDecimal(dues.pendingAmount, 1, 'COMMA', 2, 'POINT')}"></div></div>
+          </div>
+
+          <div class="mt-3" th:if="${dues.canClear}" sms:access="TC_DUES:CREATE">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edClear">
+              <i class="bi bi-cash-stack me-1"></i>Clear dues
+            </button>
+          </div>
+          <div class="alert alert-info py-2 small mt-3 mb-0" th:if="${dues.awaitingFeeScreen}">
+            This exit is from the current session, so its dues are collected on the Fee Submission screen
+            (months, previous balance and fine are worked out there).
+            <div class="mt-1" th:if="${not #strings.isEmpty(dues.outstandingMonths)}">
+              Months still to pay: <strong th:text="${dues.outstandingMonths}"></strong>
+            </div>
+            <a class="btn btn-primary btn-sm mt-2" sms:access="FEE_SUBMIT:VIEW"
+               th:href="@{/fees/fee-submit-form(exit=${exit.uuid})}">
+              <i class="bi bi-cash-stack me-1"></i>Collect dues on the fee screen
+            </a>
+          </div>
+          <div class="alert alert-warning py-2 small mt-3 mb-0" th:if="${dues.missingReceipts > 0}">
+            A fee was saved for this student after approval but its Due Clearance Receipt is missing.
+            <form class="d-inline" method="post" th:action="@{/tc/exits/{u}/sync-receipts(u=${exit.uuid})}" sms:access="TC_DUES:CREATE">
+              <button type="submit" class="btn btn-warning btn-sm ms-2">Create missing receipt</button>
+            </form>
+          </div>
+
+          <div class="table-responsive mt-3" th:if="${not #lists.isEmpty(dues.receipts)}">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>Receipt</th><th>Date</th><th class="text-end">Paid</th><th class="text-end">Waived</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr th:each="r : ${dues.receipts}" th:classappend="${r.recordStatus.name() == 'VOIDED'} ? 'text-decoration-line-through text-muted'">
+                  <td>
+                    <span th:text="${r.receiptNo}"></span>
+                    <div class="small text-muted" th:text="${r.mode.name() == 'LEDGER'} ? 'Dues ledger' : 'Fee screen'"></div>
+                  </td>
+                  <td th:text="${#temporals.format(r.receiptDate, 'dd/MMM/yyyy')}"></td>
+                  <td class="text-end" th:text="${#numbers.formatDecimal(r.amountPaid, 1, 'COMMA', 2, 'POINT')}"></td>
+                  <td class="text-end" th:text="${#numbers.formatDecimal(r.discountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                  <td>
+                    <span class="badge bg-success" th:if="${r.recordStatus.name() == 'VALID'}">Valid</span>
+                    <span class="badge bg-secondary" th:if="${r.recordStatus.name() == 'VOIDED'}"
+                          th:title="${r.voidReason}">Voided</span>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_DUES:VIEW"
+                       th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
+                    <button type="button" class="btn btn-outline-danger btn-sm py-0 ed-void-btn"
+                            th:if="${isAdmin and r.recordStatus.name() == 'VALID' and r.mode.name() == 'LEDGER' and not tcPanel.canReissue}"
+                            th:data-uuid="${r.uuid}" th:data-no="${r.receiptNo}" title="Void this receipt">
+                      <i class="bi bi-slash-circle"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ Transfer Certificate ═══════════ -->
+      <div class="card ed-card mt-3" th:if="${exit.status.name() == 'APPROVED' or exit.status.name() == 'TC_COLLECTED' or not #lists.isEmpty(tcPanel.tcs)}">
+        <div class="card-header py-2"><i class="bi bi-file-earmark-text me-2"></i>Transfer Certificate</div>
+        <div class="card-body">
+          <div th:if="${tcPanel.divisionName != null}" class="small text-muted mb-2">
+            Register: <strong th:text="${tcPanel.divisionName}"></strong>
+            (<span th:text="${tcPanel.tcFormat}"></span>)
+          </div>
+
+          <div class="alert alert-secondary py-2 small mb-2" th:if="${tcPanel.blockReason != null}" th:text="${tcPanel.blockReason}"></div>
+
+          <div th:if="${tcPanel.canIssue}" sms:access="TC_GENERATE:CREATE">
+            <div class="small mb-2">Next TC number in this register: <strong th:text="${tcPanel.nextNumber}"></strong></div>
+            <div class="alert alert-warning py-2 small mb-2" th:if="${tcPanel.regionalMissing}">
+              <i class="bi bi-translate me-1"></i>No regional-language name or address is saved for this student, so those lines will print blank.
+              Add them under Admin &gt; Student Regional-Language Details; the TC picks them up when it is printed.
+            </div>
+            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#edIssue">
+              <i class="bi bi-file-earmark-check me-1"></i>Issue TC
+            </button>
+          </div>
+
+          <div class="table-responsive mt-2" th:if="${not #lists.isEmpty(tcPanel.tcs)}">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>TC no.</th><th>Issued</th><th>Collected by</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr th:each="t : ${tcPanel.tcs}" th:classappend="${t.status.name() == 'SUPERSEDED'} ? 'text-muted'">
+                  <td>
+                    <span th:text="${t.tcNumber}"></span>
+                    <div class="small text-muted" th:if="${t.reissueNo > 1}" th:text="'Re-issue ' + ${t.reissueNo - 1}"></div>
+                  </td>
+                  <td th:text="${#temporals.format(t.issueDate, 'dd/MMM/yyyy')}"></td>
+                  <td>
+                    <span th:text="${t.collectedByName}"></span>
+                    <div class="small text-muted" th:text="${t.collectedByRelation}"></div>
+                    <div class="small" th:if="${t.cause != null}" th:text="${t.cause}"></div>
+                  </td>
+                  <td>
+                    <span class="badge bg-success" th:if="${t.status.name() == 'VALID'}">Valid</span>
+                    <span class="badge bg-secondary" th:if="${t.status.name() == 'SUPERSEDED'}">Replaced</span>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_REGISTER:VIEW"
+                       th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-3" th:if="${tcPanel.canReissue and exit.status.name() != 'REACTIVATED'}" sms:access="TC_REISSUE:CREATE">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edReissue">
+              <i class="bi bi-arrow-repeat me-1"></i>Re-issue TC
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ Clear dues dialog ═══════════ -->
+  <div class="modal fade" id="edClear" tabindex="-1" aria-hidden="true" th:if="${dues.canClear}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/exits/{u}/clear-dues(u=${exit.uuid})}" method="post">
+        <input type="hidden" name="submissionToken" th:value="${clearToken}">
+        <div class="modal-header">
+          <h5 class="modal-title">Clear dues</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">
+            Pending:
+            <strong th:text="'₹ ' + ${#numbers.formatDecimal(dues.pendingAmount, 1, 'COMMA', 2, 'POINT')}"></strong>.
+            The full pending amount must be cleared in one go (paid plus waiver).
+          </p>
+          <input type="hidden" id="edPending" th:value="${dues.pendingAmount}">
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="edPaid">Amount paid (₹)</label>
+            <input type="number" class="form-control form-control-sm" id="edPaid" name="amountPaid"
+                   min="0" max="9999999.99" step="0.01" th:value="${dues.pendingAmount}" required>
+          </div>
+          <div th:if="${isAdmin}">
+            <div class="mb-2">
+              <label class="form-label small mb-1" for="edWaive">Waiver (₹, admin only)</label>
+              <input type="number" class="form-control form-control-sm" id="edWaive" name="discountAmount"
+                     min="0" max="9999999.99" step="0.01" value="0">
+            </div>
+            <div class="mb-2 d-none" id="edWaiveReasonBox">
+              <label class="form-label small mb-1" for="edWaiveReason">Reason for the waiver <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm" id="edWaiveReason" name="discountReason"
+                     maxlength="255" disabled>
+            </div>
+          </div>
+          <div class="row g-2 mb-2" id="edModeBox">
+            <div class="col-6">
+              <label class="form-label small mb-1" for="edMode">Payment mode</label>
+              <select class="form-select form-select-sm" id="edMode" name="paymentMode" required>
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="CHEQUE">Cheque</option>
+                <option value="BANK_TRANSFER">Bank transfer</option>
+                <option value="CARD">Card</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small mb-1" for="edRef">Reference no.</label>
+              <input type="text" class="form-control form-control-sm" id="edRef" name="referenceNo" maxlength="100">
+            </div>
+          </div>
+          <div>
+            <label class="form-label small mb-1" for="edClearRemark">Remark (optional)</label>
+            <textarea class="form-control form-control-sm" id="edClearRemark" name="remark" rows="2" maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-primary" id="edClearBtn">Save receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Void receipt dialog (admin) ═══════════ -->
+  <div class="modal fade" id="edVoid" tabindex="-1" aria-hidden="true" th:if="${isAdmin}">
+    <div class="modal-dialog">
+      <form class="modal-content" id="edVoidForm" method="post" th:data-base="@{/tc/receipts/}">
+        <div class="modal-header">
+          <h5 class="modal-title">Void receipt <span id="edVoidNo"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">The amount becomes pending again. The receipt number is never reused.</p>
+          <label class="form-label small mb-1" for="edVoidReason">Reason <span class="text-danger">*</span></label>
+          <textarea class="form-control form-control-sm" id="edVoidReason" name="reason" rows="2"
+                    maxlength="255" minlength="5" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-danger" id="edVoidBtn">Void receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Issue TC dialog ═══════════ -->
+  <div class="modal fade" id="edIssue" tabindex="-1" aria-hidden="true" th:if="${tcPanel.canIssue}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/exits/{u}/issue(u=${exit.uuid})}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Issue Transfer Certificate</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            TC number <strong th:text="${tcPanel.nextNumber}"></strong> from the
+            <strong th:text="${tcPanel.divisionName}"></strong> register will be given to
+            <strong th:text="${exit.studentName}"></strong>. This cannot be undone; a wrong TC can only be replaced by a re-issue.
+          </p>
+          <div class="alert alert-warning py-2 small" th:if="${tcPanel.regionalMissing}">
+            No regional-language details are saved for this student. The regional lines will print blank until they are added.
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="edIssueName">Collected by <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="edIssueName" name="collectedByName"
+                   maxlength="150" required>
+          </div>
+          <div>
+            <label class="form-label small mb-1" for="edIssueRel">Relation <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" id="edIssueRel" name="collectedByRelation" required>
+              <option value="PARENT">Parent</option>
+              <option value="GUARDIAN">Guardian</option>
+              <option value="STUDENT">Student</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-success" id="edIssueBtn">Issue TC</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Re-issue TC dialog ═══════════ -->
+  <div class="modal fade" id="edReissue" tabindex="-1" aria-hidden="true" th:if="${tcPanel.canReissue and exit.status.name() != 'REACTIVATED'}"
+       th:with="validTc=${tcPanel.tcs.?[status.name() == 'VALID'][0]}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/certificates/{u}/reissue(u=${validTc.uuid})}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Re-issue TC</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            TC <strong th:text="${validTc.tcNumber}"></strong> will be marked as replaced and a new number is taken
+            from the same register.
+          </p>
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="edReissueReason">Reason <span class="text-danger">*</span></label>
+            <textarea class="form-control form-control-sm" id="edReissueReason" name="reason" rows="2"
+                      maxlength="500" minlength="10" required></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="edReissueName">Collected by <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" id="edReissueName" name="collectedByName"
+                   maxlength="150" required>
+          </div>
+          <div>
+            <label class="form-label small mb-1" for="edReissueRel">Relation <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" id="edReissueRel" name="collectedByRelation" required>
+              <option value="PARENT">Parent</option>
+              <option value="GUARDIAN">Guardian</option>
+              <option value="STUDENT">Student</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-primary" id="edReissueBtn">Re-issue TC</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Reactivate dialog (admin, same session, TC collected) ═══════════ -->
+  <div class="modal fade" id="edReactivate" tabindex="-1" aria-hidden="true" th:if="${exit.canReactivate}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/exits/{u}/reactivate(u=${exit.uuid})}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Reactivate student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            <strong th:text="${exit.studentName}"></strong> will become an active student again in this session
+            <span th:if="${exit.loginDisabledByExit}">and the login will be switched back on</span>.
+            The registration number and SR number stay the same.
+          </p>
+          <p class="small text-muted mb-3">
+            Dues already paid stay paid. Months after the last date become normal dues on the Fee Submission screen.
+            The TC that was issued stays in the register as history.
+          </p>
+          <label class="form-label small mb-1" for="edReactivateReason">Reason <span class="text-danger">*</span></label>
+          <textarea class="form-control form-control-sm" id="edReactivateReason" name="reason" rows="2"
+                    maxlength="255" minlength="5" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-success" id="edReactivateBtn">Reactivate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Approve dialog ═══════════ -->
+  <div class="modal fade" id="edApprove" tabindex="-1" aria-hidden="true" th:if="${exit.canApprove}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/exits/{u}/approve(u=${exit.uuid})}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Approve strike-off</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            <strong th:text="${exit.studentName}"></strong>, class
+            <span th:text="${exit.className + ' ' + exit.sectionName}"></span>, last date
+            <strong th:text="${#temporals.format(exit.exitDate, 'dd/MMM/yyyy')}"></strong>.
+          </p>
+          <p class="mb-2">
+            Dues to be fixed:
+            <strong th:text="'₹ ' + ${#numbers.formatDecimal(exit.calcAmount, 1, 'COMMA', 2, 'POINT')}"></strong>
+          </p>
+          <div class="small text-muted mb-3">
+            Once approved the dues are fixed. Dues can then be collected and the TC issued.
+          </div>
+
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="edDiff">
+            <label class="form-check-label" for="edDiff">Use a different amount</label>
+          </div>
+          <div class="d-none" id="edDiffBox">
+            <div class="mb-2">
+              <label class="form-label small mb-1" for="edAmount">Amount (₹)</label>
+              <input type="number" class="form-control form-control-sm" id="edAmount" name="manualAmount"
+                     min="0" max="9999999.99" step="0.01" disabled>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small mb-1" for="edAmountReason">Reason</label>
+              <input type="text" class="form-control form-control-sm" id="edAmountReason" name="manualReason"
+                     maxlength="255" disabled>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label small mb-1" for="edRemark">Remark (optional)</label>
+            <textarea class="form-control form-control-sm" id="edRemark" name="remark" rows="2" maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-success" id="edApproveBtn">Approve</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ Cancel dialog ═══════════ -->
+  <div class="modal fade" id="edCancel" tabindex="-1" aria-hidden="true" th:if="${exit.canCancel}">
+    <div class="modal-dialog">
+      <form class="modal-content" th:action="@{/tc/exits/{u}/cancel(u=${exit.uuid})}" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancel strike-off</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            <strong th:text="${exit.studentName}"></strong> will become an active student again
+            <span th:if="${exit.loginDisabledByExit}">and the login will be switched back on</span>.
+          </p>
+          <label class="form-label small mb-1" for="edCancelReason">Reason <span class="text-danger">*</span></label>
+          <textarea class="form-control form-control-sm" id="edCancelReason" name="reason" rows="2"
+                    maxlength="255" minlength="5" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+          <button type="submit" class="btn btn-danger" id="edCancelBtn">Cancel strike-off</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+  var diff = document.getElementById('edDiff');
+  if (diff) {
+    diff.addEventListener('change', function () {
+      var on = diff.checked;
+      document.getElementById('edDiffBox').classList.toggle('d-none', !on);
+      var amount = document.getElementById('edAmount');
+      var reason = document.getElementById('edAmountReason');
+      amount.disabled = !on;
+      reason.disabled = !on;
+      amount.required = on;
+      reason.required = on;
+      reason.minLength = on ? 5 : 0;
+    });
+  }
+
+  // Clear dues: the waiver reduces the amount paid; the reason and payment mode follow.
+  var paid = document.getElementById('edPaid');
+  var waive = document.getElementById('edWaive');
+  var pending = document.getElementById('edPending');
+  function syncClear() {
+    var due = pending ? parseFloat(pending.value) || 0 : 0;
+    var w = waive ? parseFloat(waive.value) || 0 : 0;
+    var p = parseFloat(paid.value) || 0;
+    var reasonBox = document.getElementById('edWaiveReasonBox');
+    var reason = document.getElementById('edWaiveReason');
+    if (reasonBox) {
+      reasonBox.classList.toggle('d-none', w <= 0);
+      reason.disabled = w <= 0;
+      reason.required = w > 0;
+      reason.minLength = w > 0 ? 5 : 0;
+    }
+    var mode = document.getElementById('edMode');
+    mode.required = p > 0;
+    mode.disabled = p <= 0;
+    document.getElementById('edModeBox').classList.toggle('opacity-50', p <= 0);
+    return due;
+  }
+  if (paid) {
+    if (waive) {
+      waive.addEventListener('input', function () {
+        var due = parseFloat(pending.value) || 0;
+        var w = Math.min(parseFloat(waive.value) || 0, due);
+        paid.value = Math.max(0, due - w).toFixed(2);
+        syncClear();
+      });
+    }
+    paid.addEventListener('input', syncClear);
+    syncClear();
+  }
+
+  // Void: point the dialog at the chosen receipt.
+  var voidForm = document.getElementById('edVoidForm');
+  if (voidForm) {
+    document.querySelectorAll('.ed-void-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        voidForm.action = voidForm.getAttribute('data-base') + btn.getAttribute('data-uuid') + '/void';
+        document.getElementById('edVoidNo').textContent = btn.getAttribute('data-no');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('edVoid')).show();
+      });
+    });
+  }
+
+  // Stop a double click from posting twice.
+  ['edApprove', 'edCancel', 'edReactivate', 'edClear', 'edVoid', 'edIssue', 'edReissue'].forEach(function (id) {
+    var modal = document.getElementById(id);
+    if (!modal) { return; }
+    var form = modal.querySelector('form');
+    form.addEventListener('submit', function () {
+      var btn = form.querySelector('button[type=submit]');
+      setTimeout(function () { btn.disabled = true; }, 0);
+    });
+  });
+});
+</script>
+</section>
+</body>
+</html>

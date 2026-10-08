@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Student Timeline</title>
+</head>
+<body>
+<section>
+<style>
+  .tl-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .tl-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .tl-label { font-size: .8rem; color: #6c757d; }
+  .tl-row-voided td { text-decoration: line-through; color: #8a8f98; }
+  .tl-date { white-space: nowrap; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <i class="bi bi-clock-history text-primary me-2"></i>Timeline: <span th:text="${tl.studentName}"></span>
+      </h4>
+      <p class="text-muted small mb-0">
+        <span th:if="${tl.fatherName}">Father: <span th:text="${tl.fatherName}"></span> · </span>
+        Registration no. <span th:text="${tl.registrationNo} ?: '—'"></span>
+        · <span th:text="${tl.totalRows}"></span> recorded events
+      </p>
+    </div>
+    <a class="btn btn-outline-secondary btn-sm" th:href="@{/tc/exits}"><i class="bi bi-arrow-left me-1"></i>Exited students</a>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <!-- Records linked by re-registration -->
+  <div class="card tl-card mb-3" th:if="${#lists.size(tl.chain) > 1}">
+    <div class="card-header py-2"><i class="bi bi-link-45deg me-2"></i>Linked records (same student, re-registered)</div>
+    <div class="card-body py-2">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>#</th><th>Registration no.</th><th>PSRN</th><th>Last SR no.</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr th:each="c, st : ${tl.chain}" th:classappend="${c.current} ? 'table-primary'">
+              <td th:text="${st.count}"></td>
+              <td th:text="${c.registrationNo} ?: '—'"></td>
+              <td th:text="${c.psrn != null} ? ${c.psrn} : '—'"></td>
+              <td th:text="${c.srNo} ?: 'Not assigned yet'"></td>
+              <td><span class="badge bg-light text-dark" th:text="${c.status}"></span></td>
+              <td class="text-end">
+                <a th:unless="${c.current}" th:href="@{/tc/timeline/{u}(u=${c.studentUuid})}" class="btn btn-sm btn-outline-primary py-0">Open</a>
+                <span th:if="${c.current}" class="small text-muted">Opened</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="small text-muted mt-2">Oldest record first. Each record has its own registration number and PSRN. Last SR no. is the SR number the record had when it was closed (for the newest record, its current SR number). The timeline below shows all records together.</div>
+    </div>
+  </div>
+
+  <div class="alert alert-info py-2" th:if="${#lists.isEmpty(tl.sessions)}">
+    Nothing has been recorded for this student yet.
+  </div>
+
+  <div class="card tl-card mb-3" th:each="sess : ${tl.sessions}">
+    <div class="card-header py-2"><i class="bi bi-calendar3 me-2"></i>Session <span th:text="${sess.sessionName}"></span></div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Event</th>
+            <th>Details</th>
+            <th>Class</th>
+            <th th:if="${#lists.size(tl.chain) > 1}">Record</th>
+            <th>By</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="r : ${sess.rows}" th:classappend="${r.voided} ? 'tl-row-voided'">
+            <td class="tl-date" th:text="${#temporals.format(r.eventDate, 'dd/MMM/yyyy')}"></td>
+            <td><span class="badge" th:classappend="'bg-' + ${r.tone}" th:text="${r.title}"></span></td>
+            <td>
+              <span th:text="${r.description}"></span>
+              <div class="small text-danger" th:if="${r.voided}" th:text="'Voided: ' + ${r.voidReason}"></div>
+            </td>
+            <td th:text="${r.className} ?: '—'"></td>
+            <td th:if="${#lists.size(tl.chain) > 1}">
+              <span th:text="${r.registrationNo} ?: '—'"></span>
+            </td>
+            <td>
+              <span th:text="${r.userName} ?: 'System'"></span>
+              <div class="small text-muted" th:if="${r.recordedAt}"
+                   th:text="${#temporals.format(r.recordedAt, 'dd/MMM/yyyy HH:mm')}"></div>
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-outline-secondary btn-sm py-0" sms:access="TC_EXIT_LIST:VIEW"
+                 th:if="${r.linkKind == 'EXIT'}" th:href="@{/tc/exits/{u}(u=${r.linkUuid})}" title="Open the exit record">
+                <i class="bi bi-box-arrow-up-right"></i></a>
+              <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_REGISTER:VIEW"
+                 th:if="${r.linkKind == 'TC'}" th:href="@{/tc/certificates/{u}/print(u=${r.linkUuid})}" title="Print this TC">
+                <i class="bi bi-printer"></i></a>
+              <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_DUES:VIEW"
+                 th:if="${r.linkKind == 'RECEIPT'}" th:href="@{/tc/receipts/{u}/print(u=${r.linkUuid})}" title="Print this receipt">
+                <i class="bi bi-printer"></i></a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</section>
+</body>
+</html>

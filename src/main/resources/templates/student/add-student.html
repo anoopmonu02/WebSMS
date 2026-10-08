@@ -12,7 +12,23 @@
     <div class="mt-2 gy-5 mb-5">
       <div class="card-header fs-3">Student Registration Form</div>
       <hr/>
-      <form th:action="@{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data" id="myForm">
+      <form th:action="${formAction != null} ? @{${formAction}} : @{/student/student}" th:object="${student}" method="post" class="row g-3" enctype="multipart/form-data" id="myForm">
+        <!-- Shown only when this page is opened by Re-register Student (TC feature); normal registration is unchanged -->
+        <div class="col-12" th:if="${reRegister != null}">
+          <input type="hidden" name="exitUuid" th:value="${reRegister.exitUuid}">
+          <div class="alert alert-primary mb-0">
+            <strong>Registering again:</strong>
+            <span th:text="${reRegister.studentName}"></span>
+            (old registration no. <span th:text="${reRegister.registrationNo} ?: '—'"></span>,
+            left class <span th:text="${reRegister.className}"></span> in session <span th:text="${reRegister.sessionName}"></span>,
+            TC no. <span th:text="${reRegister.tcNumber}"></span>).
+            <div class="small mt-1">
+              The details are copied from the old record. Check them, choose the class for the new session
+              and add a photo if needed. A new registration number and login are created; the SR number is
+              assigned later on the Assign SR screen.
+            </div>
+          </div>
+        </div>
         <!-- Personal Info -->
         <div class="col-12">
           <h4>Personal Information</h4>

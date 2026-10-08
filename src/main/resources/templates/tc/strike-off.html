@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Strike Off Student</title>
+</head>
+<body>
+<section>
+<style>
+  .so-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .so-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .so-hint { font-size: .8rem; color: #6c757d; }
+  .so-results { position: absolute; z-index: 20; left: 0; right: 0; max-height: 280px; overflow-y: auto; }
+  .so-picked { border: 1px dashed #0d6efd; background: #f3f8ff; border-radius: 10px; }
+  .so-dues { border-radius: 10px; border: 1px solid #e3e8ee; background: #fbfcfe; }
+  .so-amount { font-size: 1.6rem; font-weight: 700; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4"
+     id="soRoot"
+     th:data-admin="${isAdmin}"
+     th:data-search-url="@{/tc/api/exits/students}"
+     th:data-preview-url="@{/tc/api/exits/dues-preview}">
+
+  <div class="mt-3 mb-2">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Strike Off Student</h4>
+    <p class="text-muted small mb-0">
+      Use this when a student leaves the school. The student becomes inactive and the login is switched off.
+      An admin must approve before dues are collected and the TC is issued.
+    </p>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}" th:text="${success}"></div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <form id="soForm" th:action="@{/tc/strike-off}" method="post" novalidate>
+    <div class="row g-3">
+
+      <!-- ═══════════ Left: who, why, when ═══════════ -->
+      <div class="col-lg-7">
+        <div class="card so-card">
+          <div class="card-header py-2"><i class="bi bi-person me-2"></i>Student and reason</div>
+          <div class="card-body">
+
+            <div class="mb-3 position-relative">
+              <label class="form-label small mb-1" for="soSearch">Find student <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="soSearch" autocomplete="off"
+                     placeholder="Type name, father's name, SR no. or registration no. (2 letters or more)">
+              <div class="list-group so-results shadow d-none" id="soResults"></div>
+              <input type="hidden" name="academicStudentId" id="soStudentId" th:value="${form.academicStudentId}">
+              <input type="hidden" name="studentLabel" id="soStudentLabel" th:value="${studentLabel}">
+              <div class="so-hint mt-1">Only active students of the current session who are not already struck off are listed.</div>
+            </div>
+
+            <div class="so-picked p-2 mb-3 d-none" id="soPicked">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold" id="soPickedName"></div>
+                  <div class="small text-muted" id="soPickedMeta"></div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="soChange">Change</button>
+              </div>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small mb-1" for="soReason">Reason for leaving <span class="text-danger">*</span></label>
+                <select class="form-select" id="soReason" name="exitReason" required>
+                  <option value="" disabled th:selected="${form.exitReason == null}">Select reason</option>
+                  <option th:each="r : ${reasons}" th:value="${r.name()}" th:text="${r.label}"
+                          th:selected="${form.exitReason == r}"></option>
+                </select>
+              </div>
+              <div class="col-md-6 d-none" id="soAbsentBox">
+                <label class="form-label small mb-1" for="soAbsent">Days absent <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="soAbsent" name="absentDays" min="1" max="3660"
+                       th:value="${form.absentDays}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small mb-1" for="soDate">Last date at school <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="soDate" name="exitDate" required
+                       th:attr="min=${sessionStart}, max=${today}" th:value="${form.exitDate}">
+                <div class="so-hint mt-1">Not before the session start and not after today.</div>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <div class="form-label small mb-1">Dues are counted up to the last date <span class="text-danger">*</span></div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="includeLastMonth" id="soIncl" value="true"
+                       th:checked="${form.includeLastMonth}">
+                <label class="form-check-label" for="soIncl">Include the month of the last date</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="includeLastMonth" id="soExcl" value="false"
+                       th:checked="${!form.includeLastMonth}">
+                <label class="form-check-label" for="soExcl">Only the months before the last date</label>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label small mb-1" for="soRemark">Remark (optional)</label>
+              <textarea class="form-control" id="soRemark" name="remark" rows="2" maxlength="500"
+                        th:text="${form.remark}"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ Right: dues ═══════════ -->
+      <div class="col-lg-5">
+        <div class="card so-card">
+          <div class="card-header py-2"><i class="bi bi-cash-coin me-2"></i>Dues estimate</div>
+          <div class="card-body">
+            <div class="text-muted small" id="soDuesIdle">
+              Choose a student and a last date to see the dues.
+            </div>
+
+            <div class="so-dues p-3 d-none" id="soDuesBox">
+              <div class="small text-muted">Estimated dues</div>
+              <div class="so-amount" id="soDuesAmount"></div>
+              <div class="small mt-2"><span class="text-muted">Months counted:</span> <span id="soDuesMonths"></span></div>
+              <div class="small"><span class="text-muted">Fee heads:</span> <span id="soDuesHeads"></span></div>
+              <div class="small"><span class="text-muted">Late fine included:</span> <span id="soDuesFine"></span></div>
+              <div class="so-hint mt-2">
+                Includes month fees, any balance carried in and the late fine as of today, less any discount.
+                The admin confirms the final amount when approving.
+              </div>
+            </div>
+
+            <div class="alert alert-warning py-2 mb-0 d-none" id="soDuesError"></div>
+
+            <!-- admin only: shown when the estimate failed -->
+            <div class="mt-3 d-none" id="soManualBox">
+              <div class="fw-semibold small mb-2">Enter the dues by hand (admin)</div>
+              <div class="mb-2">
+                <label class="form-label small mb-1" for="soManualAmount">Amount (₹)</label>
+                <input type="number" class="form-control" id="soManualAmount" name="manualAmount"
+                       min="0" max="9999999.99" step="0.01" th:value="${form.manualAmount}" disabled>
+              </div>
+              <div>
+                <label class="form-label small mb-1" for="soManualReason">Reason</label>
+                <input type="text" class="form-control" id="soManualReason" name="manualReason"
+                       maxlength="255" th:value="${form.manualReason}" disabled>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-grid mt-3">
+          <button type="button" class="btn btn-danger" id="soSubmit" sms:access="TC_STRIKE_OFF:CREATE">
+            <i class="bi bi-box-arrow-right me-1"></i>Strike off student
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Confirm dialog ═══════════ -->
+    <div class="modal fade" id="soConfirm" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirm strike-off</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">You are about to strike off:</p>
+            <ul class="mb-2">
+              <li><strong id="soCName"></strong></li>
+              <li>Last date: <strong id="soCDate"></strong></li>
+              <li>Reason: <strong id="soCReason"></strong></li>
+              <li>Dues: <strong id="soCDues"></strong></li>
+            </ul>
+            <div class="small text-muted">
+              The student becomes inactive and the login is switched off. An admin must approve the strike-off next.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
+            <button type="submit" form="soForm" class="btn btn-danger" id="soConfirmBtn">Strike off</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+  var root = document.getElementById('soRoot');
+  var isAdmin = root.getAttribute('data-admin') === 'true';
+  var searchUrl = root.getAttribute('data-search-url');
+  var previewUrl = root.getAttribute('data-preview-url');
+
+  var form = document.getElementById('soForm');
+  var search = document.getElementById('soSearch');
+  var results = document.getElementById('soResults');
+  var studentId = document.getElementById('soStudentId');
+  var studentLabel = document.getElementById('soStudentLabel');
+  var picked = document.getElementById('soPicked');
+  var reason = document.getElementById('soReason');
+  var absentBox = document.getElementById('soAbsentBox');
+  var absent = document.getElementById('soAbsent');
+  var dateInput = document.getElementById('soDate');
+  var duesIdle = document.getElementById('soDuesIdle');
+  var duesBox = document.getElementById('soDuesBox');
+  var duesError = document.getElementById('soDuesError');
+  var manualBox = document.getElementById('soManualBox');
+  var manualAmount = document.getElementById('soManualAmount');
+  var manualReason = document.getElementById('soManualReason');
+
+  // 'none' | 'loading' | 'ok' | 'manual' (admin must type) | 'blocked'
+  var duesState = 'none';
+  var duesText = '';
+  var previewSeq = 0;
+  var searchTimer = null;
+
+  function show(el, on) { el.classList.toggle('d-none', !on); }
+
+  function includeLast() {
+    return document.getElementById('soIncl').checked;
+  }
+
+  function fmtMoney(text) {
+    var n = Number(text);
+    return isNaN(n) ? text : '₹ ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function resetDues(message) {
+    previewSeq++;
+    duesState = 'none';
+    show(duesBox, false);
+    show(duesError, false);
+    show(manualBox, false);
+    manualAmount.disabled = true;
+    manualReason.disabled = true;
+    duesIdle.textContent = message || 'Choose a student and a last date to see the dues.';
+    show(duesIdle, true);
+  }
+
+  function showPicked(name, meta) {
+    document.getElementById('soPickedName').textContent = name;
+    document.getElementById('soPickedMeta').textContent = meta || '';
+    show(picked, true);
+    show(search.parentElement, false);
+  }
+
+  function clearPicked() {
+    studentId.value = '';
+    studentLabel.value = '';
+    show(picked, false);
+    show(search.parentElement, true);
+    search.value = '';
+    search.focus();
+    resetDues();
+  }
+
+  function renderResults(rows) {
+    results.textContent = '';
+    if (!rows.length) {
+      var none = document.createElement('div');
+      none.className = 'list-group-item text-muted small';
+      none.textContent = 'No matching active student.';
+      results.appendChild(none);
+    }
+    rows.forEach(function (r) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'list-group-item list-group-item-action';
+      var title = document.createElement('div');
+      title.className = 'fw-semibold';
+      title.textContent = r.studentName;
+      var sub = document.createElement('div');
+      sub.className = 'small text-muted';
+      var meta = 'Class ' + r.className + ' ' + r.sectionName + ' (' + r.mediumName + ')'
+        + (r.fatherName ? ' · Father: ' + r.fatherName : '')
+        + (r.srNo ? ' · SR ' + r.srNo : '')
+        + (r.registrationNo ? ' · Reg ' + r.registrationNo : '');
+      sub.textContent = meta;
+      btn.appendChild(title);
+      btn.appendChild(sub);
+      btn.addEventListener('click', function () {
+        studentId.value = r.academicStudentId;
+        studentLabel.value = r.studentName + ' — Class ' + r.className + ' ' + r.sectionName;
+        show(results, false);
+        showPicked(r.studentName, meta);
+        loadDues();
+      });
+      results.appendChild(btn);
+    });
+    show(results, true);
+  }
+
+  function runSearch() {
+    var term = search.value.trim();
+    if (term.length < 2) { show(results, false); return; }
+    fetch(searchUrl + '?term=' + encodeURIComponent(term), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(renderResults)
+      .catch(function () {
+        results.textContent = '';
+        var bad = document.createElement('div');
+        bad.className = 'list-group-item text-danger small';
+        bad.textContent = 'Could not search. Please try again.';
+        results.appendChild(bad);
+        show(results, true);
+      });
+  }
+
+  search.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 300);
+  });
+  document.addEventListener('click', function (e) {
+    if (!results.contains(e.target) && e.target !== search) { show(results, false); }
+  });
+  document.getElementById('soChange').addEventListener('click', clearPicked);
+
+  function loadDues() {
+    if (!studentId.value || !dateInput.value) { resetDues(); return; }
+    var seq = ++previewSeq;
+    duesState = 'loading';
+    show(duesBox, false);
+    show(duesError, false);
+    show(manualBox, false);
+    manualAmount.disabled = true;
+    manualReason.disabled = true;
+    duesIdle.textContent = 'Working out the dues…';
+    show(duesIdle, true);
+
+    var url = previewUrl + '?academicStudentId=' + encodeURIComponent(studentId.value)
+      + '&exitDate=' + encodeURIComponent(dateInput.value)
+      + '&includeLastMonth=' + includeLast();
+    fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (body) { return { status: r.status, body: body }; }); })
+      .then(function (res) {
+        if (seq !== previewSeq) { return; }
+        show(duesIdle, false);
+        var b = res.body || {};
+        if (res.status === 200 && b.ok) {
+          duesState = 'ok';
+          duesText = fmtMoney(b.amount);
+          document.getElementById('soDuesAmount').textContent = duesText;
+          document.getElementById('soDuesMonths').textContent = b.months || '—';
+          document.getElementById('soDuesHeads').textContent = b.heads || '—';
+          document.getElementById('soDuesFine').textContent = fmtMoney(b.fine);
+          show(duesBox, true);
+        } else if (res.status === 200 && b.ok === false) {
+          duesError.textContent = b.message || 'The dues could not be worked out.';
+          show(duesError, true);
+          if (b.canOverride) {
+            duesState = 'manual';
+            manualAmount.disabled = false;
+            manualReason.disabled = false;
+            show(manualBox, true);
+          } else {
+            duesState = 'blocked';
+          }
+        } else {
+          duesState = 'blocked';
+          duesError.textContent = b.error || 'The dues could not be worked out.';
+          show(duesError, true);
+        }
+      })
+      .catch(function () {
+        if (seq !== previewSeq) { return; }
+        show(duesIdle, false);
+        duesState = 'blocked';
+        duesError.textContent = 'The dues could not be worked out. Please try again.';
+        show(duesError, true);
+      });
+  }
+
+  function syncReason() {
+    var longAbsence = reason.value === 'LONG_ABSENCE';
+    show(absentBox, longAbsence);
+    absent.required = longAbsence;
+    if (!longAbsence) { absent.value = ''; }
+  }
+
+  reason.addEventListener('change', syncReason);
+  dateInput.addEventListener('change', loadDues);
+  document.getElementById('soIncl').addEventListener('change', loadDues);
+  document.getElementById('soExcl').addEventListener('change', loadDues);
+
+  function fail(message, field) {
+    alert(message);
+    if (field) { field.focus(); }
+  }
+
+  document.getElementById('soSubmit').addEventListener('click', function () {
+    if (!studentId.value) { return fail('Please choose the student.', search); }
+    if (!reason.value) { return fail('Please choose the reason for leaving.', reason); }
+    if (reason.value === 'LONG_ABSENCE' && (!absent.value || Number(absent.value) < 1)) {
+      return fail('Please enter the number of days absent.', absent);
+    }
+    if (!dateInput.value) { return fail('Please choose the last date at school.', dateInput); }
+    if (dateInput.min && dateInput.value < dateInput.min) { return fail('The last date cannot be before the session start.', dateInput); }
+    if (dateInput.max && dateInput.value > dateInput.max) { return fail('The last date cannot be after today.', dateInput); }
+
+    var duesLabel;
+    if (duesState === 'ok') {
+      duesLabel = duesText;
+    } else if (duesState === 'manual' && isAdmin) {
+      if (manualAmount.value === '' || Number(manualAmount.value) < 0) { return fail('Please enter the dues amount.', manualAmount); }
+      if (manualReason.value.trim().length < 5) { return fail('Please enter the reason for the amount (at least 5 characters).', manualReason); }
+      duesLabel = fmtMoney(manualAmount.value) + ' (entered by hand)';
+    } else if (duesState === 'loading') {
+      return fail('The dues are still being worked out. Please wait a moment.');
+    } else {
+      return fail('The dues could not be worked out, so this student cannot be struck off now. Please ask an admin.');
+    }
+
+    document.getElementById('soCName').textContent = studentLabel.value || document.getElementById('soPickedName').textContent;
+    document.getElementById('soCDate').textContent = dateInput.value;
+    document.getElementById('soCReason').textContent = reason.options[reason.selectedIndex].text;
+    document.getElementById('soCDues').textContent = duesLabel;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('soConfirm')).show();
+  });
+
+  // Stop a double click from saving twice.
+  form.addEventListener('submit', function () {
+    var btn = document.getElementById('soConfirmBtn');
+    btn.disabled = true;
+  });
+
+  // Restore state after the server sent the form back with an error.
+  syncReason();
+  if (studentId.value) {
+    showPicked(studentLabel.value || 'Selected student', '');
+    loadDues();
+  }
+});
+</script>
+</section>
+</body>
+</html>

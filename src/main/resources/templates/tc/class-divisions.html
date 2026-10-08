@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - Class Groups</title>
+</head>
+<body>
+<section>
+<style>
+  .cg-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .cg-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .cg-table th { white-space: nowrap; font-size: .85rem; }
+  .cg-table td { vertical-align: middle; }
+  .cg-badge-grade { background: #e7f1ff; color: #0a58ca; font-weight: 600; margin: 0 4px 4px 0; }
+  .cg-grade-box { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .cg-hint { font-size: .8rem; color: #6c757d; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="mt-3 mb-2">
+    <h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3 text-primary me-2"></i>Class Groups</h4>
+    <p class="text-muted small mb-0">
+      Group classes that share one TC format and one TC number series (for example Primary, Middle, High School).
+      A class can be in one group only.
+    </p>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}" th:text="${success}"></div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <!-- ═══════════ Add a group (inline) ═══════════ -->
+  <div class="card cg-card mb-4" sms:access="TC_DIVISION_MANAGE:CREATE">
+    <div class="card-header py-2"><i class="bi bi-plus-circle me-2"></i>Add class group</div>
+    <div class="card-body">
+      <form th:action="@{/tc/divisions/create}" method="post" class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small mb-1" for="newName">Group name</label>
+          <input type="text" class="form-control form-control-sm" id="newName" name="name" maxlength="100" required placeholder="e.g. Primary">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-1" for="newFormat">TC format</label>
+          <select class="form-select form-select-sm" id="newFormat" name="tcFormat" required>
+            <option value="" disabled selected>Select format</option>
+            <option th:each="f : ${formatNames}" th:value="${f}" th:text="${f}"></option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="newStart">TC start number</label>
+          <input type="number" class="form-control form-control-sm" id="newStart" name="startNumber" min="1" max="99999999" value="1" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="newStatus">Status</label>
+          <select class="form-select form-select-sm" id="newStatus" name="status">
+            <option value="Active" selected>Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1" for="newDesc">Description (optional)</label>
+          <input type="text" class="form-control form-control-sm" id="newDesc" name="description" maxlength="255">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Add group</button>
+        </div>
+      </form>
+      <div class="cg-hint mt-2">
+        TC formats come from <strong>App Config &rarr; TC Settings</strong>. The start number is the number of the first TC
+        of this group and cannot be changed after the first TC is issued.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ List with inline edit ═══════════ -->
+  <div class="card cg-card mb-4">
+    <div class="card-header py-2"><i class="bi bi-list-ul me-2"></i>Groups</div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover cg-table mb-0">
+        <thead class="table-light">
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Group</th>
+          <th>TC format</th>
+          <th style="width:120px">Start no.</th>
+          <th style="width:100px">Next no.</th>
+          <th>Classes</th>
+          <th style="width:110px">Status</th>
+          <th style="width:230px">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(rows)}">
+          <td colspan="8" class="text-center text-muted py-4">No class group yet. Add the first one above.</td>
+        </tr>
+
+        <th:block th:each="row, it : ${rows}">
+          <tr th:id="'row-' + ${row.uuid}">
+            <td th:text="${it.index + 1}"></td>
+
+            <td>
+              <span class="cg-view fw-semibold" th:text="${row.name}"></span>
+              <div class="cg-view cg-hint" th:if="${row.description}" th:text="${row.description}"></div>
+              <input type="text" class="cg-edit d-none form-control form-control-sm mb-1" name="name"
+                     th:value="${row.name}" maxlength="100" required th:attr="form='edit-' + ${row.uuid}">
+              <input type="text" class="cg-edit d-none form-control form-control-sm" name="description"
+                     th:value="${row.description}" maxlength="255" placeholder="Description (optional)"
+                     th:attr="form='edit-' + ${row.uuid}">
+            </td>
+
+            <td>
+              <span class="cg-view" th:text="${row.tcFormat}"></span>
+              <select class="cg-edit d-none form-select form-select-sm" name="tcFormat"
+                      th:attr="form='edit-' + ${row.uuid}">
+                <!-- keep the current value selectable even if it was removed from the list later -->
+                <option th:if="${!formatNames.contains(row.tcFormat)}" th:value="${row.tcFormat}"
+                        th:text="${row.tcFormat}" selected></option>
+                <option th:each="f : ${formatNames}" th:value="${f}" th:text="${f}"
+                        th:selected="${f == row.tcFormat}"></option>
+              </select>
+            </td>
+
+            <td>
+              <span class="cg-view" th:text="${row.startNumber}"></span>
+              <input type="number" class="cg-edit d-none form-control form-control-sm" name="startNumber"
+                     th:value="${row.startNumber}" min="1" max="99999999" required
+                     th:readonly="${row.startLocked}"
+                     th:title="${row.startLocked} ? 'Locked: a TC was already issued from this group' : null"
+                     th:attr="form='edit-' + ${row.uuid}">
+            </td>
+
+            <td th:text="${row.nextNumber}"></td>
+
+            <td>
+              <span th:each="g : ${row.gradeNames}" class="badge cg-badge-grade" th:text="${g}"></span>
+              <span th:if="${#lists.isEmpty(row.gradeNames)}" class="text-muted small">No class added yet</span>
+            </td>
+
+            <td>
+              <span class="cg-view badge"
+                    th:classappend="${row.status == 'Active'} ? 'bg-success' : 'bg-secondary'"
+                    th:text="${row.status}"></span>
+              <select class="cg-edit d-none form-select form-select-sm" name="status"
+                      th:attr="form='edit-' + ${row.uuid}">
+                <option value="Active" th:selected="${row.status == 'Active'}">Active</option>
+                <option value="Inactive" th:selected="${row.status == 'Inactive'}">Inactive</option>
+              </select>
+            </td>
+
+            <td class="text-nowrap">
+              <form th:id="'edit-' + ${row.uuid}" th:action="@{/tc/divisions/{u}/update(u=${row.uuid})}"
+                    method="post" class="d-inline">
+                <button type="button" class="btn btn-outline-primary btn-sm cg-view cg-btn-edit"
+                        sms:access="TC_DIVISION_MANAGE:EDIT">
+                  <i class="bi bi-pencil-square"></i> Edit
+                </button>
+                <button type="submit" class="btn btn-success btn-sm cg-edit d-none">
+                  <i class="bi bi-check-lg"></i> Save
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm cg-edit d-none cg-btn-cancel">Cancel</button>
+              </form>
+              <button type="button" class="btn btn-outline-dark btn-sm cg-btn-grades"
+                      th:attr="data-target='grades-' + ${row.uuid}" sms:access="TC_DIVISION_MANAGE:EDIT">
+                <i class="bi bi-mortarboard"></i> Classes
+              </button>
+            </td>
+          </tr>
+
+          <!-- Grade mapping of this group (opens under the row) -->
+          <tr class="cg-grades-row d-none" th:id="'grades-' + ${row.uuid}">
+            <td></td>
+            <td colspan="7">
+              <form th:action="@{/tc/divisions/{u}/grades(u=${row.uuid})}" method="post">
+                <div class="fw-semibold small mb-2">
+                  Classes in <span th:text="${row.name}"></span>
+                  <span class="cg-hint">(only classes not already in another group are listed)</span>
+                </div>
+                <div class="cg-grade-box mb-2">
+                  <div class="form-check" th:each="opt : ${row.gradeOptions}">
+                    <input class="form-check-input" type="checkbox" name="gradeIds"
+                           th:id="'g-' + ${row.uuid} + '-' + ${opt.id}" th:value="${opt.id}" th:checked="${opt.selected}">
+                    <label class="form-check-label" th:for="'g-' + ${row.uuid} + '-' + ${opt.id}" th:text="${opt.name}"></label>
+                  </div>
+                  <span th:if="${#lists.isEmpty(row.gradeOptions)}" class="text-muted small">No class available.</span>
+                </div>
+                <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save classes</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm cg-btn-grades-close">Close</button>
+              </form>
+            </td>
+          </tr>
+        </th:block>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+  function setEditing(row, editing) {
+    row.querySelectorAll('.cg-view').forEach(function (el) { el.classList.toggle('d-none', editing); });
+    row.querySelectorAll('.cg-edit').forEach(function (el) { el.classList.toggle('d-none', !editing); });
+  }
+  document.querySelectorAll('.cg-btn-edit').forEach(function (btn) {
+    btn.addEventListener('click', function () { setEditing(btn.closest('tr'), true); });
+  });
+  document.querySelectorAll('.cg-btn-cancel').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      // Reload to drop unsaved edits and show the stored values again.
+      window.location.reload();
+    });
+  });
+  document.querySelectorAll('.cg-btn-grades').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = document.getElementById(btn.getAttribute('data-target'));
+      if (target) { target.classList.toggle('d-none'); }
+    });
+  });
+  document.querySelectorAll('.cg-btn-grades-close').forEach(function (btn) {
+    btn.addEventListener('click', function () { btn.closest('tr').classList.add('d-none'); });
+  });
+});
+</script>
+</section>
+</body>
+</html>

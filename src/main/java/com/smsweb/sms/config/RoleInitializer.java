@@ -507,6 +507,54 @@ public class RoleInitializer {
             seed(screenRepo, "Message", "View Notifications",
                     "MESSAGE_VIEW",
                     "View sent notification history and replies");
+
+            // ════════════════════════════════════════════════════════════════
+            // MODULE: TC and Exit (Transfer Certificate feature)
+            // Insert-if-missing only. Nothing is visible to non-admin staff until the
+            // permissions are granted on the Permission Assignment page, and the whole
+            // feature stays hidden until TC_FEATURE_ENABLED_<schoolId> is set to true.
+            // Approve, cancel, reactivate and waive are admin-only by role, not by key.
+            // ════════════════════════════════════════════════════════════════
+
+            seed(screenRepo, "TC and Exit", "Class Groups",
+                    "TC_DIVISION_MANAGE",
+                    "Create class groups, map grades to them and set each group's TC format and number");
+
+            seed(screenRepo, "TC and Exit", "Strike Off Student",
+                    "TC_STRIKE_OFF",
+                    "Strike off a student with reason, last date and dues estimate");
+
+            seed(screenRepo, "TC and Exit", "Exited Students",
+                    "TC_EXIT_LIST",
+                    "View struck-off students and their exit details");
+
+            seed(screenRepo, "TC and Exit", "Exit Dues",
+                    "TC_DUES",
+                    "Collect exit dues, clear dues in the ledger, print and view Due Clearance Receipts");
+
+            seed(screenRepo, "TC and Exit", "Issue TC",
+                    "TC_GENERATE",
+                    "Generate, hand over and print a Transfer Certificate");
+
+            seed(screenRepo, "TC and Exit", "Re-issue TC",
+                    "TC_REISSUE",
+                    "Re-issue a Transfer Certificate with a recorded cause");
+
+            seed(screenRepo, "TC and Exit", "TC Register",
+                    "TC_REGISTER",
+                    "View and print the register of issued Transfer Certificates");
+
+            seed(screenRepo, "TC and Exit", "Re-register Student",
+                    "TC_RE_REGISTER",
+                    "Search an old student and re-register them as a new admission");
+
+            seed(screenRepo, "TC and Exit", "Long Absentees",
+                    "TC_ABSENTEE_REPORT",
+                    "View students whose total absent days crossed the alert threshold");
+
+            seed(screenRepo, "Student", "Student Timeline",
+                    "STUDENT_TIMELINE",
+                    "View the timeline of a student: strike-off, dues, TC, return and re-registration");
         };
     }
 

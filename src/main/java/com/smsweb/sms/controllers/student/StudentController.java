@@ -22,6 +22,7 @@ import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.tc.TcConfigService;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -69,6 +70,9 @@ public class StudentController extends BaseController {
 
     private final ExaminationRepository examinationRepository;
     private final ExamDetailsRepository examDetailsRepository;
+    @Autowired
+    private TcConfigService tcConfigService;
+
     @Autowired
     public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository, ExamDetailsRepository examDetailsRepository){
         this.studentService = studentService;
@@ -484,6 +488,11 @@ public class StudentController extends BaseController {
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         log.info("Inside deleteStudent");
         log.info("Inside deleteStudent");
+        // When the Transfer Certificate feature is on for the school, removing a student goes through
+        // Strike Off (date, dues, approval, timeline) instead of the old direct delete.
+        if (tcConfigService.isEnabled((School) model.getAttribute("school"))) {
+            return "redirect:/tc/strike-off?studentId=" + Long.valueOf(id);
+        }
         String msg = studentService.deleteStudent(Long.valueOf(id));
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);

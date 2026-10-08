@@ -1,6 +1,10 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.services.admin.MaintenanceModeService;
+import com.smsweb.sms.services.tc.TcConfigService;
+import com.smsweb.sms.services.tc.TcValidationException;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -10,7 +14,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * NEW controller (feature: App Config admin screen). Currently one tab ("Mobile App")
@@ -36,17 +42,47 @@ public class AppConfigController {
     private static final int MAX_MESSAGE_LENGTH = 255; // system_config.config_value is VARCHAR(255)
 
     private final MaintenanceModeService maintenanceModeService;
+    private final TcConfigService tcConfigService;
 
-    public AppConfigController(MaintenanceModeService maintenanceModeService) {
+    public AppConfigController(MaintenanceModeService maintenanceModeService,
+                               TcConfigService tcConfigService) {
         this.maintenanceModeService = maintenanceModeService;
+        this.tcConfigService = tcConfigService;
     }
 
     @GetMapping
-    public String view(Model model) {
+    public String view(Model model, HttpSession session) {
         log.info("Inside app config page");
         model.addAttribute("mobileAccessEnabled", maintenanceModeService.isMobileAccessEnabled());
         model.addAttribute("maintenanceMessage", maintenanceModeService.getMaintenanceMessage());
+        addTcSettings(model, session);
         return "admin/app-config";
+    }
+
+    /**
+     * Fills the "TC Settings" tab. Wrapped so that a problem here (for example the TC tables
+     * not created yet on a database) can never break the Mobile App tab of this page.
+     */
+    private void addTcSettings(Model model, HttpSession session) {
+        model.addAttribute("tcSchoolSelected", false);
+        try {
+            School school = (School) session.getAttribute("school");
+            if (school == null) {
+                return;
+            }
+            model.addAttribute("tcSchoolName", school.getSchoolName());
+            model.addAttribute("tcEnabled", tcConfigService.isEnabled(school));
+            model.addAttribute("tcFormatNames", String.join(", ", tcConfigService.formatNames(school)));
+            model.addAttribute("tcReceiptPrefix", tcConfigService.receiptPrefix(school));
+            model.addAttribute("tcReceiptPad", tcConfigService.receiptPad(school));
+            model.addAttribute("tcReceiptStart", tcConfigService.receiptStart(school));
+            model.addAttribute("tcReceiptStartLocked", tcConfigService.receiptStartLocked(school));
+            model.addAttribute("tcSchoolSelected", true);
+        } catch (Exception e) {
+            log.warn("Could not load TC settings for the App Config page", e);
+            model.addAttribute("tcSchoolSelected", false);
+            model.addAttribute("tcLoadError", true);
+        }
     }
 
     @PostMapping("/mobile-access")
@@ -85,6 +121,69 @@ public class AppConfigController {
             return ResponseEntity.ok(Map.of("success", true, "message", "Maintenance message saved."));
         } catch (Exception e) {
             log.error("Failed to update maintenance message", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Could not save — please try again."));
+        }
+    }
+
+    // ── TC Settings tab (per school, saved by AJAX like the Mobile App tab) ──────────────
+
+    @PostMapping("/tc-settings/feature")
+    @ResponseBody
+    public ResponseEntity<?> setTcFeature(@RequestParam("enabled") boolean enabled, HttpSession session) {
+        log.info("Inside set TC feature - enabled={}", enabled);
+        return saveTcSetting(session, school -> {
+            tcConfigService.setEnabled(school, enabled);
+            return enabled
+                    ? "Transfer Certificate feature enabled for this school."
+                    : "Transfer Certificate feature disabled for this school.";
+        });
+    }
+
+    @PostMapping("/tc-settings/formats")
+    @ResponseBody
+    public ResponseEntity<?> setTcFormats(@RequestParam("formats") String formats, HttpSession session) {
+        log.info("Inside set TC format names");
+        return saveTcSetting(session, school -> {
+            tcConfigService.setFormatNames(school, Arrays.asList(formats.split(",")));
+            return "TC format names saved.";
+        });
+    }
+
+    @PostMapping("/tc-settings/receipt")
+    @ResponseBody
+    public ResponseEntity<?> setTcReceiptNumbering(@RequestParam("prefix") String prefix,
+                                                   @RequestParam("pad") String pad,
+                                                   @RequestParam("start") String start,
+                                                   HttpSession session) {
+        log.info("Inside set TC receipt numbering");
+        return saveTcSetting(session, school -> {
+            int padValue;
+            long startValue;
+            try {
+                padValue = Integer.parseInt(pad.trim());
+                startValue = Long.parseLong(start.trim());
+            } catch (NumberFormatException e) {
+                throw new TcValidationException("Padding and start number must be whole numbers.");
+            }
+            tcConfigService.setReceiptNumbering(school, prefix, padValue, startValue);
+            return "Receipt numbering saved.";
+        });
+    }
+
+    /** Runs one TC setting save for the school in the session and turns the outcome into JSON. */
+    private ResponseEntity<?> saveTcSetting(HttpSession session, Function<School, String> action) {
+        School school = (School) session.getAttribute("school");
+        if (school == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "No school is selected for this login."));
+        }
+        try {
+            String message = action.apply(school);
+            return ResponseEntity.ok(Map.of("success", true, "message", message));
+        } catch (TcValidationException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to save TC setting", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", "Could not save — please try again."));
         }

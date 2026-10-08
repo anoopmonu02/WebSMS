@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sms="http://www.smsweb.com/thymeleaf"
+      th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>UAIC - TC Register</title>
+</head>
+<body>
+<section>
+<style>
+  .tr-card { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; }
+  .tr-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
+  .tr-table th { white-space: nowrap; font-size: .85rem; }
+  .tr-table td { vertical-align: middle; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+    <div>
+      <h4 class="mb-0 fw-bold"><i class="bi bi-journal-text text-primary me-2"></i>TC Register</h4>
+      <p class="text-muted small mb-0">Every Transfer Certificate issued, by register and number. A TC is issued from the exit page.</p>
+    </div>
+  </div>
+  <hr class="mt-1 mb-3"/>
+
+  <div class="alert alert-success py-2" role="alert" th:if="${success}" th:text="${success}"></div>
+  <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
+
+  <div class="card tr-card mb-3">
+    <div class="card-body">
+      <form th:action="@{/tc/register}" method="get" class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small mb-1" for="tQ">Student</label>
+          <input type="text" class="form-control form-control-sm" id="tQ" name="q" th:value="${filter.q}"
+                 placeholder="Name, father or mother">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="tDiv">Register</label>
+          <select class="form-select form-select-sm" id="tDiv" name="divisionId">
+            <option value="">All</option>
+            <option th:each="d : ${divisions}" th:value="${d.id}" th:text="${d.name}"
+                    th:selected="${filter.divisionId != null and filter.divisionId == d.id}"></option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-1" for="tStatus">Status</label>
+          <select class="form-select form-select-sm" id="tStatus" name="status">
+            <option value="">All</option>
+            <option th:each="s : ${statuses}" th:value="${s.name()}"
+                    th:text="${s.name() == 'VALID'} ? 'Valid' : 'Replaced'"
+                    th:selected="${filter.status == s}"></option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <label class="form-label small mb-1" for="tNf">No. from</label>
+          <input type="number" min="1" class="form-control form-control-sm" id="tNf" name="numberFrom" th:value="${filter.numberFrom}">
+        </div>
+        <div class="col-md-1">
+          <label class="form-label small mb-1" for="tNt">No. to</label>
+          <input type="number" min="1" class="form-control form-control-sm" id="tNt" name="numberTo" th:value="${filter.numberTo}">
+        </div>
+        <div class="col-md-1">
+          <label class="form-label small mb-1" for="tFrom">From</label>
+          <input type="date" class="form-control form-control-sm" id="tFrom" name="fromDate" th:value="${filter.fromDate}">
+        </div>
+        <div class="col-md-1">
+          <label class="form-label small mb-1" for="tTo">To</label>
+          <input type="date" class="form-control form-control-sm" id="tTo" name="toDate" th:value="${filter.toDate}">
+        </div>
+        <div class="col-md-1 d-grid">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card tr-card mb-4">
+    <div class="card-header py-2">
+      <i class="bi bi-list-ul me-2"></i>Transfer Certificates
+      <span class="text-muted fw-normal small ms-2" th:text="'(' + ${rows.totalElements} + ')'"></span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover tr-table mb-0">
+        <thead class="table-light">
+        <tr>
+          <th>TC no.</th><th>Register</th><th>Student</th><th>Class</th><th>Issued</th>
+          <th>Collected by</th><th>Status</th><th style="width:150px"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${rows.empty}"><td colspan="8" class="text-center text-muted py-4">No TCs found.</td></tr>
+        <tr th:each="t : ${rows.content}" th:classappend="${t.status.name() == 'SUPERSEDED'} ? 'text-muted'">
+          <td>
+            <strong th:text="${t.tcNumber}"></strong>
+            <div class="small text-muted" th:if="${t.reissueNo > 1}" th:text="'Re-issue ' + ${t.reissueNo - 1}"></div>
+          </td>
+          <td>
+            <span th:text="${t.divisionName}"></span>
+            <div class="small text-muted" th:text="${t.tcFormat}"></div>
+          </td>
+          <td>
+            <div class="fw-semibold" th:text="${t.studentName}"></div>
+            <div class="small text-muted" th:if="${t.fatherName}" th:text="'Father: ' + ${t.fatherName}"></div>
+          </td>
+          <td th:text="${t.className}"></td>
+          <td th:text="${#temporals.format(t.issueDate, 'dd/MMM/yyyy')}"></td>
+          <td>
+            <span th:text="${t.collectedByName}"></span>
+            <div class="small text-muted" th:text="${t.collectedByRelation}"></div>
+            <div class="small" th:if="${t.cause}" th:text="${t.cause}"></div>
+          </td>
+          <td>
+            <span class="badge bg-success" th:if="${t.status.name() == 'VALID'}">Valid</span>
+            <span class="badge bg-secondary" th:if="${t.status.name() == 'SUPERSEDED'}">Replaced</span>
+          </td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
+            <a class="btn btn-outline-primary btn-sm py-0" th:href="@{/tc/exits/{u}(u=${t.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW"
+               th:title="${t.status.name() == 'VALID'} ? 'Open the exit to re-issue' : 'Open the exit'">Exit</a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center" th:if="${rows.totalPages > 1}">
+      <span class="small text-muted" th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}"></span>
+      <div class="btn-group btn-group-sm">
+        <a class="btn btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
+           th:href="@{/tc/register(page=${rows.number - 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Previous</a>
+        <a class="btn btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
+           th:href="@{/tc/register(page=${rows.number + 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Next</a>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+</body>
+</html>

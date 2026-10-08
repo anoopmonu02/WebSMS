@@ -205,6 +205,9 @@ public class WebSecurityConfig {
                         .requestMatchers("/student/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/fees/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/sibling/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
+                        // Transfer Certificate feature: route-level gate (students and other roles are blocked);
+                        // each controller adds its own @PreAuthorize and @CheckAccess screen permission.
+                        .requestMatchers("/tc/**").hasAnyRole("ADMIN", "SUPERADMIN", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/universal/download-docs/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")
                         .requestMatchers("/universal/**").hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
                         .requestMatchers("/message/**").hasAnyRole("ADMIN", "SUPERADMIN", "TEACHER", "ACCOUNTENT", "STAFF")

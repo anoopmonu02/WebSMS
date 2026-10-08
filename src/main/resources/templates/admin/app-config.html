@@ -29,15 +29,24 @@
   </div>
   <hr class="mt-1 mb-3"/>
 
-  <!-- Tabs (currently one — Mobile App; more configs will land here later) -->
+  <!-- Tabs: Mobile App, TC Settings (more configs will land here later) -->
   <ul class="nav nav-pills mb-4" id="configTabs">
     <li class="nav-item">
-      <button class="nav-link active" id="tab-mobile-btn" type="button">
+      <button class="nav-link active" id="tab-mobile-btn" type="button"
+              data-bs-toggle="pill" data-bs-target="#tab-pane-mobile">
         <i class="bi bi-phone me-1"></i>Mobile App
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-tc-btn" type="button"
+              data-bs-toggle="pill" data-bs-target="#tab-pane-tc">
+        <i class="bi bi-file-earmark-text me-1"></i>TC Settings
       </button>
     </li>
   </ul>
 
+  <div class="tab-content">
+  <div class="tab-pane fade show active" id="tab-pane-mobile">
   <!-- ═══════════════ MOBILE APP TAB ═══════════════ -->
   <div id="pane-mobile"
        th:data-mobile-access-url="@{/admin/app-config/mobile-access}"
@@ -96,6 +105,112 @@
 
     </div>
   </div>
+
+  </div><!-- /tab-pane-mobile -->
+
+  <!-- ═══════════════ TC SETTINGS TAB ═══════════════ -->
+  <div class="tab-pane fade" id="tab-pane-tc"
+       th:data-feature-url="@{/admin/app-config/tc-settings/feature}"
+       th:data-formats-url="@{/admin/app-config/tc-settings/formats}"
+       th:data-receipt-url="@{/admin/app-config/tc-settings/receipt}">
+
+    <div class="alert alert-warning" th:if="${!tcSchoolSelected}">
+      <span th:if="${tcLoadError}">TC settings could not be loaded. Check that the TC tables exist in the database (db/create_tc_tables.sql), then reload this page.</span>
+      <span th:unless="${tcLoadError}">TC settings are saved per school. No school is selected for this login, so they cannot be shown here.</span>
+    </div>
+
+    <div class="row g-3" th:if="${tcSchoolSelected}">
+      <div class="col-12">
+        <p class="text-muted small mb-0">These settings apply to <strong th:text="${tcSchoolName}">School</strong> only.</p>
+      </div>
+
+      <!-- 1. Feature switch -->
+      <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-toggle-on me-2"></i>Transfer Certificate feature</span>
+            <div class="d-flex align-items-center gap-2">
+              <span id="tcFeatureStatusText"
+                    th:text="${tcEnabled} ? 'Enabled' : 'Disabled'"
+                    th:class="${tcEnabled} ? 'status-text-on' : 'status-text-off'"></span>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="tcFeatureSwitch" th:checked="${tcEnabled}">
+              </div>
+              <span class="spinner-border spinner-border-sm text-secondary save-spinner" id="tcFeatureSpinner" role="status">
+                <span class="visually-hidden">Saving…</span>
+              </span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="mb-1">Turns the Transfer Certificate menu and pages on for this school.</p>
+            <p class="mb-0 small text-muted">While this is off, the menu is hidden and nothing else in the software changes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TC format names -->
+      <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3"><i class="bi bi-card-list me-2"></i>TC format names</div>
+          <div class="card-body">
+            <p class="text-muted small mb-2">
+              Names offered when you create a class group, separated by commas (capital letters, digits and underscore).
+              A new name also needs a print template; until then a plain placeholder is printed.
+            </p>
+            <input type="text" class="form-control mb-2" id="tcFormatNames" maxlength="255" th:value="${tcFormatNames}">
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-primary btn-sm" id="tcSaveFormatsBtn">
+                <span class="spinner-border spinner-border-sm save-spinner" id="tcFormatsSpinner" role="status"></span>
+                <i class="bi bi-check-lg me-1"></i>Save formats
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Receipt numbering -->
+      <div class="col-12">
+        <div class="card config-card">
+          <div class="card-header py-3"><i class="bi bi-receipt me-2"></i>Due Clearance Receipt numbering</div>
+          <div class="card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label small mb-1" for="tcReceiptPrefix">Prefix</label>
+                <input type="text" class="form-control" id="tcReceiptPrefix" maxlength="10" th:value="${tcReceiptPrefix}">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small mb-1" for="tcReceiptPad">Digits</label>
+                <input type="number" class="form-control" id="tcReceiptPad" min="1" max="10" th:value="${tcReceiptPad}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small mb-1" for="tcReceiptStart">Start number</label>
+                <input type="number" class="form-control" id="tcReceiptStart" min="1"
+                       th:value="${tcReceiptStart}" th:readonly="${tcReceiptStartLocked}"
+                       th:title="${tcReceiptStartLocked} ? 'Locked: the first receipt already exists' : null">
+              </div>
+              <div class="col-md-2">
+                <div class="small text-muted mb-1">Preview</div>
+                <div class="fw-bold" id="tcReceiptPreview">DCR-00001</div>
+              </div>
+              <div class="col-md-2 text-md-end">
+                <button type="button" class="btn btn-primary btn-sm" id="tcSaveReceiptBtn">
+                  <span class="spinner-border spinner-border-sm save-spinner" id="tcReceiptSpinner" role="status"></span>
+                  <i class="bi bi-check-lg me-1"></i>Save numbering
+                </button>
+              </div>
+            </div>
+            <p class="small text-muted mb-0 mt-2">
+              Each school has its own receipt series. The start number is used for the first receipt only and
+              <span th:if="${tcReceiptStartLocked}"><strong>is now locked</strong> because a receipt exists.</span>
+              <span th:unless="${tcReceiptStartLocked}">locks after the first receipt is created.</span>
+              Receipts already issued never change when the prefix or digits are changed later.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-pane-tc -->
+  </div><!-- /tab-content -->
 
 </div>
 
@@ -199,6 +314,80 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+});
+</script>
+
+<script type="text/javascript" th:inline="none">
+// TC Settings tab. Separate from the Mobile App script above so neither can break the other.
+document.addEventListener('DOMContentLoaded', function () {
+  var pane = document.getElementById('tab-pane-tc');
+  if (!pane || !document.getElementById('tcFeatureSwitch')) { return; }
+
+  function errorText(xhr) {
+    return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Could not save — please try again.';
+  }
+
+  // 1. Feature switch (saves instantly, reverts if the save fails)
+  var sw = document.getElementById('tcFeatureSwitch');
+  sw.addEventListener('change', function () {
+    var enabled = sw.checked;
+    var spinner = document.getElementById('tcFeatureSpinner');
+    var statusText = document.getElementById('tcFeatureStatusText');
+    sw.disabled = true;
+    spinner.style.display = 'inline-block';
+    $.ajax({
+      url: pane.dataset.featureUrl, type: 'POST', data: { enabled: enabled },
+      success: function (resp) {
+        statusText.textContent = enabled ? 'Enabled' : 'Disabled';
+        statusText.className = enabled ? 'status-text-on' : 'status-text-off';
+        toastr.success(resp.message, 'Success');
+      },
+      error: function (xhr) { sw.checked = !enabled; toastr.error(errorText(xhr), 'Error'); },
+      complete: function () { sw.disabled = false; spinner.style.display = 'none'; }
+    });
+  });
+
+  // 4. Format names
+  document.getElementById('tcSaveFormatsBtn').addEventListener('click', function () {
+    var btn = this, spinner = document.getElementById('tcFormatsSpinner');
+    var value = document.getElementById('tcFormatNames').value.trim();
+    if (!value) { toastr.error('Add at least one TC format name.', 'Error'); return; }
+    btn.disabled = true; spinner.style.display = 'inline-block';
+    $.ajax({
+      url: pane.dataset.formatsUrl, type: 'POST', data: { formats: value },
+      success: function (resp) { toastr.success(resp.message, 'Success'); },
+      error: function (xhr) { toastr.error(errorText(xhr), 'Error'); },
+      complete: function () { btn.disabled = false; spinner.style.display = 'none'; }
+    });
+  });
+
+  // 5. Receipt numbering with live preview
+  var prefixEl = document.getElementById('tcReceiptPrefix');
+  var padEl = document.getElementById('tcReceiptPad');
+  var startEl = document.getElementById('tcReceiptStart');
+  var previewEl = document.getElementById('tcReceiptPreview');
+  function updatePreview() {
+    var pad = parseInt(padEl.value, 10);
+    var start = parseInt(startEl.value, 10);
+    if (!(pad >= 1 && pad <= 10) || !(start >= 1)) { previewEl.textContent = '—'; return; }
+    var digits = String(start);
+    while (digits.length < pad) { digits = '0' + digits; }
+    previewEl.textContent = prefixEl.value.trim() + digits;
+  }
+  [prefixEl, padEl, startEl].forEach(function (el) { el.addEventListener('input', updatePreview); });
+  updatePreview();
+
+  document.getElementById('tcSaveReceiptBtn').addEventListener('click', function () {
+    var btn = this, spinner = document.getElementById('tcReceiptSpinner');
+    btn.disabled = true; spinner.style.display = 'inline-block';
+    $.ajax({
+      url: pane.dataset.receiptUrl, type: 'POST',
+      data: { prefix: prefixEl.value, pad: padEl.value, start: startEl.value },
+      success: function (resp) { toastr.success(resp.message, 'Success'); },
+      error: function (xhr) { toastr.error(errorText(xhr), 'Error'); },
+      complete: function () { btn.disabled = false; spinner.style.display = 'none'; }
+    });
+  });
 });
 </script>
 </section>
