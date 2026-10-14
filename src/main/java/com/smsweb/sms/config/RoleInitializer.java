@@ -301,6 +301,10 @@ public class RoleInitializer {
                     "STUDENT_DISCOUNT_REPORT",
                     "View session-wise student discount report");
 
+            seed(screenRepo, "Student", "Sibling Report (Session)",
+                    "SIBLING_DISCOUNT_REPORT",
+                    "View session-wise sibling groups and sibling discount report");
+
             // ════════════════════════════════════════════════════════════════
             // MODULE: FEES
             // ════════════════════════════════════════════════════════════════

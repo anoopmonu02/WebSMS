@@ -26,4 +26,13 @@ public interface SiblingGroupStudentRepository extends JpaRepository<SiblingGrou
            "WHERE s.id = :studentId AND sg.status = 'Active'")
     List<SiblingGroupStudent> findActiveGroupsByStudentId(@Param("studentId") Long studentId);
 
+
+    /** All members of all Active groups of a school + academic year, with student details fetched (one query for the Sibling Report). */
+    @Query("SELECT sgs FROM SiblingGroupStudent sgs " +
+           "JOIN FETCH sgs.siblingGroup sg " +
+           "JOIN FETCH sgs.academicStudent acs JOIN FETCH acs.student " +
+           "WHERE sg.school.id = :schoolId AND sg.academicYear.id = :academicYearId AND sg.status = 'Active'")
+    List<SiblingGroupStudent> findAllActiveGroupMembers(@Param("schoolId") Long schoolId,
+                                                        @Param("academicYearId") Long academicYearId);
+
 }

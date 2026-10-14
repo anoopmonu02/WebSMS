@@ -15,6 +15,7 @@
   .status-text-off { color: #b02a37; font-weight: 700; white-space: nowrap; }
   .save-spinner { display: none; }
   .char-count { font-size: .78rem; color: #6c757d; }
+  .config-pane.d-none { display: none !important; }
 </style>
 
 <div class="container-fluid px-3 px-lg-4">
@@ -29,17 +30,22 @@
   </div>
   <hr class="mt-1 mb-3"/>
 
-  <!-- Tabs (currently one — Mobile App; more configs will land here later) -->
+  <!-- Tabs (Mobile App, Discount; more configs will land here later) -->
   <ul class="nav nav-pills mb-4" id="configTabs">
     <li class="nav-item">
-      <button class="nav-link active" id="tab-mobile-btn" type="button">
+      <button class="nav-link active" id="tab-mobile-btn" type="button" data-pane="pane-mobile">
         <i class="bi bi-phone me-1"></i>Mobile App
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-discount-btn" type="button" data-pane="pane-discount">
+        <i class="bi bi-percent me-1"></i>Discount
       </button>
     </li>
   </ul>
 
   <!-- ═══════════════ MOBILE APP TAB ═══════════════ -->
-  <div id="pane-mobile"
+  <div id="pane-mobile" class="config-pane"
        th:data-mobile-access-url="@{/admin/app-config/mobile-access}"
        th:data-mobile-message-url="@{/admin/app-config/mobile-message}">
     <div class="row g-3">
@@ -97,6 +103,46 @@
     </div>
   </div>
 
+  <!-- ═══════════════ DISCOUNT TAB ═══════════════ -->
+  <div id="pane-discount" class="config-pane d-none"
+       th:data-sibling-url="@{/admin/app-config/discount/sibling-allowed}"
+       th:data-min="${siblingDiscountMin}" th:data-max="${siblingDiscountMax}">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3">
+            <i class="bi bi-people me-2"></i>Sibling Discount
+          </div>
+          <div class="card-body">
+            <div th:if="${!discountSchoolAvailable}" class="alert alert-warning small mb-0">
+              No school is linked to your login, so this per-school setting isn't available here.
+            </div>
+            <div th:if="${discountSchoolAvailable}">
+              <label for="siblingAllowedInput" class="form-label fw-semibold mb-0">
+                Allowed sibling discount in a group
+              </label>
+              <p class="text-muted small mb-2">
+                This config is for number of students eligible for discount allowed in a sibling group.
+                Allowed range: <span th:text="${siblingDiscountMin}">1</span> to <span th:text="${siblingDiscountMax}">3</span>.
+              </p>
+              <input type="number" class="form-control mb-2" id="siblingAllowedInput" style="max-width: 160px;"
+                     inputmode="numeric" step="1"
+                     th:min="${siblingDiscountMin}" th:max="${siblingDiscountMax}"
+                     th:value="${siblingDiscountAllowed}">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="char-count">Applies to <strong th:text="${discountSchoolName}">School</strong> only</span>
+                <button type="button" class="btn btn-primary btn-sm" id="saveSiblingAllowedBtn">
+                  <span class="spinner-border spinner-border-sm save-spinner" id="siblingAllowedSpinner" role="status"></span>
+                  <i class="bi bi-check-lg me-1"></i>Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script type="text/javascript" th:inline="none">
@@ -131,6 +177,24 @@ document.addEventListener('DOMContentLoaded', function () {
     "hideMethod": "fadeOut"
   };
 
+  // ── Tab switching (Mobile App / Discount) ──
+  var tabButtons = document.querySelectorAll('#configTabs button[data-pane]');
+  function showPane(paneId) {
+    tabButtons.forEach(function (b) {
+      b.classList.toggle('active', b.dataset.pane === paneId);
+    });
+    document.querySelectorAll('.config-pane').forEach(function (p) {
+      p.classList.toggle('d-none', p.id !== paneId);
+    });
+  }
+  tabButtons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      showPane(b.dataset.pane);
+      try { history.replaceState(null, '', b.dataset.pane === 'pane-discount' ? '#discount' : location.pathname + location.search); } catch (e) {}
+    });
+  });
+  if (location.hash === '#discount') { showPane('pane-discount'); }
+
   var msgBox = document.getElementById('mobileMaintenanceMessage');
   var countEl = document.getElementById('msgCharCount');
   function updateCount() { countEl.textContent = msgBox.value.length; }
@@ -142,6 +206,45 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('saveMessageBtn').addEventListener('click', saveMaintenanceMessage);
+
+  // ── Discount tab: sibling discount allowed per group ──
+  var siblingSaveBtn = document.getElementById('saveSiblingAllowedBtn');
+  if (siblingSaveBtn) {
+    siblingSaveBtn.addEventListener('click', saveSiblingAllowed);
+  }
+
+  function saveSiblingAllowed() {
+    var pane = document.getElementById('pane-discount');
+    var input = document.getElementById('siblingAllowedInput');
+    var spinner = document.getElementById('siblingAllowedSpinner');
+    var min = parseInt(pane.dataset.min, 10);
+    var max = parseInt(pane.dataset.max, 10);
+    var raw = input.value.trim();
+    if (!/^\d+$/.test(raw) || parseInt(raw, 10) < min || parseInt(raw, 10) > max) {
+      toastr.error('Please enter a whole number between ' + min + ' and ' + max + '.', 'Error');
+      return;
+    }
+    siblingSaveBtn.disabled = true;
+    spinner.style.display = 'inline-block';
+
+    $.ajax({
+      url: pane.dataset.siblingUrl,
+      type: 'POST',
+      data: { value: parseInt(raw, 10) },
+      success: function (resp) {
+        input.value = resp.value;
+        toastr.success(resp.message, 'Success');
+      },
+      error: function (xhr) {
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Could not save — please try again.';
+        toastr.error(msg, 'Error');
+      },
+      complete: function () {
+        siblingSaveBtn.disabled = false;
+        spinner.style.display = 'none';
+      }
+    });
+  }
 
   function saveMobileAccess(enabled, switchEl) {
     var spinner = document.getElementById('mobileAccessSpinner');
