@@ -1,6 +1,9 @@
 package com.smsweb.sms.controllers.admin;
 
+import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.services.admin.MaintenanceModeService;
+import com.smsweb.sms.services.admin.SiblingDiscountConfigService;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -36,16 +39,30 @@ public class AppConfigController {
     private static final int MAX_MESSAGE_LENGTH = 255; // system_config.config_value is VARCHAR(255)
 
     private final MaintenanceModeService maintenanceModeService;
+    private final SiblingDiscountConfigService siblingDiscountConfigService;
 
-    public AppConfigController(MaintenanceModeService maintenanceModeService) {
+    public AppConfigController(MaintenanceModeService maintenanceModeService,
+                               SiblingDiscountConfigService siblingDiscountConfigService) {
         this.maintenanceModeService = maintenanceModeService;
+        this.siblingDiscountConfigService = siblingDiscountConfigService;
     }
 
     @GetMapping
-    public String view(Model model) {
+    public String view(Model model, HttpSession session) {
         log.info("Inside app config page");
         model.addAttribute("mobileAccessEnabled", maintenanceModeService.isMobileAccessEnabled());
         model.addAttribute("maintenanceMessage", maintenanceModeService.getMaintenanceMessage());
+
+        // Discount tab - per-school setting. School comes from the session only (never from the request).
+        // If the session has no school (e.g. a super admin not tied to a school) the tab shows a notice instead.
+        School school = (School) session.getAttribute("school");
+        model.addAttribute("discountSchoolAvailable", school != null);
+        model.addAttribute("discountSchoolName", school != null ? school.getSchoolName() : "");
+        model.addAttribute("siblingDiscountAllowed",
+                school != null ? siblingDiscountConfigService.getAllowedPerGroup(school.getId())
+                               : SiblingDiscountConfigService.DEFAULT_ALLOWED);
+        model.addAttribute("siblingDiscountMin", SiblingDiscountConfigService.MIN_ALLOWED);
+        model.addAttribute("siblingDiscountMax", SiblingDiscountConfigService.MAX_ALLOWED);
         return "admin/app-config";
     }
 
@@ -85,6 +102,39 @@ public class AppConfigController {
             return ResponseEntity.ok(Map.of("success", true, "message", "Maintenance message saved."));
         } catch (Exception e) {
             log.error("Failed to update maintenance message", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Could not save — please try again."));
+        }
+    }
+
+    @PostMapping("/discount/sibling-allowed")
+    @ResponseBody
+    public ResponseEntity<?> setSiblingDiscountAllowed(@RequestParam("value") String value, HttpSession session) {
+        log.info("Inside set sibling discount allowed per group");
+        // School is taken from the logged-in session only, so one school's admin can never write another school's setting.
+        School school = (School) session.getAttribute("school");
+        if (school == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false,
+                    "error", "No school is linked to your login, so this setting can't be saved."));
+        }
+        int parsed;
+        try {
+            parsed = Integer.parseInt(value == null ? "" : value.trim());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Please enter a whole number."));
+        }
+        if (parsed < SiblingDiscountConfigService.MIN_ALLOWED || parsed > SiblingDiscountConfigService.MAX_ALLOWED) {
+            return ResponseEntity.badRequest().body(Map.of("success", false,
+                    "error", "Value must be between " + SiblingDiscountConfigService.MIN_ALLOWED
+                            + " and " + SiblingDiscountConfigService.MAX_ALLOWED + "."));
+        }
+        try {
+            siblingDiscountConfigService.setAllowedPerGroup(school.getId(), parsed);
+            return ResponseEntity.ok(Map.of("success", true, "value", parsed,
+                    "message", "Saved. Up to " + parsed + (parsed == 1 ? " student" : " students")
+                            + " per sibling group can get the sibling discount."));
+        } catch (Exception e) {
+            log.error("Failed to update sibling discount allowed-per-group", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "error", "Could not save — please try again."));
         }

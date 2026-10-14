@@ -25,9 +25,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,23 +73,43 @@ public class SiblingDiscountController extends BaseController {
     @ResponseBody
     @CheckAccess(screen = "SIBLING_DISCOUNT_ASSIGN", type = AccessType.VIEW)
     @GetMapping("/groups/by-group/{groupId}")
-    public List<Map<String, Object>> getStudentsByGroup(@PathVariable Long groupId) {
+    public Map<String, Object> getStudentsByGroup(@PathVariable Long groupId, Model model) {
         log.info("Inside getStudentsByGroup - groupId={}", groupId);
+        School school = (School) model.getAttribute("school");
+        AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
         SiblingGroup group = siblingGroupService.getSiblingGroupDetail(groupId).orElse(null);
+        // A group of another school / session is treated as "not found" (no member details are returned).
+        if (group != null && (school == null || academicYear == null
+                || group.getSchool() == null || !group.getSchool().getId().equals(school.getId())
+                || group.getAcademicYear() == null || !group.getAcademicYear().getId().equals(academicYear.getId()))) {
+            group = null;
+        }
         List<SiblingGroupStudent> students = group != null ? group.getSiblingGroupStudents() : new java.util.ArrayList<>();
         log.debug("getStudentsByGroup - students size={}", students == null ? 0 : students.size());
         List<Map<String, Object>> leanList = new java.util.ArrayList<>();
+        Map<String, Object> overview = group != null
+                ? siblingDiscountService.getGroupDiscountOverview(groupId, school, academicYear)
+                : new HashMap<>();
+        Set<Long> siblingHolderIds = (Set<Long>) overview.getOrDefault("siblingHolderIds", new HashSet<Long>());
+        Map<Long, List<String>> discountsByStudent = (Map<Long, List<String>>) overview.getOrDefault("discountsByStudent", new HashMap<Long, List<String>>());
         if (students != null) {
             for (SiblingGroupStudent sgs : students) {
                 Map<String, Object> sgsMap = new HashMap<>();
                 sgsMap.put("id", sgs.getId());
                 if (sgs.getAcademicStudent() != null) {
                     sgsMap.put("academicStudent", studentService.toLeanAcademicStudentMap(sgs.getAcademicStudent()));
+                    Long acId = sgs.getAcademicStudent().getId();
+                    sgsMap.put("hasSiblingDiscount", siblingHolderIds.contains(acId));
+                    sgsMap.put("discounts", discountsByStudent.getOrDefault(acId, new java.util.ArrayList<>()));
                 }
                 leanList.add(sgsMap);
             }
         }
-        return leanList;
+        Map<String, Object> response = new HashMap<>();
+        response.put("students", leanList);
+        response.put("allowed", overview.getOrDefault("allowed", 1));
+        response.put("assigned", overview.getOrDefault("assigned", 0));
+        return response;
     }
 
     /*@GetMapping("/validate-student/{academic_student_id}")
@@ -145,10 +167,10 @@ public class SiblingDiscountController extends BaseController {
 
         // Validate if any other discount is already associated with the student
         Long discountYearId = academicYear.getId(); // This should also be dynamically fetched
-        Optional<StudentDiscount> optionalStudentDiscount = studentDiscountService.getStudentDiscountForStudent(loggedInSchoolId, discountYearId, academicStudentId);
-        if (optionalStudentDiscount.isPresent()) {
-            StudentDiscount studentDiscount = optionalStudentDiscount.get();
-            responseMap.put("error", "Student: " + student.getStudent().getStudentName() + " is already attached to Discount: " + studentDiscount.getDiscounthead().getDiscountName());
+        // Only an Active discount blocks; an Inactive one (e.g. from a dissolved group) is re-activated on save.
+        Optional<String> activeDiscountName = siblingDiscountService.findActiveDiscountName(loggedInSchoolId, discountYearId, academicStudentId);
+        if (activeDiscountName.isPresent()) {
+            responseMap.put("error", "Student: " + student.getStudent().getStudentName() + " is already attached to Discount: " + activeDiscountName.get());
             return responseMap;
         }
 
@@ -160,10 +182,6 @@ public class SiblingDiscountController extends BaseController {
         }
 
         //If any student of group saved already
-        Optional<StudentDiscount> studentDiscount = studentDiscountService.getStudentDiscountForStudent(loggedInSchoolId, discountYearId, student.getId());
-        if(optionalDiscountClassMap.isPresent()){
-
-        }
         responseMap.put("success","proceed");
         return responseMap;
     }
