@@ -6,6 +6,22 @@
 </head>
 <body>
 <section>
+<style>
+    /* Hover card for the "assigned discounts" info icon */
+    .discount-info { cursor: pointer; font-size: 1.05rem; vertical-align: middle; outline: none; }
+    .discount-info:focus-visible { outline: 2px solid #0d6efd; outline-offset: 2px; border-radius: 50%; }
+    .tooltip.discount-tip { --bs-tooltip-bg: #ffffff; --bs-tooltip-color: #212529; --bs-tooltip-opacity: 1; --bs-tooltip-max-width: 280px; }
+    .tooltip.discount-tip .tooltip-inner { padding: 0; text-align: left; border: 1px solid #e3e8ee; border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(16, 24, 40, .16); overflow: hidden; }
+    .discount-tip .dt-head { background: #f8fafc; border-bottom: 1px solid #e3e8ee; padding: 8px 12px; font-size: .78rem;
+        font-weight: 700; letter-spacing: .02em; color: #475467; text-transform: uppercase; }
+    .discount-tip .dt-list { list-style: none; margin: 0; padding: 6px 8px; }
+    .discount-tip .dt-item { display: flex; align-items: center; gap: 8px; padding: 6px 6px; font-size: .86rem; font-weight: 500; color: #1d2939; }
+    .discount-tip .dt-item + .dt-item { border-top: 1px dashed #eaecf0; }
+    .discount-tip .dt-item i { color: #98a2b3; }
+    .discount-tip .dt-item.dt-sibling { color: #067647; }
+    .discount-tip .dt-item.dt-sibling i { color: #12b76a; }
+</style>
     <div class="container-fluid px-3">
         <div class="row mt-2">
             <div class="col-md-12">
@@ -23,7 +39,10 @@
                 </div>
                 <div class="datadiv" style="display: none;">
                     <form name="siblingdiscount" method="post" th:action="@{/sibling/savesiblinggroupdiscount}">
-                        <div class="row py-5 pb-5">
+                        <div class="row pt-4">
+                            <div class="col-12"><span id="limitInfo" class="small text-muted"></span></div>
+                        </div>
+                        <div class="row pb-5">
                             <table id="group-detail" class="table table-sm table-bordered table-striped">
                                 <thead>
                                 <tr>
@@ -33,6 +52,7 @@
                                     <th>Father Name</th>
                                     <th>Mother Name</th>
                                     <th>School</th>
+                                    <th class="text-center">Sibling Discount</th>
                                     <th class="text-center"><input type="radio" class="form-check form-check-input" disabled></th>
                                 </tr>
                                 </thead>
@@ -113,8 +133,67 @@
             }
         });
 
+        // academic-student id -> list of active discount names (for the hover card)
+        let discountsByAc = {};
+
+        function buildDiscountCard(names) {
+            let html = '<div class="dt-head"><i class="bi bi-percent me-1"></i>Assigned Discounts</div><ul class="dt-list">';
+            $.each(names, function(i, n) {
+                const isSibling = String(n).toLowerCase() === 'sibling discount';
+                html += '<li class="dt-item' + (isSibling ? ' dt-sibling' : '') + '"><i class="bi '
+                     + (isSibling ? 'bi-check-circle-fill' : 'bi-tag-fill') + '"></i><span>' + escAttr(n) + '</span></li>';
+            });
+            return html + '</ul>';
+        }
+
+        function initDiscountTips() {
+            if (!(window.bootstrap && bootstrap.Tooltip)) { return; }
+            $('#group-detail .discount-info').each(function() {
+                const names = discountsByAc[$(this).data('ac-id')] || [];
+                if (names.length === 0) { return; }
+                new bootstrap.Tooltip(this, {
+                    html: true, title: buildDiscountCard(names), customClass: 'discount-tip',
+                    placement: 'left', container: 'body', trigger: 'hover focus'
+                });
+            });
+        }
+
+        function disposeDiscountTips() {
+            if (!(window.bootstrap && bootstrap.Tooltip)) { return; }
+            $('#group-detail .discount-info').each(function() {
+                const t = bootstrap.Tooltip.getInstance(this);
+                if (t) { t.dispose(); }
+            });
+        }
+
+        // Current group's limit info, filled when the group data loads (the server re-checks on save).
+        let groupLimit = { allowed: 1, assigned: 0 };
+
+        function escAttr(v) {
+            return String(v === null || v === undefined ? '' : v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Early prompt on selection: tell the user right away if this student can't be given the discount.
+        $(document).on('change', 'input[name="assignedstu"]', function() {
+            const name = $(this).data('name');
+            let msg = null;
+            if ($(this).data('has-sibling') === 1 || $(this).data('has-sibling') === '1') {
+                msg = name + ' already has the sibling discount.';
+            } else if (groupLimit.assigned >= groupLimit.allowed) {
+                msg = 'Sibling discount limit reached for this group (allowed: ' + groupLimit.allowed
+                    + '). It cannot be assigned to more students.';
+            }
+            if (msg) {
+                $(this).prop('checked', false);
+                showMsg("warning", msg, "Cannot assign");
+            }
+        });
+
         $('#grpname').change(function() {
             $('#grp').val('');
+            $('#limitInfo').text('');
             $('.datadiv').hide();
             const groupId = $(this).val();
             console.log("Selected Group ID: " + groupId);
@@ -123,13 +202,18 @@
                 $.ajax({
                     url: `${contextPath}sibling/groups/by-group/`+ groupId,
                     type: 'GET',
-                    success: function(data) {
+                    success: function(response) {
                         $('.datadiv').show();
-                        console.log("Received Data: ", data);
+                        disposeDiscountTips();
+                        discountsByAc = {};
+                        const data = (response && response.students) ? response.students : [];
+                        groupLimit = { allowed: (response && response.allowed) ? response.allowed : 1,
+                                       assigned: (response && response.assigned) ? response.assigned : 0 };
+                        $('#limitInfo').text('Sibling discount used: ' + groupLimit.assigned + ' of ' + groupLimit.allowed + ' allowed in this group');
                         let rows = '';
 
                         if (!data || data.length === 0) {
-                            rows = '<tr><td colspan="5">No students found for this group.</td></tr>';
+                            rows = '<tr><td colspan="8">No students found for this group.</td></tr>';
                         } else {
                             $.each(data, function(index, student) {
                                 rows += '<tr>';
@@ -139,12 +223,26 @@
                                 rows += '<td>' + student.academicStudent.student.fatherName + '</td>';
                                 rows += '<td>' + student.academicStudent.student.motherName + '</td>';
                                 rows += '<td>' + student.academicStudent.school.schoolName + '</td>';
-                                rows += '<td> <input type="radio" class="form-check form-check-input" name="assignedstu" id="assignedstu" value="'+ student.academicStudent.id +'"> </td>';
+                                // Sibling-discount column: tick if this student already has it; info icon lists every active discount.
+                                let discountCell = '';
+                                if (student.hasSiblingDiscount) {
+                                    discountCell += '<i class="bi bi-check-circle-fill text-success" title="Sibling discount already assigned"></i>';
+                                }
+                                if (student.discounts && student.discounts.length > 0) {
+                                    discountsByAc[student.academicStudent.id] = student.discounts;
+                                    discountCell += ' <i class="bi bi-info-circle text-primary ms-1 discount-info" tabindex="0" role="button" '
+                                                 + 'aria-label="View assigned discounts" data-ac-id="' + escAttr(student.academicStudent.id) + '"></i>';
+                                }
+                                rows += '<td class="text-center">' + discountCell + '</td>';
+                                rows += '<td> <input type="radio" class="form-check form-check-input" name="assignedstu" value="'+ student.academicStudent.id
+                                     + '" data-has-sibling="' + (student.hasSiblingDiscount ? '1' : '0')
+                                     + '" data-name="' + escAttr(student.academicStudent.student.studentName) + '"> </td>';
                                 rows += '</tr>';
                             });
                         }
 
                         $('#group-detail tbody').html(rows);
+                        initDiscountTips();
                     },
                     error: function(xhr, status, error) {
                         console.error("Error fetching data: " + error);

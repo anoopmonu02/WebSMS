@@ -21,6 +21,7 @@ import com.smsweb.sms.services.admin.AcademicyearService;
 import com.smsweb.sms.services.admin.SchoolService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.StudentRemovalService;
 import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.tc.TcConfigService;
 import com.smsweb.sms.services.users.UserService;
@@ -70,11 +71,12 @@ public class StudentController extends BaseController {
 
     private final ExaminationRepository examinationRepository;
     private final ExamDetailsRepository examDetailsRepository;
+    private final StudentRemovalService studentRemovalService;
     @Autowired
     private TcConfigService tcConfigService;
 
     @Autowired
-    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository, ExamDetailsRepository examDetailsRepository){
+    public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository, ExamDetailsRepository examDetailsRepository, StudentRemovalService studentRemovalService){
         this.studentService = studentService;
         this.academicStudentService = academicStudentService;
         this.dropdownService = dropdownService;
@@ -84,6 +86,7 @@ public class StudentController extends BaseController {
         this.attendanceRepository = attendanceRepository;
         this.examinationRepository = examinationRepository;
         this.examDetailsRepository = examDetailsRepository;
+        this.studentRemovalService = studentRemovalService;
     }
 
     @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
@@ -488,6 +491,12 @@ public class StudentController extends BaseController {
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         log.info("Inside deleteStudent");
         log.info("Inside deleteStudent");
+        // A student in a sibling group must go through the Remove Student popup (POST /student/delete-student/confirm),
+        // where the group action is confirmed. This direct link would otherwise remove the student and leave the group behind.
+        if (studentRemovalService.belongsToActiveSiblingGroup(Long.valueOf(id))) {
+            redirectAttributes.addFlashAttribute("error", "This student belongs to a sibling group. Please use the Remove Student option on the Student List so the group can be handled.");
+            return "redirect:/student/student";
+        }
         // When the Transfer Certificate feature is on for the school, removing a student goes through
         // Strike Off (date, dues, approval, timeline) instead of the old direct delete.
         if (tcConfigService.isEnabled((School) model.getAttribute("school"))) {

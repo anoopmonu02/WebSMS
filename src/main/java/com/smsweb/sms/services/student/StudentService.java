@@ -492,6 +492,16 @@ public class StudentService {
         return msg;
     }
 
+    private void beforeDeleteStudent(AcademicStudent academicStudent){
+        log.info("Inside beforeDeleteStudent");
+        try {
+            //Validate for sibling discount
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
     @Transactional
     public String activateStudent(Long id){
         log.info("Inside activateStudent");

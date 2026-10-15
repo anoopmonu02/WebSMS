@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+    <meta charset="UTF-8">
+    <title>UAIC - Sibling Report</title>
+</head>
+<body>
+<section>
+    <style>
+        /* horizontal scrollbar whenever the table is wider than the page */
+        #sibling-report-data { overflow-x: auto; width: 100%; }
+        #siblingTable th, #siblingTable td { white-space: nowrap; }
+        #siblingTable td:nth-child(3) { white-space: normal; min-width: 320px; }
+    </style>
+    <div class="container-fluid px-3">
+        <div class="row mt-2">
+            <div class="col-md-12">
+                <div class="card-header fs-3">Sibling Report</div>
+                <hr/>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <label for="academic_year" class="form-label">Academic Year</label>
+                        <select name="academic_year" id="academic_year" class="form-select">
+                            <option th:each="med : ${academicYears}" th:value="${med.id}" th:text="${med.sessionFormat}">Academic Year</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">&nbsp;</div>
+                    <div class="col-md-3 align-self-end">
+                        <div class="col-sm-5">
+                            <button type="button" id="getList" class="btn btn-primary"><i class="bi bi-search"></i> Get List </button>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+                <div class="row" id="printable-div" style="display: none">
+                    <div class="card-header fs-3">Sibling Groups &amp; Sibling Discount</div><hr/>
+                    <div class="row">
+                        <div class="student-details" id="sibling-report-data"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/jquery-3.7.1.js}"></script>
+    <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
+    <script th:src="@{/js/toastr.min.js}"></script>
+
+    <script type="text/javascript" th:inline="javascript">
+        const contextPath = /*[[@{/}]]*/ '/';
+
+        function showMsg(msgType, msg, headerValue) {
+            toastr.options = {"closeButton": true, "positionClass": "toast-top-right", "timeOut": "5000"};
+            toastr[msgType](msg, headerValue);
+        }
+
+        function esc(value) {
+            return $('<div>').text(value == null ? '' : String(value)).html();
+        }
+
+        function clearReport() {
+            if ($.fn.DataTable.isDataTable('#siblingTable')) {
+                $('#siblingTable').DataTable().destroy();
+            }
+            $('#sibling-report-data').empty();
+            $('#printable-div').hide();
+        }
+
+        $('#getList').click(async function () {
+            clearReport();
+            const academicYearVal = $('#academic_year').val();
+            if (!academicYearVal) {
+                showMsg('error', 'Academic Year is mandatory', 'Warning');
+                return;
+            }
+            try {
+                const response = await fetch(`${contextPath}student/sibling-report/data`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({academicYearId: academicYearVal})
+                });
+                if (!response.ok) {
+                    throw new Error(response.statusText);
+                }
+                const data = await response.json();
+                if (data.error) {
+                    showMsg('error', data.error, 'Error');
+                    return;
+                }
+                const rows = data.rows || [];
+                if (rows.length === 0) {
+                    showMsg('info', 'No sibling groups found for the selected session', 'No Data');
+                    return;
+                }
+                let tbl = `<table class="table table-striped table-bordered table-sm w-100" id="siblingTable">
+                    <thead><tr>
+                        <th>SNo</th><th>Group Name</th><th>Group Students (SR No)</th><th>Father Name</th><th>No. of Students</th>
+                        <th>SR No</th><th>Sibling Discount Student</th><th>Assigned By</th>
+                    </tr></thead><tbody class="table-group-divider">`;
+                rows.forEach(function (r, i) {
+                    tbl += `<tr><td>${i + 1}</td><td>${esc(r.groupName)}</td><td>${esc(r.groupStudents)}</td>
+                        <td>${esc(r.fatherName) || '-'}</td><td>${esc(r.studentCount)}</td><td>${esc(r.srNo) || '-'}</td>
+                        <td>${esc(r.discountStudent) || '-'}</td><td>${esc(r.assignedBy) || '-'}</td></tr>`;
+                });
+                tbl += `</tbody></table>`;
+                $('#sibling-report-data').html(tbl);
+                $('#printable-div').show();
+
+                const exportColumns = [0, 1, 2, 3, 4, 5, 6, 7];
+                const exportTitle = 'Sibling Report';
+                $('#siblingTable').DataTable({
+                    scrollX: true,
+                    autoWidth: false,
+                    scrollCollapse: true,
+                    paging: true,
+                    sort: false,
+                    layout: {
+                        bottomEnd: {paging: {firstLast: false}},
+                        top1Start: {
+                            buttons: [
+                                {extend: 'excelHtml5', text: '<i class="bi bi-file-excel-fill text-success"></i>', titleAttr: 'Excel', title: exportTitle, exportOptions: {columns: exportColumns}},
+                                {extend: 'csvHtml5', text: '<i class="bi bi-filetype-csv text-info"></i>', titleAttr: 'CSV', title: exportTitle, exportOptions: {columns: exportColumns}},
+                                {extend: 'pdfHtml5', text: '<i class="bi bi-file-pdf-fill text-danger"></i>', titleAttr: 'PDF', title: exportTitle, orientation: 'landscape', exportOptions: {columns: exportColumns}},
+                                'colvis'
+                            ]
+                        }
+                    },
+                    lengthMenu: [
+                        [5, 10, 25, 50, 100, -1],
+                        [5, 10, 25, 50, 100, 'All']
+                    ],
+                    pageLength: 25,
+                    columnDefs: [{orderable: false, targets: [0]}]
+                });
+                $('.buttons-excel, .buttons-csv, .buttons-pdf').removeClass('btn-secondary');
+            } catch (error) {
+                clearReport();
+                showMsg('error', 'Unable to load the report. ' + error, 'Error');
+            }
+        });
+    </script>
+</section>
+</body>
+</html>

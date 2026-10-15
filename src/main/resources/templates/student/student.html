@@ -128,6 +128,30 @@
   </div>
 
 
+  <!-- Sibling group confirmation popup: shown (after "Remove Student") only when the student belongs to an active sibling group -->
+  <div class="modal fade" id="siblingDissolveModal" tabindex="-1" aria-labelledby="siblingDissolveModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-danger-subtle">
+          <h5 class="modal-title text-danger-emphasis" id="siblingDissolveModalLabel">
+            <i class="bi bi-people-fill me-2"></i>Sibling Group Will Be Dissolved
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="siblingDissolveBody"></div>
+        <div class="modal-footer flex-wrap gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="siblingCancelBtn"><i class="bi bi-x-circle"></i> Cancel</button>
+          <button type="button" class="btn btn-danger" id="siblingOkBtn" disabled><i class="bi bi-check-circle"></i> OK</button>
+          <button type="button" class="btn btn-primary" id="siblingOkCreateBtn" disabled><i class="bi bi-people-fill"></i> OK &amp; Create New Group</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <form id="siblingRemoveForm" method="post" th:action="@{/student/delete-student/confirm}" class="d-none">
+    <input type="hidden" name="id" id="siblingRemoveId">
+    <input type="hidden" name="action" id="siblingRemoveAction">
+  </form>
+
   <script th:src="@{/js/jquery-3.7.1.js}"></script>
   <script th:src="@{/js/jquery-3.6.0.min.js}"></script>
   <script th:src="@{/js/toastr.min.js}"></script>
@@ -309,7 +333,12 @@
     const successMessage = [[${success}]];
     if (successMessage) {
       //toastr.success(successMessage);
-      toastr["success"](successMessage,"Success");
+      toastr["success"](successMessage,"Success", { timeOut: successMessage.length > 100 ? 15000 : 5000, extendedTimeOut: 4000 });
+    }
+
+    const warningMessage = [[${warning}]];
+    if (warningMessage) {
+      toastr["warning"](warningMessage, "Action needed", { timeOut: 20000, extendedTimeOut: 5000 });
     }
 
     const infoMessage = [[${info}]];
@@ -362,12 +391,110 @@
     let deleteId = null;
     const contextPath = /*[[@{/}]]*/ '/';
 
-    // Handle the deletion when "Delete" button is clicked in the modal
+    // Handle the deletion when "Remove Student" is clicked in the modal.
+    // First check whether the student belongs to a sibling group: if not, the original flow runs unchanged;
+    // if so, a second confirmation popup explains what happens to the group (nothing is removed until it is confirmed).
     $('#confirmDeleteButton').on('click', function () {
-      if (deleteId) {
-        // Redirect to the delete URL
-        window.location.href = `${contextPath}student/delete-student/${deleteId}`;
-      }
+      if (!deleteId) { return; }
+      const btn = $(this);
+      btn.prop('disabled', true);
+      $.ajax({
+        url: `${contextPath}student/delete-student/${deleteId}/sibling-info`,
+        type: 'GET',
+        dataType: 'json',
+        success: function (resp) {
+          if (resp && resp.inGroup) {
+            openSiblingDissolveModal(resp.groups);
+          } else {
+            // Original behaviour for students who are not in a sibling group
+            window.location.href = `${contextPath}student/delete-student/${deleteId}`;
+          }
+        },
+        error: function () {
+          toastr.error('Unable to check the sibling group right now. The student was not removed. Please try again.', 'Error');
+        },
+        complete: function () { btn.prop('disabled', false); }
+      });
+    });
+
+    function esc(v) {
+      return String(v === null || v === undefined ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function openSiblingDissolveModal(groups) {
+      const studentName = $('#deleteStudentName').text();
+      let canCreateAll = true;
+      let html = '<div class="alert alert-danger d-flex align-items-start" role="alert">'
+        + '<i class="bi bi-exclamation-octagon-fill me-2 mt-1 fs-5"></i>'
+        + '<div><strong>This action cannot be undone.</strong> Please review the details carefully before you continue.</div></div>'
+        + '<p class="mb-3"><strong>' + esc(studentName) + '</strong> belongs to the sibling group shown below. '
+        + 'Removing the student will dissolve the group.</p>';
+
+      $.each(groups, function (gi, g) {
+        if (!g.canRecreate) { canCreateAll = false; }
+        html += '<div class="border rounded mb-3 overflow-hidden">'
+          + '<div class="d-flex justify-content-between align-items-center bg-light px-3 py-2 border-bottom">'
+          + '<div><i class="bi bi-people-fill text-primary me-2"></i><strong>' + esc(g.groupName) + '</strong>'
+          + '<span class="text-muted small ms-2"><i class="bi bi-building me-1"></i>' + esc(g.schoolName) + '</span></div>'
+          + '<span class="badge text-bg-secondary">' + esc(g.totalMembers) + ' students</span></div>'
+          + '<table class="table table-sm align-middle mb-0"><thead class="table-light"><tr>'
+          + '<th class="ps-3">#</th><th>Student</th><th>Grade</th><th>Branch</th></tr></thead><tbody>';
+        $.each(g.members, function (mi, m) {
+          let badges = '';
+          if (m.removed) { badges += ' <span class="badge text-bg-danger ms-1">Being removed</span>'; }
+          if (m.inactive) { badges += ' <span class="badge text-bg-secondary ms-1">Already inactive</span>'; }
+          if (m.hasSiblingDiscount) { badges += ' <span class="badge text-bg-success ms-1"><i class="bi bi-check-circle-fill"></i> Sibling Discount</span>'; }
+          html += '<tr' + (m.removed ? ' class="table-danger"' : '') + '><td class="ps-3">' + (mi + 1) + '</td>'
+            + '<td>' + esc(m.name) + badges + '</td><td>' + esc(m.gradeSection) + '</td><td>' + esc(m.schoolName) + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+        if (g.canRecreate) {
+          html += '<div class="alert alert-success d-flex align-items-start py-2" role="alert"><i class="bi bi-check-circle-fill me-2 mt-1"></i>'
+            + '<div>After this removal <strong>' + esc(g.remaining) + '</strong> students remain, so a new group can be created from them.</div></div>';
+        } else {
+          html += '<div class="alert alert-warning d-flex align-items-start py-2" role="alert"><i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>'
+            + '<div>Only <strong>' + esc(g.remaining) + '</strong> students would remain. At least <strong>' + esc(g.minRequired)
+            + '</strong> are required, so a new group <strong>cannot</strong> be created (only <em>OK</em> is available).</div></div>';
+        }
+      });
+
+      html += '<div class="small text-muted mb-3"><ul class="mb-0 ps-3">'
+        + '<li><strong>OK</strong> &ndash; removes the student and permanently deletes the group. The sibling discount of the group\'s students stops.</li>'
+        + '<li><strong>OK &amp; Create New Group</strong> &ndash; removes the student, deletes the group and creates a new group from the remaining students '
+        + '(with a reference to the old group). Their existing sibling discount continues.</li></ul></div>'
+        + '<div class="form-check"><input class="form-check-input" type="checkbox" id="siblingAck">'
+        + '<label class="form-check-label fw-semibold" for="siblingAck">I understand this cannot be undone.</label></div>';
+
+      $('#siblingDissolveBody').html(html);
+      $('#siblingOkBtn').prop('disabled', true);
+      $('#siblingOkCreateBtn').prop('disabled', true).data('can-create', canCreateAll)
+        .attr('title', canCreateAll ? '' : 'Not enough students remain to form a new group');
+
+      const first = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteConfirmationModal'));
+      const second = bootstrap.Modal.getOrCreateInstance(document.getElementById('siblingDissolveModal'));
+      $('#deleteConfirmationModal').one('hidden.bs.modal', function () { second.show(); });
+      first.hide();
+    }
+
+    // The action buttons stay disabled until the user ticks the acknowledgement
+    $(document).on('change', '#siblingAck', function () {
+      const ok = $(this).is(':checked');
+      $('#siblingOkBtn').prop('disabled', !ok);
+      $('#siblingOkCreateBtn').prop('disabled', !ok || !$('#siblingOkCreateBtn').data('can-create'));
+    });
+
+    function submitSiblingRemoval(action) {
+      if (!deleteId || !$('#siblingAck').is(':checked')) { return; }
+      $('#siblingOkBtn, #siblingOkCreateBtn, #siblingCancelBtn').prop('disabled', true);   // prevent double submit
+      $('#siblingRemoveId').val(deleteId);
+      $('#siblingRemoveAction').val(action);
+      document.getElementById('siblingRemoveForm').submit();
+    }
+    $('#siblingOkBtn').on('click', function () { submitSiblingRemoval('DISSOLVE'); });
+    $('#siblingOkCreateBtn').on('click', function () {
+      if ($(this).data('can-create')) { submitSiblingRemoval('DISSOLVE_AND_CREATE'); }
     });
 
 
