@@ -37,35 +37,35 @@
   <div class="card cg-card mb-4" sms:access="TC_DIVISION_MANAGE:CREATE">
     <div class="card-header py-2"><i class="bi bi-plus-circle me-2"></i>Add class group</div>
     <div class="card-body">
-      <form th:action="@{/tc/divisions/create}" method="post" class="row g-2 align-items-end">
+      <form th:action="@{/tc/divisions/create}" method="post" class="row g-3 align-items-end">
         <div class="col-md-3">
-          <label class="form-label small mb-1" for="newName">Group name</label>
-          <input type="text" class="form-control form-control-sm" id="newName" name="name" maxlength="100" required placeholder="e.g. Primary">
+          <label class="form-label" for="newName">Group name</label>
+          <input type="text" class="form-control" id="newName" name="name" maxlength="100" required placeholder="e.g. Primary">
         </div>
         <div class="col-md-3">
-          <label class="form-label small mb-1" for="newFormat">TC format</label>
-          <select class="form-select form-select-sm" id="newFormat" name="tcFormat" required>
+          <label class="form-label" for="newFormat">TC format</label>
+          <select class="form-select" id="newFormat" name="tcFormat" required>
             <option value="" disabled selected>Select format</option>
             <option th:each="f : ${formatNames}" th:value="${f}" th:text="${f}"></option>
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label small mb-1" for="newStart">TC start number</label>
-          <input type="number" class="form-control form-control-sm" id="newStart" name="startNumber" min="1" max="99999999" value="1" required>
+          <label class="form-label" for="newStart">TC start number</label>
+          <input type="number" class="form-control" id="newStart" name="startNumber" min="1" max="99999999" value="1" required>
         </div>
         <div class="col-md-2">
-          <label class="form-label small mb-1" for="newStatus">Status</label>
-          <select class="form-select form-select-sm" id="newStatus" name="status">
+          <label class="form-label" for="newStatus">Status</label>
+          <select class="form-select" id="newStatus" name="status">
             <option value="Active" selected>Active</option>
             <option value="Inactive">Inactive</option>
           </select>
         </div>
         <div class="col-md-6">
-          <label class="form-label small mb-1" for="newDesc">Description (optional)</label>
-          <input type="text" class="form-control form-control-sm" id="newDesc" name="description" maxlength="255">
+          <label class="form-label" for="newDesc">Description (optional)</label>
+          <input type="text" class="form-control" id="newDesc" name="description" maxlength="255">
         </div>
         <div class="col-md-2">
-          <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Add group</button>
+          <button type="submit" class="btn btn-success w-100"><i class="bi bi-plus-circle"></i> Add group</button>
         </div>
       </form>
       <div class="cg-hint mt-2">
@@ -160,7 +160,7 @@
                 <button type="submit" class="btn btn-success btn-sm cg-edit d-none">
                   <i class="bi bi-check-lg"></i> Save
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm cg-edit d-none cg-btn-cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm cg-edit d-none cg-btn-cancel"><i class="bi bi-x-lg"></i> Cancel</button>
               </form>
               <button type="button" class="btn btn-outline-dark btn-sm cg-btn-grades"
                       th:attr="data-target='grades-' + ${row.uuid}" sms:access="TC_DIVISION_MANAGE:EDIT">
@@ -187,7 +187,7 @@
                   <span th:if="${#lists.isEmpty(row.gradeOptions)}" class="text-muted small">No class available.</span>
                 </div>
                 <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Save classes</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm cg-btn-grades-close">Close</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm cg-btn-grades-close"><i class="bi bi-x-lg"></i> Close</button>
               </form>
             </td>
           </tr>

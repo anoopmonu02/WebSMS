@@ -3,6 +3,7 @@ package com.smsweb.sms.services.tc;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.SystemConfigRepository;
+import com.smsweb.sms.repositories.universal.GradeRepository;
 import com.smsweb.sms.repositories.tc.ClassDivisionRepository;
 import com.smsweb.sms.repositories.tc.DueClearanceReceiptRepository;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class TcConfigService {
 
     // Defaults when a key is missing or invalid
     public static final int DEFAULT_ABSENCE_ALERT_DAYS = 60;
+    public static final int MAX_ABSENCE_ALERT_DAYS = 366;
     public static final List<String> DEFAULT_FORMAT_NAMES = List.of("BASIC_EDUCATION", "BOARD_HS_INTER");
     public static final long DEFAULT_RECEIPT_START = 1L;
     public static final String DEFAULT_RECEIPT_PREFIX = "DCR-";
@@ -67,14 +69,17 @@ public class TcConfigService {
     private final SystemConfigRepository systemConfigRepository;
     private final DueClearanceReceiptRepository dueClearanceReceiptRepository;
     private final ClassDivisionRepository classDivisionRepository;
+    private final GradeRepository gradeRepository;
     private final ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
     public TcConfigService(SystemConfigRepository systemConfigRepository,
                            DueClearanceReceiptRepository dueClearanceReceiptRepository,
-                           ClassDivisionRepository classDivisionRepository) {
+                           ClassDivisionRepository classDivisionRepository,
+                           GradeRepository gradeRepository) {
         this.systemConfigRepository = systemConfigRepository;
         this.dueClearanceReceiptRepository = dueClearanceReceiptRepository;
         this.classDivisionRepository = classDivisionRepository;
+        this.gradeRepository = gradeRepository;
     }
 
     // ── Public readers ───────────────────────────────────────────────────────
@@ -249,7 +254,83 @@ public class TcConfigService {
                 "Due Clearance Receipt number start value, used for the first receipt only (per school)");
     }
 
+    /**
+     * Saves the long-absence threshold (total absent days in the session).
+     *
+     * @throws TcValidationException when the number is outside 1 to {@link #MAX_ABSENCE_ALERT_DAYS}
+     */
+    public void setAbsenceThreshold(School school, int days) {
+        Long schoolId = requireSchoolId(school);
+        if (days < 1 || days > MAX_ABSENCE_ALERT_DAYS) {
+            throw new TcValidationException("Absence alert days must be between 1 and " + MAX_ABSENCE_ALERT_DAYS + ".");
+        }
+        write(KEY_ABSENCE_ALERT_DAYS, schoolId, String.valueOf(days),
+                "Long-absence alert threshold in total absent days (per school)");
+    }
+
+    /**
+     * Saves the registration-form admission rule: the switch and the three grade lists. A grade may be in
+     * only one list, and every id must be an existing grade.
+     *
+     * @throws TcValidationException with a readable message when the input is not valid
+     */
+    public void setAdmissionRule(School school, boolean enabled,
+                                 Set<Long> exemptGradeIds, Set<Long> notaryGradeIds, Set<Long> mandatoryGradeIds) {
+        Long schoolId = requireSchoolId(school);
+        Set<Long> exempt = cleanIds(exemptGradeIds);
+        Set<Long> notary = cleanIds(notaryGradeIds);
+        Set<Long> mandatory = cleanIds(mandatoryGradeIds);
+
+        Set<Long> seen = new LinkedHashSet<>();
+        for (Set<Long> list : List.of(exempt, notary, mandatory)) {
+            for (Long id : list) {
+                if (!seen.add(id)) {
+                    throw new TcValidationException("A grade can be in only one of the three lists.");
+                }
+            }
+        }
+        if (!seen.isEmpty()) {
+            Set<Long> known = new LinkedHashSet<>();
+            gradeRepository.findAllById(seen).forEach(g -> known.add(g.getId()));
+            if (!known.containsAll(seen)) {
+                throw new TcValidationException("One of the grades no longer exists. Please reload the page and try again.");
+            }
+        }
+        String exemptCsv = joinIds(exempt);
+        String notaryCsv = joinIds(notary);
+        String mandatoryCsv = joinIds(mandatory);
+        if (exemptCsv.length() > 255 || notaryCsv.length() > 255 || mandatoryCsv.length() > 255) {
+            throw new TcValidationException("Too many grades in one list.");
+        }
+        write(KEY_RULE_EXEMPT_GRADE_IDS, schoolId, exemptCsv, "Grades admitted without a TC, remark mandatory (per school)");
+        write(KEY_RULE_NOTARY_GRADE_IDS, schoolId, notaryCsv, "Grades admitted with a TC or a notary affidavit (per school)");
+        write(KEY_RULE_MANDATORY_GRADE_IDS, schoolId, mandatoryCsv, "Grades that need a TC at admission (per school)");
+        write(KEY_ADMISSION_RULE_ENABLED, schoolId, String.valueOf(enabled),
+                "Turns the admission TC rule on the registration form on or off (per school)");
+    }
+
     // ── Helpers for writers ──────────────────────────────────────────────────
+
+    private static Set<Long> cleanIds(Set<Long> ids) {
+        Set<Long> clean = new LinkedHashSet<>();
+        if (ids != null) {
+            for (Long id : ids) {
+                if (id != null && id > 0) {
+                    clean.add(id);
+                }
+            }
+        }
+        return clean;
+    }
+
+    private static String joinIds(Set<Long> ids) {
+        List<String> parts = new ArrayList<>();
+        for (Long id : ids) {
+            parts.add(String.valueOf(id));
+        }
+        return String.join(",", parts);
+    }
+
 
     /** Stored config name for a key family and school, for example TC_FEATURE_ENABLED_2. */
     public static String key(String keyFamily, Long schoolId) {

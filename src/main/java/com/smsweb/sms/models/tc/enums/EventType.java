@@ -22,6 +22,8 @@ public enum EventType {
     ADMISSION_TC_SUBMITTED,
     ADMISSION_NOTARY,
     ADMISSION_EXEMPTED,
+    /** The student's sibling group was dissolved (and maybe re-formed) when the strike-off was approved. */
+    SIBLING_GROUP_DISSOLVED,
     /** Phase 7: old Remove Student screen. */
     DEACTIVATED,
     /** Phase 7: old Activate screen. */

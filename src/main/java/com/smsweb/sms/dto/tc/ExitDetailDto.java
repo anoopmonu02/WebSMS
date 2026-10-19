@@ -67,6 +67,8 @@ public class ExitDetailDto {
     private String reactivateReason;
 
     // what the page may offer
+    /** DISSOLVE / DISSOLVE_AND_CREATE chosen at strike-off; null when the student had no sibling group. */
+    private String siblingAction;
     private boolean canApprove;
     private boolean canCancel;
     private boolean canReactivate;

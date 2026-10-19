@@ -38,9 +38,9 @@
       </p>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-outline-primary btn-sm" th:if="${exit.studentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
+      <a class="btn btn-outline-primary" th:if="${exit.studentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
          th:href="@{/tc/timeline/{u}(u=${exit.studentUuid})}"><i class="bi bi-clock-history me-1"></i>Timeline</a>
-      <a class="btn btn-outline-secondary btn-sm" th:href="@{/tc/exits}"><i class="bi bi-arrow-left me-1"></i>Back to list</a>
+      <a class="btn btn-secondary" th:href="@{/tc/exits}"><i class="bi bi-arrow-left me-1"></i>Back to list</a>
     </div>
   </div>
   <hr class="mt-1 mb-3"/>
@@ -182,7 +182,7 @@
         <div class="card-body">
           <div class="ed-label">New registration no.</div>
           <div class="ed-value" th:text="${exit.newRegistrationNo} ?: '—'"></div>
-          <a class="btn btn-outline-primary btn-sm mt-2" th:if="${exit.newStudentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
+          <a class="btn btn-outline-primary mt-2" th:if="${exit.newStudentUuid != null}" sms:access="TC_EXIT_LIST:VIEW"
              th:href="@{/tc/timeline/{u}(u=${exit.newStudentUuid})}"><i class="bi bi-clock-history me-1"></i>Timeline of both records</a>
           <div class="small text-muted mt-2">This record stays Inactive with its login off. The new record has its own login.</div>
         </div>
@@ -227,7 +227,7 @@
           </div>
 
           <div class="mt-3" th:if="${dues.canClear}" sms:access="TC_DUES:CREATE">
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edClear">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#edClear">
               <i class="bi bi-cash-stack me-1"></i>Clear dues
             </button>
           </div>
@@ -237,7 +237,7 @@
             <div class="mt-1" th:if="${not #strings.isEmpty(dues.outstandingMonths)}">
               Months still to pay: <strong th:text="${dues.outstandingMonths}"></strong>
             </div>
-            <a class="btn btn-primary btn-sm mt-2" sms:access="FEE_SUBMIT:VIEW"
+            <a class="btn btn-primary mt-2" sms:access="FEE_SUBMIT:VIEW"
                th:href="@{/fees/fee-submit-form(exit=${exit.uuid})}">
               <i class="bi bi-cash-stack me-1"></i>Collect dues on the fee screen
             </a>
@@ -245,7 +245,7 @@
           <div class="alert alert-warning py-2 small mt-3 mb-0" th:if="${dues.missingReceipts > 0}">
             A fee was saved for this student after approval but its Due Clearance Receipt is missing.
             <form class="d-inline" method="post" th:action="@{/tc/exits/{u}/sync-receipts(u=${exit.uuid})}" sms:access="TC_DUES:CREATE">
-              <button type="submit" class="btn btn-warning btn-sm ms-2">Create missing receipt</button>
+              <button type="submit" class="btn btn-warning ms-2"><i class="bi bi-arrow-repeat"></i> Create missing receipt</button>
             </form>
           </div>
 
@@ -269,12 +269,12 @@
                           th:title="${r.voidReason}">Voided</span>
                   </td>
                   <td class="text-end text-nowrap">
-                    <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_DUES:VIEW"
-                       th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
-                    <button type="button" class="btn btn-outline-danger btn-sm py-0 ed-void-btn"
+                    <a class="btn btn-outline-secondary btn-sm me-1" target="_blank" sms:access="TC_DUES:VIEW"
+                       th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i> Print</a>
+                    <button type="button" class="btn btn-outline-danger btn-sm ed-void-btn"
                             th:if="${isAdmin and r.recordStatus.name() == 'VALID' and r.mode.name() == 'LEDGER' and not tcPanel.canReissue}"
                             th:data-uuid="${r.uuid}" th:data-no="${r.receiptNo}" title="Void this receipt">
-                      <i class="bi bi-slash-circle"></i>
+                      <i class="bi bi-slash-circle"></i> Void
                     </button>
                   </td>
                 </tr>
@@ -301,7 +301,7 @@
               <i class="bi bi-translate me-1"></i>No regional-language name or address is saved for this student, so those lines will print blank.
               Add them under Admin &gt; Student Regional-Language Details; the TC picks them up when it is printed.
             </div>
-            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#edIssue">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#edIssue">
               <i class="bi bi-file-earmark-check me-1"></i>Issue TC
             </button>
           </div>
@@ -328,8 +328,8 @@
                     <span class="badge bg-secondary" th:if="${t.status.name() == 'SUPERSEDED'}">Replaced</span>
                   </td>
                   <td class="text-end text-nowrap">
-                    <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_REGISTER:VIEW"
-                       th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
+                    <a class="btn btn-outline-secondary btn-sm" target="_blank" sms:access="TC_REGISTER:VIEW"
+                       th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i> Print</a>
                   </td>
                 </tr>
               </tbody>
@@ -337,7 +337,7 @@
           </div>
 
           <div class="mt-3" th:if="${tcPanel.canReissue and exit.status.name() != 'REACTIVATED'}" sms:access="TC_REISSUE:CREATE">
-            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#edReissue">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#edReissue">
               <i class="bi bi-arrow-repeat me-1"></i>Re-issue TC
             </button>
           </div>
@@ -402,8 +402,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-primary" id="edClearBtn">Save receipt</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-primary" id="edClearBtn"><i class="bi bi-save"></i> Save receipt</button>
         </div>
       </form>
     </div>
@@ -424,8 +424,8 @@
                     maxlength="255" minlength="5" required></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-danger" id="edVoidBtn">Void receipt</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-danger" id="edVoidBtn"><i class="bi bi-slash-circle"></i> Void receipt</button>
         </div>
       </form>
     </div>
@@ -463,8 +463,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-success" id="edIssueBtn">Issue TC</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-success" id="edIssueBtn"><i class="bi bi-file-earmark-check"></i> Issue TC</button>
         </div>
       </form>
     </div>
@@ -504,8 +504,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-primary" id="edReissueBtn">Re-issue TC</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-primary" id="edReissueBtn"><i class="bi bi-arrow-repeat"></i> Re-issue TC</button>
         </div>
       </form>
     </div>
@@ -534,8 +534,8 @@
                     maxlength="255" minlength="5" required></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-success" id="edReactivateBtn">Reactivate</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-success" id="edReactivateBtn"><i class="bi bi-arrow-counterclockwise"></i> Reactivate</button>
         </div>
       </form>
     </div>
@@ -562,6 +562,12 @@
           <div class="small text-muted mb-3">
             Once approved the dues are fixed. Dues can then be collected and the TC issued.
           </div>
+          <div class="alert alert-warning py-2 small" th:if="${exit.siblingAction != null}">
+            <i class="bi bi-people-fill me-1"></i>
+            This student is in a sibling group. Approving
+            <span th:if="${exit.siblingAction == 'DISSOLVE_AND_CREATE'}">dissolves the group and creates a new one from the remaining students.</span>
+            <span th:unless="${exit.siblingAction == 'DISSOLVE_AND_CREATE'}">dissolves the group; the Sibling Discount of its students stops.</span>
+          </div>
 
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" id="edDiff">
@@ -586,8 +592,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-success" id="edApproveBtn">Approve</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-success" id="edApproveBtn"><i class="bi bi-check-lg"></i> Approve</button>
         </div>
       </form>
     </div>
@@ -611,8 +617,8 @@
                     maxlength="255" minlength="5" required></textarea>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-          <button type="submit" class="btn btn-danger" id="edCancelBtn">Cancel strike-off</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+          <button type="submit" class="btn btn-danger" id="edCancelBtn"><i class="bi bi-x-lg"></i> Cancel strike-off</button>
         </div>
       </form>
     </div>

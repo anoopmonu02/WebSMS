@@ -98,7 +98,10 @@ public class ReRegistrationService {
                 school.getId(), ExitStatus.CANCELLED, "%" + cleaned + "%", PageRequest.of(0, SEARCH_LIMIT));
         List<ReRegisterRowDto> rows = new ArrayList<>();
         for (StudentExit e : found) {
-            TransferCertificate tc = e.getStatus() == ExitStatus.TC_COLLECTED
+            // The TC is shown for every exit that had one issued (a reactivated or re-registered exit keeps its VALID TC as history)
+            boolean hadTc = e.getStatus() == ExitStatus.TC_COLLECTED || e.getStatus() == ExitStatus.REACTIVATED
+                    || e.getStatus() == ExitStatus.RE_REGISTERED;
+            TransferCertificate tc = hadTc
                     ? transferCertificateRepository.findFirstByExit_IdAndStatus(e.getId(), TcStatus.VALID).orElse(null)
                     : null;
             String block = blockReason(e, currentYear, tc);

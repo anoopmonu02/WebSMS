@@ -30,48 +30,52 @@
   <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
 
   <div class="card tr-card mb-3">
+    <div class="card-header py-2"><i class="bi bi-funnel me-2"></i>Search</div>
     <div class="card-body">
-      <form th:action="@{/tc/register}" method="get" class="row g-2 align-items-end">
-        <div class="col-md-3">
-          <label class="form-label small mb-1" for="tQ">Student</label>
-          <input type="text" class="form-control form-control-sm" id="tQ" name="q" th:value="${filter.q}"
+      <form th:action="@{/tc/register}" method="get" class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="tQ">Student</label>
+          <input type="text" class="form-control" id="tQ" name="q" th:value="${filter.q}"
                  placeholder="Name, father or mother">
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="tDiv">Register</label>
-          <select class="form-select form-select-sm" id="tDiv" name="divisionId">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="tDiv">Register</label>
+          <select class="form-select" id="tDiv" name="divisionId">
             <option value="">All</option>
             <option th:each="d : ${divisions}" th:value="${d.id}" th:text="${d.name}"
                     th:selected="${filter.divisionId != null and filter.divisionId == d.id}"></option>
           </select>
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="tStatus">Status</label>
-          <select class="form-select form-select-sm" id="tStatus" name="status">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="tStatus">Status</label>
+          <select class="form-select" id="tStatus" name="status">
             <option value="">All</option>
             <option th:each="s : ${statuses}" th:value="${s.name()}"
                     th:text="${s.name() == 'VALID'} ? 'Valid' : 'Replaced'"
                     th:selected="${filter.status == s}"></option>
           </select>
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="tNf">No. from</label>
-          <input type="number" min="1" class="form-control form-control-sm" id="tNf" name="numberFrom" th:value="${filter.numberFrom}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="tNf">TC No. From</label>
+          <input type="number" min="1" class="form-control" id="tNf" name="numberFrom" th:value="${filter.numberFrom}">
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="tNt">No. to</label>
-          <input type="number" min="1" class="form-control form-control-sm" id="tNt" name="numberTo" th:value="${filter.numberTo}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="tNt">TC No. To</label>
+          <input type="number" min="1" class="form-control" id="tNt" name="numberTo" th:value="${filter.numberTo}">
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="tFrom">From</label>
-          <input type="date" class="form-control form-control-sm" id="tFrom" name="fromDate" th:value="${filter.fromDate}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="tFrom">Issued From</label>
+          <input type="date" class="form-control tc-date" id="tFrom" name="fromDate" th:value="${filter.fromDate}" placeholder="Select date">
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="tTo">To</label>
-          <input type="date" class="form-control form-control-sm" id="tTo" name="toDate" th:value="${filter.toDate}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="tTo">Issued To</label>
+          <input type="date" class="form-control tc-date" id="tTo" name="toDate" th:value="${filter.toDate}" placeholder="Select date">
         </div>
-        <div class="col-md-1 d-grid">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+        <div class="col-lg-2 col-md-4 offset-lg-4">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Search</button>
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <a class="btn btn-secondary w-100" th:href="@{/tc/register}"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
         </div>
       </form>
     </div>
@@ -87,7 +91,7 @@
         <thead class="table-light">
         <tr>
           <th>TC no.</th><th>Register</th><th>Student</th><th>Class</th><th>Issued</th>
-          <th>Collected by</th><th>Status</th><th style="width:150px"></th>
+          <th>Collected by</th><th>Status</th><th class="text-end">Action</th>
         </tr>
         </thead>
         <tbody>
@@ -117,9 +121,9 @@
             <span class="badge bg-secondary" th:if="${t.status.name() == 'SUPERSEDED'}">Replaced</span>
           </td>
           <td class="text-end text-nowrap">
-            <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
-            <a class="btn btn-outline-primary btn-sm py-0" th:href="@{/tc/exits/{u}(u=${t.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW"
-               th:title="${t.status.name() == 'VALID'} ? 'Open the exit to re-issue' : 'Open the exit'">Exit</a>
+            <a class="btn btn-outline-secondary btn-sm me-1" target="_blank" th:href="@{/tc/certificates/{u}/print(u=${t.uuid})}" title="Print"><i class="bi bi-printer"></i> Print</a>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/tc/exits/{u}(u=${t.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW"
+               th:title="${t.status.name() == 'VALID'} ? 'Open the exit to re-issue' : 'Open the exit'"><i class="bi bi-box-arrow-up-right"></i> Exit</a>
           </td>
         </tr>
         </tbody>
@@ -127,15 +131,22 @@
     </div>
     <div class="card-footer d-flex justify-content-between align-items-center" th:if="${rows.totalPages > 1}">
       <span class="small text-muted" th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}"></span>
-      <div class="btn-group btn-group-sm">
+      <div class="d-flex gap-2">
         <a class="btn btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
-           th:href="@{/tc/register(page=${rows.number - 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Previous</a>
+           th:href="@{/tc/register(page=${rows.number - 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}"><i class="bi bi-chevron-left"></i> Previous</a>
         <a class="btn btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
-           th:href="@{/tc/register(page=${rows.number + 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Next</a>
+           th:href="@{/tc/register(page=${rows.number + 1},q=${filter.q},divisionId=${filter.divisionId},status=${filter.status},numberFrom=${filter.numberFrom},numberTo=${filter.numberTo},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Next <i class="bi bi-chevron-right"></i></a>
       </div>
     </div>
   </div>
 </div>
+
+<link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+<script th:src="@{/js/flatpickr.js}"></script>
+<script type="text/javascript">
+  // Same calendar as the registration form; the form still sends yyyy-MM-dd
+  flatpickr(".tc-date", { altInput: true, altFormat: "d/M/Y", dateFormat: "Y-m-d", allowInput: false });
+</script>
 </section>
 </body>
 </html>

@@ -29,8 +29,8 @@
       <h4 class="mb-0 fw-bold"><i class="bi bi-people text-primary me-2"></i>Exited Students</h4>
       <p class="text-muted small mb-0">Students struck off from the school, and where each one stands.</p>
     </div>
-    <a class="btn btn-danger btn-sm" th:href="@{/tc/strike-off}" sms:access="TC_STRIKE_OFF:VIEW">
-      <i class="bi bi-box-arrow-right me-1"></i>Strike off a student
+    <a class="btn btn-danger" th:href="@{/tc/strike-off}" sms:access="TC_STRIKE_OFF:VIEW">
+      <i class="bi bi-box-arrow-right"></i> Strike off a student
     </a>
   </div>
   <hr class="mt-1 mb-3"/>
@@ -40,47 +40,51 @@
 
   <!-- ═══════════ Filters ═══════════ -->
   <div class="card ex-card mb-3">
+    <div class="card-header py-2"><i class="bi bi-funnel me-2"></i>Search</div>
     <div class="card-body">
-      <form th:action="@{/tc/exits}" method="get" class="row g-2 align-items-end">
-        <div class="col-md-3">
-          <label class="form-label small mb-1" for="fQ">Student</label>
-          <input type="text" class="form-control form-control-sm" id="fQ" name="q" th:value="${filter.q}"
+      <form th:action="@{/tc/exits}" method="get" class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="fQ">Student</label>
+          <input type="text" class="form-control" id="fQ" name="q" th:value="${filter.q}"
                  placeholder="Name, father or mother">
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="fStatus">Status</label>
-          <select class="form-select form-select-sm" id="fStatus" name="status">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="fStatus">Status</label>
+          <select class="form-select" id="fStatus" name="status">
             <option value="">All</option>
             <option th:each="s : ${statuses}" th:value="${s.name()}" th:text="${s.label}"
                     th:selected="${filter.status == s}"></option>
           </select>
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="fReason">Reason</label>
-          <select class="form-select form-select-sm" id="fReason" name="reason">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="fReason">Reason</label>
+          <select class="form-select" id="fReason" name="reason">
             <option value="">All</option>
             <option th:each="r : ${reasons}" th:value="${r.name()}" th:text="${r.label}"
                     th:selected="${filter.reason == r}"></option>
           </select>
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="fGrade">Class</label>
-          <select class="form-select form-select-sm" id="fGrade" name="gradeId">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="fGrade">Class</label>
+          <select class="form-select" id="fGrade" name="gradeId">
             <option value="">All</option>
             <option th:each="g : ${grades}" th:value="${g.id}" th:text="${g.gradeName}"
                     th:selected="${filter.gradeId != null and filter.gradeId == g.id}"></option>
           </select>
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="fFrom">From</label>
-          <input type="date" class="form-control form-control-sm" id="fFrom" name="fromDate" th:value="${filter.fromDate}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="fFrom">Last Date From</label>
+          <input type="date" class="form-control tc-date" id="fFrom" name="fromDate" th:value="${filter.fromDate}" placeholder="Select date">
         </div>
-        <div class="col-md-1">
-          <label class="form-label small mb-1" for="fTo">To</label>
-          <input type="date" class="form-control form-control-sm" id="fTo" name="toDate" th:value="${filter.toDate}">
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label" for="fTo">Last Date To</label>
+          <input type="date" class="form-control tc-date" id="fTo" name="toDate" th:value="${filter.toDate}" placeholder="Select date">
         </div>
-        <div class="col-md-1 d-grid">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+        <div class="col-lg-2 col-md-4 offset-lg-4">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Search</button>
+        </div>
+        <div class="col-lg-2 col-md-4">
+          <a class="btn btn-secondary w-100" th:href="@{/tc/exits}"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
         </div>
       </form>
     </div>
@@ -103,7 +107,7 @@
           <th>Last date</th>
           <th class="text-end">Dues</th>
           <th>Status</th>
-          <th style="width:90px"></th>
+          <th class="text-end">Action</th>
         </tr>
         </thead>
         <tbody>
@@ -129,7 +133,7 @@
                   th:text="${r.status.label}"></span>
           </td>
           <td class="text-end">
-            <a class="btn btn-outline-primary btn-sm" th:href="@{/tc/exits/{u}(u=${r.uuid})}">Open</a>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/tc/exits/{u}(u=${r.uuid})}"><i class="bi bi-eye"></i> Open</a>
           </td>
         </tr>
         </tbody>
@@ -139,15 +143,21 @@
     <!-- paging -->
     <div class="card-footer d-flex justify-content-between align-items-center" th:if="${rows.totalPages > 1}">
       <span class="small text-muted" th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}"></span>
-      <div class="btn-group btn-group-sm">
+      <div class="d-flex gap-2">
         <a class="btn btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
-           th:href="@{/tc/exits(page=${rows.number - 1},q=${filter.q},status=${filter.status},reason=${filter.reason},gradeId=${filter.gradeId},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Previous</a>
+           th:href="@{/tc/exits(page=${rows.number - 1},q=${filter.q},status=${filter.status},reason=${filter.reason},gradeId=${filter.gradeId},fromDate=${filter.fromDate},toDate=${filter.toDate})}"><i class="bi bi-chevron-left"></i> Previous</a>
         <a class="btn btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
-           th:href="@{/tc/exits(page=${rows.number + 1},q=${filter.q},status=${filter.status},reason=${filter.reason},gradeId=${filter.gradeId},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Next</a>
+           th:href="@{/tc/exits(page=${rows.number + 1},q=${filter.q},status=${filter.status},reason=${filter.reason},gradeId=${filter.gradeId},fromDate=${filter.fromDate},toDate=${filter.toDate})}">Next <i class="bi bi-chevron-right"></i></a>
       </div>
     </div>
   </div>
 </div>
+<link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+<script th:src="@{/js/flatpickr.js}"></script>
+<script type="text/javascript">
+  // Same calendar as the registration form; the form still sends yyyy-MM-dd
+  flatpickr(".tc-date", { altInput: true, altFormat: "d/M/Y", dateFormat: "Y-m-d", allowInput: false });
+</script>
 </section>
 </body>
 </html>

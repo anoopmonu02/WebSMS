@@ -15,6 +15,50 @@
   .tl-label { font-size: .8rem; color: #6c757d; }
   .tl-row-voided td { text-decoration: line-through; color: #8a8f98; }
   .tl-date { white-space: nowrap; }
+
+  /* Tabs */
+  .jt-tabs .nav-link { border-radius: 999px; font-weight: 600; color: #495057; background: #fff; border: 1px solid #dee2e6; margin-right: .5rem; }
+  .jt-tabs .nav-link.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+
+  /* Summary strip */
+  .jt-stat { border-radius: 14px; border: 1px solid #e3e8ee; background: #fff; padding: .75rem 1rem; height: 100%; }
+  .jt-stat .jt-stat-label { font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; color: #6c757d; }
+  .jt-stat .jt-stat-value { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+  .jt-stat .jt-stat-sub { font-size: .8rem; color: #6c757d; }
+
+  /* Filter chips */
+  .jt-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .jt-chip { border: 1px solid #dee2e6; background: #fff; border-radius: 999px; padding: .25rem .85rem; font-size: .85rem; cursor: pointer; color: #495057; }
+  .jt-chip .jt-count { display: inline-block; margin-left: .35rem; font-size: .75rem; background: #eef1f5; border-radius: 999px; padding: 0 .45rem; }
+  .jt-chip.active { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+  .jt-chip.active .jt-count { background: rgba(255,255,255,.25); }
+
+  /* Journey */
+  .jt-wrap { position: relative; padding: .25rem 0 .5rem; }
+  .jt-wrap::before { content: ""; position: absolute; left: 21px; top: 0; bottom: 0; width: 2px; background: #dfe4ea; }
+  .jt-session { position: relative; z-index: 1; display: flex; align-items: center; gap: .75rem; background: #fff; margin: .25rem 0 1rem; }
+  .jt-session::after { content: ""; flex: 1; height: 1px; background: #dfe4ea; }
+  .jt-session span { background: #f1f4f9; border: 1px solid #dfe4ea; border-radius: 999px; padding: .2rem .9rem; font-size: .85rem; font-weight: 600; color: #495057; margin-left: 2px; }
+  .jt-item { position: relative; display: flex; gap: 1rem; margin-bottom: 1rem; }
+  .jt-rail { flex: 0 0 44px; display: flex; justify-content: center; padding-top: .35rem; position: relative; z-index: 1; }
+  .jt-dot { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid var(--jt-dot); color: var(--jt-dot); font-size: 1rem; box-shadow: 0 0 0 4px #fff; }
+  .jt-card { flex: 1; min-width: 0; border-radius: 14px; border: 1px solid var(--jt-border); background: var(--jt-bg); padding: .8rem 1rem; }
+  .jt-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
+  .jt-title { font-weight: 700; }
+  .jt-date { font-size: .8rem; font-weight: 600; background: #fff; border: 1px solid var(--jt-border); border-radius: 999px; padding: .1rem .7rem; white-space: nowrap; }
+  .jt-text { background: #fff; border-radius: 10px; padding: .55rem .8rem; box-shadow: 0 1px 2px rgba(16,24,40,.05); overflow-wrap: anywhere; }
+  .jt-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-top: .6rem; font-size: .8rem; color: #5b6470; }
+  .jt-foot .jt-meta i { margin-right: .25rem; }
+  .jt-actions { margin-left: auto; display: flex; gap: .5rem; flex-wrap: wrap; }
+  .jt-item.jt-voided .jt-card { opacity: .65; }
+  .jt-item.jt-voided .jt-title { text-decoration: line-through; }
+  .jt-item.jt-danger    { --jt-dot:#dc3545; --jt-bg:#fdf0f0; --jt-border:#f4c7c7; }
+  .jt-item.jt-warning   { --jt-dot:#d99200; --jt-bg:#fff7e6; --jt-border:#f4dca3; }
+  .jt-item.jt-success   { --jt-dot:#198754; --jt-bg:#edf8f1; --jt-border:#bfe3cd; }
+  .jt-item.jt-primary   { --jt-dot:#0d6efd; --jt-bg:#eef3ff; --jt-border:#c9d8fb; }
+  .jt-item.jt-info      { --jt-dot:#0aa2c0; --jt-bg:#e9f7fb; --jt-border:#bfe5ef; }
+  .jt-item.jt-secondary { --jt-dot:#6c757d; --jt-bg:#f3f4f6; --jt-border:#dcdfe4; }
+  @media (max-width: 575.98px) { .jt-actions { margin-left: 0; } }
 </style>
 
 <div class="container-fluid px-3 px-lg-4">
@@ -30,7 +74,7 @@
         · <span th:text="${tl.totalRows}"></span> recorded events
       </p>
     </div>
-    <a class="btn btn-outline-secondary btn-sm" th:href="@{/tc/exits}"><i class="bi bi-arrow-left me-1"></i>Exited students</a>
+    <a class="btn btn-secondary" th:href="@{/tc/exits}"><i class="bi bi-arrow-left"></i> Exited students</a>
   </div>
   <hr class="mt-1 mb-3"/>
 
@@ -53,7 +97,7 @@
               <td th:text="${c.srNo} ?: 'Not assigned yet'"></td>
               <td><span class="badge bg-light text-dark" th:text="${c.status}"></span></td>
               <td class="text-end">
-                <a th:unless="${c.current}" th:href="@{/tc/timeline/{u}(u=${c.studentUuid})}" class="btn btn-sm btn-outline-primary py-0">Open</a>
+                <a th:unless="${c.current}" th:href="@{/tc/timeline/{u}(u=${c.studentUuid})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Open</a>
                 <span th:if="${c.current}" class="small text-muted">Opened</span>
               </td>
             </tr>
@@ -68,6 +112,117 @@
     Nothing has been recorded for this student yet.
   </div>
 
+  <!-- ═══════════ At a glance ═══════════ -->
+  <div class="row g-3 mb-3" th:unless="${#lists.isEmpty(tl.sessions)}">
+    <div class="col-6 col-lg-3">
+      <div class="jt-stat">
+        <div class="jt-stat-label">Events</div>
+        <div class="jt-stat-value" th:text="${tl.totalRows}"></div>
+        <div class="jt-stat-sub">recorded for this student</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="jt-stat">
+        <div class="jt-stat-label">Sessions</div>
+        <div class="jt-stat-value" th:text="${#lists.size(tl.sessions)}"></div>
+        <div class="jt-stat-sub" th:text="${tl.sessions[0].sessionName} + (${#lists.size(tl.sessions) > 1} ? ' to ' + ${tl.sessions[#lists.size(tl.sessions) - 1].sessionName} : '')"></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="jt-stat">
+        <div class="jt-stat-label">Records</div>
+        <div class="jt-stat-value" th:text="${#lists.size(tl.chain)}"></div>
+        <div class="jt-stat-sub" th:text="${#lists.size(tl.chain) > 1} ? 'linked by re-registration' : 'single record'"></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3" th:with="lastSess=${tl.sessions[#lists.size(tl.sessions) - 1]}">
+      <div class="jt-stat" th:with="lastRow=${lastSess.rows[#lists.size(lastSess.rows) - 1]}">
+        <div class="jt-stat-label">Latest</div>
+        <div class="jt-stat-value fs-5" th:text="${lastRow.title}"></div>
+        <div class="jt-stat-sub" th:text="${#temporals.format(lastRow.eventDate, 'dd/MMM/yyyy')}"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ Tabs ═══════════ -->
+  <ul class="nav jt-tabs mb-3" role="tablist" th:unless="${#lists.isEmpty(tl.sessions)}">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tl-journey-tab" type="button" role="tab"
+              data-bs-toggle="pill" data-bs-target="#tl-journey" aria-controls="tl-journey" aria-selected="true">
+        <i class="bi bi-signpost-split"></i> Journey
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tl-details-tab" type="button" role="tab"
+              data-bs-toggle="pill" data-bs-target="#tl-details" aria-controls="tl-details" aria-selected="false">
+        <i class="bi bi-table"></i> All details
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" th:unless="${#lists.isEmpty(tl.sessions)}">
+
+    <!-- ───────── Tab 1: Journey ───────── -->
+    <div class="tab-pane fade show active" id="tl-journey" role="tabpanel" aria-labelledby="tl-journey-tab">
+      <div class="card tl-card mb-4">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span><i class="bi bi-signpost-split me-2"></i>Student journey</span>
+          <div class="jt-chips" id="jtChips">
+            <button type="button" class="jt-chip active" data-cat="all">All<span class="jt-count" data-count="all"></span></button>
+            <button type="button" class="jt-chip" data-cat="exit"><i class="bi bi-box-arrow-right"></i> Exit &amp; return<span class="jt-count" data-count="exit"></span></button>
+            <button type="button" class="jt-chip" data-cat="dues"><i class="bi bi-cash-coin"></i> Dues<span class="jt-count" data-count="dues"></span></button>
+            <button type="button" class="jt-chip" data-cat="tc"><i class="bi bi-file-earmark-check"></i> TC<span class="jt-count" data-count="tc"></span></button>
+            <button type="button" class="jt-chip" data-cat="login"><i class="bi bi-key"></i> Login<span class="jt-count" data-count="login"></span></button>
+            <button type="button" class="jt-chip" data-cat="other"><i class="bi bi-three-dots"></i> Other<span class="jt-count" data-count="other"></span></button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="jt-wrap" id="jtWrap">
+            <th:block th:each="sess : ${tl.sessions}">
+              <div class="jt-session" th:attr="data-session=${sess.sessionName}">
+                <span><i class="bi bi-calendar3 me-1"></i>Session <span th:remove="tag" th:text="${sess.sessionName}"></span></span>
+              </div>
+              <div class="jt-item" th:each="r : ${sess.rows}"
+                   th:classappend="'jt-' + ${r.tone} + (${r.voided} ? ' jt-voided' : '')"
+                   th:attr="data-title=${r.title}">
+                <div class="jt-rail"><span class="jt-dot"><i class="bi bi-circle"></i></span></div>
+                <div class="jt-card">
+                  <div class="jt-head">
+                    <div class="jt-title" th:text="${r.title}"></div>
+                    <span class="jt-date"><i class="bi bi-calendar-event me-1"></i><span th:remove="tag" th:text="${#temporals.format(r.eventDate, 'dd/MMM/yyyy')}"></span></span>
+                  </div>
+                  <div class="jt-text">
+                    <span th:text="${r.description}"></span>
+                    <div class="small text-danger mt-1" th:if="${r.voided}" th:text="'Voided: ' + ${r.voidReason}"></div>
+                  </div>
+                  <div class="jt-foot">
+                    <span class="jt-meta" th:if="${r.className}"><i class="bi bi-mortarboard"></i><span th:remove="tag" th:text="'Class ' + ${r.className}"></span></span>
+                    <span class="jt-meta" th:if="${#lists.size(tl.chain) > 1 and r.registrationNo != null}"><i class="bi bi-hash"></i><span th:remove="tag" th:text="${r.registrationNo}"></span></span>
+                    <span class="jt-meta"><i class="bi bi-person-circle"></i><span th:remove="tag" th:text="${r.userName} ?: 'System'"></span></span>
+                    <span class="jt-meta" th:if="${r.recordedAt}"><i class="bi bi-clock"></i><span th:remove="tag" th:text="${#temporals.format(r.recordedAt, 'dd/MMM/yyyy HH:mm')}"></span></span>
+                    <span class="jt-actions">
+                      <a class="btn btn-outline-secondary btn-sm" sms:access="TC_EXIT_LIST:VIEW"
+                         th:if="${r.linkKind == 'EXIT'}" th:href="@{/tc/exits/{u}(u=${r.linkUuid})}" title="Open the exit record">
+                        <i class="bi bi-box-arrow-up-right"></i> Exit</a>
+                      <a class="btn btn-outline-secondary btn-sm" target="_blank" sms:access="TC_REGISTER:VIEW"
+                         th:if="${r.linkKind == 'TC'}" th:href="@{/tc/certificates/{u}/print(u=${r.linkUuid})}" title="Print this TC">
+                        <i class="bi bi-printer"></i> Print TC</a>
+                      <a class="btn btn-outline-secondary btn-sm" target="_blank" sms:access="TC_DUES:VIEW"
+                         th:if="${r.linkKind == 'RECEIPT'}" th:href="@{/tc/receipts/{u}/print(u=${r.linkUuid})}" title="Print this receipt">
+                        <i class="bi bi-printer"></i> Print receipt</a>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </th:block>
+            <div class="text-center text-muted py-4 d-none" id="jtNone">No events in this group.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── Tab 2: All details (the original tables) ───────── -->
+    <div class="tab-pane fade" id="tl-details" role="tabpanel" aria-labelledby="tl-details-tab">
   <div class="card tl-card mb-3" th:each="sess : ${tl.sessions}">
     <div class="card-header py-2"><i class="bi bi-calendar3 me-2"></i>Session <span th:text="${sess.sessionName}"></span></div>
     <div class="table-responsive">
@@ -101,22 +256,96 @@
                    th:text="${#temporals.format(r.recordedAt, 'dd/MMM/yyyy HH:mm')}"></div>
             </td>
             <td class="text-end text-nowrap">
-              <a class="btn btn-outline-secondary btn-sm py-0" sms:access="TC_EXIT_LIST:VIEW"
+              <a class="btn btn-outline-secondary btn-sm" sms:access="TC_EXIT_LIST:VIEW"
                  th:if="${r.linkKind == 'EXIT'}" th:href="@{/tc/exits/{u}(u=${r.linkUuid})}" title="Open the exit record">
-                <i class="bi bi-box-arrow-up-right"></i></a>
-              <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_REGISTER:VIEW"
+                <i class="bi bi-box-arrow-up-right"></i> Exit</a>
+              <a class="btn btn-outline-secondary btn-sm" target="_blank" sms:access="TC_REGISTER:VIEW"
                  th:if="${r.linkKind == 'TC'}" th:href="@{/tc/certificates/{u}/print(u=${r.linkUuid})}" title="Print this TC">
-                <i class="bi bi-printer"></i></a>
-              <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" sms:access="TC_DUES:VIEW"
+                <i class="bi bi-printer"></i> Print TC</a>
+              <a class="btn btn-outline-secondary btn-sm" target="_blank" sms:access="TC_DUES:VIEW"
                  th:if="${r.linkKind == 'RECEIPT'}" th:href="@{/tc/receipts/{u}/print(u=${r.linkUuid})}" title="Print this receipt">
-                <i class="bi bi-printer"></i></a>
+                <i class="bi bi-printer"></i> Print receipt</a>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
+    </div>
+  </div>
 </div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+  var wrap = document.getElementById('jtWrap');
+  if (!wrap) { return; }
+
+  // Icon and group of each event, from its title
+  function classify(title) {
+    var t = (title || '').toLowerCase();
+    if (t.indexOf('login') >= 0)                                  return { cat: 'login', icon: t.indexOf('off') >= 0 ? 'bi-lock' : 'bi-unlock' };
+    if (t.indexOf('dues') >= 0 || t.indexOf('receipt') >= 0)      return { cat: 'dues',  icon: t.indexOf('waived') >= 0 ? 'bi-percent' : (t.indexOf('voided') >= 0 ? 'bi-slash-circle' : 'bi-cash-coin') };
+    if (t.indexOf('tc') === 0 || t.indexOf(' tc') >= 0)           return { cat: 'tc',    icon: 'bi-file-earmark-check' };
+    if (t.indexOf('struck') >= 0)                                 return { cat: 'exit',  icon: 'bi-box-arrow-right' };
+    if (t.indexOf('approved') >= 0)                               return { cat: 'exit',  icon: 'bi-patch-check' };
+    if (t.indexOf('cancelled') >= 0)                              return { cat: 'exit',  icon: 'bi-x-circle' };
+    if (t.indexOf('reactivated') >= 0)                            return { cat: 'exit',  icon: 'bi-arrow-counterclockwise' };
+    if (t.indexOf('registered again') >= 0)                       return { cat: 'exit',  icon: 'bi-person-plus' };
+    if (t.indexOf('sibling') >= 0)                                return { cat: 'exit',  icon: 'bi-people' };
+    if (t.indexOf('admitted') >= 0 || t.indexOf('notary') >= 0)   return { cat: 'other', icon: 'bi-person-check' };
+    if (t.indexOf('number') >= 0)                                 return { cat: 'other', icon: 'bi-hash' };
+    return { cat: 'other', icon: 'bi-circle' };
+  }
+
+  var items = Array.prototype.slice.call(wrap.querySelectorAll('.jt-item'));
+  var counts = { all: items.length, exit: 0, dues: 0, tc: 0, login: 0, other: 0 };
+  items.forEach(function (it) {
+    var c = classify(it.getAttribute('data-title'));
+    it.setAttribute('data-cat', c.cat);
+    counts[c.cat] += 1;
+    var icon = it.querySelector('.jt-dot i');
+    if (icon) { icon.className = 'bi ' + c.icon; }
+  });
+  Object.keys(counts).forEach(function (k) {
+    var el = document.querySelector('[data-count="' + k + '"]');
+    if (el) { el.textContent = counts[k]; }
+  });
+
+  // Filter chips (a chip with no events is hidden)
+  var chips = Array.prototype.slice.call(document.querySelectorAll('#jtChips .jt-chip'));
+  chips.forEach(function (chip) {
+    if (chip.getAttribute('data-cat') !== 'all' && counts[chip.getAttribute('data-cat')] === 0) { chip.classList.add('d-none'); }
+    chip.addEventListener('click', function () {
+      var cat = chip.getAttribute('data-cat');
+      chips.forEach(function (c) { c.classList.toggle('active', c === chip); });
+      items.forEach(function (it) { it.classList.toggle('d-none', cat !== 'all' && it.getAttribute('data-cat') !== cat); });
+      // hide a session heading when none of its events is visible
+      var heads = wrap.querySelectorAll('.jt-session');
+      heads.forEach(function (h) {
+        var n = h.nextElementSibling, any = false;
+        while (n && !n.classList.contains('jt-session') && n.id !== 'jtNone') {
+          if (n.classList.contains('jt-item') && !n.classList.contains('d-none')) { any = true; }
+          n = n.nextElementSibling;
+        }
+        h.classList.toggle('d-none', !any);
+      });
+      document.getElementById('jtNone').classList.toggle('d-none', items.some(function (it) { return !it.classList.contains('d-none'); }));
+    });
+  });
+
+  // Open the "All details" tab from the link #details, and keep the link in step
+  try {
+    if (location.hash === '#details' && window.bootstrap) {
+      bootstrap.Tab.getOrCreateInstance(document.getElementById('tl-details-tab')).show();
+    }
+    ['tl-journey-tab', 'tl-details-tab'].forEach(function (id) {
+      document.getElementById(id).addEventListener('shown.bs.tab', function () {
+        history.replaceState(null, '', id === 'tl-details-tab' ? '#details' : location.pathname + location.search);
+      });
+    });
+  } catch (e) { /* the tabs still work by click */ }
+});
+</script>
 </section>
 </body>
 </html>

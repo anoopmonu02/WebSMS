@@ -136,6 +136,13 @@ public class StudentExit {
     @Column(name = "login_disabled_by_exit", nullable = false)
     private boolean loginDisabledByExit = false;
 
+    /**
+     * What the user chose for the student's sibling group at strike-off (DISSOLVE or DISSOLVE_AND_CREATE),
+     * applied when an admin approves. null = the student was not in a sibling group.
+     */
+    @Column(name = "sibling_action", length = 30)
+    private String siblingAction;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "status", nullable = false, length = 20)

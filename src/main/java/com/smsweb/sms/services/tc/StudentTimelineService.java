@@ -242,6 +242,7 @@ public class StudentTimelineService {
             case LOGIN_ENABLED: return "Login switched on";
             case DUES_MANUAL: return "Dues set by hand";
             case TC_APPROVED: return "Approved, dues fixed";
+            case SIBLING_GROUP_DISSOLVED: return "Sibling group dissolved";
             case DUES_PAID: return "Dues paid";
             case DUES_WAIVED: return "Dues waived";
             case DUES_RECEIPT_VOIDED: return "Receipt voided";
@@ -280,6 +281,7 @@ public class StudentTimelineService {
             case TC_APPROVED:
             case DUES_MANUAL:
             case DUES_WAIVED:
+            case SIBLING_GROUP_DISSOLVED:
                 return "warning";
             case RE_REGISTERED:
             case REGISTRATION_NO_ASSIGNED:

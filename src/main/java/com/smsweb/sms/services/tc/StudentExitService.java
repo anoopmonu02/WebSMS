@@ -31,6 +31,7 @@ import com.smsweb.sms.repositories.tc.StudentLinkRepository;
 import com.smsweb.sms.repositories.tc.StudentLookupRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.mobile.MobileRefreshTokenService;
+import com.smsweb.sms.services.student.SiblingGroupDissolutionService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
@@ -93,6 +94,10 @@ public class StudentExitService {
     private final MobileRefreshTokenService mobileRefreshTokenService;
     private final StudentExecutionRepository studentExecutionRepository;
     private final StudentLinkRepository studentLinkRepository;
+    private final SiblingGroupDissolutionService siblingGroupDissolutionService;
+
+    public static final String SIBLING_DISSOLVE = "DISSOLVE";
+    public static final String SIBLING_DISSOLVE_AND_CREATE = "DISSOLVE_AND_CREATE";
 
     public StudentExitService(StudentExitRepository studentExitRepository,
                               StudentLookupRepository studentLookupRepository,
@@ -102,7 +107,8 @@ public class StudentExitService {
                               StudentEventService studentEventService,
                               MobileRefreshTokenService mobileRefreshTokenService,
                               StudentExecutionRepository studentExecutionRepository,
-                              StudentLinkRepository studentLinkRepository) {
+                              StudentLinkRepository studentLinkRepository,
+                              SiblingGroupDissolutionService siblingGroupDissolutionService) {
         this.studentExitRepository = studentExitRepository;
         this.studentLookupRepository = studentLookupRepository;
         this.receiptRepository = receiptRepository;
@@ -112,6 +118,7 @@ public class StudentExitService {
         this.mobileRefreshTokenService = mobileRefreshTokenService;
         this.studentExecutionRepository = studentExecutionRepository;
         this.studentLinkRepository = studentLinkRepository;
+        this.siblingGroupDissolutionService = siblingGroupDissolutionService;
     }
 
     // ───────────────────────────── strike-off ─────────────────────────────
@@ -145,6 +152,16 @@ public class StudentExitService {
             throw new TcValidationException("This student already has an open strike-off. Open it from Exited Students.");
         }
 
+        // A student in an active sibling group: the user must say what happens to the group. It is applied
+        // when an admin approves, so cancelling the strike-off leaves the group untouched.
+        String siblingAction = null;
+        if (siblingGroupDissolutionService.hasActiveGroup(student.getId())) {
+            siblingAction = req.getSiblingAction() == null ? "" : req.getSiblingAction().trim();
+            if (!SIBLING_DISSOLVE.equals(siblingAction) && !SIBLING_DISSOLVE_AND_CREATE.equals(siblingAction)) {
+                throw new TcValidationException("This student belongs to a sibling group. Please choose what happens to the group.");
+            }
+        }
+
         // Dues estimate while the student is still Active (the fee calculator only sees Active students).
         DuesEstimate estimate = null;
         ManualDues manual = null;
@@ -175,6 +192,7 @@ public class StudentExitService {
         exit.setExitDate(req.getExitDate());
         exit.setIncludeLastMonth(req.isIncludeLastMonth());
         exit.setRemark(blankToNull(req.getRemark()));
+        exit.setSiblingAction(siblingAction);
         exit.setStatus(ExitStatus.EXITED);
         exit.setCreatedBy(user);
         if (estimate != null) {
@@ -265,7 +283,58 @@ public class StudentExitService {
                     today, exit.getCalcAmount().toPlainString(), amount.toPlainString(), exit.getDuesManualReason(),
                     RefType.EXIT, exit.getId(), EventSource.WEB, user);
         }
+        applySiblingAction(exit, user, today);
         return exit;
+    }
+
+    /**
+     * Applies the sibling group choice made at strike-off. Runs inside the approval transaction, so approval and
+     * group change commit or roll back together. A student who is no longer in an active group is simply skipped.
+     */
+    private void applySiblingAction(StudentExit exit, UserEntity user, LocalDate today) {
+        String action = exit.getSiblingAction();
+        if (action == null) {
+            return;
+        }
+        Student student = exit.getStudent();
+        boolean createNew = SIBLING_DISSOLVE_AND_CREATE.equals(action);
+        List<SiblingGroupDissolutionService.Outcome> outcomes = siblingGroupDissolutionService
+                .dissolveForRemovedStudent(student.getId(), student.getStudentName(), createNew);
+        if (outcomes.isEmpty()) {
+            return;
+        }
+        StringBuilder note = new StringBuilder();
+        for (SiblingGroupDissolutionService.Outcome o : outcomes) {
+            if (note.length() > 0) {
+                note.append(" ");
+            }
+            note.append("Group '").append(o.oldGroupName).append("' dissolved.");
+            if (o.newGroupName != null) {
+                note.append(" New group '").append(o.newGroupName).append("' created with ")
+                        .append(o.newGroupMembers.size()).append(" students.");
+            } else if (o.notCreatedReason != null) {
+                note.append(" New group not created: ").append(o.notCreatedReason);
+            }
+        }
+        String text = note.length() > 500 ? note.substring(0, 497) + "..." : note.toString();
+        studentEventService.log(EventType.SIBLING_GROUP_DISSOLVED, student, exit.getAcademicStudent(), exit.getAcademicYear(),
+                today, null, action, text, RefType.EXIT, exit.getId(), EventSource.WEB, user);
+    }
+
+    /**
+     * Read only: the sibling group(s) of the chosen student, for the strike-off form. Same shape as the Student list
+     * popup. Empty list when the student is in no active group.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> siblingPreview(Long academicStudentId, School school) {
+        if (academicStudentId == null || school == null) {
+            return List.of();
+        }
+        AcademicStudent enrollment = studentLookupRepository.findDetailed(academicStudentId, school.getId()).orElse(null);
+        if (enrollment == null) {
+            return List.of();
+        }
+        return siblingGroupDissolutionService.previewForStudent(enrollment.getStudent().getId());
     }
 
     // ───────────────────────────── cancel strike-off ─────────────────────────────
@@ -475,6 +544,7 @@ public class StudentExitService {
         d.setCancelledByName(e.getCancelledBy() == null ? null : e.getCancelledBy().getUsername());
         d.setCancelledAt(e.getCancelledAt());
         d.setCancelReason(e.getCancelReason());
+        d.setSiblingAction(e.getSiblingAction());
         boolean admin = isAdmin();
         d.setCanApprove(admin && e.getStatus() == ExitStatus.EXITED);
         boolean sameSession = currentYear != null && currentYear.getId().equals(e.getAcademicYear().getId());

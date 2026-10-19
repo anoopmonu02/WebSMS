@@ -296,6 +296,32 @@
           <input type="text" id="tcNo" class="form-control" th:field="*{tcNo}">
         </div><div class="col-md-1"></div>
 
+        <!-- TC admission rule (TC feature). Rendered only when the rule is on for this school; never on the re-register form. -->
+        <div class="col-12" id="admissionTcBlock" style="display:none;"
+             th:if="${admissionRule != null and admissionRule.enabled and reRegister == null}">
+          <div class="alert alert-info py-2 mb-2" id="admissionTcInfo" role="alert"></div>
+          <div class="row g-3">
+            <div class="col-md-3" id="admNotaryFlagWrap" style="display:none;">
+              <div class="form-check mt-4">
+                <input type="checkbox" class="form-check-input" id="admNotaryAffidavit" name="notaryAffidavit" value="true"
+                       th:checked="${admNotaryAffidavit != null and admNotaryAffidavit}" disabled>
+                <label class="form-check-label" for="admNotaryAffidavit">Notary affidavit submitted instead of TC</label>
+              </div>
+            </div>
+            <div class="col-md-4" id="admNotaryDocWrap" style="display:none;">
+              <label for="admNotaryDocNo" class="form-label">Notary Document Number<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="admNotaryDocNo" name="notaryDocNo" maxlength="100"
+                     th:value="${admNotaryDocNo}" disabled>
+            </div>
+            <div class="col-md-8" id="admExemptWrap" style="display:none;">
+              <label for="admExemptionRemark" class="form-label">Reason for admitting without TC<span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="admExemptionRemark" name="exemptionRemark" maxlength="400"
+                     th:value="${admExemptionRemark}" disabled>
+              <input type="hidden" name="exemptAdmission" value="true" id="admExemptFlag" disabled>
+            </div>
+          </div>
+        </div>
+
         <div class="col-md-3">
           <label for="passingYear" class="form-label">Passing Year</label>
           <input type="number" id="passingYear" class="form-control" th:field="*{passingYear}">
@@ -696,6 +722,93 @@
     }
 
 
+  </script>
+
+  <!-- TC admission rule block: guidance and checks only; the server enforces the same rule. Does nothing when the block is not rendered. -->
+  <script type="text/javascript" th:inline="javascript">
+    (function () {
+      var block = document.getElementById('admissionTcBlock');
+      var form = document.getElementById('myForm');
+      if (!block || !form) { return; }
+      var exemptIds = /*[[${admissionRule != null ? admissionRule.exemptGradeIds : null}]]*/ [];
+      var notaryIds = /*[[${admissionRule != null ? admissionRule.notaryGradeIds : null}]]*/ [];
+      exemptIds = (exemptIds || []).map(String);
+      notaryIds = (notaryIds || []).map(String);
+
+      var grade = document.getElementById('grade');
+      var tcNo = document.getElementById('tcNo');
+      var info = document.getElementById('admissionTcInfo');
+      var flagWrap = document.getElementById('admNotaryFlagWrap');
+      var docWrap = document.getElementById('admNotaryDocWrap');
+      var exemptWrap = document.getElementById('admExemptWrap');
+      var flag = document.getElementById('admNotaryAffidavit');
+      var doc = document.getElementById('admNotaryDocNo');
+      var remark = document.getElementById('admExemptionRemark');
+      var exemptFlag = document.getElementById('admExemptFlag');
+
+      function tierOf(id) {
+        if (!id) { return null; }
+        if (notaryIds.indexOf(id) >= 0) { return 'NOTARY'; }
+        if (exemptIds.indexOf(id) >= 0) { return 'EXEMPT'; }
+        return 'MANDATORY';
+      }
+      function show(el, on) { el.style.display = on ? '' : 'none'; }
+      function setActive(wrapEls, inputs, on) {
+        wrapEls.forEach(function (w) { show(w, on); });
+        inputs.forEach(function (i) { i.disabled = !on; });
+      }
+
+      function refresh() {
+        var tier = tierOf(grade ? grade.value : '');
+        var hasTc = !!(tcNo && tcNo.value.trim());
+        var needNotary = tier === 'NOTARY' && !hasTc;
+        var needExempt = tier === 'EXEMPT' && !hasTc;
+        setActive([flagWrap, docWrap], [flag, doc], needNotary);
+        setActive([exemptWrap], [remark, exemptFlag], needExempt);
+        if (!tier) {
+          show(block, false);
+          return;
+        }
+        show(block, true);
+        if (hasTc) {
+          info.textContent = 'Admission basis: TC number entered. It will be recorded on the student timeline.';
+        } else if (tier === 'MANDATORY') {
+          info.textContent = 'A TC number is required to admit a student in this class.';
+        } else if (tier === 'NOTARY') {
+          info.textContent = 'This class needs a TC number, or a notary affidavit with its document number.';
+        } else {
+          info.textContent = 'This class can be admitted without a TC, but the reason is required.';
+        }
+      }
+
+      function problem() {
+        var tier = tierOf(grade ? grade.value : '');
+        if (!tier || (tcNo && tcNo.value.trim())) { return null; }
+        if (tier === 'MANDATORY') { return 'A TC number is required to admit a student in this class.'; }
+        if (tier === 'NOTARY') {
+          if (!flag.checked || !doc.value.trim()) {
+            return 'Enter the TC number, or tick the notary affidavit and enter its document number.';
+          }
+          return null;
+        }
+        if (!remark.value.trim()) { return 'Enter the reason for admitting without a TC.'; }
+        return null;
+      }
+
+      // Capture phase: runs before the page's own submit handler and stops it when the rule is not met.
+      form.addEventListener('submit', function (e) {
+        var msg = problem();
+        if (msg) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (window.toastr) { window.toastr.error(msg, 'Error'); } else { window.alert(msg); }
+        }
+      }, true);
+
+      if (grade) { grade.addEventListener('change', refresh); }
+      if (tcNo) { tcNo.addEventListener('input', refresh); }
+      refresh();
+    })();
   </script>
 
 

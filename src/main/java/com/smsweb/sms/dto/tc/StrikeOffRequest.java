@@ -24,4 +24,6 @@ public class StrikeOffRequest {
     /** Admin only: used when the automatic estimate fails. */
     private BigDecimal manualAmount;
     private String manualReason;
+    /** DISSOLVE or DISSOLVE_AND_CREATE. Needed only when the student belongs to an active sibling group. */
+    private String siblingAction;
 }

@@ -63,6 +63,25 @@ public class StudentExitRestController extends TcBaseController {
         }
     }
 
+    /** Read only: the sibling group of the chosen student (empty list when none), shown on the strike-off form. */
+    @GetMapping("/sibling-preview")
+    @CheckAccess(screen = "TC_STRIKE_OFF", type = AccessType.VIEW)
+    public ResponseEntity<?> siblingPreview(@RequestParam(name = "academicStudentId", required = false) Long academicStudentId,
+                                            HttpSession session) {
+        log.info("Inside sibling preview: academicStudentId={}", academicStudentId);
+        School school = (School) session.getAttribute("school");
+        String problem = featureMessage(school);
+        if (problem != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", problem));
+        }
+        try {
+            return ResponseEntity.ok(Map.of("groups", studentExitService.siblingPreview(academicStudentId, school)));
+        } catch (Exception e) {
+            log.error("Sibling preview failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not check the sibling group."));
+        }
+    }
+
     @GetMapping("/dues-preview")
     @CheckAccess(screen = "TC_STRIKE_OFF", type = AccessType.VIEW)
     public ResponseEntity<?> duesPreview(@RequestParam(name = "academicStudentId", required = false) Long academicStudentId,

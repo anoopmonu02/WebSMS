@@ -1,8 +1,10 @@
 package com.smsweb.sms.controllers.admin;
 
 import com.smsweb.sms.models.admin.School;
+import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.services.admin.MaintenanceModeService;
 import com.smsweb.sms.services.admin.SiblingDiscountConfigService;
+import com.smsweb.sms.services.globalaccess.DropdownService;
 import jakarta.servlet.http.HttpSession;
 import com.smsweb.sms.services.tc.TcConfigService;
 import com.smsweb.sms.services.tc.TcValidationException;
@@ -16,8 +18,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -46,12 +53,15 @@ public class AppConfigController {
     private final MaintenanceModeService maintenanceModeService;
     private final SiblingDiscountConfigService siblingDiscountConfigService;
     private final TcConfigService tcConfigService;
+    private final DropdownService dropdownService;
 
     public AppConfigController(MaintenanceModeService maintenanceModeService,
-                               SiblingDiscountConfigService siblingDiscountConfigService, TcConfigService tcConfigService) {
+                               SiblingDiscountConfigService siblingDiscountConfigService, TcConfigService tcConfigService,
+                               DropdownService dropdownService) {
         this.maintenanceModeService = maintenanceModeService;
         this.siblingDiscountConfigService = siblingDiscountConfigService;
         this.tcConfigService = tcConfigService;
+        this.dropdownService = dropdownService;
     }
 
     @GetMapping
@@ -87,6 +97,14 @@ public class AppConfigController {
             }
             model.addAttribute("tcSchoolName", school.getSchoolName());
             model.addAttribute("tcEnabled", tcConfigService.isEnabled(school));
+            model.addAttribute("tcAbsenceDays", tcConfigService.absenceThreshold(school));
+            model.addAttribute("tcAdmissionEnabled", tcConfigService.admissionRuleEnabled(school));
+            List<Grade> grades = new ArrayList<>(dropdownService.getGrades());
+            grades.sort(Comparator.comparing(Grade::getId));
+            model.addAttribute("tcGrades", grades);
+            model.addAttribute("tcExemptIds", tcConfigService.exemptGradeIds(school));
+            model.addAttribute("tcNotaryIds", tcConfigService.notaryGradeIds(school));
+            model.addAttribute("tcMandatoryIds", tcConfigService.mandatoryGradeIds(school));
             model.addAttribute("tcFormatNames", String.join(", ", tcConfigService.formatNames(school)));
             model.addAttribute("tcReceiptPrefix", tcConfigService.receiptPrefix(school));
             model.addAttribute("tcReceiptPad", tcConfigService.receiptPad(school));
@@ -186,6 +204,58 @@ public class AppConfigController {
                     ? "Transfer Certificate feature enabled for this school."
                     : "Transfer Certificate feature disabled for this school.";
         });
+    }
+
+    @PostMapping("/tc-settings/absence")
+    @ResponseBody
+    public ResponseEntity<?> setTcAbsenceDays(@RequestParam("days") String days, HttpSession session) {
+        log.info("Inside set TC absence alert days");
+        return saveTcSetting(session, school -> {
+            int value;
+            try {
+                value = Integer.parseInt(days == null ? "" : days.trim());
+            } catch (NumberFormatException e) {
+                throw new TcValidationException("Absence alert days must be a whole number.");
+            }
+            tcConfigService.setAbsenceThreshold(school, value);
+            return "Absence alert saved. Students absent " + value + " days or more will be flagged.";
+        });
+    }
+
+    @PostMapping("/tc-settings/admission")
+    @ResponseBody
+    public ResponseEntity<?> setTcAdmissionRule(@RequestParam("enabled") boolean enabled,
+                                                @RequestParam(value = "exempt", required = false, defaultValue = "") String exempt,
+                                                @RequestParam(value = "notary", required = false, defaultValue = "") String notary,
+                                                @RequestParam(value = "mandatory", required = false, defaultValue = "") String mandatory,
+                                                HttpSession session) {
+        log.info("Inside set TC admission rule - enabled={}", enabled);
+        return saveTcSetting(session, school -> {
+            tcConfigService.setAdmissionRule(school, enabled, parseIds(exempt), parseIds(notary), parseIds(mandatory));
+            return enabled
+                    ? "Admission rule saved and turned on for this school."
+                    : "Admission rule saved. It is turned off, so the registration form works as before.";
+        });
+    }
+
+    /** Comma separated grade ids from the page; anything that is not a whole number is rejected. */
+    private static Set<Long> parseIds(String csv) {
+        Set<Long> ids = new LinkedHashSet<>();
+        if (csv == null || csv.isBlank()) {
+            return ids;
+        }
+        for (String part : csv.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                ids.add(Long.parseLong(trimmed));
+            } catch (NumberFormatException e) {
+                throw new TcValidationException("Grade list is not valid. Please reload the page and try again.");
+            }
+        }
+        return ids;
     }
 
     @PostMapping("/tc-settings/formats")

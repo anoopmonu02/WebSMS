@@ -31,29 +31,30 @@
   <div class="alert alert-danger py-2" role="alert" th:if="${error}" th:text="${error}"></div>
 
   <div class="card rr-card mb-3">
+    <div class="card-header py-2"><i class="bi bi-funnel me-2"></i>Search</div>
     <div class="card-body">
-      <form th:action="@{/tc/receipts}" method="get" class="row g-2 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label small mb-1" for="rQ">Receipt no. or student</label>
-          <input type="text" class="form-control form-control-sm" id="rQ" name="q" th:value="${filter.q}">
+      <form th:action="@{/tc/receipts}" method="get" class="row g-3 align-items-end">
+        <div class="col-lg-4 col-md-6">
+          <label class="form-label" for="rQ">Receipt No. or Student</label>
+          <input type="text" class="form-control" id="rQ" name="q" th:value="${filter.q}" placeholder="Receipt number or student name">
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="rFrom">From</label>
-          <input type="date" class="form-control form-control-sm" id="rFrom" name="fromDate" th:value="${filter.fromDate}">
+        <div class="col-lg-2 col-md-3">
+          <label class="form-label" for="rFrom">Receipt Date From</label>
+          <input type="date" class="form-control tc-date" id="rFrom" name="fromDate" th:value="${filter.fromDate}" placeholder="Select date">
         </div>
-        <div class="col-md-2">
-          <label class="form-label small mb-1" for="rTo">To</label>
-          <input type="date" class="form-control form-control-sm" id="rTo" name="toDate" th:value="${filter.toDate}">
+        <div class="col-lg-2 col-md-3">
+          <label class="form-label" for="rTo">Receipt Date To</label>
+          <input type="date" class="form-control tc-date" id="rTo" name="toDate" th:value="${filter.toDate}" placeholder="Select date">
         </div>
-        <div class="col-md-2">
-          <div class="form-check mb-1">
+        <div class="col-lg-2 col-md-6">
+          <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" id="rVoid" name="includeVoided" value="true"
                    th:checked="${filter.includeVoided}">
-            <label class="form-check-label small" for="rVoid">Show voided</label>
+            <label class="form-check-label" for="rVoid">Show voided</label>
           </div>
         </div>
-        <div class="col-md-2 d-grid">
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search me-1"></i>Search</button>
+        <div class="col-lg-2 col-md-6">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Search</button>
         </div>
       </form>
     </div>
@@ -84,7 +85,7 @@
         <thead class="table-light">
         <tr>
           <th>Receipt</th><th>Date</th><th>Student</th><th>Class</th>
-          <th class="text-end">Paid</th><th class="text-end">Waived</th><th>Mode</th><th>Status</th><th style="width:120px"></th>
+          <th class="text-end">Paid</th><th class="text-end">Waived</th><th>Mode</th><th>Status</th><th class="text-end">Action</th>
         </tr>
         </thead>
         <tbody>
@@ -108,8 +109,8 @@
             <span class="badge bg-secondary" th:if="${r.recordStatus.name() == 'VOIDED'}" th:title="${r.voidReason}">Voided</span>
           </td>
           <td class="text-end text-nowrap">
-            <a class="btn btn-outline-secondary btn-sm py-0" target="_blank" th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i></a>
-            <a class="btn btn-outline-primary btn-sm py-0" th:href="@{/tc/exits/{u}(u=${r.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW">Exit</a>
+            <a class="btn btn-outline-secondary btn-sm me-1" target="_blank" th:href="@{/tc/receipts/{u}/print(u=${r.uuid})}" title="Print"><i class="bi bi-printer"></i> Print</a>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/tc/exits/{u}(u=${r.exitUuid})}" sms:access="TC_EXIT_LIST:VIEW"><i class="bi bi-box-arrow-up-right"></i> Exit</a>
           </td>
         </tr>
         </tbody>
@@ -117,15 +118,21 @@
     </div>
     <div class="card-footer d-flex justify-content-between align-items-center" th:if="${rows.totalPages > 1}">
       <span class="small text-muted" th:text="'Page ' + ${rows.number + 1} + ' of ' + ${rows.totalPages}"></span>
-      <div class="btn-group btn-group-sm">
+      <div class="d-flex gap-2">
         <a class="btn btn-outline-secondary" th:classappend="${rows.first} ? 'disabled'"
-           th:href="@{/tc/receipts(page=${rows.number - 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}">Previous</a>
+           th:href="@{/tc/receipts(page=${rows.number - 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}"><i class="bi bi-chevron-left"></i> Previous</a>
         <a class="btn btn-outline-secondary" th:classappend="${rows.last} ? 'disabled'"
-           th:href="@{/tc/receipts(page=${rows.number + 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}">Next</a>
+           th:href="@{/tc/receipts(page=${rows.number + 1},q=${filter.q},fromDate=${filter.fromDate},toDate=${filter.toDate},includeVoided=${filter.includeVoided})}">Next <i class="bi bi-chevron-right"></i></a>
       </div>
     </div>
   </div>
 </div>
+<link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+<script th:src="@{/js/flatpickr.js}"></script>
+<script type="text/javascript">
+  // Same calendar as the registration form; the form still sends yyyy-MM-dd
+  flatpickr(".tc-date", { altInput: true, altFormat: "d/M/Y", dateFormat: "Y-m-d", allowInput: false });
+</script>
 </section>
 </body>
 </html>

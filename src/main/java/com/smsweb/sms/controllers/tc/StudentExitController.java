@@ -109,6 +109,7 @@ public class StudentExitController extends TcBaseController {
                             @RequestParam(required = false) String remark,
                             @RequestParam(required = false) BigDecimal manualAmount,
                             @RequestParam(required = false) String manualReason,
+                            @RequestParam(required = false) String siblingAction,
                             HttpSession session, Model model, RedirectAttributes ra) {
         log.info("Inside strike-off save: academicStudentId={}", academicStudentId);
         School school = (School) session.getAttribute("school");
@@ -127,6 +128,7 @@ public class StudentExitController extends TcBaseController {
         req.setRemark(remark);
         req.setManualAmount(manualAmount);
         req.setManualReason(manualReason);
+        req.setSiblingAction(siblingAction);
 
         String error;
         try {

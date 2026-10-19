@@ -43,15 +43,12 @@
       </button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" id="tab-tc-btn" type="button"
-              data-bs-toggle="pill" data-bs-target="#tab-pane-tc">
+      <button class="nav-link" id="tab-tc-btn" type="button" data-pane="tab-pane-tc">
         <i class="bi bi-file-earmark-text me-1"></i>TC Settings
       </button>
     </li>
   </ul>
 
-  <div class="tab-content">
-  <div class="tab-pane fade show active" id="tab-pane-mobile">
   <!-- ═══════════════ MOBILE APP TAB ═══════════════ -->
   <div id="pane-mobile" class="config-pane"
        th:data-mobile-access-url="@{/admin/app-config/mobile-access}"
@@ -151,11 +148,11 @@
     </div>
   </div>
 
-  </div><!-- /tab-pane-mobile -->
-
   <!-- ═══════════════ TC SETTINGS TAB ═══════════════ -->
-  <div class="tab-pane fade" id="tab-pane-tc"
+  <div class="config-pane d-none" id="tab-pane-tc"
        th:data-feature-url="@{/admin/app-config/tc-settings/feature}"
+       th:data-absence-url="@{/admin/app-config/tc-settings/absence}"
+       th:data-admission-url="@{/admin/app-config/tc-settings/admission}"
        th:data-formats-url="@{/admin/app-config/tc-settings/formats}"
        th:data-receipt-url="@{/admin/app-config/tc-settings/receipt}">
 
@@ -193,8 +190,87 @@
         </div>
       </div>
 
-      <!-- 4. TC format names -->
+      <!-- 2. Absence alert -->
       <div class="col-lg-6">
+        <div class="card config-card">
+          <div class="card-header py-3"><i class="bi bi-calendar-x me-2"></i>Long-absence alert</div>
+          <div class="card-body">
+            <p class="text-muted small mb-2">
+              A student whose total absent days in the current session reach this number is flagged as a long absentee,
+              as a hint before a strike-off. It never changes any data.
+            </p>
+            <div class="d-flex align-items-center gap-2">
+              <input type="number" class="form-control" style="max-width: 120px;" id="tcAbsenceDays"
+                     min="1" max="366" th:value="${tcAbsenceDays}">
+              <span class="small text-muted">days (1 to 366)</span>
+              <button type="button" class="btn btn-primary btn-sm ms-auto" id="tcSaveAbsenceBtn">
+                <span class="spinner-border spinner-border-sm save-spinner" id="tcAbsenceSpinner" role="status"></span>
+                <i class="bi bi-check-lg me-1"></i>Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Admission rule -->
+      <div class="col-12">
+        <div class="card config-card">
+          <div class="card-header py-3"><i class="bi bi-person-check me-2"></i>Admission rule (registration form)</div>
+          <div class="card-body">
+            <p class="text-muted small mb-2">
+              When on, the new-student registration form asks for the proof that fits the class. It applies to the web
+              registration form only; editing a student and bulk import are not affected.
+            </p>
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch" id="tcAdmissionSwitch" th:checked="${tcAdmissionEnabled}">
+              <label class="form-check-label" for="tcAdmissionSwitch">Apply the admission rule for this school</label>
+            </div>
+            <div class="alert alert-light border small py-2" th:if="${#lists.isEmpty(tcGrades)}">No grades were found.</div>
+            <div class="table-responsive" th:unless="${#lists.isEmpty(tcGrades)}">
+              <table class="table table-sm table-bordered align-middle mb-2" id="tcGradeTable">
+                <thead class="table-light">
+                  <tr>
+                    <th>Grade</th>
+                    <th class="text-center">Up to class 5<div class="fw-normal small text-muted">TC not needed, reason required</div></th>
+                    <th class="text-center">Class 6<div class="fw-normal small text-muted">TC or notary affidavit</div></th>
+                    <th class="text-center">Class 7 and above<div class="fw-normal small text-muted">TC required</div></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="g : ${tcGrades}" th:attr="data-grade-id=${g.id}">
+                    <td th:text="${g.gradeName}">Grade</td>
+                    <td class="text-center">
+                      <input type="radio" class="form-check-input" th:name="${'tcTier_' + g.id}" value="exempt"
+                             th:checked="${tcExemptIds.contains(g.id)}">
+                    </td>
+                    <td class="text-center">
+                      <input type="radio" class="form-check-input" th:name="${'tcTier_' + g.id}" value="notary"
+                             th:checked="${tcNotaryIds.contains(g.id)}">
+                    </td>
+                    <td class="text-center">
+                      <input type="radio" class="form-check-input" th:name="${'tcTier_' + g.id}" value="mandatory"
+                             th:checked="${!tcExemptIds.contains(g.id) and !tcNotaryIds.contains(g.id)}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="small text-muted mb-2">
+              A grade not placed in the first two columns needs a TC. A TC number typed on the form is accepted in every class.
+              Anyone who can add students can admit the first two groups; the reason and the user are kept on the student timeline.
+            </p>
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-primary btn-sm" id="tcSaveAdmissionBtn">
+                <span class="spinner-border spinner-border-sm save-spinner" id="tcAdmissionSpinner" role="status"></span>
+                <i class="bi bi-check-lg me-1"></i>Save admission rule
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TC format names -->
+      <div class="col-12">
         <div class="card config-card">
           <div class="card-header py-3"><i class="bi bi-card-list me-2"></i>TC format names</div>
           <div class="card-body">
@@ -255,7 +331,6 @@
       </div>
     </div>
   </div><!-- /tab-pane-tc -->
-  </div><!-- /tab-content -->
 
 </div>
 
@@ -291,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "hideMethod": "fadeOut"
   };
 
-  // ── Tab switching (Mobile App / Discount) ──
+  // ── Tab switching (Mobile App / Discount / TC Settings) - one mechanism for all tabs ──
   var tabButtons = document.querySelectorAll('#configTabs button[data-pane]');
   function showPane(paneId) {
     tabButtons.forEach(function (b) {
@@ -304,10 +379,12 @@ document.addEventListener('DOMContentLoaded', function () {
   tabButtons.forEach(function (b) {
     b.addEventListener('click', function () {
       showPane(b.dataset.pane);
-      try { history.replaceState(null, '', b.dataset.pane === 'pane-discount' ? '#discount' : location.pathname + location.search); } catch (e) {}
+      var hashByPane = { 'pane-discount': '#discount', 'tab-pane-tc': '#tc' };
+      try { history.replaceState(null, '', hashByPane[b.dataset.pane] || (location.pathname + location.search)); } catch (e) {}
     });
   });
   if (location.hash === '#discount') { showPane('pane-discount'); }
+  else if (location.hash === '#tc') { showPane('tab-pane-tc'); }
 
   var msgBox = document.getElementById('mobileMaintenanceMessage');
   var countEl = document.getElementById('msgCharCount');
@@ -446,6 +523,42 @@ document.addEventListener('DOMContentLoaded', function () {
       },
       error: function (xhr) { sw.checked = !enabled; toastr.error(errorText(xhr), 'Error'); },
       complete: function () { sw.disabled = false; spinner.style.display = 'none'; }
+    });
+  });
+
+  // 2. Absence alert
+  document.getElementById('tcSaveAbsenceBtn').addEventListener('click', function () {
+    var btn = this, spinner = document.getElementById('tcAbsenceSpinner');
+    var days = parseInt(document.getElementById('tcAbsenceDays').value, 10);
+    if (!(days >= 1 && days <= 366)) { toastr.error('Enter a whole number of days from 1 to 366.', 'Error'); return; }
+    btn.disabled = true; spinner.style.display = 'inline-block';
+    $.ajax({
+      url: pane.dataset.absenceUrl, type: 'POST', data: { days: days },
+      success: function (resp) { toastr.success(resp.message, 'Success'); },
+      error: function (xhr) { toastr.error(errorText(xhr), 'Error'); },
+      complete: function () { btn.disabled = false; spinner.style.display = 'none'; }
+    });
+  });
+
+  // 3. Admission rule: switch plus one tier per grade, saved together
+  document.getElementById('tcSaveAdmissionBtn').addEventListener('click', function () {
+    var btn = this, spinner = document.getElementById('tcAdmissionSpinner');
+    var lists = { exempt: [], notary: [], mandatory: [] };
+    document.querySelectorAll('#tcGradeTable tbody tr[data-grade-id]').forEach(function (row) {
+      var checked = row.querySelector('input[type=radio]:checked');
+      var tier = checked ? checked.value : 'mandatory';
+      lists[tier].push(row.getAttribute('data-grade-id'));
+    });
+    btn.disabled = true; spinner.style.display = 'inline-block';
+    $.ajax({
+      url: pane.dataset.admissionUrl, type: 'POST',
+      data: {
+        enabled: document.getElementById('tcAdmissionSwitch').checked,
+        exempt: lists.exempt.join(','), notary: lists.notary.join(','), mandatory: lists.mandatory.join(',')
+      },
+      success: function (resp) { toastr.success(resp.message, 'Success'); },
+      error: function (xhr) { toastr.error(errorText(xhr), 'Error'); },
+      complete: function () { btn.disabled = false; spinner.style.display = 'none'; }
     });
   });
 

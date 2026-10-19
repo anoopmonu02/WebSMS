@@ -23,7 +23,9 @@
      id="soRoot"
      th:data-admin="${isAdmin}"
      th:data-search-url="@{/tc/api/exits/students}"
-     th:data-preview-url="@{/tc/api/exits/dues-preview}">
+     th:data-preview-url="@{/tc/api/exits/dues-preview}"
+     th:data-sibling-url="@{/tc/api/exits/sibling-preview}"
+     th:data-sibling-action="${form.siblingAction}">
 
   <div class="mt-3 mb-2">
     <h4 class="mb-0 fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Strike Off Student</h4>
@@ -62,7 +64,7 @@
                   <div class="fw-semibold" id="soPickedName"></div>
                   <div class="small text-muted" id="soPickedMeta"></div>
                 </div>
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="soChange">Change</button>
+                <button type="button" class="btn btn-outline-secondary" id="soChange"><i class="bi bi-arrow-repeat"></i> Change</button>
               </div>
             </div>
 
@@ -106,6 +108,37 @@
               <label class="form-label small mb-1" for="soRemark">Remark (optional)</label>
               <textarea class="form-control" id="soRemark" name="remark" rows="2" maxlength="500"
                         th:text="${form.remark}"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sibling group: shown only when the chosen student belongs to an active sibling group -->
+        <div class="card so-card mt-3 d-none" id="soSibCard">
+          <div class="card-header py-2"><i class="bi bi-people-fill me-2 text-primary"></i>Sibling group</div>
+          <div class="card-body">
+            <div class="alert alert-warning py-2 small" role="alert">
+              This student belongs to the sibling group below. When an admin approves this strike-off the group is
+              dissolved. Choose what should happen to the other students. Nothing changes until the approval, and
+              cancelling the strike-off leaves the group as it is.
+            </div>
+            <div id="soSibGroups"></div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="siblingAction" id="soSibDissolve" value="DISSOLVE" disabled>
+              <label class="form-check-label" for="soSibDissolve">
+                <strong>Dissolve the group</strong> &ndash; the group is deleted and the Sibling Discount of its students stops.
+              </label>
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="siblingAction" id="soSibCreate" value="DISSOLVE_AND_CREATE" disabled>
+              <label class="form-check-label" for="soSibCreate">
+                <strong>Dissolve and create a new group</strong> &ndash; a new group is made from the remaining students
+                (with a reference to the old one) and their Sibling Discount continues.
+                <span class="text-muted small d-none" id="soSibCreateNote">Not available: too few students would remain.</span>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="soSibAck" disabled>
+              <label class="form-check-label fw-semibold" for="soSibAck">I understand the group will be dissolved once this is approved.</label>
             </div>
           </div>
         </div>
@@ -153,7 +186,7 @@
 
         <div class="d-grid mt-3">
           <button type="button" class="btn btn-danger" id="soSubmit" sms:access="TC_STRIKE_OFF:CREATE">
-            <i class="bi bi-box-arrow-right me-1"></i>Strike off student
+            <i class="bi bi-box-arrow-right"></i> Strike off student
           </button>
         </div>
       </div>
@@ -174,14 +207,15 @@
               <li>Last date: <strong id="soCDate"></strong></li>
               <li>Reason: <strong id="soCReason"></strong></li>
               <li>Dues: <strong id="soCDues"></strong></li>
+              <li class="d-none" id="soCSibRow">Sibling group: <strong id="soCSib"></strong></li>
             </ul>
             <div class="small text-muted">
               The student becomes inactive and the login is switched off. An admin must approve the strike-off next.
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Go back</button>
-            <button type="submit" form="soForm" class="btn btn-danger" id="soConfirmBtn">Strike off</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Go back</button>
+            <button type="submit" form="soForm" class="btn btn-danger" id="soConfirmBtn"><i class="bi bi-box-arrow-right"></i> Strike off</button>
           </div>
         </div>
       </div>
@@ -189,12 +223,16 @@
   </form>
 </div>
 
+<link type="text/css" rel="stylesheet" th:href="@{/css/flatpickr.min.css}"/>
+<script th:src="@{/js/flatpickr.js}"></script>
 <script type="text/javascript">
 document.addEventListener('DOMContentLoaded', function () {
   var root = document.getElementById('soRoot');
   var isAdmin = root.getAttribute('data-admin') === 'true';
   var searchUrl = root.getAttribute('data-search-url');
   var previewUrl = root.getAttribute('data-preview-url');
+  var siblingUrl = root.getAttribute('data-sibling-url');
+  var restoredSiblingAction = root.getAttribute('data-sibling-action');
 
   var form = document.getElementById('soForm');
   var search = document.getElementById('soSearch');
@@ -206,6 +244,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var absentBox = document.getElementById('soAbsentBox');
   var absent = document.getElementById('soAbsent');
   var dateInput = document.getElementById('soDate');
+  // Same calendar as the registration form; the field still holds yyyy-MM-dd (min and max are kept)
+  if (window.flatpickr) {
+    flatpickr(dateInput, {
+      altInput: true, altFormat: 'd/M/Y', dateFormat: 'Y-m-d', allowInput: false,
+      minDate: dateInput.getAttribute('min') || null, maxDate: dateInput.getAttribute('max') || null
+    });
+  }
   var duesIdle = document.getElementById('soDuesIdle');
   var duesBox = document.getElementById('soDuesBox');
   var duesError = document.getElementById('soDuesError');
@@ -220,6 +265,100 @@ document.addEventListener('DOMContentLoaded', function () {
   var searchTimer = null;
 
   function show(el, on) { el.classList.toggle('d-none', !on); }
+
+  // ── Sibling group (shown only when the student is in an active group) ──
+  var sibCard = document.getElementById('soSibCard');
+  var sibGroups = document.getElementById('soSibGroups');
+  var sibDissolve = document.getElementById('soSibDissolve');
+  var sibCreate = document.getElementById('soSibCreate');
+  var sibAck = document.getElementById('soSibAck');
+  var sibState = 'none';   // 'none' | 'loading' | 'group' | 'error'
+  var sibSeq = 0;
+
+  function resetSibling() {
+    sibSeq++;
+    sibState = 'none';
+    show(sibCard, false);
+    sibGroups.textContent = '';
+    [sibDissolve, sibCreate, sibAck].forEach(function (el) { el.checked = false; el.disabled = true; });
+  }
+
+  function cell(tag, text, cls) {
+    var el = document.createElement(tag);
+    el.textContent = text == null ? '' : String(text);
+    if (cls) { el.className = cls; }
+    return el;
+  }
+
+  function renderSibling(groups) {
+    sibGroups.textContent = '';
+    var canCreateAll = true;
+    groups.forEach(function (g) {
+      if (!g.canRecreate) { canCreateAll = false; }
+      var box = document.createElement('div');
+      box.className = 'border rounded mb-3 overflow-hidden';
+      var head = document.createElement('div');
+      head.className = 'd-flex justify-content-between align-items-center bg-light px-3 py-2 border-bottom';
+      var title = document.createElement('div');
+      title.appendChild(cell('strong', g.groupName));
+      title.appendChild(cell('span', g.schoolName, 'text-muted small ms-2'));
+      head.appendChild(title);
+      head.appendChild(cell('span', g.totalMembers + ' students', 'badge text-bg-secondary'));
+      box.appendChild(head);
+      var table = document.createElement('table');
+      table.className = 'table table-sm align-middle mb-0';
+      var tbody = document.createElement('tbody');
+      (g.members || []).forEach(function (m, i) {
+        var tr = document.createElement('tr');
+        if (m.removed) { tr.className = 'table-danger'; }
+        tr.appendChild(cell('td', i + 1, 'ps-3'));
+        var nameTd = cell('td', m.name);
+        if (m.removed) { nameTd.appendChild(cell('span', 'Being struck off', 'badge text-bg-danger ms-1')); }
+        if (m.inactive) { nameTd.appendChild(cell('span', 'Already inactive', 'badge text-bg-secondary ms-1')); }
+        if (m.hasSiblingDiscount) { nameTd.appendChild(cell('span', 'Sibling Discount', 'badge text-bg-success ms-1')); }
+        tr.appendChild(nameTd);
+        tr.appendChild(cell('td', m.gradeSection));
+        tr.appendChild(cell('td', m.schoolName));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      box.appendChild(table);
+      var note = document.createElement('div');
+      note.className = 'small px-3 py-2 ' + (g.canRecreate ? 'text-success' : 'text-warning-emphasis');
+      note.textContent = g.canRecreate
+        ? ('After this, ' + g.remaining + ' students remain, so a new group can be created from them.')
+        : ('Only ' + g.remaining + ' students would remain. At least ' + g.minRequired + ' are needed, so a new group cannot be created.');
+      box.appendChild(note);
+      sibGroups.appendChild(box);
+    });
+    sibDissolve.disabled = false;
+    sibCreate.disabled = !canCreateAll;
+    sibAck.disabled = false;
+    show(document.getElementById('soSibCreateNote'), !canCreateAll);
+    if (restoredSiblingAction === 'DISSOLVE') { sibDissolve.checked = true; }
+    if (restoredSiblingAction === 'DISSOLVE_AND_CREATE' && canCreateAll) { sibCreate.checked = true; }
+    restoredSiblingAction = null;
+    show(sibCard, true);
+  }
+
+  function loadSibling() {
+    resetSibling();
+    if (!studentId.value) { return; }
+    var seq = sibSeq;
+    sibState = 'loading';
+    fetch(siblingUrl + '?academicStudentId=' + encodeURIComponent(studentId.value),
+          { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (body) {
+        if (seq !== sibSeq) { return; }
+        var groups = (body && body.groups) || [];
+        if (groups.length) { sibState = 'group'; renderSibling(groups); } else { sibState = 'none'; }
+      })
+      .catch(function () {
+        if (seq !== sibSeq) { return; }
+        sibState = 'error';
+      });
+  }
 
   function includeLast() {
     return document.getElementById('soIncl').checked;
@@ -257,6 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     search.value = '';
     search.focus();
     resetDues();
+    resetSibling();
   }
 
   function renderResults(rows) {
@@ -289,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
         show(results, false);
         showPicked(r.studentName, meta);
         loadDues();
+        loadSibling();
       });
       results.appendChild(btn);
     });
@@ -389,7 +530,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function fail(message, field) {
     alert(message);
-    if (field) { field.focus(); }
+    var target = (field && field._flatpickr && field._flatpickr.altInput) ? field._flatpickr.altInput : field;
+    if (target) { target.focus(); }
   }
 
   document.getElementById('soSubmit').addEventListener('click', function () {
@@ -401,6 +543,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!dateInput.value) { return fail('Please choose the last date at school.', dateInput); }
     if (dateInput.min && dateInput.value < dateInput.min) { return fail('The last date cannot be before the session start.', dateInput); }
     if (dateInput.max && dateInput.value > dateInput.max) { return fail('The last date cannot be after today.', dateInput); }
+    if (sibState === 'loading') { return fail('Still checking the sibling group. Please wait a moment.'); }
+    if (sibState === 'error') { return fail('The sibling group could not be checked, so this student cannot be struck off now. Please try again.'); }
+    var sibLabel = '';
+    if (sibState === 'group') {
+      if (!sibDissolve.checked && !sibCreate.checked) { return fail('This student belongs to a sibling group. Please choose what happens to the group.', sibDissolve); }
+      if (!sibAck.checked) { return fail('Please tick the box to confirm you understand the group will be dissolved.', sibAck); }
+      sibLabel = sibCreate.checked ? 'dissolve and create a new group' : 'dissolve the group';
+    }
 
     var duesLabel;
     if (duesState === 'ok') {
@@ -416,9 +566,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.getElementById('soCName').textContent = studentLabel.value || document.getElementById('soPickedName').textContent;
-    document.getElementById('soCDate').textContent = dateInput.value;
+    document.getElementById('soCDate').textContent = (dateInput._flatpickr && dateInput._flatpickr.altInput) ? dateInput._flatpickr.altInput.value : dateInput.value;
     document.getElementById('soCReason').textContent = reason.options[reason.selectedIndex].text;
     document.getElementById('soCDues').textContent = duesLabel;
+    document.getElementById('soCSib').textContent = sibLabel;
+    show(document.getElementById('soCSibRow'), sibLabel !== '');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('soConfirm')).show();
   });
 
@@ -433,6 +585,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (studentId.value) {
     showPicked(studentLabel.value || 'Selected student', '');
     loadDues();
+    loadSibling();
   }
 });
 </script>

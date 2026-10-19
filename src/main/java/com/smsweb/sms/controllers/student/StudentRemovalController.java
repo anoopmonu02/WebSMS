@@ -6,6 +6,7 @@ import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.services.student.SiblingGroupDissolutionService;
 import com.smsweb.sms.services.student.StudentRemovalService;
+import com.smsweb.sms.services.tc.TcConfigService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +43,12 @@ public class StudentRemovalController extends BaseController {
     private static final String ACTION_DISSOLVE_AND_CREATE = "DISSOLVE_AND_CREATE";
 
     private final StudentRemovalService studentRemovalService;
+    private final TcConfigService tcConfigService;
 
     @Autowired
-    public StudentRemovalController(StudentRemovalService studentRemovalService) {
+    public StudentRemovalController(StudentRemovalService studentRemovalService, TcConfigService tcConfigService) {
         this.studentRemovalService = studentRemovalService;
+        this.tcConfigService = tcConfigService;
     }
 
     @ResponseBody
@@ -56,6 +59,11 @@ public class StudentRemovalController extends BaseController {
         School school = (School) model.getAttribute("school");
         if (school == null || !studentRemovalService.isActiveStudentOfSchool(id, school.getId())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Student not found."));
+        }
+        // Transfer Certificate feature on: removal goes through Strike Off, which asks about the sibling group itself.
+        // Reporting "not in a group" here makes the Student list continue to the Strike Off page.
+        if (tcConfigService.isEnabled(school)) {
+            return ResponseEntity.ok(Map.of("inGroup", false, "groups", List.of(), "handledByStrikeOff", true));
         }
         try {
             List<Map<String, Object>> groups = studentRemovalService.previewSiblingGroups(id);
@@ -81,6 +89,10 @@ public class StudentRemovalController extends BaseController {
         if (school == null || !studentRemovalService.isActiveStudentOfSchool(id, school.getId())) {
             redirectAttributes.addFlashAttribute("error", "Student not found.");
             return "redirect:/student/student";
+        }
+        // Transfer Certificate feature on: a direct removal would skip Strike Off (dues, approval, timeline).
+        if (tcConfigService.isEnabled(school)) {
+            return "redirect:/tc/strike-off?studentId=" + id;
         }
         try {
             boolean createNew = ACTION_DISSOLVE_AND_CREATE.equals(action);

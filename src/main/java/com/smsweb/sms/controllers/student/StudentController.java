@@ -3,6 +3,9 @@ package com.smsweb.sms.controllers.student;
 import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.controllers.employee.EmployeeController;
+import com.smsweb.sms.dto.tc.AdmissionDecision;
+import com.smsweb.sms.dto.tc.AdmissionFormConfig;
+import com.smsweb.sms.dto.tc.AdmissionInput;
 import com.smsweb.sms.exceptions.FileFormatException;
 import com.smsweb.sms.exceptions.FileSizeLimitExceededException;
 import com.smsweb.sms.exceptions.UniqueConstraintsException;
@@ -23,7 +26,9 @@ import com.smsweb.sms.services.globalaccess.DropdownService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentRemovalService;
 import com.smsweb.sms.services.student.StudentService;
+import com.smsweb.sms.services.tc.AdmissionTcRuleService;
 import com.smsweb.sms.services.tc.TcConfigService;
+import com.smsweb.sms.services.tc.TcValidationException;
 import com.smsweb.sms.services.users.UserService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -74,6 +79,9 @@ public class StudentController extends BaseController {
     private final StudentRemovalService studentRemovalService;
     @Autowired
     private TcConfigService tcConfigService;
+
+    @Autowired
+    private AdmissionTcRuleService admissionTcRuleService;
 
     @Autowired
     public StudentController(StudentService studentService, AcademicStudentService academicStudentService, DropdownService dropdownService, AcademicyearService academicyearService, SchoolService schoolService, UserService userService, UserService userService1, AttendanceRepository attendanceRepository, ExaminationRepository examinationRepository, ExamDetailsRepository examDetailsRepository, StudentRemovalService studentRemovalService){
@@ -171,6 +179,15 @@ public class StudentController extends BaseController {
         model.addAttribute("religions", dropdownService.getReligions());
         model.addAttribute("bodyTypes", dropdownService.getBodyTypes());
         model.addAttribute("qualifications", dropdownService.getQualifications());
+        // TC admission rule (off by default): the registration page shows its block only when this says enabled
+        AdmissionFormConfig admissionRule;
+        try {
+            admissionRule = admissionTcRuleService.formConfig((School) model.getAttribute("school"));
+        } catch (Exception e) {
+            log.warn("Admission rule settings could not be read; the rule block stays hidden", e);
+            admissionRule = AdmissionFormConfig.off();
+        }
+        model.addAttribute("admissionRule", admissionRule);
         return model;
     }
 
@@ -196,7 +213,11 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_ADD", type = AccessType.CREATE)
     @PostMapping("/student")
     public String saveStudent(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
-                             Model model, RedirectAttributes redirectAttribute,  HttpSession session) {
+                             Model model, RedirectAttributes redirectAttribute,  HttpSession session,
+                             @RequestParam(value = "notaryAffidavit", required = false) String notaryAffidavit,
+                             @RequestParam(value = "notaryDocNo", required = false) String notaryDocNo,
+                             @RequestParam(value = "exemptAdmission", required = false) String exemptAdmission,
+                             @RequestParam(value = "exemptionRemark", required = false) String exemptionRemark) {
         log.info("Inside saveStudent");
         log.info("Inside saveStudent");
         //@RequestParam("customerPic1")MultipartFile customerPic1,
@@ -221,6 +242,24 @@ public class StudentController extends BaseController {
             model.addAttribute("error", result.getFieldError().getDefaultMessage());
             return returnStr;
         }
+        // TC admission rule: new students only (edit mode is untouched); does nothing while the rule is off
+        AdmissionDecision admissionDecision = null;
+        if (student.getId() == null) {
+            model.addAttribute("admNotaryAffidavit", isTrue(notaryAffidavit));
+            model.addAttribute("admNotaryDocNo", notaryDocNo);
+            model.addAttribute("admExemptionRemark", exemptionRemark);
+            try {
+                admissionDecision = admissionTcRuleService.evaluate(
+                        student.getGrade() == null ? null : student.getGrade().getId(),
+                        new AdmissionInput(student.getTcNo(), isTrue(notaryAffidavit), notaryDocNo,
+                                isTrue(exemptAdmission), exemptionRemark),
+                        school);
+            } catch (TcValidationException tve) {
+                model = getAllGlobalModels(model);
+                model.addAttribute("error", tve.getMessage());
+                return returnStr;
+            }
+        }
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
         try{
@@ -234,6 +273,14 @@ public class StudentController extends BaseController {
                 student.setCreatedBy(userService.getLoggedInUser().getUsername());
             }*/
             Student savedStudent = studentService.saveStudent(student, customerPic, fileNameOrSchoolCode, existingStudent);
+            if (admissionDecision != null && savedStudent != null) {
+                // The student is already saved; a failure here must not turn a good save into an error page
+                try {
+                    admissionTcRuleService.recordBasis(savedStudent, academicYear, admissionDecision);
+                } catch (Exception e) {
+                    log.error("Admission basis could not be recorded for student id {}", savedStudent.getId(), e);
+                }
+            }
             String msg = "Student " + student.getStudentName() + " saved successfully";
             try{
                 if(existingStudent!=null){
@@ -264,6 +311,11 @@ public class StudentController extends BaseController {
             ex.printStackTrace();
             return returnStr;
         }
+    }
+
+    private static boolean isTrue(String value) {
+        return value != null && ("true".equalsIgnoreCase(value.trim()) || "on".equalsIgnoreCase(value.trim())
+                || "1".equals(value.trim()));
     }
 
     @CheckAccess(screen = "STUDENT_LIST", type = AccessType.VIEW)
@@ -491,16 +543,17 @@ public class StudentController extends BaseController {
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
         log.info("Inside deleteStudent");
         log.info("Inside deleteStudent");
-        // A student in a sibling group must go through the Remove Student popup (POST /student/delete-student/confirm),
+        // When the Transfer Certificate feature is on for the school, removing a student goes through
+        // Strike Off (date, dues, approval, timeline) instead of the old direct delete. A student in a sibling
+        // group is handled on the Strike Off form: the group is dissolved when the strike-off is approved.
+        if (tcConfigService.isEnabled((School) model.getAttribute("school"))) {
+            return "redirect:/tc/strike-off?studentId=" + Long.valueOf(id);
+        }
+        // TC feature off: a student in a sibling group must go through the Remove Student popup (POST /student/delete-student/confirm),
         // where the group action is confirmed. This direct link would otherwise remove the student and leave the group behind.
         if (studentRemovalService.belongsToActiveSiblingGroup(Long.valueOf(id))) {
             redirectAttributes.addFlashAttribute("error", "This student belongs to a sibling group. Please use the Remove Student option on the Student List so the group can be handled.");
             return "redirect:/student/student";
-        }
-        // When the Transfer Certificate feature is on for the school, removing a student goes through
-        // Strike Off (date, dues, approval, timeline) instead of the old direct delete.
-        if (tcConfigService.isEnabled((School) model.getAttribute("school"))) {
-            return "redirect:/tc/strike-off?studentId=" + Long.valueOf(id);
         }
         String msg = studentService.deleteStudent(Long.valueOf(id));
         if(msg.contains("success")){
