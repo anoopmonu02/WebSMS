@@ -5,6 +5,7 @@ import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.models.admin.AcademicYear;
 import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.permission.AccessType;
+import com.smsweb.sms.services.student.StudentBulkMobileFamilyLinkService;
 import com.smsweb.sms.services.student.StudentBulkUpdateService;
 import com.smsweb.sms.services.student.StudentFieldGroupRegistry;
 import org.slf4j.Logger;
@@ -36,6 +37,8 @@ public class StudentBulkUpdateRestController extends BaseController {
 
     @Autowired
     private StudentBulkUpdateService studentBulkUpdateService;
+    @Autowired
+    private StudentBulkMobileFamilyLinkService studentBulkMobileFamilyLinkService;
 
     @CheckAccess(screen = "STUDENT_UPDATE_DETAILS", type = AccessType.VIEW)
     @PostMapping("/getStudentsByFieldGroup")
@@ -99,6 +102,15 @@ public class StudentBulkUpdateRestController extends BaseController {
             List<Map<String, Object>> rows = (List<Map<String, Object>>) (List<?>) rowsObj;
             List<Map<String, Object>> results = studentBulkUpdateService.saveFieldGroup(
                     groupKey, rows, academicYear.getId(), school.getId());
+            if ("MOBILE1_MOBILE2".equals(groupKey)) {
+                // After the batch has committed: link each saved student to the family account of
+                // their mobile1. Never allowed to break the save response itself.
+                try {
+                    studentBulkMobileFamilyLinkService.applyFamilyLink(results, school.getId(), academicYear.getId());
+                } catch (Exception linkError) {
+                    log.error("Family link step failed after bulk mobile update", linkError);
+                }
+            }
             return ResponseEntity.ok(Map.of("results", results));
         } catch (Exception e) {
             log.error("Error in saveStudentFieldGroup", e);

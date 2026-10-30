@@ -1,8 +1,6 @@
 package com.smsweb.sms.controllers.admin;
 
-import com.smsweb.sms.models.admin.SystemConfig;
-import com.smsweb.sms.repositories.admin.SystemConfigRepository;
-import com.smsweb.sms.services.student.BirthdayNotificationScheduler;
+import com.smsweb.sms.services.admin.BirthdayNotificationSettingsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,73 +33,34 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  */
 @Controller
 @RequestMapping("/admin/birthday-notification-settings")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')")
+@PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN')")
 public class BirthdayNotificationSettingsController {
 
     private static final Logger log = LoggerFactory.getLogger(BirthdayNotificationSettingsController.class);
 
-    private final SystemConfigRepository systemConfigRepository;
+    private final BirthdayNotificationSettingsService settingsService;
 
-    public BirthdayNotificationSettingsController(SystemConfigRepository systemConfigRepository) {
-        this.systemConfigRepository = systemConfigRepository;
+    public BirthdayNotificationSettingsController(BirthdayNotificationSettingsService settingsService) {
+        this.settingsService = settingsService;
     }
 
     @GetMapping
     public String view(Model model) {
         log.info("Inside birthday notification settings page");
-        String cron = systemConfigRepository.findByConfigName(BirthdayNotificationScheduler.CONFIG_KEY)
-                .map(SystemConfig::getConfigValue)
-                .filter(v -> v != null && !v.isBlank())
-                .orElse(BirthdayNotificationScheduler.DEFAULT_CRON);
-        model.addAttribute("currentTime", cronToTime(cron));
+        model.addAttribute("currentTime", settingsService.currentTime());
         return "admin/birthdayNotificationSettings";
     }
 
     @PostMapping
     public String save(@RequestParam("time") String time, RedirectAttributes redirectAttributes) {
         log.info("Inside save birthday notification time - time={}", time);
-        if (time == null || !time.matches("^([01]\\d|2[0-3]):[0-5]\\d$")) {
-            redirectAttributes.addFlashAttribute("error", "Please pick a valid time.");
+        String error = settingsService.saveTime(time);
+        if (error != null) {
+            redirectAttributes.addFlashAttribute("error", error);
             return "redirect:/admin/birthday-notification-settings";
         }
-
-        String cron = timeToCron(time);
-        SystemConfig config = systemConfigRepository.findByConfigName(BirthdayNotificationScheduler.CONFIG_KEY)
-                .orElseGet(() -> {
-                    SystemConfig c = new SystemConfig();
-                    c.setConfigName(BirthdayNotificationScheduler.CONFIG_KEY);
-                    return c;
-                });
-        config.setConfigValue(cron);
-        config.setDescription("Daily time the 'Happy Birthday' notification job runs, across all schools (24h HH:mm, stored as a cron expression). Set from the Birthday Notification Settings admin screen.");
-        systemConfigRepository.save(config);
-
         redirectAttributes.addFlashAttribute("success",
                 "Birthday notifications will now be sent daily at " + time + ". Takes effect from tomorrow's run onward.");
         return "redirect:/admin/birthday-notification-settings";
-    }
-
-    /** "08:00" -> "0 0 8 * * *" */
-    private String timeToCron(String time) {
-        String[] parts = time.split(":");
-        int hour = Integer.parseInt(parts[0]);
-        int minute = Integer.parseInt(parts[1]);
-        return "0 " + minute + " " + hour + " * * *";
-    }
-
-    /** "0 0 8 * * *" -> "08:00". Falls back to the default time's HH:mm if the
-     *  stored value isn't in the expected 6-field second-precision cron shape
-     *  (defensive — this table is also hand-editable via SQL). */
-    private String cronToTime(String cron) {
-        try {
-            String[] fields = cron.trim().split("\\s+");
-            int hour = Integer.parseInt(fields[2]);
-            int minute = Integer.parseInt(fields[1]);
-            return String.format("%02d:%02d", hour, minute);
-        } catch (Exception e) {
-            log.warn("Could not parse cron '{}' back into HH:mm, showing default", cron, e);
-            String[] fields = BirthdayNotificationScheduler.DEFAULT_CRON.split("\\s+");
-            return String.format("%02d:%02d", Integer.parseInt(fields[2]), Integer.parseInt(fields[1]));
-        }
     }
 }

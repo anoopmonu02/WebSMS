@@ -337,8 +337,11 @@ public class FamilyAccountService {
             dto.setMustChangePassword(account.isMustChangePassword());
 
             List<String> studentLines = new ArrayList<>();
+            List<String> searchLines = new ArrayList<>();
+            List<MobileUserRowDto.StudentCard> studentCards = new ArrayList<>();
             List<Long> academicStudentIds = new ArrayList<>();
             for (Student s : account.getStudents()) {
+                String father = s.getFatherName() == null ? "" : s.getFatherName().trim();
                 List<AcademicStudent> asList = academicByStudentId.getOrDefault(s.getId(), Collections.emptyList());
                 if (!asList.isEmpty()) {
                     AcademicStudent as = asList.get(0);
@@ -348,13 +351,22 @@ public class FamilyAccountService {
                     String classPart = grade.isEmpty() ? "" : (section.isEmpty() ? grade : grade + "-" + section);
                     String label = s.getStudentName()
                             + (classPart.isEmpty() ? "" : " (" + classPart + (school.isEmpty() ? "" : ", " + school) + ")");
-                    studentLines.add(label);
+                    // Display line adds the father's name so siblings/families are easy to tell apart;
+                    // searchLines keeps the original line (+ father as its own entry) for filtering.
+                    studentLines.add(withFather(s.getStudentName(), father, classPart.isEmpty() ? "" : " (" + classPart + (school.isEmpty() ? "" : ", " + school) + ")"));
+                    searchLines.add(label);
+                    studentCards.add(new MobileUserRowDto.StudentCard(s.getStudentName(), father, classPart, school, false));
                     academicStudentIds.add(as.getId());
                 } else {
-                    studentLines.add(s.getStudentName() + " (inactive)");
+                    studentLines.add(withFather(s.getStudentName(), father, " (inactive)"));
+                    searchLines.add(s.getStudentName() + " (inactive)");
+                    studentCards.add(new MobileUserRowDto.StudentCard(s.getStudentName(), father, "", "", true));
                 }
+                if (!father.isEmpty()) searchLines.add(father);
             }
             dto.setStudents(studentLines);
+            dto.setSearchLines(searchLines);
+            dto.setStudentCards(studentCards);
             dto.setAcademicStudentIds(academicStudentIds);
 
             List<MobileRefreshToken> tokens = new ArrayList<>();
@@ -373,8 +385,13 @@ public class FamilyAccountService {
         return result;
     }
 
+    /** "NAME - Father: FATHER (1-A, School)"; the father part is left out when it is not recorded. */
+    private static String withFather(String studentName, String father, String suffix) {
+        return studentName + (father == null || father.isEmpty() ? "" : " - Father: " + father) + suffix;
+    }
+
     /** Pure in-memory filter over an already-built row list — no DB access.
-     *  Matches on mobile number or any linked student's display line. */
+     *  Matches on mobile number, a linked student's name/class/school, or a linked student's father's name. */
     public List<MobileUserRowDto> filterMobileUserRows(List<MobileUserRowDto> allRows, String search) {
         String q = search == null ? "" : search.trim().toLowerCase();
         List<MobileUserRowDto> filtered;
@@ -383,7 +400,7 @@ public class FamilyAccountService {
         } else {
             filtered = allRows.stream().filter(row -> {
                 if (row.getMobile() != null && row.getMobile().toLowerCase().contains(q)) return true;
-                for (String line : row.getStudents()) {
+                for (String line : row.getSearchLines()) {
                     if (line.toLowerCase().contains(q)) return true;
                 }
                 return false;

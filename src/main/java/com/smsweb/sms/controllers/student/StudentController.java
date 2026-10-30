@@ -89,7 +89,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student")
     public String studentData(Model model){
         log.info("Inside studentData");
-        log.info("Inside studentData");
         log.debug("inside student list");
         if(isSuperAdminLoggedIn()){
             model.addAttribute("hasSuperAdmin", true);
@@ -111,7 +110,6 @@ public class StudentController extends BaseController {
             @RequestParam(name = "order[0][column]", defaultValue = "0") int sortCol,
             @RequestParam(name = "order[0][dir]",    defaultValue = "asc") String sortDir,
             Model model) {
-        log.info("Inside getStudentData");
         log.info("Inside getStudentData");
         boolean superAdmin = isSuperAdminLoggedIn();
         Long schoolId = null;
@@ -142,7 +140,6 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_ADD", type = AccessType.CREATE)
     @GetMapping("/student/add")
     public String addStudentData(Model model){
-        log.info("Inside addStudentData");
         log.info("Inside addStudentData");
         Student student = new Student();
         student.setUserEntity(new UserEntity());
@@ -175,7 +172,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student/cities")
     public List<City> getCities(@RequestParam Long provinceId) {
         log.info("Inside getCities");
-        log.info("Inside getCities");
         return dropdownService.getCities(provinceId);
     }
 
@@ -193,7 +189,6 @@ public class StudentController extends BaseController {
     @PostMapping("/student")
     public String saveStudent(@Valid @ModelAttribute("student") Student student, BindingResult result, @RequestParam("customerPic") MultipartFile customerPic,
                              Model model, RedirectAttributes redirectAttribute,  HttpSession session) {
-        log.info("Inside saveStudent");
         log.info("Inside saveStudent");
         //@RequestParam("customerPic1")MultipartFile customerPic1,
         String returnStr = "/student/add-student";
@@ -304,7 +299,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student/show/{uuid}")
     public String showSchoolForm(@PathVariable("uuid")UUID uuid, Model model){
         log.info("Inside showSchoolForm");
-        log.info("Inside showSchoolForm");
         School school = (School)model.getAttribute("school");
         Student studentEntity = studentService.getStudentDetail(uuid, school.getId()).get();
         model = getAllGlobalModels(model);
@@ -348,7 +342,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student/showdeleted/{uuid}")
     public String showSchoolDeletedStudents(@PathVariable("uuid")UUID uuid, Model model){
         log.info("Inside showSchoolDeletedStudents");
-        log.info("Inside showSchoolDeletedStudents");
         School school = (School)model.getAttribute("school");
         Student studentEntity = studentService.getDeletedStudentDetail(uuid, school.getId()).get();
         model = getAllGlobalModels(model);
@@ -361,7 +354,6 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_EDIT", type = AccessType.EDIT)
     @GetMapping("/student/edit/{uuid}")
     public String editStudentForm(@PathVariable("uuid") UUID uuid, Model model, RedirectAttributes redirectAttributes){
-        log.info("Inside editStudentForm");
         log.info("Inside editStudentForm");
         School school = (School)model.getAttribute("school");
         Student student = studentService.getStudentDetail(uuid, school.getId()).orElse(null);;
@@ -387,7 +379,17 @@ public class StudentController extends BaseController {
                                      @RequestParam(value = "healthIssueDescription", required = false) String healthIssueDescription,
                                      Model model, RedirectAttributes redirectAttribute){
         log.info("Inside editStudentDetails");
-        log.info("Inside editStudentDetails");
+        // Mobile 1 is mandatory on edit (same rule as Add Student): it drives the Family
+        // Account link. Checked here, not on the Student model, because the model is shared
+        // with bulk import / bulk update / migration.
+        String submittedMobile1 = student.getMobile1() == null ? "" : student.getMobile1().trim();
+        if (!submittedMobile1.matches("^[0-9]{10}$")) {
+            model = getAllGlobalModels(model);
+            reapplyHealthInfoOnError(model, haveHealthIssues, haveEyeIssue, healthIssueDescription);
+            model.addAttribute("error", "Mobile 1 is required and must be a 10-digit number.");
+            return "student/edit-student";
+        }
+        student.setMobile1(submittedMobile1);
         //boolean isStudentFound = isStudentExists(student);
         SimpleDateFormat sf = new SimpleDateFormat(FORMAT_PREFIX);
         String fileNameOrSchoolCode = sf.format(new Date());
@@ -434,7 +436,6 @@ public class StudentController extends BaseController {
     @GetMapping("/assign-sr")
     public String assignSRForm(Model model){
         log.info("Inside assignSRForm");
-        log.info("Inside assignSRForm");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
@@ -473,7 +474,6 @@ public class StudentController extends BaseController {
     @GetMapping("/stu-deleted-list")
     public String deletedStudentList(Model model){
         log.info("Inside deletedStudentList");
-        log.info("Inside deletedStudentList");
         School school = (School)model.getAttribute("school");
         List<AcademicStudent> studentList = studentService.getAllInActiveStudentsList(school.getId());
         model.addAttribute("students", studentList);
@@ -485,7 +485,6 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_DELETE", type = AccessType.DELETE)
     @GetMapping("/delete-student/{deleteId}")
     public String deleteStudent(@PathVariable("deleteId")String id, Model model, RedirectAttributes redirectAttributes){
-        log.info("Inside deleteStudent");
         log.info("Inside deleteStudent");
         // A student in a sibling group must go through the Remove Student popup (POST /student/delete-student/confirm),
         // where the group action is confirmed. This direct link would otherwise remove the student and leave the group behind.
@@ -511,7 +510,6 @@ public class StudentController extends BaseController {
     @GetMapping("/activate-student/{studentIdForUpdate}")
     public String activateStudent(@PathVariable("studentIdForUpdate")String id, Model model, RedirectAttributes redirectAttributes){
         log.info("Inside activateStudent");
-        log.info("Inside activateStudent");
         String msg = studentService.activateStudent(Long.valueOf(id));
         if(msg.contains("success")){
             redirectAttributes.addFlashAttribute("success",msg.split("#####")[1]);
@@ -530,7 +528,6 @@ public class StudentController extends BaseController {
     @GetMapping("/edit-grade-section")
     public String modifyGradeAndSectionForm(Model model){
         log.info("Inside modifyGradeAndSectionForm");
-        log.info("Inside modifyGradeAndSectionForm");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
@@ -541,7 +538,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student-attendance")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String studentAttendanceForm(Model model){
-        log.info("Inside studentAttendanceForm");
         log.info("Inside studentAttendanceForm");
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
@@ -584,7 +580,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student-submit-attendance")
     public String studentAttendanceSave(Model model){
         log.info("Inside studentAttendanceSave");
-        log.info("Inside studentAttendanceSave");
         SimpleDateFormat sf = new SimpleDateFormat("dd/MMM/yyyy");
         model.addAttribute("todayDate", sf.format(new Date()));
         model.addAttribute("mediums", dropdownService.getMediums());
@@ -602,7 +597,6 @@ public class StudentController extends BaseController {
     @GetMapping("/student-show-attendance")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String studentShowAttendance(Model model){
-        log.info("Inside studentShowAttendance");
         log.info("Inside studentShowAttendance");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -639,7 +633,6 @@ public class StudentController extends BaseController {
     @GetMapping("/edit-aadhar-detail")
     public String updateAadharPage(Model model){
         log.info("Inside updateAadharPage");
-        log.info("Inside updateAadharPage");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
@@ -650,7 +643,6 @@ public class StudentController extends BaseController {
     @GetMapping("/sessions-total-students-detail")
     public String totalFeeSubmissionDetail(Model model){
         log.info("Inside totalFeeSubmissionDetail");
-        log.info("Inside totalFeeSubmissionDetail");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("page", "datatable");
         return "student/all_students_session";
@@ -659,7 +651,6 @@ public class StudentController extends BaseController {
     @CheckAccess(screen = "STUDENT_REPORT_GRADE", type = AccessType.VIEW)
     @GetMapping("/grade-total-students-detail")
     public String totalFeeSubmissionDetailByGrade(Model model){
-        log.info("Inside totalFeeSubmissionDetailByGrade");
         log.info("Inside totalFeeSubmissionDetailByGrade");
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
@@ -724,7 +715,6 @@ public class StudentController extends BaseController {
     @GetMapping("/look-up-student")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_TEACHER','ROLE_ACCOUNTENT','ROLE_STAFF')")
     public String searchStudent(Model model){
-        log.info("Inside searchStudent");
         log.info("Inside searchStudent");
         School school = (School)model.getAttribute("school");
         List<AcademicYear> academicYears = academicyearService.getAllAcademiyears(school.getId());

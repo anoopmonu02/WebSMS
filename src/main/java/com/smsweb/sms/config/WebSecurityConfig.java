@@ -191,7 +191,7 @@ public class WebSecurityConfig {
                                 "/admin/examinations/**", "/admin/examination/**",
                                 "/admin/examinations-date/**", "/admin/examination-details/**", "/admin/examinations-detail/**",
                                 "/admin/mobile-users/**",
-                                "/admin/birthday-notification-settings/**"
+                                "/admin/family-mapping/**"
                         ).hasAnyRole("ADMIN", "SUPERADMIN", "STAFF")
 
                         // Admin-only paths — STAFF excluded intentionally (no school config access)

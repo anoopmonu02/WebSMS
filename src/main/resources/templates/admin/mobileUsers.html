@@ -7,7 +7,14 @@
 <section>
 <style>
   .session-badge { font-size:.72rem; font-weight:700; border-radius:4px; padding:3px 8px; }
-  .students-col { max-width:280px; }
+  .students-col { max-width:380px; }
+  /* Linked-student tags: soft colours, square corners */
+  .stu-tag { display:inline-block; padding:1px 7px; font-weight:700; font-size:.8rem; line-height:1.5; border-radius:0; }
+  .stu-tag.father { background:#fdf1dc; color:#7a4b06; }
+  .stu-tag.cls    { background:#e3effd; color:#1d4f91; }
+  .stu-tag.school { background:#e6f4ea; color:#1f6b3a; }
+  .stu-tag.inactive { background:#eceff3; color:#5b6573; }
+  .stu-row + .stu-row { margin-top:.45rem; }
   .mu-stat-card { border:0 } .mu-stat-card .card-body { padding:.9rem 1rem }
 </style>
 
@@ -216,7 +223,16 @@
       }
       let html = '';
       rows.forEach(row => {
-        const studentsHtml = (row.students || []).map(s => escHtml(s)).join('<br>');
+        // Styled cards when the server sends them; falls back to the plain text lines otherwise.
+        const studentsHtml = (row.studentCards && row.studentCards.length)
+          ? row.studentCards.map(c =>
+              '<div class="stu-row">' + escHtml(c.name) +
+              (c.father ? ' <span class="stu-tag father">Father: ' + escHtml(c.father) + '</span>' : '') +
+              (c.classSection ? ' <span class="stu-tag cls">' + escHtml(c.classSection) + '</span>' : '') +
+              (c.school ? ' <span class="stu-tag school">' + escHtml(c.school) + '</span>' : '') +
+              (c.inactive ? ' <span class="stu-tag inactive">inactive</span>' : '') +
+              '</div>').join('')
+          : (row.students || []).map(s => escHtml(s)).join('<br>');
         const mustChange = row.mustChangePassword
           ? '<span class="text-danger">Yes</span>' : '<span class="text-muted">No</span>';
         html += `<tr>
@@ -374,7 +390,18 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-      loadMobileUsers('');
+      // Optional deep link from the Fee Submission screen: /admin/mobile-users?search=<mobile>.
+      // Only digits (max 10) are accepted and it only fills the search box; the server still
+      // enforces access on /list exactly as before.
+      let initialSearch = '';
+      try {
+        initialSearch = (new URLSearchParams(window.location.search).get('search') || '')
+            .replace(/[^0-9]/g, '').slice(0, 10);
+      } catch (e) { initialSearch = ''; }
+      if (initialSearch) {
+        document.getElementById('searchInput').value = initialSearch;
+      }
+      loadMobileUsers(initialSearch);
     });
   </script>
 </section>

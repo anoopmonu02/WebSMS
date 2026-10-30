@@ -97,8 +97,8 @@
               <div>
                 <div class="stat-chip-label">Current Schedule</div>
                 <div class="stat-chip-value" style="font-size:14px;">
-                  <span th:if="${frequency == 'WEEKLY'}" th:text="'Weekly, ' + ${dayOfWeek} + ' at ' + ${time}">Weekly</span>
-                  <span th:if="${frequency == 'DAILY'}" th:text="'Daily at ' + ${time}">Daily</span>
+                  <span th:if="${frequency == 'WEEKLY'}" th:text="'Weekly, ' + ${dayOfWeek} + ' at ' + ${time} + ${time2 != null and time2 != '' ? ' and ' + time2 : ''}">Weekly</span>
+                  <span th:if="${frequency == 'DAILY'}" th:text="'Daily at ' + ${time} + ${time2 != null and time2 != '' ? ' and ' + time2 : ''}">Daily</span>
                 </div>
               </div>
             </div>
@@ -118,56 +118,9 @@
           <div class="col-md-8">
             <div class="db-card">
               <div class="db-card-title"><i class="bi bi-sliders text-primary"></i> Backup Schedule</div>
-
-              <form th:action="@{/admin/db-backup/schedule}" method="post" id="scheduleForm">
-                <label class="form-label fw-semibold">Frequency</label>
-                <div class="freq-toggle">
-                  <input type="radio" class="btn-check" name="frequencyRadio" id="freqDaily" autocomplete="off" value="DAILY" th:checked="${frequency == 'DAILY'}">
-                  <label class="btn btn-outline-primary freq-btn" for="freqDaily"><i class="bi bi-calendar-day"></i> Daily</label>
-
-                  <input type="radio" class="btn-check" name="frequencyRadio" id="freqWeekly" autocomplete="off" value="WEEKLY" th:checked="${frequency == 'WEEKLY'}">
-                  <label class="btn btn-outline-primary freq-btn" for="freqWeekly"><i class="bi bi-calendar-week"></i> Weekly</label>
-                </div>
-                <input type="hidden" name="frequency" id="frequencyInput" th:value="${frequency}">
-
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6" id="dayOfWeekWrap">
-                    <label for="dayOfWeek" class="form-label">Day of week</label>
-                    <select class="form-select" id="dayOfWeek" name="dayOfWeek">
-                      <option value="MON" th:selected="${dayOfWeek == 'MON'}">Monday</option>
-                      <option value="TUE" th:selected="${dayOfWeek == 'TUE'}">Tuesday</option>
-                      <option value="WED" th:selected="${dayOfWeek == 'WED'}">Wednesday</option>
-                      <option value="THU" th:selected="${dayOfWeek == 'THU'}">Thursday</option>
-                      <option value="FRI" th:selected="${dayOfWeek == 'FRI'}">Friday</option>
-                      <option value="SAT" th:selected="${dayOfWeek == 'SAT'}">Saturday</option>
-                      <option value="SUN" th:selected="${dayOfWeek == 'SUN'}">Sunday</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="timeInput" class="form-label">Time</label>
-                    <input type="time" class="form-control" id="timeInput" name="time" th:value="${time}" required>
-                    <div class="form-text">24-hour clock, server local time.</div>
-                  </div>
-                </div>
-
-                <hr/>
-
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label for="emailInput" class="form-label">Backup email address</label>
-                    <input type="email" class="form-control" id="emailInput" name="email" th:value="${emailTo}" placeholder="e.g. backups@yourschool.com" required>
-                    <div class="form-text">Also used as the sender account (the backup is emailed to itself).</div>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="passwordInput" class="form-label">App password / passkey</label>
-                    <input type="password" class="form-control" id="passwordInput" name="password"
-                           th:placeholder="${hasPassword} ? 'Leave blank to keep current password' : 'Enter app password'">
-                    <div class="form-text" th:if="${hasPassword}">A password is already saved — leave blank to keep it.</div>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Save Schedule</button>
-              </form>
+              <p class="mb-2">The schedule, the second daily backup time and the backup email are now set in
+                <strong>App Config &rarr; Database Backup</strong>.</p>
+              <a class="btn btn-primary" th:href="@{/admin/app-config#backup}"><i class="bi bi-gear"></i> Change schedule</a>
             </div>
           </div>
 

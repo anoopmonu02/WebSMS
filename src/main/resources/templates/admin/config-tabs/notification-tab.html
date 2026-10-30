@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Notifications tab of App Config (per school). Included by admin/app-config.html. -->
+<div th:fragment="pane" id="pane-notifications" class="config-pane d-none"
+     th:data-url="@{/admin/app-config/notifications}"
+     th:data-reminder-url="@{/admin/app-config/notifications/reminder}"
+     th:data-report-url="@{/admin/app-config/notifications/report}"
+     th:data-reminder-test-url="@{/admin/app-config/notifications/reminder/test}"
+     th:data-report-now-url="@{/admin/app-config/notifications/report/send-now}"
+     th:data-clear-url="@{/admin/app-config/notifications/all-clear}"
+     th:data-clear-update-url="@{/admin/app-config/notifications/all-clear/update}"
+     th:data-clear-active-url="@{/admin/app-config/notifications/all-clear/active}"
+     th:data-clear-delete-url="@{/admin/app-config/notifications/all-clear/delete}"
+     th:data-clear-restore-url="@{/admin/app-config/notifications/all-clear/restore}"
+     th:data-clear-preview-url="@{/admin/app-config/notifications/all-clear/preview}">
+  <style>
+    #pane-notifications .nt-step { display:flex; align-items:center; gap:.75rem; background:#fff; border:1px solid #e3e8ee; border-radius:12px; padding:.7rem 1rem; height:100%; }
+    #pane-notifications .nt-num { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; flex:none; background:#fff3e0; color:#92400e; }
+    #pane-notifications .nt-num.done { background:#e7f6ec; color:#166534; }
+    #pane-notifications .nt-step small { color:#5b6678; display:block; }
+    #pane-notifications .nt-msg { display:flex; align-items:center; gap:.75rem; padding:.7rem 0; border-bottom:1px solid #eef1f6; }
+    #pane-notifications .nt-msg:last-child { border-bottom:0; }
+    #pane-notifications .nt-msg p { margin:0; flex:1; font-size:.92rem; line-height:1.4; word-break:break-word; }
+    #pane-notifications .nt-msg.off p { color:#5b6678; text-decoration:line-through; }
+    #pane-notifications .nt-flow { list-style:none; margin:0; padding:0; }
+    #pane-notifications .nt-flow li { position:relative; padding:0 0 .9rem 1.5rem; font-size:.9rem; line-height:1.4; }
+    #pane-notifications .nt-flow li::before { content:''; position:absolute; left:0; top:.35rem; width:11px; height:11px; border-radius:50%; background:#2563eb; }
+    #pane-notifications .nt-flow li::after { content:''; position:absolute; left:4.5px; top:1.1rem; bottom:.1rem; width:2px; background:#cfe0fb; }
+    #pane-notifications .nt-flow li:last-child::after { display:none; }
+    #pane-notifications .nt-flow li:last-child::before { background:#15803d; }
+    #pane-notifications .nt-flow b { display:block; }
+  </style>
+
+  <div class="alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2" id="ntStrip">
+    <span id="ntStripText">Loading the email account...</span>
+    <a href="#email" id="ntStripLink" class="fw-semibold">Change email account</a>
+  </div>
+
+  <div class="row g-3 mb-3" aria-label="Setup steps">
+    <div class="col-md-4"><div class="nt-step"><span class="nt-num" id="ntStep1">1</span><div><strong>Email account</strong><small id="ntStep1Text">-</small></div></div></div>
+    <div class="col-md-4"><div class="nt-step"><span class="nt-num" id="ntStep2">2</span><div><strong>Receivers</strong><small id="ntStep2Text">-</small></div></div></div>
+    <div class="col-md-4"><div class="nt-step"><span class="nt-num" id="ntStep3">3</span><div><strong>Switch on</strong><small id="ntStep3Text">-</small></div></div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-bell me-2"></i>Attendance not confirmed reminder</div>
+        <div class="card-body">
+          <p class="text-muted small">Until attendance is confirmed, parents cannot see it in the mobile app. Skipped on Sundays, holidays and when it is already confirmed.</p>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="ntReminderOn">
+            <label class="form-check-label ms-2 fw-semibold" for="ntReminderOn">Send a reminder</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="ntReminderTime">Check at</label>
+              <input type="time" class="form-control" id="ntReminderTime">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="ntReminderGap">Second reminder</label>
+              <select class="form-select" id="ntReminderGap">
+                <option value="0">None</option>
+                <option value="15">After 15 minutes</option><option value="30">After 30 minutes</option>
+                <option value="45">After 45 minutes</option><option value="60">After 1 hour</option>
+                <option value="90">After 1.5 hours</option><option value="120">After 2 hours</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="ntReminderTo">Send to <span class="text-muted fw-normal">(up to 5 emails, comma separated)</span></label>
+              <input type="text" class="form-control" id="ntReminderTo" maxlength="255" autocomplete="off">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-primary" id="ntReminderTestBtn"><i class="bi bi-send me-1"></i>Send test reminder</button>
+            <button type="button" class="btn btn-primary" id="ntReminderSaveBtn"><i class="bi bi-check-lg me-1"></i>Save reminder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-person-x me-2"></i>Long absence report</div>
+        <div class="card-body">
+          <p class="text-muted small">Students absent several school days in a row (Sundays and holidays are not counted). If nobody is on the list, a cheerful "all clear" email is sent instead.</p>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="ntReportOn">
+            <label class="form-check-label ms-2 fw-semibold" for="ntReportOn">Send the report</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="ntReportDays">Absent days</label>
+              <input type="number" class="form-control" id="ntReportDays" min="1" max="60" step="1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="ntReportFreq">How often</label>
+              <select class="form-select" id="ntReportFreq">
+                <option value="DAILY">Daily</option><option value="WEEKLY">Weekly</option><option value="MONTHLY">Monthly</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" for="ntReportTime">Send at</label>
+              <input type="time" class="form-control" id="ntReportTime">
+            </div>
+            <div class="col-md-6" id="ntDowWrap">
+              <label class="form-label fw-semibold" for="ntReportDow">On</label>
+              <select class="form-select" id="ntReportDow">
+                <option value="MON">Monday</option><option value="TUE">Tuesday</option>
+                <option value="WED">Wednesday</option><option value="THU">Thursday</option>
+                <option value="FRI">Friday</option><option value="SAT">Saturday</option>
+                <option value="SUN">Sunday</option>
+              </select>
+            </div>
+            <div class="col-md-6" id="ntDomWrap">
+              <label class="form-label fw-semibold" for="ntReportDom">On day of month</label>
+              <select class="form-select" id="ntReportDom"></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="ntReportTo">Send to <span class="text-muted fw-normal">(up to 5 emails, comma separated)</span></label>
+              <input type="text" class="form-control" id="ntReportTo" maxlength="255" autocomplete="off">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-primary" id="ntReportNowBtn"><i class="bi bi-send me-1"></i>Send report now</button>
+            <button type="button" class="btn btn-primary" id="ntReportSaveBtn"><i class="bi bi-check-lg me-1"></i>Save report</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-lg-7">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-emoji-smile me-2"></i>All-clear messages</div>
+        <div class="card-body">
+          <p class="text-muted small">When no student is on the long absence list, the report email carries one of these messages, picked at random (never the same one twice in a row). Use <strong>{days}</strong> for the absent-days number. At most <span id="ntClearMax">20</span> messages.</p>
+          <div id="ntClearList"><div class="text-muted small">Loading...</div></div>
+          <div class="input-group mt-3">
+            <input type="text" class="form-control" id="ntClearNew" maxlength="200" placeholder="Add your own message (max 200 characters)" aria-label="New all-clear message" autocomplete="off">
+            <button type="button" class="btn btn-primary" id="ntClearAddBtn">Add</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-3 border-top">
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="ntClearPreviewBtn">Preview a random message</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="ntClearRestoreBtn">Restore defaults</button>
+            </div>
+            <span class="text-muted small" id="ntClearCount"></span>
+          </div>
+          <div class="alert alert-light border small mt-3 mb-0 d-none" id="ntClearPreview"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-diagram-3 me-2"></i>How it works</div>
+        <div class="card-body">
+          <ul class="nt-flow">
+            <li><b>Every minute</b>The system checks whether a notification of your school is due.</li>
+            <li><b>Attendance reminder</b>Skips Sundays, holidays and days already confirmed. Otherwise it emails "not marked yet" or "saved but not confirmed", and once more after the gap you chose.</li>
+            <li><b>Long absence report</b>Finds students absent the chosen number of school days in a row, then sends the list, or an all-clear message.</li>
+            <li><b>If sending fails</b>It retries up to 3 times, 5 minutes apart, then stops for the day.</li>
+            <li><b>Once a day</b>Each notification goes out once a day, even after a server restart (a missed one still runs within 30 minutes).</li>
+          </ul>
+          <div class="d-flex gap-2 flex-wrap border-top pt-3">
+            <span class="badge text-bg-light border" id="ntLastReminder">Reminder: -</span>
+            <span class="badge text-bg-light border" id="ntLastReport">Report: -</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" th:inline="none">
+  document.addEventListener('DOMContentLoaded', function () {
+    var pane = document.getElementById('pane-notifications');
+    var d0 = pane.dataset;
+    var loaded = false;
+    function el(id) { return document.getElementById(id); }
+    function err(xhr, fallback) { return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : fallback; }
+
+    var dom = el('ntReportDom');
+    for (var i = 1; i <= 28; i++) { var o = document.createElement('option'); o.value = String(i); o.textContent = String(i); dom.appendChild(o); }
+    var last = document.createElement('option'); last.value = 'LAST'; last.textContent = 'Last day'; dom.appendChild(last);
+
+    function syncFreq() {
+      var f = el('ntReportFreq').value;
+      el('ntDowWrap').style.display = f === 'WEEKLY' ? '' : 'none';
+      el('ntDomWrap').style.display = f === 'MONTHLY' ? '' : 'none';
+    }
+    function load() {
+      if (loaded) { return; }
+      loadClear();
+      $.ajax({
+        type: 'GET', url: d0.url,
+        success: function (d) {
+          loaded = true;
+          var strip = el('ntStrip');
+          if (d.accountReady) {
+            strip.className = 'alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2';
+            el('ntStripText').textContent = 'Emails are sent from ' + d.accountSender + '. Here you only choose who receives them.';
+          } else {
+            strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
+            el('ntStripText').textContent = 'The email account is not set up yet. Set it up first, then switch these on.';
+          }
+          el('ntReminderOn').checked = !!d.reminderOn;
+          el('ntReminderTime').value = d.reminderTime;
+          el('ntReminderGap').value = String(d.reminderGap);
+          el('ntReminderTo').value = d.reminderReceivers || '';
+          el('ntReportOn').checked = !!d.reportOn;
+          el('ntReportDays').value = d.reportDays;
+          el('ntReportFreq').value = d.reportFrequency;
+          el('ntReportTime').value = d.reportTime;
+          el('ntReportDow').value = d.reportDayOfWeek;
+          el('ntReportDom').value = d.reportDayOfMonth;
+          el('ntReportTo').value = d.reportReceivers || '';
+          syncFreq();
+          renderSteps(d);
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the notification settings.'), 'Error'); }
+      });
+    }
+    function setStep(n, done, text) {
+      el('ntStep' + n).className = 'nt-num' + (done ? ' done' : '');
+      el('ntStep' + n).textContent = done ? '\u2713' : String(n);
+      el('ntStep' + n + 'Text').textContent = text;
+    }
+    function renderSteps(d) {
+      setStep(1, d.accountReady, d.accountReady ? 'Set up: ' + d.accountSender : 'Not set up yet');
+      var haveRecv = !!(d.reminderReceivers || d.reportReceivers);
+      setStep(2, haveRecv, haveRecv ? 'Reminder: ' + (d.reminderReceivers ? 'set' : 'not set') + ', report: ' + (d.reportReceivers ? 'set' : 'not set') : 'Not set yet');
+      var on = (d.reminderOn ? 1 : 0) + (d.reportOn ? 1 : 0);
+      setStep(3, on > 0, 'Reminder ' + (d.reminderOn ? 'on' : 'off') + ', report ' + (d.reportOn ? 'on' : 'off'));
+      el('ntLastReminder').textContent = 'Reminder last sent: ' + (d.reminderLastSent || 'never');
+      el('ntLastReport').textContent = 'Report last sent: ' + (d.reportLastSent || 'never');
+    }
+
+    // ── All-clear messages ──
+    function loadClear() {
+      $.ajax({
+        type: 'GET', url: d0.clearUrl,
+        success: function (d) {
+          el('ntClearMax').textContent = d.max;
+          var box = el('ntClearList');
+          box.textContent = '';
+          if (!d.messages.length) {
+            var none = document.createElement('div'); none.className = 'text-muted small';
+            none.textContent = 'No messages. A built-in message is used until you add one.';
+            box.appendChild(none);
+          }
+          d.messages.forEach(function (m) { box.appendChild(clearRow(m)); });
+          el('ntClearCount').textContent = d.activeCount + ' of ' + d.messages.length + ' on';
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the messages.'), 'Error'); }
+      });
+    }
+    function iconBtn(cls, icon, label, onClick) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn btn-sm ' + cls; b.setAttribute('aria-label', label);
+      var i = document.createElement('i'); i.className = 'bi ' + icon; b.appendChild(i);
+      b.addEventListener('click', onClick);
+      return b;
+    }
+    function clearAction(target, data, okMsg) {
+      $.ajax({
+        type: 'POST', url: target, data: data,
+        success: function (d) { if (okMsg) { toastr.success(d.message || okMsg, 'Saved'); } loadClear(); },
+        error: function (xhr) { toastr.error(err(xhr, 'Something went wrong - please try again.'), 'Error'); loadClear(); }
+      });
+    }
+    function clearRow(m) {
+      var row = document.createElement('div');
+      row.className = 'nt-msg' + (m.active ? '' : ' off');
+      var sw = document.createElement('div'); sw.className = 'form-check form-switch m-0';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'form-check-input'; cb.checked = m.active;
+      cb.setAttribute('aria-label', 'Use this message');
+      cb.addEventListener('change', function () { clearAction(d0.clearActiveUrl, { id: m.id, active: cb.checked }); });
+      sw.appendChild(cb);
+      var p = document.createElement('p'); p.textContent = m.text;
+      var edit = iconBtn('btn-outline-secondary', 'bi-pencil', 'Edit message', function () {
+        var input = document.createElement('input'); input.type = 'text'; input.className = 'form-control form-control-sm'; input.maxLength = 200; input.value = m.text;
+        var save = iconBtn('btn-primary', 'bi-check-lg', 'Save message', function () { clearAction(d0.clearUpdateUrl, { id: m.id, text: input.value }, 'Message updated.'); });
+        var cancel = iconBtn('btn-outline-secondary', 'bi-x-lg', 'Cancel', loadClear);
+        row.textContent = '';
+        row.appendChild(input); row.appendChild(save); row.appendChild(cancel);
+        input.focus();
+      });
+      var del = iconBtn('btn-outline-danger', 'bi-trash', 'Delete message', function () {
+        if (window.confirm('Delete this message?')) { clearAction(d0.clearDeleteUrl, { id: m.id }, 'Message deleted.'); }
+      });
+      row.appendChild(sw); row.appendChild(p); row.appendChild(edit); row.appendChild(del);
+      return row;
+    }
+    el('ntClearAddBtn').addEventListener('click', function () {
+      var input = el('ntClearNew');
+      if (!input.value.trim()) { toastr.error('Please type a message.', 'Error'); return; }
+      $.ajax({
+        type: 'POST', url: d0.clearUrl, data: { text: input.value },
+        success: function (d) { toastr.success(d.message, 'Saved'); input.value = ''; loadClear(); },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not add the message.'), 'Error'); }
+      });
+    });
+    el('ntClearRestoreBtn').addEventListener('click', function () { clearAction(d0.clearRestoreUrl, {}, 'Done.'); });
+    el('ntClearPreviewBtn').addEventListener('click', function () {
+      $.ajax({
+        type: 'GET', url: d0.clearPreviewUrl, data: { days: el('ntReportDays').value || 7 },
+        success: function (d) { var b = el('ntClearPreview'); b.textContent = d.message; b.classList.remove('d-none'); },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not preview.'), 'Error'); }
+      });
+    });
+
+    function post(target, data, btn, okTitle, done) {
+      btn.disabled = true;
+      $.ajax({
+        type: 'POST', url: target, data: data,
+        success: function (d) { toastr.success(d.message || 'Done.', okTitle); if (done) { done(); } },
+        error: function (xhr) { toastr.error(err(xhr, 'Something went wrong - please try again.'), 'Error'); },
+        complete: function () { btn.disabled = false; }
+      });
+    }
+
+    el('ntReportFreq').addEventListener('change', syncFreq);
+    el('ntStripLink').addEventListener('click', function (e) {
+      e.preventDefault();
+      var b = document.getElementById('tab-email-btn');
+      if (b) { b.click(); }
+    });
+    var tabBtn = document.getElementById('tab-notifications-btn');
+    if (tabBtn) { tabBtn.addEventListener('click', load); }
+    if (location.hash === '#notifications') { load(); }
+    syncFreq();
+
+    el('ntReminderSaveBtn').addEventListener('click', function () {
+      post(d0.reminderUrl, { on: el('ntReminderOn').checked, time: el('ntReminderTime').value, gap: el('ntReminderGap').value, receivers: el('ntReminderTo').value }, this, 'Saved', function () { loaded = false; load(); });
+    });
+    el('ntReportSaveBtn').addEventListener('click', function () {
+      post(d0.reportUrl, {
+        on: el('ntReportOn').checked, days: el('ntReportDays').value, frequency: el('ntReportFreq').value, time: el('ntReportTime').value,
+        dayOfWeek: el('ntReportDow').value, dayOfMonth: el('ntReportDom').value, receivers: el('ntReportTo').value
+      }, this, 'Saved', function () { loaded = false; load(); });
+    });
+    el('ntReminderTestBtn').addEventListener('click', function () { post(d0.reminderTestUrl, {}, this, 'Sent'); });
+    el('ntReportNowBtn').addEventListener('click', function () { post(d0.reportNowUrl, {}, this, 'Done'); });
+  });
+  </script>
+</div>
+</body>
+</html>

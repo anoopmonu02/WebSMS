@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{base::Layout(~{::section})}">
+<head>
+  <meta charset="UTF-8">
+  <title>Family Account Mapping</title>
+</head>
+<body>
+<section>
+  <style>
+    .fm-table th { white-space: nowrap; font-size: .8rem; }
+    .fm-table td { vertical-align: middle; font-size: .85rem; }
+    .fm-counts b { color: #212529; }
+  </style>
+  <div class="container-fluid px-3">
+    <div class="row mt-2">
+      <div class="col-md-12">
+        <div class="card-header fs-3">Family Account Mapping</div>
+        <p class="text-muted small mb-2">Active students of the current session and branch. Mapping uses Mobile 1 only; Mobile 2 is shown for reference.</p>
+      </div>
+    </div>
+
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-md-3">
+        <label for="fmMedium" class="form-label">Medium <span class="text-danger">*</span></label>
+        <select id="fmMedium" class="form-select">
+          <option value="">Select Medium</option>
+          <option th:each="med : ${mediums}" th:value="${med.id}" th:text="${med.mediumName}">Medium</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="button" id="fmGet" class="btn btn-primary"><i class="bi bi-search"></i> Get</button>
+      </div>
+    </div>
+
+    <div id="fmResult" style="display:none">
+      <div class="small text-muted mb-2 fm-counts" id="fmCounts"></div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover fm-table">
+          <thead class="table-primary">
+            <tr>
+              <th>SNo</th><th>Student name</th><th>Grade-Sec</th><th>Father name</th>
+              <th>SR no</th><th>PSRN</th><th>Mobile 1</th><th>Mobile 2</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="fmBody"></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-end mt-2">
+        <button type="button" id="fmMapAll" class="btn btn-success" disabled>Map all pending (0)</button>
+      </div>
+    </div>
+  </div>
+
+  <script th:inline="javascript">
+    const contextPath = /*[[@{/}]]*/ '/';
+    let currentMediumId = null;
+    let pendingCount = 0;
+
+    function esc(v) {
+      if (v === null || v === undefined || v === '') return '-';
+      return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function notify(type, msg) {
+      if (typeof toastr !== 'undefined') { toastr[type](msg); } else { alert(msg); }
+    }
+    function postJson(path, payload) {
+      return fetch(contextPath + 'admin/family-mapping/' + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error || 'Request failed'); return j; }));
+    }
+
+    function actionHtml(r) {
+      switch (r.state) {
+        case 'MAPPED':
+          return '<span class="badge text-bg-success">Mapped</span>';
+        case 'UNMAPPED':
+          return '<button type="button" class="btn btn-sm btn-primary fm-map" data-id="' + r.studentId + '">Map</button>';
+        case 'MISMATCH':
+          var why = r.mismatchReason === 'ACCOUNT_INACTIVE'
+              ? 'Linked family account is INACTIVE' : 'Linked to an account with a different mobile number';
+          return '<button type="button" class="btn btn-sm btn-warning fm-map" data-id="' + r.studentId + '">Re-map</button> ' +
+                 '<span class="badge text-bg-warning" title="' + why + '">Mismatch</span>';
+        default:
+          return '<span class="badge text-bg-secondary">Add Mobile 1 in Edit Student</span>';
+      }
+    }
+
+    function render(data) {
+      const body = document.getElementById('fmBody');
+      if (!data.rows.length) {
+        body.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No active students found for this medium.</td></tr>';
+      } else {
+        body.innerHTML = data.rows.map((r, i) =>
+          '<tr><td>' + (i + 1) + '</td><td>' + esc(r.studentName) + '</td><td>' + esc(r.gradeSection) +
+          '</td><td>' + esc(r.fatherName) + '</td><td>' + esc(r.classSrNo) + '</td><td>' + esc(r.psrn) +
+          '</td><td>' + (r.mobile1 ? esc(r.mobile1) : '<span class="badge text-bg-danger">Missing</span>') +
+          '</td><td>' + esc(r.mobile2) + '</td><td>' + actionHtml(r) + '</td></tr>').join('');
+      }
+      pendingCount = data.pending;
+      document.getElementById('fmCounts').innerHTML = 'Total <b>' + data.total + '</b> &middot; Mapped <b>' + data.mapped +
+          '</b> &middot; Pending <b>' + data.pending + '</b> &middot; No Mobile 1 <b>' + data.noMobile + '</b>';
+      const btn = document.getElementById('fmMapAll');
+      btn.textContent = 'Map all pending (' + data.pending + ')';
+      btn.disabled = data.pending === 0;
+      document.getElementById('fmResult').style.display = '';
+    }
+
+    function loadRows() {
+      return postJson('rows', { mediumId: currentMediumId }).then(render).catch(e => notify('error', e.message));
+    }
+
+    document.getElementById('fmGet').addEventListener('click', function () {
+      const med = document.getElementById('fmMedium').value;
+      if (!med) { notify('warning', 'Please select a medium first.'); return; }
+      currentMediumId = med;
+      loadRows();
+    });
+
+    document.getElementById('fmBody').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.fm-map');
+      if (!btn) return;
+      btn.disabled = true;
+      postJson('map', { studentId: btn.dataset.id }).then(res => {
+        if (res.status === 'MAPPED') {
+          notify('success', res.linkedCount > 1
+              ? 'Mapped ' + res.linkedCount + ' students sharing ' + res.mobile + '.' : 'Mapped successfully.');
+        } else {
+          notify(res.status === 'SKIPPED' ? 'warning' : 'error', res.message);
+        }
+        return loadRows();
+      }).catch(e => { notify('error', e.message); btn.disabled = false; });
+    });
+
+    document.getElementById('fmMapAll').addEventListener('click', function () {
+      if (!pendingCount || !confirm('Map all ' + pendingCount + ' pending student(s) in this medium?')) return;
+      const btn = this;
+      btn.disabled = true;
+      postJson('map-all', { mediumId: currentMediumId }).then(s => {
+        let msg = 'Mapped ' + s.mapped + ' number(s): ' + s.accountsCreated + ' new account(s), ' + s.studentsLinked + ' student(s) linked.';
+        if (s.skipped || s.failed) {
+          msg += ' Skipped ' + s.skipped + ', failed ' + s.failed + ': ' +
+                 s.problems.slice(0, 3).map(p => p.mobile + ' - ' + p.message).join(' | ');
+        }
+        notify(s.skipped || s.failed ? 'warning' : 'success', msg);
+        return loadRows();
+      }).catch(e => { notify('error', e.message); btn.disabled = false; });
+    });
+  </script>
+</section>
+</body>
+</html>

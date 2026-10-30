@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Database Backup tab of App Config. Included by admin/app-config.html. -->
+<div th:fragment="pane" id="pane-backup" class="config-pane d-none"
+     th:data-url="@{/admin/app-config/backup-schedule}"
+     th:data-list-url="@{/admin/db-backup/list}"
+     th:data-run-url="@{/admin/db-backup/run-now}"
+     th:data-delete-url="@{/admin/db-backup/delete}">
+  <style>
+    #pane-backup .bk-stat { display:flex; align-items:center; gap:.9rem; background:#fff; border:1px solid #e3e8ee; border-radius:14px; padding:1rem 1.1rem; height:100%; }
+    #pane-backup .bk-ico { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex:none; }
+    #pane-backup .bk-sl { font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; color:#5b6678; font-weight:600; }
+    #pane-backup .bk-sv { font-size:1.05rem; font-weight:700; word-break:break-word; }
+    #pane-backup .bk-run { background:#effaf3; border:1px solid #bfe6cd; border-radius:14px; padding:1.4rem; text-align:center; }
+    #pane-backup .bk-size { background:#ede9fe; color:#4338ca; border-radius:999px; padding:.15rem .65rem; font-size:.8rem; font-weight:600; white-space:nowrap; }
+  </style>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="bk-stat"><span class="bk-ico" style="background:#ede9fe;color:#4338ca"><i class="bi bi-archive"></i></span><div><div class="bk-sl">Total backups</div><div class="bk-sv" id="bkTotal">-</div></div></div></div>
+    <div class="col-md-5"><div class="bk-stat"><span class="bk-ico" style="background:#fef3c7;color:#b45309"><i class="bi bi-clock-history"></i></span><div><div class="bk-sl">Current schedule</div><div class="bk-sv" id="bkSummary">-</div></div></div></div>
+    <div class="col-md-4"><div class="bk-stat"><span class="bk-ico" style="background:#dcfce7;color:#15803d"><i class="bi bi-envelope-check"></i></span><div><div class="bk-sl">Sent to</div><div class="bk-sv" id="bkSentTo">-</div></div></div></div>
+  </div>
+
+  <div class="alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2" id="bkStrip">
+    <span id="bkStripText">Loading the email account...</span>
+    <a href="#email" id="bkStripLink" class="fw-semibold">Change email account</a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-lg-8">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-sliders me-2"></i>Backup schedule</div>
+        <div class="card-body">
+          <p class="text-muted small">Daily or weekly, once or twice a day (at least 10 minutes apart). If the server was off at a backup time, the missed backup runs once when it starts again.</p>
+          <label class="form-label fw-semibold">Frequency</label>
+          <div class="btn-group d-flex mb-3" style="max-width:320px" role="group" aria-label="Frequency">
+            <input type="radio" class="btn-check" name="bkFreq" id="bkFreqDaily" value="DAILY" autocomplete="off">
+            <label class="btn btn-outline-primary" for="bkFreqDaily">Daily</label>
+            <input type="radio" class="btn-check" name="bkFreq" id="bkFreqWeekly" value="WEEKLY" autocomplete="off">
+            <label class="btn btn-outline-primary" for="bkFreqWeekly">Weekly</label>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6" id="bkDowWrap">
+              <label class="form-label fw-semibold" for="bkDow">Day of week</label>
+              <select class="form-select" id="bkDow">
+                <option value="MON">Monday</option><option value="TUE">Tuesday</option>
+                <option value="WED">Wednesday</option><option value="THU">Thursday</option>
+                <option value="FRI">Friday</option><option value="SAT">Saturday</option>
+                <option value="SUN">Sunday</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="bkTime1">First backup time</label>
+              <input type="time" class="form-control" id="bkTime1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="bkTime2">Second backup time <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group">
+                <input type="time" class="form-control" id="bkTime2">
+                <button type="button" class="btn btn-outline-secondary" id="bkClearTime2">Clear</button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="bkReceivers">Send backup to <span class="text-muted fw-normal">(up to 5 emails, comma separated)</span></label>
+              <input type="text" class="form-control" id="bkReceivers" maxlength="255" autocomplete="off">
+              <div class="form-text">Leave empty to send it to the sending account itself.</div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <span class="text-muted small">Saving uses your school's email account for backups.</span>
+            <button type="button" class="btn btn-primary" id="bkSaveBtn"><i class="bi bi-check-lg me-1"></i>Save schedule</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card config-card" style="height:auto">
+        <div class="card-body">
+          <div class="bk-run">
+            <i class="bi bi-cloud-arrow-down fs-1 text-success"></i>
+            <div class="fw-bold fs-5 mt-1">Run a backup right now</div>
+            <div class="text-muted small mb-3">Creates a fresh backup immediately, in addition to the schedule.</div>
+            <button type="button" class="btn btn-success w-100" id="bkRunBtn"><i class="bi bi-play-fill me-1"></i>Backup now</button>
+          </div>
+          <p class="text-muted small mt-3 mb-0">Large databases can take a few minutes. You will see a confirmation here when it is done.</p>
+        </div>
+      </div>
+      <div class="alert alert-primary small mb-0">Backups stay on the server until you delete them below. The email contains the zip file (up to 20 MB).</div>
+    </div>
+  </div>
+
+  <div class="card config-card" style="height:auto">
+    <div class="card-header py-3"><i class="bi bi-archive me-2"></i>Existing backups</div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>Backup</th><th>Size</th><th>Created on</th><th class="text-end">Action</th></tr></thead>
+          <tbody id="bkRows"><tr><td colspan="4" class="text-muted">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" th:inline="none">
+  document.addEventListener('DOMContentLoaded', function () {
+    var pane = document.getElementById('pane-backup');
+    var url = pane.dataset.url, listUrl = pane.dataset.listUrl, runUrl = pane.dataset.runUrl, deleteUrl = pane.dataset.deleteUrl;
+    var loaded = false;
+    var DOW = { MON: 'Monday', TUE: 'Tuesday', WED: 'Wednesday', THU: 'Thursday', FRI: 'Friday', SAT: 'Saturday', SUN: 'Sunday' };
+    function el(id) { return document.getElementById(id); }
+    function err(xhr, fallback) { return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : fallback; }
+    function freq() { return el('bkFreqWeekly').checked ? 'WEEKLY' : 'DAILY'; }
+    function syncDow() { el('bkDowWrap').style.display = freq() === 'WEEKLY' ? '' : 'none'; }
+
+    function summary(d) {
+      var t = d.time + (d.time2 ? ' and ' + d.time2 : '');
+      return d.frequency === 'WEEKLY' ? 'Weekly, ' + (DOW[d.dayOfWeek] || d.dayOfWeek) + ' at ' + t : 'Daily at ' + t;
+    }
+
+    function loadSchedule() {
+      $.ajax({
+        type: 'GET', url: url,
+        success: function (d) {
+          el(d.frequency === 'WEEKLY' ? 'bkFreqWeekly' : 'bkFreqDaily').checked = true;
+          el('bkDow').value = d.dayOfWeek;
+          el('bkTime1').value = d.time;
+          el('bkTime2').value = d.time2 || '';
+          el('bkReceivers').value = d.receivers || '';
+          el('bkSummary').textContent = summary(d);
+          el('bkSentTo').textContent = d.receivers || (d.accountReady ? d.accountSender : (d.legacyEmail || 'Not set'));
+          var strip = el('bkStrip');
+          if (d.accountReady) {
+            strip.className = 'alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2';
+            el('bkStripText').textContent = 'Backups are emailed from ' + d.accountSender + '.';
+          } else if (d.legacyEmail) {
+            strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
+            el('bkStripText').textContent = 'No email account is set up yet, so backups still use the older backup email (' + d.legacyEmail + ').';
+          } else {
+            strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
+            el('bkStripText').textContent = 'No email account is set up yet, so backups are created but not emailed.';
+          }
+          syncDow();
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the backup settings.'), 'Error'); }
+      });
+    }
+
+    function loadList() {
+      $.ajax({
+        type: 'GET', url: listUrl,
+        success: function (rows) {
+          el('bkTotal').textContent = rows.length;
+          var body = el('bkRows');
+          body.textContent = '';
+          if (!rows.length) {
+            var tr = document.createElement('tr'), td = document.createElement('td');
+            td.colSpan = 4; td.className = 'text-muted'; td.textContent = 'No backups yet.';
+            tr.appendChild(td); body.appendChild(tr); return;
+          }
+          rows.forEach(function (r) {
+            var tr = document.createElement('tr');
+            var c1 = document.createElement('td'); c1.className = 'fw-semibold';
+            var ic = document.createElement('i'); ic.className = 'bi bi-file-earmark-zip text-primary me-2';
+            c1.appendChild(ic); c1.appendChild(document.createTextNode(r.filename));
+            var c2 = document.createElement('td'), sz = document.createElement('span'); sz.className = 'bk-size'; sz.textContent = r.size; c2.appendChild(sz);
+            var c3 = document.createElement('td'); c3.textContent = r.createdOn;
+            var c4 = document.createElement('td'); c4.className = 'text-end';
+            var del = document.createElement('button'); del.type = 'button'; del.className = 'btn btn-outline-danger btn-sm';
+            del.setAttribute('aria-label', 'Delete backup ' + r.filename);
+            del.innerHTML = '<i class="bi bi-trash"></i>';
+            del.addEventListener('click', function () {
+              if (!window.confirm('Delete this backup permanently?\n' + r.filename)) { return; }
+              del.disabled = true;
+              $.ajax({
+                type: 'POST', url: deleteUrl, data: { filename: r.filename },
+                success: function () { toastr.success('Backup deleted.', 'Deleted'); loadList(); },
+                error: function (xhr) { toastr.error(err(xhr, 'Could not delete the backup.'), 'Error'); del.disabled = false; }
+              });
+            });
+            c4.appendChild(del);
+            tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+            body.appendChild(tr);
+          });
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the backups list.'), 'Error'); }
+      });
+    }
+
+    function load() {
+      if (loaded) { return; }
+      loaded = true;
+      loadSchedule();
+      loadList();
+    }
+
+    document.querySelectorAll('input[name=bkFreq]').forEach(function (r) { r.addEventListener('change', syncDow); });
+    el('bkClearTime2').addEventListener('click', function () { el('bkTime2').value = ''; });
+    el('bkStripLink').addEventListener('click', function (e) {
+      e.preventDefault();
+      var b = document.getElementById('tab-email-btn');
+      if (b) { b.click(); }
+    });
+    var tabBtn = document.getElementById('tab-backup-btn');
+    if (tabBtn) { tabBtn.addEventListener('click', load); }
+    if (location.hash === '#backup') { load(); }
+
+    el('bkSaveBtn').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      $.ajax({
+        type: 'POST', url: url,
+        data: { frequency: freq(), dayOfWeek: el('bkDow').value, time: el('bkTime1').value, time2: el('bkTime2').value, receivers: el('bkReceivers').value },
+        success: function (d) { toastr.success(d.message || 'Saved.', 'Saved'); loadSchedule(); },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not save - please try again.'), 'Error'); },
+        complete: function () { btn.disabled = false; }
+      });
+    });
+
+    el('bkRunBtn').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      var original = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Backing up...';
+      $.ajax({
+        type: 'POST', url: runUrl, timeout: 0,
+        success: function (d) { toastr.success(d.message || 'Backup created.', 'Backup done'); loadList(); },
+        error: function (xhr) { toastr.error(err(xhr, 'Backup failed.'), 'Error'); },
+        complete: function () { btn.disabled = false; btn.innerHTML = original; }
+      });
+    });
+  });
+  </script>
+</div>
+</body>
+</html>
