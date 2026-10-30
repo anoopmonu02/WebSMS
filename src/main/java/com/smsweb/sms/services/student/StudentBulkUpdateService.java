@@ -346,7 +346,8 @@ public class StudentBulkUpdateService {
             case "MOBILE1_MOBILE2": {
                 String m1 = str(values.get("mobile1"));
                 String m2 = str(values.get("mobile2"));
-                if (!m1.isBlank() && !m1.matches("^[0-9]{10}$")) return "Mobile1 must be exactly 10 digits.";
+                // Mobile1 is mandatory: it drives the Family Account link (Add/Edit Student rule).
+                if (!m1.matches("^[0-9]{10}$")) return "Mobile1 is required and must be exactly 10 digits.";
                 if (!m2.isBlank() && !m2.matches("^[0-9]{10}$")) return "Mobile2 must be exactly 10 digits.";
                 s.setMobile1(m1);
                 s.setMobile2(m2);

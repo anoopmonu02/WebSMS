@@ -3,6 +3,7 @@ package com.smsweb.sms.controllers.fees;
 import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.controllers.BaseController;
+import com.smsweb.sms.dto.ContactChangeResult;
 import com.smsweb.sms.models.admin.*;
 import com.smsweb.sms.models.fees.FeeSubmission;
 import com.smsweb.sms.models.fees.FeeSubmissionMonths;
@@ -16,10 +17,12 @@ import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.admin.FineService;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
+import com.smsweb.sms.services.mobile.FamilyAppStatusService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.SiblingGroupService;
 import com.smsweb.sms.services.student.StudentDiscountService;
+import com.smsweb.sms.services.student.StudentContactChangeService;
 import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.users.UserService;
 
@@ -64,6 +67,14 @@ public class FeeSubmissionRestController extends BaseController {
 
     @Autowired
     private TemplateEngine templateEngine;
+
+    // Read-only hint shown on the fee screen: is the parent using the mobile app?
+    @Autowired
+    private FamilyAppStatusService familyAppStatusService;
+
+    // Safe contact (mobile1) change with confirmation + audit
+    @Autowired
+    private StudentContactChangeService studentContactChangeService;
 
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
@@ -342,6 +353,17 @@ public class FeeSubmissionRestController extends BaseController {
                     result.put("countStu",        countStu);
                     result.put("previousBalance", previousBalance);
 
+                    // Parent mobile-app status (code only). Never allowed to break the fee screen:
+                    // on any failure the field is simply left out and no message is shown.
+                    try {
+                        String appStatus = familyAppStatusService.statusForStudent(student.getId());
+                        if (appStatus != null) {
+                            result.put("appStatus", appStatus);
+                        }
+                    } catch (Exception appStatusError) {
+                        log.warn("Unable to resolve parent app status for fee screen", appStatusError);
+                    }
+
                 } else {
                     result.put("noFeeDate", "No Fee-Date found, Please add fee-date first.");
                 }
@@ -461,23 +483,56 @@ public class FeeSubmissionRestController extends BaseController {
 
     @CheckAccess(screen = "FEE_SUBMIT", type = AccessType.EDIT)
     @PostMapping("/updateContact")
-    public ResponseEntity<?> updateContact(@RequestBody Map<String, String> requestBody){
+    public ResponseEntity<?> updateContact(@RequestBody Map<String, String> requestBody, Model model){
         log.info("Inside updateContact");
-        Map result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
         try{
-            if(requestBody!=null){
-                String contactNo = requestBody.get("contactNumber");
-                Long stuId = Long.parseLong(requestBody.get("stuId"));
-                Long returnId = studentService.updateContact(contactNo, stuId);
-                if(returnId>0){
-                    result.put("success","Contact number: "+ contactNo +" updated successfully.");
-                }
-            } else{
+            if(requestBody==null){
                 result.put("empty_response", "Request params are empty");
+                return ResponseEntity.ok(result);
+            }
+            School school = (School) model.getAttribute("school");
+            AcademicYear academicYear = (AcademicYear) model.getAttribute("academicYear");
+            if(school==null || academicYear==null){
+                result.put("error", "School or session not found. Please log in again.");
+                return ResponseEntity.ok(result);
+            }
+            Long stuId;
+            try{
+                stuId = Long.parseLong(requestBody.get("stuId"));
+            }catch(NumberFormatException nfe){
+                result.put("error", "Student is missing, please reselect the student.");
+                return ResponseEntity.ok(result);
+            }
+            String contactNo = requestBody.get("contactNumber");
+            boolean confirmed = "true".equalsIgnoreCase(requestBody.get("confirm"));
+
+            ContactChangeResult r = confirmed
+                    ? studentContactChangeService.apply(stuId, contactNo, school.getId(), academicYear.getId())
+                    : studentContactChangeService.check(stuId, contactNo, school.getId(), academicYear.getId());
+
+            switch (r.getOutcome()) {
+                case BLOCKED:
+                    result.put("error", r.getMessage());
+                    break;
+                case NO_CHANGE:
+                    result.put("noChange", r.getMessage());
+                    break;
+                case APPLIED:
+                    result.put("success", r.getMessage());
+                    break;
+                default: // NEW_FAMILY / EXISTING_FAMILY: ask the user to confirm first
+                    result.put("needsConfirmation", true);
+                    result.put("scenario", r.getOutcome().name());
+                    result.put("message", r.getMessage());
+                    result.put("children", r.getChildrenInSchool());
+                    result.put("familyChildCount", r.getFamilyChildCount());
+                    result.put("otherBranchCount", r.getOtherBranchCount());
+                    break;
             }
         }catch(Exception e){
-            e.printStackTrace();
-            result.put("error", "Error: "+e.getLocalizedMessage());
+            log.error("updateContact failed", e);
+            result.put("error", "Unable to update the contact number. Nothing was changed.");
         }
         return ResponseEntity.ok(result);
     }

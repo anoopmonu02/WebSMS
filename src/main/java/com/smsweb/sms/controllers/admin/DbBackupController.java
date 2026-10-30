@@ -3,6 +3,7 @@ package com.smsweb.sms.controllers.admin;
 import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.SystemConfigRepository;
 import com.smsweb.sms.services.admin.DbBackupService;
+import com.smsweb.sms.services.security.SecretCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -44,10 +45,12 @@ public class DbBackupController {
 
     private final SystemConfigRepository systemConfigRepository;
     private final DbBackupService dbBackupService;
+    private final SecretCipher secretCipher;
 
-    public DbBackupController(SystemConfigRepository systemConfigRepository, DbBackupService dbBackupService) {
+    public DbBackupController(SystemConfigRepository systemConfigRepository, DbBackupService dbBackupService, SecretCipher secretCipher) {
         this.systemConfigRepository = systemConfigRepository;
         this.dbBackupService = dbBackupService;
+        this.secretCipher = secretCipher;
     }
 
     @GetMapping
@@ -62,6 +65,8 @@ public class DbBackupController {
         model.addAttribute("frequency", parsed.get("frequency"));
         model.addAttribute("dayOfWeek", parsed.get("dayOfWeek"));
         model.addAttribute("time", parsed.get("time"));
+        model.addAttribute("time2", systemConfigRepository.findByConfigName("DB_BACKUP_TIME_2")
+                .map(SystemConfig::getConfigValue).orElse(""));
         model.addAttribute("emailTo", systemConfigRepository.findByConfigName(DbBackupService.CONFIG_EMAIL_TO)
                 .map(SystemConfig::getConfigValue).orElse(""));
         model.addAttribute("hasPassword", systemConfigRepository.findByConfigName(DbBackupService.CONFIG_EMAIL_PASSWORD)
@@ -89,6 +94,14 @@ public class DbBackupController {
             return "redirect:/admin/db-backup";
         }
 
+        // A new password is stored encrypted only. Without the server's master key it is refused up front
+        // (before anything is saved), instead of silently storing it as readable plain text.
+        if (password != null && !password.isBlank() && !secretCipher.isConfigured()) {
+            redirectAttributes.addFlashAttribute("error",
+                    "The password could not be saved: the server's encryption key (SMS_CONFIG_ENCRYPTION_KEY) is not configured. Nothing was changed.");
+            return "redirect:/admin/db-backup";
+        }
+
         String cron = buildCron(frequency, dayOfWeek, time);
         saveConfig(DbBackupService.CONFIG_CRON, cron,
                 "Cron expression for the automatic database backup job. Set from the Database Backup admin screen.");
@@ -99,8 +112,8 @@ public class DbBackupController {
         // is never pre-filled for display, so an admin editing just the schedule
         // shouldn't be forced to re-enter the passkey every time).
         if (password != null && !password.isBlank()) {
-            saveConfig(DbBackupService.CONFIG_EMAIL_PASSWORD, password,
-                    "App password/passkey for the backup sender email account.");
+            saveConfig(DbBackupService.CONFIG_EMAIL_PASSWORD, secretCipher.encrypt(password),
+                    "App password/passkey for the backup sender email account (encrypted).");
         }
 
         redirectAttributes.addFlashAttribute("success", "Backup schedule saved. Takes effect from the next run onward.");

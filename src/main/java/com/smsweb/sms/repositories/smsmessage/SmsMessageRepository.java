@@ -105,4 +105,18 @@ public interface SmsMessageRepository extends JpaRepository<SmsMessage, Long> {
     @Query("UPDATE SmsMessage m SET m.dueDate = :dueDate WHERE m.id = :id AND m.messageType = '" + SmsMessage.MESSAGE_TYPE_ACTIVITIES + "'")
     int updateActivityDueDate(@Param("id") Long id, @Param("dueDate") Date dueDate);
 
+    /**
+     * Same as insertClassRecipients, narrowed to one medium. Used only when the sender picks a
+     * medium on the Class notification; "All mediums" keeps using insertClassRecipients unchanged.
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO sms_message_recipients (sms_message_id, academic_student_id) " +
+            "SELECT :messageId, a.id FROM academic_students a " +
+            "WHERE a.school_id = :schoolId AND a.grade_id = :gradeId AND a.section_id = :sectionId " +
+            "AND a.medium_id = :mediumId AND a.status = 'Active'",
+            nativeQuery = true)
+    int insertClassRecipientsByMedium(@Param("messageId") Long messageId, @Param("schoolId") Long schoolId,
+                                      @Param("gradeId") Long gradeId, @Param("sectionId") Long sectionId,
+                                      @Param("mediumId") Long mediumId);
 }

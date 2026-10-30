@@ -9,6 +9,7 @@ import com.smsweb.sms.repositories.student.AcademicStudentRepository;
 import com.smsweb.sms.repositories.universal.GradeRepository;
 import com.smsweb.sms.repositories.universal.MediumRepository;
 import com.smsweb.sms.repositories.universal.SectionRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,16 @@ import org.slf4j.LoggerFactory;
 @Service
 public class AcademicStudentService {
     private static final Logger log = LoggerFactory.getLogger(AcademicStudentService.class);
+
+    /**
+     * Mobile-app child lookup switch. false (default) = the sibling-group flow is OFF:
+     * findSiblingsByMobile() returns an empty list, so every mobile caller falls through to
+     * findActiveByFamilyAccount() — i.e. the app lists exactly the students whose
+     * students.family_account_id is the parent's FamilyAccount. Set
+     * app.mobile.siblingLookup.enabled=true to bring the sibling-group-first behavior back.
+     */
+    @Value("${app.mobile.siblingLookup.enabled:false}")
+    private boolean siblingLookupEnabled;
 
 
     private final AcademicStudentRepository academicStudentRepository;
@@ -243,6 +254,12 @@ public class AcademicStudentService {
      */
     public List<AcademicStudent> findSiblingsByMobile(String mobile) {
         log.info("Inside findSiblingsByMobile");
+        if (!siblingLookupEnabled) {
+            // Sibling-group flow disabled (app.mobile.siblingLookup.enabled=false): callers
+            // treat an empty result as "no group" and use the FamilyAccount link instead.
+            log.info("siblingLookupEnabled is false");
+            return List.of();
+        }
         return academicStudentRepository.findSiblingsByMobile(mobile);
     }
 

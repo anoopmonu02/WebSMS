@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Birthday tab of App Config (one global time for all schools). Included by admin/app-config.html. -->
+<div th:fragment="pane" id="pane-birthday" class="config-pane d-none"
+     th:data-url="@{/admin/app-config/birthday}">
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-cake2-fill text-warning me-2"></i>Birthday notification</div>
+        <div class="card-body">
+          <p class="text-muted small">Every day at the time below, the system finds students whose birthday is today and sends a "Happy Birthday" notice on the parent app.</p>
+          <span class="badge text-bg-warning mb-3"><i class="bi bi-globe me-1"></i>One time for all schools / branches</span>
+          <div>
+            <label for="bdTime" class="form-label fw-semibold">Send time (daily)</label>
+            <input type="time" class="form-control" id="bdTime" style="max-width:200px" required>
+            <div class="form-text">24-hour clock, server local time. Takes effect from the next run, no restart needed.</div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 pt-3 border-top">
+            <span class="text-muted small" id="bdCurrent">&nbsp;</span>
+            <button type="button" class="btn btn-primary" id="bdSaveBtn">
+              <span class="spinner-border spinner-border-sm me-1 save-spinner" id="bdSpinner"></span>Save time
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card config-card mb-3">
+        <div class="card-header py-3">How it works</div>
+        <div class="card-body small">
+          <p class="mb-2"><strong>At send time:</strong> every school is checked for birthdays today.</p>
+          <p class="mb-2"><strong>Who gets it:</strong> parents of those students, on the parent app.</p>
+          <p class="mb-0"><strong>Changing the time:</strong> applies from the next run, for all schools.</p>
+        </div>
+      </div>
+      <div class="alert alert-primary small mb-0"><strong>Admin only.</strong> Only Admin and Super Admin can see and change this time.</div>
+    </div>
+  </div>
+
+  <script type="text/javascript" th:inline="none">
+  document.addEventListener('DOMContentLoaded', function () {
+    var pane = document.getElementById('pane-birthday');
+    var url = pane.dataset.url;
+    var loaded = false;
+    function el(id) { return document.getElementById(id); }
+    function err(xhr, fallback) { return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : fallback; }
+
+    function load() {
+      if (loaded) { return; }
+      $.ajax({
+        type: 'GET', url: url,
+        success: function (d) {
+          loaded = true;
+          el('bdTime').value = d.time;
+          el('bdCurrent').textContent = 'Currently: daily at ' + d.time;
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the birthday time.'), 'Error'); }
+      });
+    }
+    var tabBtn = document.getElementById('tab-birthday-btn');
+    if (tabBtn) { tabBtn.addEventListener('click', load); }
+    if (location.hash === '#birthday') { load(); }
+
+    el('bdSaveBtn').addEventListener('click', function () {
+      var btn = this, t = el('bdTime').value;
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) { toastr.error('Please pick a valid time.', 'Error'); return; }
+      btn.disabled = true; el('bdSpinner').style.display = 'inline-block';
+      $.ajax({
+        type: 'POST', url: url, data: { time: t },
+        success: function (d) { toastr.success(d.message || 'Saved.', 'Saved'); el('bdCurrent').textContent = 'Currently: daily at ' + t; },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not save - please try again.'), 'Error'); },
+        complete: function () { btn.disabled = false; el('bdSpinner').style.display = 'none'; }
+      });
+    });
+  });
+  </script>
+</div>
+</body>
+</html>

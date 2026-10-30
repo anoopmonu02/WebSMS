@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
       xmlns:sms="http://www.smsweb.com/thymeleaf" th:replace="~{base::Layout(~{::section})}">
 <head>
     <meta charset="UTF-8">
@@ -121,6 +122,22 @@
                                     <span id="msgLabel"></span>
                                     <span id="msgAmount"></span>
                                     <input type="hidden" name="fullPaymentAmount" value=""/>
+                                </div>
+
+                                <!-- Parent mobile-app status: filled by renderAppStatus(), hidden when the parent already uses the app.
+                                     The button exists only for users who may open Mobile Users (same role + permission as the sidebar). -->
+                                <div id="appStatusBox" class="alert alert-warning align-items-center gap-3 mt-3 mb-0 py-2" role="status" style="display:none;">
+                                    <i class="bi bi-phone-vibrate fs-3 flex-shrink-0"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold" id="appStatusTitle"></div>
+                                        <div class="small" id="appStatusText"></div>
+                                    </div>
+                                    <a id="appStatusBtn" class="btn btn-sm btn-warning flex-shrink-0" style="display:none;"
+                                       sec:authorize="hasAnyRole('ROLE_ADMIN','ROLE_SUPERADMIN','ROLE_STAFF')"
+                                       sms:access="ADMIN_MOBILE_USERS:VIEW"
+                                       href="#" target="_blank" rel="noopener noreferrer">
+                                        <i class="bi bi-key"></i> Generate password
+                                    </a>
                                 </div>
                             </div>
 
@@ -245,6 +262,7 @@
                 </div>
                 <div class="modal-body">
                     <input type="text" class="form-control" id="updatedContactNumber" placeholder="Enter mobile no." required>
+                    <div id="contactConfirmBox" class="alert d-none mt-3 mb-0" role="alert"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-square"></i> Close</button>
@@ -652,7 +670,39 @@
             return `${String(day).padStart(2, '0')}/${month}/${year} ${hrs}:${mins}:${seconds}`;
         }
 
+        // Shows / hides the "parent is not using the mobile app" box. All text is set with .text()
+        // (no HTML injection) and the mobile number is reduced to digits before it goes into the link.
+        // Wrapped in try/catch: this hint must never break the fee screen.
+        function renderAppStatus(data){
+            try {
+                const $box = $('#appStatusBox');
+                const status = data && data.student ? data.appStatus : null;
+                if (status !== 'NO_ACCOUNT' && status !== 'NO_LOGIN') {
+                    $box.hide();
+                    return;
+                }
+                const noAccount = status === 'NO_ACCOUNT';
+                $('#appStatusTitle').text(noAccount
+                    ? 'Parent mobile app account not created yet'
+                    : 'Parent is not using the mobile app yet');
+                $('#appStatusText').text(noAccount
+                    ? 'This student is not linked to a parent app account. Ask an admin to map it in Admin > Family Mapping.'
+                    : 'No recent app login found for this parent. If the password is forgotten, an admin can generate a new one.');
+                const $btn = $('#appStatusBtn');
+                const mobile = String(data.student.mobile1 || '').replace(/[^0-9]/g, '');
+                if (!noAccount && /^[0-9]{10}$/.test(mobile)) {
+                    $btn.attr('href', contextPath + 'admin/mobile-users?search=' + mobile).show();
+                } else {
+                    $btn.hide();
+                }
+                $box.css('display', 'flex');
+            } catch (e) {
+                $('#appStatusBox').hide();
+            }
+        }
+
         function setFeeRelatedData(data, flag){
+            renderAppStatus(flag === 1 ? data : null);
             if(flag===1){
                 $(".studname").html(`<strong>Student Name: </strong> ${data.student.studentName} <span class="badge rounded-pill ${data.countStu=='OLD'?'bg-primary':'bg-success'}"> <b>${data.countStu}</b> </span>`);
                 $(".fname").html(`<strong>Father Name: </strong> ${data.student.fatherName}`);
@@ -993,61 +1043,80 @@
             });
         }
 
+        let contactConfirmedFor = null;   // number the user has already seen the confirmation for
+        function resetContactConfirm() {
+            contactConfirmedFor = null;
+            $('#contactConfirmBox').addClass('d-none').empty();
+            $('#updateContactBtn').removeClass('btn-warning').addClass('btn-primary')
+                .html('<i class="bi bi-pencil-square"></i> Update').prop('disabled', false);
+        }
+        function showContactConfirm(d) {
+            const existing = d.scenario === 'EXISTING_FAMILY';
+            const box = $('#contactConfirmBox').empty().removeClass('d-none alert-warning alert-info')
+                .addClass(existing ? 'alert-warning' : 'alert-info');
+            $('<div class="fw-semibold mb-1">').text(existing ? 'This number already belongs to a family' : 'No existing family found').appendTo(box);
+            $('<div>').text(d.message || '').appendTo(box);
+            if (d.children && d.children.length) {
+                $('<div class="mt-2 small fw-semibold">').text('Children already on this number (this school):').appendTo(box);
+                const ul = $('<ul class="mb-0 small">').appendTo(box);
+                d.children.forEach(function(c) { $('<li>').text(c).appendTo(ul); });
+            }
+            if (d.otherBranchCount > 0) {
+                $('<div class="small mt-1">').text('Plus ' + d.otherBranchCount + (d.otherBranchCount > 1 ? ' children' : ' child') + ' in other branches.').appendTo(box);
+            }
+            $('#updateContactBtn').removeClass('btn-primary').addClass('btn-warning')
+                .html('<i class="bi bi-check2-circle"></i> Yes, update');
+        }
+        $('#updatedContactNumber').on('input', resetContactConfirm);
+        document.getElementById('myModal').addEventListener('hidden.bs.modal', resetContactConfirm);
+
         $('#updateContactBtn').click(function() {
-            const contactNumber = $('#updatedContactNumber').val();
+            const contactNumber = ($('#updatedContactNumber').val() || '').trim();
             const studentId = $('#StudentId').val();
 
             if (contactNumber === '') {
-                //toastr["error"]("Contact number cannot be empty","Missing");
                 showWarningMsg("error","Contact number cannot be empty","Missing");
                 return;
             }
-
-            // Validate contact number
-            const isNumeric = /^\d{10}$/.test(contactNumber);
-            if (!isNumeric) {
-                //toastr["error"]("Contact number must be exactly 10 digits and contain only numbers.","Message");
+            if (!/^\d{10}$/.test(contactNumber)) {
                 showWarningMsg("error","Contact number must be exactly 10 digits and contain only numbers.","Message");
                 return;
             }
 
-            // Example API URL and data
-            //const apiUrl = 'https://example.com/api/updateContact';
-            const apiUrl = `${contextPath}updateContact`;
-            const requestData = {
-                contactNumber: contactNumber,
-                stuId: studentId
-            };
+            const confirmed = (contactConfirmedFor === contactNumber);
+            const btn = $('#updateContactBtn');
+            btn.prop('disabled', true);   // blocks double clicks while the request runs
 
-            // Make the API call
-            fetch(apiUrl, {
+            fetch(`${contextPath}updateContact`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contactNumber: contactNumber, stuId: studentId, confirm: confirmed ? 'true' : 'false' })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    //toastr["success"](data.success,"Success");
+                if (data.needsConfirmation) {
+                    showContactConfirm(data);
+                    contactConfirmedFor = contactNumber;
+                } else if (data.success) {
                     showWarningMsg("success",data.success,"Success");
                     $('#myModal').modal('hide');
-                } else if(data.error){
-                    //toastr["error"](data.error,"Error");
+                } else if (data.noChange) {
+                    showWarningMsg("info",data.noChange,"No change");
+                    $('#myModal').modal('hide');
+                } else if (data.error) {
                     showWarningMsg("error",data.error,"Error");
-                } else if(data.empty_response){
-
+                    resetContactConfirm();
+                } else if (data.empty_response) {
+                    // nothing to do
                 } else {
-                    //toastr["error"]("Failed to update contact number","Error");
                     showWarningMsg("error","Failed to update contact number","Error");
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                //toastr["error"]("An error occurred while updating the contact number","Error");
                 showWarningMsg("error","An error occurred while updating the contact number","Error");
-            });
+            })
+            .finally(() => { btn.prop('disabled', false); });
         });
 
         function checkMonths(){

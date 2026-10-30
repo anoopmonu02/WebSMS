@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Email Account tab of App Config (per school). Included by admin/app-config.html. -->
+<div th:fragment="pane" id="pane-email" class="config-pane d-none"
+     th:data-url="@{/admin/app-config/email-account}"
+     th:data-test-url="@{/admin/app-config/email-account/test}">
+  <style>
+    #pane-email .acc-chip { border:1px solid #b9c3d1; background:#fff; border-radius:999px; padding:.4rem 1rem; font-size:.9rem; font-weight:500; cursor:pointer; }
+    #pane-email .acc-chip:hover { border-color:#2563eb; }
+    #pane-email .acc-use { display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.8rem 0; border-bottom:1px solid #eef1f6; }
+    #pane-email .acc-use:last-child { border-bottom:0; }
+    #pane-email .acc-use small { color:#5b6678; display:block; word-break:break-all; }
+  </style>
+  <div class="row g-3">
+
+    <div class="col-lg-8">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-envelope-at me-2"></i>Sending account for <span th:text="${session.school != null ? session.school.schoolName : 'your school'}">your school</span></div>
+        <div class="card-body">
+          <p class="text-muted small">Set this up once. Database backups, attendance reminders and absence reports are all sent from this account. Each of them only needs its own receiver email.</p>
+          <div id="acKeyWarning" class="alert alert-warning small d-none">
+            The server's encryption key (SMS_CONFIG_ENCRYPTION_KEY) is not configured, so a new password cannot be saved.
+          </div>
+
+          <label class="form-label fw-semibold">Quick setup</label>
+          <div class="d-flex flex-wrap gap-2 mb-3" id="acPresets">
+            <button type="button" class="acc-chip" data-host="smtp.gmail.com" data-port="587" data-sec="STARTTLS">Gmail</button>
+            <button type="button" class="acc-chip" data-host="smtp.office365.com" data-port="587" data-sec="STARTTLS">Outlook / Office 365</button>
+            <button type="button" class="acc-chip" data-host="smtp.mail.yahoo.com" data-port="587" data-sec="STARTTLS">Yahoo</button>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acSender">Sender email</label>
+              <input type="email" class="form-control" id="acSender" maxlength="150" autocomplete="off">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acPassword">Password / app password</label>
+              <input type="password" class="form-control" id="acPassword" maxlength="100" autocomplete="new-password">
+              <div class="form-text" id="acPasswordHint"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acHost">SMTP server</label>
+              <input type="text" class="form-control" id="acHost" maxlength="100" autocomplete="off" placeholder="smtp.gmail.com">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acPort">Port</label>
+              <input type="number" class="form-control" id="acPort" min="1" max="65535">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acSecurity">Security</label>
+              <select class="form-select" id="acSecurity">
+                <option value="STARTTLS">STARTTLS (recommended, usually port 587)</option>
+                <option value="SSL">SSL / TLS (usually port 465)</option>
+                <option value="NONE">None (not recommended)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="acName">Sender name <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="text" class="form-control" id="acName" maxlength="100" autocomplete="off">
+              <div class="form-text">Shown as the sender in the inbox.</div>
+            </div>
+          </div>
+
+          <div class="border-top mt-4 pt-3">
+            <div class="fw-semibold small text-muted mb-2">Advanced</div>
+            <div class="row g-3 align-items-end">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="acAuth" checked>
+                  <label class="form-check-label" for="acAuth">Server requires login</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="acTimeout">Timeout (seconds)</label>
+                <input type="number" class="form-control" id="acTimeout" min="5" max="120">
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <span class="text-muted small">Applies to your school only</span>
+            <button type="button" class="btn btn-primary" id="acSaveBtn"><i class="bi bi-check-lg me-1"></i>Save account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card config-card" style="height:auto">
+        <div class="card-header py-3">Send a test email</div>
+        <div class="card-body">
+          <label class="form-label fw-semibold" for="acTestTo">Send test to</label>
+          <input type="email" class="form-control" id="acTestTo" placeholder="you@example.com" autocomplete="off">
+          <div class="form-text mb-3">Uses the saved account, so save first.</div>
+          <button type="button" class="btn btn-outline-primary" id="acTestBtn"><i class="bi bi-send me-1"></i>Send test email</button>
+        </div>
+      </div>
+
+      <div class="card config-card" style="height:auto">
+        <div class="card-header py-3">Where this account is used</div>
+        <div class="card-body py-2">
+          <div class="acc-use"><div><strong>Database backup</strong><small id="acUseBackup">-</small></div><span id="acUseBackupBadge"></span></div>
+          <div class="acc-use"><div><strong>Attendance reminder</strong><small id="acUseReminder">-</small></div><span id="acUseReminderBadge"></span></div>
+          <div class="acc-use"><div><strong>Absence report</strong><small id="acUseReport">-</small></div><span id="acUseReportBadge"></span></div>
+        </div>
+      </div>
+
+      <div class="alert alert-primary small mb-0"><strong>Using Gmail?</strong> Turn on 2-step verification in the Google account, create an App Password and paste it above. Your normal Gmail password will not work.</div>
+    </div>
+  </div>
+
+  <script type="text/javascript" th:inline="none">
+  document.addEventListener('DOMContentLoaded', function () {
+    var pane = document.getElementById('pane-email');
+    var url = pane.dataset.url, testUrl = pane.dataset.testUrl;
+    var loaded = false;
+    function el(id) { return document.getElementById(id); }
+    function err(xhr, fallback) { return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : fallback; }
+
+    function badge(id, textId, receivers, ready) {
+      var b = el(id), t = el(textId);
+      t.textContent = receivers ? 'Receiver: ' + receivers : 'Receiver: not set';
+      b.className = 'badge ' + (receivers && ready ? 'text-bg-success' : 'text-bg-warning');
+      b.textContent = receivers && ready ? 'Set' : (receivers ? 'Needs account' : 'Needs receiver');
+    }
+    function load() {
+      if (loaded) { return; }
+      $.ajax({
+        type: 'GET', url: url,
+        success: function (d) {
+          loaded = true;
+          el('acSender').value = d.sender || '';
+          el('acName').value = d.fromName || '';
+          el('acHost').value = d.host || '';
+          el('acPort').value = d.port;
+          el('acSecurity').value = d.security;
+          el('acAuth').checked = !!d.auth;
+          el('acTimeout').value = d.timeout;
+          el('acPasswordHint').textContent = d.hasPassword ? 'A password is saved (encrypted). Leave blank to keep it.' : 'No password saved yet.';
+          el('acKeyWarning').classList.toggle('d-none', !!d.keyConfigured);
+          badge('acUseBackupBadge', 'acUseBackup', d.backupReceivers || (d.accountReady ? d.sender : ''), d.accountReady);
+          badge('acUseReminderBadge', 'acUseReminder', d.reminderReceivers, d.accountReady);
+          badge('acUseReportBadge', 'acUseReport', d.reportReceivers, d.accountReady);
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the email account.'), 'Error'); }
+      });
+    }
+
+    var tabBtn = document.getElementById('tab-email-btn');
+    if (tabBtn) { tabBtn.addEventListener('click', load); }
+    if (location.hash === '#email') { load(); }
+
+    document.querySelectorAll('#acPresets .acc-chip').forEach(function (b) {
+      b.addEventListener('click', function () {
+        el('acHost').value = b.dataset.host; el('acPort').value = b.dataset.port; el('acSecurity').value = b.dataset.sec;
+      });
+    });
+    el('acSecurity').addEventListener('change', function () {
+      if (this.value === 'SSL' && el('acPort').value === '587') { el('acPort').value = '465'; }
+      if (this.value === 'STARTTLS' && el('acPort').value === '465') { el('acPort').value = '587'; }
+    });
+
+    el('acSaveBtn').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      $.ajax({
+        type: 'POST', url: url,
+        data: {
+          sender: el('acSender').value, password: el('acPassword').value, fromName: el('acName').value,
+          host: el('acHost').value, port: el('acPort').value, security: el('acSecurity').value,
+          auth: el('acAuth').checked, timeout: el('acTimeout').value
+        },
+        success: function (d) { toastr.success(d.message || 'Saved.', 'Saved'); el('acPassword').value = ''; loaded = false; load(); },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not save - please try again.'), 'Error'); },
+        complete: function () { btn.disabled = false; }
+      });
+    });
+    el('acTestBtn').addEventListener('click', function () {
+      var btn = this; btn.disabled = true;
+      $.ajax({
+        type: 'POST', url: testUrl, data: { to: el('acTestTo').value },
+        success: function (d) { toastr.success(d.message, 'Sent'); },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not send the test email.'), 'Error'); },
+        complete: function () { btn.disabled = false; }
+      });
+    });
+  });
+  </script>
+</div>
+</body>
+</html>

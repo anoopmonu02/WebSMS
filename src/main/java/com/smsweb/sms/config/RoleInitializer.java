@@ -243,6 +243,11 @@ public class RoleInitializer {
                     "STUDENT_REPORT_ATTENDANCE_ANNUAL",
                     "View annual attendance report for a class");
 
+            // Monthly absent-days report (Reports > Student Report)
+            seed(screenRepo, "Student", "Absent Report (Monthly)",
+                    "STUDENT_REPORT_ABSENT_MONTHLY",
+                    "View month-wise absent days of a class, with months above a limit highlighted");
+
             // Correct a single day's attendance for one student, with a mandatory
             // reason — hard-locked to Admin/Superadmin at the controller level too
             seed(screenRepo, "Student", "Edit Student Attendance",
@@ -435,6 +440,10 @@ public class RoleInitializer {
             seed(screenRepo, "Admin", "Fine",
                     "ADMIN_FINE",
                     "View, add, edit, delete fine configuration");
+
+            seed(screenRepo, "Admin", "Family Mapping",
+                    "ADMIN_FAMILY_MAPPING",
+                    "Map students to parent (family) accounts by Mobile 1, one by one or in bulk");
 
             seed(screenRepo, "Admin", "Fee-Grade Mapping",
                     "ADMIN_FEE_CLASS",

@@ -25,6 +25,34 @@ public class MobileUserRowDto {
     // One line per linked child, e.g. "Sabeeha (8-A, United Avadh Montessori School)"
     private List<String> students = new ArrayList<>();
 
+    // Plain search keys per linked child: the original "Name (Grade-Sec, School)" line plus the
+    // father's name as its own entry. Used only by the server-side search filter, never sent to
+    // the browser, so the display label ("Father: ...") cannot make every row match "father".
+    @JsonIgnore
+    private List<String> searchLines = new ArrayList<>();
+
+    // Structured version of the same children, so the page can style name / father / class / school
+    // separately (plain text for the name, highlighted tags for the rest). `students` above is kept
+    // unchanged for compatibility.
+    private List<StudentCard> studentCards = new ArrayList<>();
+
+    @Getter
+    public static class StudentCard {
+        private final String name;
+        private final String father;        // "" when not recorded
+        private final String classSection;  // e.g. "3-B", "" when no active enrollment
+        private final String school;        // "" when no active enrollment
+        private final boolean inactive;
+
+        public StudentCard(String name, String father, String classSection, String school, boolean inactive) {
+            this.name = name;
+            this.father = father;
+            this.classSection = classSection;
+            this.school = school;
+            this.inactive = inactive;
+        }
+    }
+
     // Session info, from MobileRefreshTokenService.SessionSummary
     private boolean everLoggedIn;
     private boolean hasValidSession;

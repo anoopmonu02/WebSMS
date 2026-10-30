@@ -462,4 +462,27 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
            "AND a.isMigrated = false")
     List<AcademicStudent> findSiblingsByMobile(@Param("mobile") String mobile);
 
+    // ── Class-notification helpers (Send Message > Notification > Class, multi-select) ──
+    // Same "who counts as a recipient" rule as SmsMessageRepository.insertClassRecipients:
+    // this school, status 'Active'. Medium is an extra, optional narrowing.
+
+    @Query("SELECT a.grade.id, a.section.id, COUNT(a) FROM AcademicStudent a " +
+           "WHERE a.school.id = :schoolId AND a.status = 'Active' " +
+           "AND a.grade.id IN :gradeIds AND a.section.id IN :sectionIds " +
+           "GROUP BY a.grade.id, a.section.id")
+    List<Object[]> countActiveByClasses(@Param("schoolId") Long schoolId,
+                                        @Param("gradeIds") java.util.Collection<Long> gradeIds,
+                                        @Param("sectionIds") java.util.Collection<Long> sectionIds);
+
+    @Query("SELECT a.grade.id, a.section.id, COUNT(a) FROM AcademicStudent a " +
+           "WHERE a.school.id = :schoolId AND a.medium.id = :mediumId AND a.status = 'Active' " +
+           "AND a.grade.id IN :gradeIds AND a.section.id IN :sectionIds " +
+           "GROUP BY a.grade.id, a.section.id")
+    List<Object[]> countActiveByClassesAndMedium(@Param("schoolId") Long schoolId,
+                                                 @Param("mediumId") Long mediumId,
+                                                 @Param("gradeIds") java.util.Collection<Long> gradeIds,
+                                                 @Param("sectionIds") java.util.Collection<Long> sectionIds);
+
+    List<AcademicStudent> findAllBySchool_IdAndGrade_IdAndSection_IdAndMedium_IdAndStatus(
+            Long school, Long grade, Long section, Long medium, String status);
 }

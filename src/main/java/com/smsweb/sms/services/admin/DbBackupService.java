@@ -3,6 +3,10 @@ package com.smsweb.sms.services.admin;
 import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.SystemConfigRepository;
 import com.smsweb.sms.services.globalaccess.EmailService;
+import com.smsweb.sms.services.automation.AutomationMailService;
+import com.smsweb.sms.services.automation.AutomationSettings;
+import com.smsweb.sms.services.automation.AutomationSettingsService;
+import com.smsweb.sms.services.security.SecretCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +42,8 @@ import java.util.zip.ZipOutputStream;
  * system_config table (same table/pattern as BIRTHDAY_NOTIFICATION_CRON):
  *   DB_BACKUP_SCHEDULE     - cron expression
  *   EMAIL_DB_BACKUP        - recipient AND sender account (backup is emailed to itself)
- *   EMAIL_DB_BKP_PASSWORD  - app password/passkey for that account
+ *   EMAIL_DB_BKP_PASSWORD  - app password/passkey for that account (stored encrypted, "ENC:v1:...",
+ *                            see SecretCipher; a legacy plain value is still read and upgraded at startup)
  *
  * Both the .sql and its .zip are kept permanently in app.backup.path (no automatic
  * pruning) — cleanup is manual, via the delete button on the Database Backup screen.
@@ -51,6 +56,10 @@ public class DbBackupService {
     public static final String CONFIG_CRON = "DB_BACKUP_SCHEDULE";
     public static final String CONFIG_EMAIL_TO = "EMAIL_DB_BACKUP";
     public static final String CONFIG_EMAIL_PASSWORD = "EMAIL_DB_BKP_PASSWORD";
+    /** Comma separated receivers of the backup email; empty = the sending account itself. */
+    public static final String CONFIG_RECEIVER = "DB_BACKUP_RECEIVER";
+    /** Id of the school whose Email Account (App Config) sends the backup email. */
+    public static final String CONFIG_MAIL_SCHOOL_ID = "DB_BACKUP_MAIL_SCHOOL_ID";
 
     /** Used only if no row exists yet in system_config for CONFIG_CRON. */
     public static final String DEFAULT_CRON = "0 0 2 ? * SUN";
@@ -79,10 +88,18 @@ public class DbBackupService {
 
     private final SystemConfigRepository systemConfigRepository;
     private final EmailService emailService;
+    private final SecretCipher secretCipher;
+    private final AutomationSettingsService automationSettingsService;
+    private final AutomationMailService automationMailService;
+    private final java.util.concurrent.atomic.AtomicBoolean backupRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
 
-    public DbBackupService(SystemConfigRepository systemConfigRepository, EmailService emailService) {
+    public DbBackupService(SystemConfigRepository systemConfigRepository, EmailService emailService, SecretCipher secretCipher,
+                           AutomationSettingsService automationSettingsService, AutomationMailService automationMailService) {
+        this.automationSettingsService = automationSettingsService;
+        this.automationMailService = automationMailService;
         this.systemConfigRepository = systemConfigRepository;
         this.emailService = emailService;
+        this.secretCipher = secretCipher;
     }
 
     /**
@@ -91,6 +108,37 @@ public class DbBackupService {
      * path either way, so there's exactly one place this logic can go wrong.
      */
     public Map<String, Object> runBackupNow() {
+        // Run guard: the scheduled cron, the second daily slot, the missed-backup catch-up and the
+        // "Backup Now" button can all arrive close together. Two dumps at once would only waste I/O.
+        if (!backupRunning.compareAndSet(false, true)) {
+            Map<String, Object> busy = new LinkedHashMap<>();
+            busy.put("error", "A backup is already running. Please wait for it to finish.");
+            return busy;
+        }
+        try {
+            return doRunBackup();
+        } finally {
+            backupRunning.set(false);
+        }
+    }
+
+    public boolean isBackupRunning() {
+        return backupRunning.get();
+    }
+
+    /** Modified time (epoch millis) of the newest .sql/.zip in the backup folder, or 0 when there is none. */
+    public long latestBackupMillis() {
+        File[] files = new File(backupPath).listFiles(f -> f.isFile() && (f.getName().endsWith(".sql") || f.getName().endsWith(".zip")));
+        long latest = 0;
+        if (files != null) {
+            for (File f : files) {
+                latest = Math.max(latest, f.lastModified());
+            }
+        }
+        return latest;
+    }
+
+    private Map<String, Object> doRunBackup() {
         log.info("Inside runBackupNow");
         Map<String, Object> result = new LinkedHashMap<>();
         File optionsFile = null;
@@ -145,12 +193,50 @@ public class DbBackupService {
 
             zipFile(sqlFile, zipFile);
 
+            // Preferred: the school's own SMTP account from App Config > Email Account.
+            // Fallback (unchanged legacy behaviour): the older EMAIL_DB_BACKUP / EMAIL_DB_BKP_PASSWORD pair.
+            AutomationSettings mailAccount = backupMailAccount();
             String emailTo = configValue(CONFIG_EMAIL_TO);
-            String emailPassword = configValue(CONFIG_EMAIL_PASSWORD);
+            String emailPassword = null;
+            boolean passwordUnreadable = false;
+            if (mailAccount == null) {
+                try {
+                    emailPassword = secretCipher.decrypt(configValue(CONFIG_EMAIL_PASSWORD));
+                } catch (IllegalStateException keyEx) {
+                    log.error("Could not read the saved backup email password: {}", keyEx.getMessage());
+                    passwordUnreadable = true;
+                }
+            }
             boolean emailed = false;
             String note;
 
-            if (emailTo == null || emailTo.isBlank() || emailPassword == null || emailPassword.isBlank()) {
+            if (mailAccount != null) {
+                List<String> receivers = backupReceivers(mailAccount);
+                String receiverText = String.join(", ", receivers);
+                try {
+                    if (zipFile.length() <= MAX_ATTACHMENT_BYTES) {
+                        automationMailService.send(mailAccount, receivers,
+                                "Database Backup - " + displayTimestamp(timestamp),
+                                "Attached is the database backup created on " + displayTimestamp(timestamp) + ".",
+                                false, zipFile);
+                        emailed = true;
+                        note = "Backup created and emailed to " + receiverText + ".";
+                    } else {
+                        automationMailService.send(mailAccount, receivers,
+                                "Database Backup - " + displayTimestamp(timestamp) + " (too large to attach)",
+                                "A database backup was created on " + displayTimestamp(timestamp)
+                                        + " but is too large to email (" + formatSize(zipFile.length())
+                                        + "). It has been kept on the server - you can download/manage it from the Database Backup screen.",
+                                false);
+                        note = "Backup created (" + formatSize(zipFile.length()) + "). Too large to email, so only a notification was sent to " + receiverText + ".";
+                    }
+                } catch (Exception mailEx) {
+                    log.error("Failed to send backup email", mailEx);
+                    note = "Backup created, but sending the email failed: " + mailEx.getMessage();
+                }
+            } else if (passwordUnreadable) {
+                note = "Backup created, but the saved email password could not be decrypted (check the server's SMS_CONFIG_ENCRYPTION_KEY, or re-enter the password), so nothing was sent.";
+            } else if (emailTo == null || emailTo.isBlank() || emailPassword == null || emailPassword.isBlank()) {
                 note = "Backup created, but no backup email/passkey is configured yet, so nothing was sent.";
             } else {
                 try {
@@ -234,7 +320,7 @@ public class DbBackupService {
     public boolean deleteBackup(String baseFilename) {
         log.info("Inside deleteBackup - baseFilename={}", baseFilename);
         if (baseFilename == null || baseFilename.isBlank()
-                || baseFilename.contains("..") || baseFilename.contains("/") || baseFilename.contains("\\")) {
+                || baseFilename.contains("..") || !baseFilename.matches("[A-Za-z0-9_.-]{1,100}")) {
             return false;
         }
         File backupDir = new File(backupPath);
@@ -247,6 +333,31 @@ public class DbBackupService {
     }
 
     // ── Internals ────────────────────────────────────────────────────────────────
+
+    /** The school email account chosen for backups (DB_BACKUP_MAIL_SCHOOL_ID), or null when none is set up. */
+    private AutomationSettings backupMailAccount() {
+        try {
+            String id = configValue(CONFIG_MAIL_SCHOOL_ID);
+            if (id == null || id.isBlank()) {
+                return null;
+            }
+            AutomationSettings account = automationSettingsService.load(Long.parseLong(id.trim()));
+            return account.isAccountReady() ? account : null;
+        } catch (RuntimeException e) {
+            log.warn("Could not read the backup email account, using the legacy settings: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /** Receivers from DB_BACKUP_RECEIVER; an empty list means "send it to the sending account itself". */
+    private List<String> backupReceivers(AutomationSettings account) {
+        List<String> receivers = AutomationSettingsService.splitRecipients(configValue(CONFIG_RECEIVER));
+        if (receivers.isEmpty()) {
+            receivers = new ArrayList<>();
+            receivers.add(account.getMailSender());
+        }
+        return receivers;
+    }
 
     private String configValue(String key) {
         return systemConfigRepository.findByConfigName(key).map(SystemConfig::getConfigValue).orElse(null);

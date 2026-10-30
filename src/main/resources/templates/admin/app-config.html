@@ -16,6 +16,14 @@
   .save-spinner { display: none; }
   .char-count { font-size: .78rem; color: #6c757d; }
   .config-pane.d-none { display: none !important; }
+  /* Tab bar: pill style (grey track, solid blue active pill, hover fill) */
+  #configTabs { display: inline-flex; flex-wrap: wrap; gap: 6px; background: #e4e9f1; border: 0; border-radius: 14px; padding: 6px; }
+  #configTabs .nav-item { margin: 0; }
+  #configTabs .nav-link { display: flex; align-items: center; gap: 6px; border: 0; border-radius: 10px; padding: 10px 18px; font-weight: 600; color: #3b4658; background: transparent; cursor: pointer; transition: background-color .15s, color .15s, box-shadow .15s; }
+  #configTabs .nav-link:hover { background: #d3dbe8; color: #111827; }
+  #configTabs .nav-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+  #configTabs .nav-link.active, #configTabs .nav-link.active:hover { background: #2563eb; color: #fff; box-shadow: 0 2px 6px rgba(37,99,235,.35); }
+  #configTabs .nav-link i { margin: 0 !important; }
 </style>
 
 <div class="container-fluid px-3 px-lg-4">
@@ -31,7 +39,7 @@
   <hr class="mt-1 mb-3"/>
 
   <!-- Tabs (Mobile App, Discount; more configs will land here later) -->
-  <ul class="nav nav-pills mb-4" id="configTabs">
+  <ul class="nav mb-4" id="configTabs">
     <li class="nav-item">
       <button class="nav-link active" id="tab-mobile-btn" type="button" data-pane="pane-mobile">
         <i class="bi bi-phone me-1"></i>Mobile App
@@ -40,6 +48,26 @@
     <li class="nav-item">
       <button class="nav-link" id="tab-discount-btn" type="button" data-pane="pane-discount">
         <i class="bi bi-percent me-1"></i>Discount
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-email-btn" type="button" data-pane="pane-email">
+        <i class="bi bi-envelope-at me-1"></i>Email Account
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-backup-btn" type="button" data-pane="pane-backup">
+        <i class="bi bi-database-down me-1"></i>Database Backup
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-notifications-btn" type="button" data-pane="pane-notifications">
+        <i class="bi bi-bell me-1"></i>Notifications
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-birthday-btn" type="button" data-pane="pane-birthday">
+        <i class="bi bi-cake2 me-1"></i>Birthday
       </button>
     </li>
   </ul>
@@ -102,6 +130,18 @@
 
     </div>
   </div>
+
+  <!-- ═══════════════ EMAIL ACCOUNT TAB ═══════════════ -->
+  <div th:replace="~{admin/config-tabs/email-tab :: pane}"></div>
+
+  <!-- ═══════════════ DATABASE BACKUP TAB ═══════════════ -->
+  <div th:replace="~{admin/config-tabs/backup-tab :: pane}"></div>
+
+  <!-- ═══════════════ NOTIFICATIONS TAB ═══════════════ -->
+  <div th:replace="~{admin/config-tabs/notification-tab :: pane}"></div>
+
+  <!-- ═══════════════ BIRTHDAY TAB ═══════════════ -->
+  <div th:replace="~{admin/config-tabs/birthday-tab :: pane}"></div>
 
   <!-- ═══════════════ DISCOUNT TAB ═══════════════ -->
   <div id="pane-discount" class="config-pane d-none"
@@ -190,10 +230,14 @@ document.addEventListener('DOMContentLoaded', function () {
   tabButtons.forEach(function (b) {
     b.addEventListener('click', function () {
       showPane(b.dataset.pane);
-      try { history.replaceState(null, '', b.dataset.pane === 'pane-discount' ? '#discount' : location.pathname + location.search); } catch (e) {}
+      try { var hashes = { 'pane-discount': '#discount', 'pane-email': '#email', 'pane-backup': '#backup', 'pane-notifications': '#notifications', 'pane-birthday': '#birthday' }; history.replaceState(null, '', hashes[b.dataset.pane] ? hashes[b.dataset.pane] : location.pathname + location.search); } catch (e) {}
     });
   });
   if (location.hash === '#discount') { showPane('pane-discount'); }
+  if (location.hash === '#email') { showPane('pane-email'); }
+  if (location.hash === '#backup') { showPane('pane-backup'); }
+  if (location.hash === '#notifications') { showPane('pane-notifications'); }
+  if (location.hash === '#birthday') { showPane('pane-birthday'); }
 
   var msgBox = document.getElementById('mobileMaintenanceMessage');
   var countEl = document.getElementById('msgCharCount');

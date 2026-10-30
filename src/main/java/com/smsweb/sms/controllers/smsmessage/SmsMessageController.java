@@ -4,6 +4,7 @@ import com.smsweb.sms.config.permission.CheckAccess;
 import com.smsweb.sms.controllers.BaseController;
 import com.smsweb.sms.helper.FileHandleHelper;
 import com.smsweb.sms.models.permission.AccessType;
+import com.smsweb.sms.dto.ClassRecipientCount;
 import com.smsweb.sms.dto.SmsNotificationDto;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.models.admin.AcademicYear;
@@ -16,7 +17,9 @@ import com.smsweb.sms.models.universal.Grade;
 import com.smsweb.sms.models.universal.Section;
 import com.smsweb.sms.services.Employee.EmployeeService;
 import com.smsweb.sms.services.globalaccess.DropdownService;
-//import com.smsweb.sms.services.smsmessage.SmsMessageService;
+//import com.smsweb.sms.services.smsmessage.ClassNotificationService;
+import com.smsweb.sms.services.smsmessage.ClassNotificationService;
+import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import com.smsweb.sms.services.smsmessage.SmsMessageService;
 import com.smsweb.sms.services.student.AcademicStudentService;
 import com.smsweb.sms.services.student.StudentService;
@@ -63,6 +66,10 @@ public class SmsMessageController extends BaseController {
     private final SectionService sectionService;
     private final EmployeeService employeeService;
     private final FileHandleHelper fileHandleHelper;
+
+    // Multi-class notification (one message per selected grade-section); additive, see ClassNotificationService
+    @Autowired
+    private ClassNotificationService classNotificationService;
 
     //, SmsMessageService messageService
     public SmsMessageController(DropdownService dropdownService, SmsMessageService smsMessageService, UserService userService, AcademicStudentService academicStudentService, StudentService studentService, GradeService gradeService, SectionService sectionService, EmployeeService employeeService, FileHandleHelper fileHandleHelper) {
@@ -438,7 +445,10 @@ public class SmsMessageController extends BaseController {
             @RequestParam(required = false) Long classId,
             @RequestParam(required = false) Long sectionId,
             @RequestParam(required = false) Long studentId,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @RequestParam(required = false) Long mediumId,
+            @RequestParam(required = false) List<Long> gradeIds,
+            @RequestParam(required = false) List<Long> sectionIds
     ) {
         log.info("Inside sendNewNotificationWithAttachments — recipientType={}, fileCount={}",
                 recipientType, files == null ? 0 : files.size());
@@ -463,6 +473,45 @@ public class SmsMessageController extends BaseController {
             String loggedInUsername = loggedInUser.getUsername();
             School school = employeeService.getLoggedInEmployeeSchool(loggedInUsername)
                     .orElseThrow(() -> new RuntimeException("School not found for Logged In user: " + loggedInUsername));
+
+            // Multi-class send (grades x sections, optional medium): one message per class that has
+            // students. Handled entirely by ClassNotificationService; the single-class / STUDENT / ALL
+            // code below is untouched.
+            if ("CLASS".equalsIgnoreCase(recipientType) && gradeIds != null && !gradeIds.isEmpty()) {
+                try {
+                    // Validate and count BEFORE saving any file, so a bad selection leaves nothing on disk.
+                    if (classNotificationService.preview(school.getId(), mediumId, gradeIds, sectionIds).isEmpty()) {
+                        return ResponseEntity.badRequest().body(Map.of("error",
+                                "No Active students found for the selected classes" + (mediumId != null ? " and medium." : ".")));
+                    }
+                } catch (IllegalArgumentException iae) {
+                    return ResponseEntity.badRequest().body(Map.of("error", iae.getMessage()));
+                }
+                // Each file is saved ONCE; every message points to the same stored file.
+                List<ClassNotificationService.StoredAttachment> stored = new ArrayList<>();
+                for (MultipartFile f : validFiles) {
+                    String storedRelativePath = fileHandleHelper.saveMessageAttachment(f, school.getId());
+                    stored.add(new ClassNotificationService.StoredAttachment(
+                            storedRelativePath, f.getOriginalFilename(), f.getContentType(), f.getSize()));
+                }
+                Map<String, Object> sendResult;
+                try {
+                    sendResult = classNotificationService.send(heading, message, mediumId, gradeIds, sectionIds,
+                            stored, school, loggedInUser);
+                } catch (IllegalArgumentException iae) {
+                    return ResponseEntity.badRequest().body(Map.of("error", iae.getMessage()));
+                }
+                int classesSent = ((Number) sendResult.get("classesSent")).intValue();
+                if (classesSent == 0) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error",
+                            "Notification could not be sent to any class. Please try again."));
+                }
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("message", "Notification sent successfully.");
+                body.put("attachmentCount", stored.size());
+                body.putAll(sendResult);
+                return ResponseEntity.ok(body);
+            }
 
             SmsMessage smsMessage = new SmsMessage();
             smsMessage.setSmsHeading(heading);
@@ -557,6 +606,71 @@ public class SmsMessageController extends BaseController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error while sending Notification: " + ex.getMessage()));
         }
+    }
+
+    /**
+     * Preview for the multi-class Notification send: which classes (that have Active students) would
+     * receive it and how many students each. Read only; school comes from the logged-in employee.
+     */
+    @CheckAccess(screen = "MESSAGE_SEND", type = AccessType.VIEW)
+    @PostMapping("/previewClassRecipients")
+    public ResponseEntity<?> previewClassRecipients(@RequestBody Map<String, Object> payload) {
+        log.info("Inside previewClassRecipients");
+        try {
+            UserEntity loggedInUser = userService.getLoggedInUser();
+            String loggedInUsername = loggedInUser.getUsername();
+            School school = employeeService.getLoggedInEmployeeSchool(loggedInUsername)
+                    .orElseThrow(() -> new RuntimeException("School not found for Logged In user: " + loggedInUsername));
+            Long mediumId = parseOptionalLong(payload.get("mediumId"));
+            List<Long> gradeIds = parseLongList(payload.get("gradeIds"));
+            List<Long> sectionIds = parseLongList(payload.get("sectionIds"));
+
+            List<ClassRecipientCount> classes = classNotificationService.preview(school.getId(), mediumId, gradeIds, sectionIds);
+            long total = 0;
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (ClassRecipientCount c : classes) {
+                total += c.getCount();
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("label", c.getLabel());
+                row.put("count", c.getCount());
+                rows.add(row);
+            }
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("classes", rows);
+            result.put("classCount", rows.size());
+            result.put("totalStudents", total);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(Map.of("error", iae.getMessage()));
+        } catch (Exception e) {
+            log.error("previewClassRecipients failed", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unable to check recipients."));
+        }
+    }
+
+    private static Long parseOptionalLong(Object v) {
+        if (v == null) return null;
+        String t = String.valueOf(v).trim();
+        if (t.isEmpty()) return null;
+        try {
+            return Long.valueOf(t);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid medium.");
+        }
+    }
+
+    private static List<Long> parseLongList(Object v) {
+        List<Long> out = new ArrayList<>();
+        if (v instanceof List<?>) {
+            for (Object o : (List<?>) v) {
+                try {
+                    if (o != null) out.add(Long.valueOf(String.valueOf(o).trim()));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid selection.");
+                }
+            }
+        }
+        return out;
     }
 
     /**

@@ -446,7 +446,7 @@
 
     const VALIDATORS = {
       email: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'Please enter a valid email address',
-      mobile1: v => (v === '' || /^[0-9]{10}$/.test(v)) ? null : 'Mobile number must be exactly 10 digits',
+      mobile1: v => /^[0-9]{10}$/.test(v) ? null : 'Mobile1 is required and must be exactly 10 digits',
       mobile2: v => (v === '' || /^[0-9]{10}$/.test(v)) ? null : 'Mobile number must be exactly 10 digits',
       pincode: v => (v === '' || /^[0-9]{6}$/.test(v)) ? null : 'Pincode must be a 6-digit number',
       aadharNo: v => (v === '' || /^[0-9]{12}$/.test(v)) ? null : 'Aadhar number must be exactly 12 digits',
@@ -623,7 +623,16 @@
           }
 
           const skippedNote = pendingSkippedUnchangedCount > 0 ? `, ${pendingSkippedUnchangedCount} unchanged (skipped)` : '';
-          if (failed.length === 0) {
+          const warned = passed.filter(r => r.warning);
+          if (failed.length === 0 && warned.length > 0) {
+            const namedWarnings = warned.slice(0, 3).map(r => {
+              const $row = pendingRowElementsByUuid[r.uuid];
+              const name = $row ? $row.find('td').eq(1).text().trim() : r.uuid;
+              return `${name}: ${r.message}`;
+            }).join('; ');
+            const moreWarned = warned.length > 3 ? ` (+${warned.length - 3} more)` : '';
+            showMsg('warning', `${passed.length} saved${skippedNote}, ${warned.length} not linked to a family account — ${namedWarnings}${moreWarned}`, 'Saved with warning');
+          } else if (failed.length === 0) {
             showMsg('success', `${passed.length} record(s) saved successfully${skippedNote}`, 'Updated');
           } else {
             const namedFailures = failed.slice(0, 3).map(r => {
