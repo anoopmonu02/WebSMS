@@ -9,7 +9,15 @@
   <style>
     .fm-table th { white-space: nowrap; font-size: .8rem; }
     .fm-table td { vertical-align: middle; font-size: .85rem; }
-    .fm-counts b { color: #212529; }
+    .fm-stat { background:#fff; border:1px solid #e5e7eb; border-left-width:4px; border-radius:10px; padding:.7rem .9rem; height:100%; }
+    .fm-stat .n { font-size:1.6rem; font-weight:700; line-height:1.1; }
+    .fm-stat .l { font-size:.78rem; color:#6b7280; margin-top:2px; }
+    .fm-stat.tot { border-left-color:#9aa5b4; } .fm-stat.tot .n { color:#1f2937; }
+    .fm-stat.ok { border-left-color:#1f7a45; } .fm-stat.ok .n { color:#1f7a45; }
+    .fm-stat.pend { border-left-color:#e0a030; } .fm-stat.pend .n { color:#a35d00; }
+    .fm-stat.no { border-left-color:#b3261e; } .fm-stat.no .n { color:#b3261e; }
+    .fm-bar { height:8px; background:#e8ecf2; border-radius:99px; overflow:hidden; margin-top:.75rem; }
+    .fm-bar i { display:block; height:100%; background:#1f7a45; width:0; }
   </style>
   <div class="container-fluid px-3">
     <div class="row mt-2">
@@ -33,7 +41,14 @@
     </div>
 
     <div id="fmResult" style="display:none">
-      <div class="small text-muted mb-2 fm-counts" id="fmCounts"></div>
+      <div class="row g-2">
+        <div class="col-6 col-md-3"><div class="fm-stat tot"><div class="n" id="fmTotal">0</div><div class="l">Total students</div></div></div>
+        <div class="col-6 col-md-3"><div class="fm-stat ok"><div class="n" id="fmMapped">0</div><div class="l">Mapped</div></div></div>
+        <div class="col-6 col-md-3"><div class="fm-stat pend"><div class="n" id="fmPending">0</div><div class="l">Pending (Map / Re-map)</div></div></div>
+        <div class="col-6 col-md-3"><div class="fm-stat no"><div class="n" id="fmNoMobile">0</div><div class="l">No Mobile 1</div></div></div>
+      </div>
+      <div class="fm-bar"><i id="fmBarFill"></i></div>
+      <div class="small text-muted mb-3 mt-1" id="fmBarText"></div>
       <div class="table-responsive">
         <table class="table table-bordered table-hover fm-table">
           <thead class="table-primary">
@@ -99,8 +114,17 @@
           '</td><td>' + esc(r.mobile2) + '</td><td>' + actionHtml(r) + '</td></tr>').join('');
       }
       pendingCount = data.pending;
-      document.getElementById('fmCounts').innerHTML = 'Total <b>' + data.total + '</b> &middot; Mapped <b>' + data.mapped +
-          '</b> &middot; Pending <b>' + data.pending + '</b> &middot; No Mobile 1 <b>' + data.noMobile + '</b>';
+      document.getElementById('fmTotal').textContent = data.total;
+      document.getElementById('fmMapped').textContent = data.mapped;
+      document.getElementById('fmPending').textContent = data.pending;
+      document.getElementById('fmNoMobile').textContent = data.noMobile;
+      const pct = data.total > 0 ? Math.round(data.mapped * 1000 / data.total) / 10 : 0;
+      const attention = data.pending + data.noMobile;
+      document.getElementById('fmBarFill').style.width = pct + '%';
+      document.getElementById('fmBarText').textContent = data.total > 0
+          ? pct + '% mapped \u00b7 ' + (attention === 0 ? 'all students are mapped'
+                : attention + (attention === 1 ? ' student needs attention' : ' students need attention'))
+          : '';
       const btn = document.getElementById('fmMapAll');
       btn.textContent = 'Map all pending (' + data.pending + ')';
       btn.disabled = data.pending === 0;
