@@ -50,7 +50,7 @@
       <div class="fm-bar"><i id="fmBarFill"></i></div>
       <div class="small text-muted mb-3 mt-1" id="fmBarText"></div>
       <div class="table-responsive">
-        <table class="table table-bordered table-hover fm-table">
+        <table id="fmTable" class="table table-bordered table-hover fm-table">
           <thead class="table-primary">
             <tr>
               <th>SNo</th><th>Student name</th><th>Grade-Sec</th><th>Father name</th>
@@ -102,16 +102,68 @@
       }
     }
 
-    function render(data) {
+    // Sort key for the Action column: what still needs doing comes first when sorted ascending.
+    //   1 Map (pending) - 2 Re-map (mismatch) - 3 Add Mobile 1 (no mobile) - 4 Mapped
+    function actionRank(state) {
+      switch (state) {
+        case 'UNMAPPED': return 1;
+        case 'MISMATCH': return 2;
+        case 'NO_MOBILE': return 3;
+        case 'MAPPED': return 4;
+        default: return 5;
+      }
+    }
+    // "10-A" sorts after "2-A": zero-pad a leading grade number for the sort key only.
+    function classSortKey(v) {
+      const m = /^(\d+)\s*[-\u2013]\s*(.*)$/.exec(v || '');
+      return m ? ('0000' + m[1]).slice(-4) + '-' + m[2] : (v || '');
+    }
+
+    // Two separate arrays on purpose: Thymeleaf inline JavaScript treats a double opening square
+    // bracket anywhere in this script (comments included) as an inline expression and fails the page.
+    const FM_PAGE_SIZE_VALUES = [5, 15, 25, 50, 100, -1];
+    const FM_PAGE_SIZE_LABELS = [5, 15, 25, 50, 100, 'All'];
+
+    let fmTable = null;          // the DataTable instance, when rows are shown
+    let fmPageLen = 50;          // remembered between reloads (Map / Map all)
+    let fmOrder = [];
+
+    function destroyTable() {
+      if (fmTable) {
+        fmPageLen = fmTable.page.len();
+        fmOrder = fmTable.order();
+        fmTable.destroy();
+        fmTable = null;
+      }
+    }
+
+    function render(data, keepPage) {
       const body = document.getElementById('fmBody');
+      const keptPage = (keepPage && fmTable) ? fmTable.page() : 0;
+      destroyTable();
       if (!data.rows.length) {
         body.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No active students found for this medium.</td></tr>';
       } else {
         body.innerHTML = data.rows.map((r, i) =>
-          '<tr><td>' + (i + 1) + '</td><td>' + esc(r.studentName) + '</td><td>' + esc(r.gradeSection) +
+          '<tr><td>' + (i + 1) + '</td><td>' + esc(r.studentName) + '</td><td data-order="' + esc(classSortKey(r.gradeSection)) + '">' + esc(r.gradeSection) +
           '</td><td>' + esc(r.fatherName) + '</td><td>' + esc(r.classSrNo) + '</td><td>' + esc(r.psrn) +
           '</td><td>' + (r.mobile1 ? esc(r.mobile1) : '<span class="badge text-bg-danger">Missing</span>') +
-          '</td><td>' + esc(r.mobile2) + '</td><td>' + actionHtml(r) + '</td></tr>').join('');
+          '</td><td>' + esc(r.mobile2) + '</td><td data-order="' + actionRank(r.state) + '">' + actionHtml(r) + '</td></tr>').join('');
+        // Paging + sorting (the same DataTables the Mobile Users page uses). Search is off: it was not asked for.
+        fmTable = new DataTable('#fmTable', {
+          searching: false,
+          pageLength: fmPageLen,
+          lengthMenu: [FM_PAGE_SIZE_VALUES, FM_PAGE_SIZE_LABELS],
+          order: fmOrder,
+          columnDefs: [{ targets: 0, orderable: false }],
+          drawCallback: function () {
+            // Keep SNo as 1..n in the order currently shown (continues across pages).
+            const api = this.api();
+            const start = api.page.info().start;
+            api.column(0, { page: 'current' }).nodes().each(function (cell, i) { cell.textContent = start + i + 1; });
+          }
+        });
+        if (keptPage > 0) fmTable.page(keptPage).draw('page');
       }
       pendingCount = data.pending;
       document.getElementById('fmTotal').textContent = data.total;
@@ -131,15 +183,18 @@
       document.getElementById('fmResult').style.display = '';
     }
 
-    function loadRows() {
-      return postJson('rows', { mediumId: currentMediumId }).then(render).catch(e => notify('error', e.message));
+    // keepPage = true after Map / Map all (stay on the same page), false after Get (start at page 1).
+    function loadRows(keepPage) {
+      return postJson('rows', { mediumId: currentMediumId })
+        .then(data => render(data, !!keepPage)).catch(e => notify('error', e.message));
     }
 
     document.getElementById('fmGet').addEventListener('click', function () {
       const med = document.getElementById('fmMedium').value;
       if (!med) { notify('warning', 'Please select a medium first.'); return; }
       currentMediumId = med;
-      loadRows();
+      fmOrder = [];
+      loadRows(false);
     });
 
     document.getElementById('fmBody').addEventListener('click', function (ev) {
@@ -153,7 +208,7 @@
         } else {
           notify(res.status === 'SKIPPED' ? 'warning' : 'error', res.message);
         }
-        return loadRows();
+        return loadRows(true);
       }).catch(e => { notify('error', e.message); btn.disabled = false; });
     });
 
@@ -168,7 +223,7 @@
                  s.problems.slice(0, 3).map(p => p.mobile + ' - ' + p.message).join(' | ');
         }
         notify(s.skipped || s.failed ? 'warning' : 'success', msg);
-        return loadRows();
+        return loadRows(true);
       }).catch(e => { notify('error', e.message); btn.disabled = false; });
     });
   </script>

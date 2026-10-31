@@ -48,6 +48,7 @@ public class FamilyMappingController extends BaseController {
     @GetMapping
     public String page(Model model) {
         log.info("Inside family mapping page");
+        model.addAttribute("page", "datatable");   // loads the DataTables scripts/styles
         model.addAttribute("mediums", dropdownService.getMediums());
         return "admin/family-mapping";
     }
