@@ -108,11 +108,6 @@ public class SmsMessageController extends BaseController {
         model.addAttribute("mediums", dropdownService.getMediums());
         model.addAttribute("grades", dropdownService.getGrades());
         model.addAttribute("sections", dropdownService.getSections());
-        try{
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
         return "message/messageSender";
     }
 
