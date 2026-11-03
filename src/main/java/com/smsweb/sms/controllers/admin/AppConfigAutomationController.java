@@ -79,6 +79,12 @@ public class AppConfigAutomationController {
         m.put("auth", s.isMailAuth());
         m.put("timeout", s.getMailTimeoutSeconds());
         m.put("accountReady", s.isAccountReady());
+        // Shared vs own: the screen shows one form and swaps its account fields when the "use shared account" box is ticked.
+        AutomationSettings shared = settingsService.loadShared();
+        m.put("useShared", s.isUsesSharedAccount());
+        m.put("sharedConfigured", shared.isSharedAccountConfigured());
+        m.put("shared", accountView(shared));
+        m.put("own", accountView(settingsService.loadOwnAccount(schoolId)));
         m.put("reminderReceivers", String.join(", ", s.getReminderRecipients()));
         m.put("reportReceivers", String.join(", ", s.getReportRecipients()));
         m.put("backupReceivers", String.join(", ", AutomationSettingsService.splitRecipients(
@@ -95,6 +101,7 @@ public class AppConfigAutomationController {
                                                                 @RequestParam String security,
                                                                 @RequestParam(defaultValue = "true") boolean auth,
                                                                 @RequestParam(defaultValue = "30") int timeout,
+                                                                @RequestParam(defaultValue = "false") boolean useShared,
                                                                 HttpSession session) {
         Long schoolId = schoolId(session);
         AutomationSettingsService.AccountRequest r = new AutomationSettingsService.AccountRequest();
@@ -106,7 +113,12 @@ public class AppConfigAutomationController {
         r.security = security;
         r.auth = auth;
         r.timeoutSeconds = timeout;
-        return saved(schoolId, () -> settingsService.saveAccount(schoolId, r), "Email account saved.");
+        if (schoolId != null) {
+            log.info("Email account save requested: school={}, shared={}", schoolId, useShared);
+        }
+        return saved(schoolId, () -> settingsService.saveAccount(schoolId, useShared, r),
+                useShared ? "Shared email account saved. All branches that use it now send through it."
+                        : "Email account saved for your branch.");
     }
 
     /** Sends a test message through the SAVED account to one address typed by the admin. */
@@ -168,6 +180,7 @@ public class AppConfigAutomationController {
         m.put("success", true);
         m.put("accountReady", s.isAccountReady());
         m.put("accountSender", s.getMailSender());
+        m.put("accountShared", s.isUsesSharedAccount());
         m.put("reminderOn", s.isReminderOn());
         m.put("reminderTime", s.getReminderTime().toString());
         m.put("reminderGap", s.getReminderGapMinutes());
@@ -182,6 +195,9 @@ public class AppConfigAutomationController {
         Map<String, String> cfg = settingsService.snapshot();
         m.put("reminderLastSent", settingsService.lastSent(cfg, AutomationSettingsService.JOB_REMINDER, schoolId));
         m.put("reportLastSent", settingsService.lastSent(cfg, AutomationSettingsService.JOB_REPORT, schoolId));
+        m.put("backupNoticeOn", s.isBackupNoticeOn());
+        m.put("backupNoticeReceivers", String.join(", ", s.getBackupNoticeRecipients()));
+        m.put("backupNoticeLastSent", settingsService.lastSent(cfg, AutomationSettingsService.JOB_BACKUP_NOTICE, schoolId));
         return ResponseEntity.ok(m);
     }
 
@@ -219,6 +235,38 @@ public class AppConfigAutomationController {
         r.dayOfMonth = dayOfMonth == null || dayOfMonth.isBlank() ? "1" : dayOfMonth;
         r.recipients = receivers;
         return saved(schoolId, () -> settingsService.saveReport(schoolId, r), "Report settings saved.");
+    }
+
+    @PostMapping("/notifications/backup-notice")
+    public ResponseEntity<Map<String, Object>> saveBackupNotice(@RequestParam(defaultValue = "false") boolean on,
+                                                                @RequestParam(required = false) String receivers,
+                                                                HttpSession session) {
+        Long schoolId = schoolId(session);
+        AutomationSettingsService.BackupNoticeRequest r = new AutomationSettingsService.BackupNoticeRequest();
+        r.on = on;
+        r.recipients = receivers;
+        return saved(schoolId, () -> settingsService.saveBackupNotice(schoolId, r), "Backup notice settings saved.");
+    }
+
+    /** Sends a sample "backup completed" notice to the saved receivers (no real backup is run). */
+    @PostMapping("/notifications/backup-notice/test")
+    public ResponseEntity<Map<String, Object>> testBackupNotice(HttpSession session) {
+        Long schoolId = schoolId(session);
+        if (schoolId == null) {
+            return fail(HttpStatus.BAD_REQUEST, "No school is linked to your login.");
+        }
+        AutomationSettings s = settingsService.load(schoolId);
+        if (!s.isAccountReady() || s.getBackupNoticeRecipients().isEmpty()) {
+            return fail(HttpStatus.BAD_REQUEST, "Please save the email account and the receiver email first.");
+        }
+        try {
+            mailService.send(s, s.getBackupNoticeRecipients(), "Test: database backup notice",
+                    "This is a test of the backup notice. After each scheduled backup you will get a short email like this, saying whether it worked. No file is attached.", false);
+            return ok("Test notice sent to " + String.join(", ", s.getBackupNoticeRecipients()) + ".");
+        } catch (Exception e) {
+            log.error("Test backup notice failed for school {}", schoolId, e);
+            return fail(HttpStatus.BAD_GATEWAY, "Could not send the test notice: " + describeMailFailure(e));
+        }
     }
 
     /** Sends today's reminder email now (even if attendance is confirmed, it says so instead of staying silent). */
@@ -374,6 +422,20 @@ public class AppConfigAutomationController {
             }
         }
         return "please check the email account settings and try again.";
+    }
+
+    /** Account fields for the screen. The password itself is never returned, only whether one is saved. */
+    private static Map<String, Object> accountView(AutomationSettings a) {
+        Map<String, Object> v = new LinkedHashMap<>();
+        v.put("sender", a.getMailSender());
+        v.put("hasPassword", a.hasPassword());
+        v.put("host", a.getMailHost());
+        v.put("port", a.getMailPort());
+        v.put("security", a.getMailSecurity());
+        v.put("auth", a.isMailAuth());
+        v.put("timeout", a.getMailTimeoutSeconds());
+        v.put("ready", a.isAccountReady());
+        return v;
     }
 
     private interface SaveAction {

@@ -150,4 +150,132 @@ class AutomationSettingsServiceTest {
         assertEquals("0 15 3 * * SUN", db.get("DB_BACKUP_SCHEDULE").getConfigValue());
         assertFalse(db.containsKey("DB_BACKUP_TIME_2"));
     }
+
+    // ── Shared email account, per-branch choice, backup notice ──────────────────────────────────
+
+    private void put(String key, String value) {
+        SystemConfig c = new SystemConfig();
+        c.setConfigName(key);
+        c.setConfigValue(value);
+        db.put(key, c);
+    }
+
+    @Test
+    void sharedAccountServesBranchesWithoutTheirOwn() {
+        assertNull(service.saveAccount(5L, true, account()));
+        assertTrue(db.containsKey("AUTO_MAIL_SENDER_SHARED"));
+        assertFalse(db.containsKey("AUTO_MAIL_SENDER_5"));
+        assertNull(db.get("AUTO_MAIL_SENDER_SHARED").getSchoolIds());
+        assertTrue(db.get("AUTO_MAIL_PASSWORD_SHARED").getConfigValue().startsWith("ENC:v1:"));
+        AutomationSettings branch = service.load(6L);
+        assertTrue(branch.isUsesSharedAccount());
+        assertTrue(branch.isAccountReady());
+        assertEquals("a@b.com", branch.getMailSender());
+        assertEquals("", branch.getMailFromName());                       // the sender name belongs to the branch
+        assertEquals("My School", service.load(5L).getMailFromName());
+    }
+
+    @Test
+    void branchCanUseItsOwnAccountInsteadOfTheSharedOne() {
+        service.saveAccount(5L, true, account());
+        AutomationSettingsService.AccountRequest own = account();
+        own.sender = "own@x.com";
+        own.fromName = "Branch Six";
+        assertNull(service.saveAccount(6L, false, own));
+        assertEquals("own@x.com", service.load(6L).getMailSender());
+        assertFalse(service.load(6L).isUsesSharedAccount());
+        assertEquals("a@b.com", service.load(5L).getMailSender());
+        assertEquals("a@b.com", service.loadShared().getMailSender());     // saving an own account never touches the shared one
+        // ticking the box again goes back to the shared account and keeps the own details for later
+        assertNull(service.saveAccount(6L, true, account()));
+        assertEquals("a@b.com", service.load(6L).getMailSender());
+        assertEquals("own@x.com", service.loadOwnAccount(6L).getMailSender());
+    }
+
+    @Test
+    void branchWithAnAccountFromBeforeKeepsUsingIt() {
+        service.saveAccount(5L, account());
+        db.remove("AUTO_MAIL_USE_SHARED_5");    // the earlier version never wrote this row
+        AutomationSettings s = service.load(5L);
+        assertFalse(s.isUsesSharedAccount());
+        assertTrue(s.isAccountReady());
+        assertEquals("a@b.com", s.getMailSender());
+    }
+
+    @Test
+    void sharedAccountFallsBackToTheOlderBackupAccountUntilSaved() {
+        service.saveAccount(5L, account());
+        db.remove("AUTO_MAIL_USE_SHARED_5");
+        put("DB_BACKUP_MAIL_SCHOOL_ID", "5");
+        AutomationSettings shared = service.loadShared();
+        assertTrue(shared.isAccountReady());
+        assertEquals("My School", shared.getMailFromName());
+        assertTrue(service.load(6L).isAccountReady());                    // a branch with no account of its own can now send
+
+        // first save of the shared account with a blank password: the older password is carried over
+        AutomationSettingsService.AccountRequest r = account();
+        r.password = "";
+        r.sender = "shared@x.com";
+        assertNull(service.saveAccount(7L, true, r));
+        assertEquals(db.get("AUTO_MAIL_PASSWORD_5").getConfigValue(), db.get("AUTO_MAIL_PASSWORD_SHARED").getConfigValue());
+        assertEquals("shared@x.com", service.loadShared().getMailSender());
+        assertEquals("a@b.com", service.load(5L).getMailSender());         // school 5 still has its own, unchanged
+    }
+
+    @Test
+    void sharedAccountNeedsAPasswordTheFirstTime() {
+        AutomationSettingsService.AccountRequest r = account();
+        r.password = "";
+        assertNotNull(service.saveAccount(5L, true, r));
+        assertTrue(db.isEmpty());
+    }
+
+    @Test
+    void nothingIsReadyWhenNoAccountExistsAnywhere() {
+        assertFalse(service.load(5L).isAccountReady());
+        assertFalse(service.loadShared().isAccountReady());
+        assertFalse(service.loadShared().isSharedAccountConfigured());
+    }
+
+    @Test
+    void backupAccountAnchorIsWrittenOnceAndOnlyWithoutSharedAccount() {
+        assertNull(backup.save(5L, "DAILY", null, "02:00", "", ""));
+        assertEquals("5", db.get("DB_BACKUP_MAIL_SCHOOL_ID").getConfigValue());
+        assertNull(backup.save(6L, "DAILY", null, "03:00", "", ""));
+        assertEquals("5", db.get("DB_BACKUP_MAIL_SCHOOL_ID").getConfigValue());   // a later save by another branch changes nothing
+    }
+
+    @Test
+    void backupUsesTheSharedAccountForEveryBranch() {
+        service.saveAccount(5L, true, account());
+        assertNull(backup.save(6L, "DAILY", null, "02:00", "", ""));
+        assertFalse(db.containsKey("DB_BACKUP_MAIL_SCHOOL_ID"));
+        Map<String, Object> m = backup.get(6L);
+        assertEquals(Boolean.TRUE, m.get("accountReady"));
+        assertEquals("a@b.com", m.get("accountSender"));
+        assertEquals(Boolean.TRUE, backup.get(7L).get("accountReady"));    // same answer for every branch
+    }
+
+    @Test
+    void backupNoticeFollowsTheSameRulesAsOtherNotifications() {
+        AutomationSettingsService.BackupNoticeRequest r = new AutomationSettingsService.BackupNoticeRequest();
+        r.on = true;
+        r.recipients = "p@s.com";
+        assertNotNull(service.saveBackupNotice(5L, r));                   // no account yet
+        service.saveAccount(5L, true, account());
+        r.recipients = "";
+        assertNotNull(service.saveBackupNotice(5L, r));                   // no receiver
+        r.recipients = "bad";
+        assertNotNull(service.saveBackupNotice(5L, r));                   // not an email address
+        r.recipients = "p@s.com, q@s.com";
+        assertNull(service.saveBackupNotice(5L, r));
+        AutomationSettings s = service.load(5L);
+        assertTrue(s.isBackupNoticeOn());
+        assertEquals(2, s.getBackupNoticeRecipients().size());
+        assertFalse(service.load(6L).isBackupNoticeOn());                 // another branch is not affected
+        r.on = false;
+        r.recipients = "";
+        assertNull(service.saveBackupNotice(5L, r));                      // switching off needs nothing
+        assertFalse(service.load(5L).isBackupNoticeOn());
+    }
 }

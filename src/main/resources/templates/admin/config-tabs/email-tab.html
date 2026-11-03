@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- Email Account tab of App Config (per school). Included by admin/app-config.html. -->
+<!-- Email Account tab of App Config (one shared account for all branches, or a branch's own). Included by admin/app-config.html. -->
 <div th:fragment="pane" id="pane-email" class="config-pane d-none"
      th:data-url="@{/admin/app-config/email-account}"
      th:data-test-url="@{/admin/app-config/email-account/test}">
@@ -18,7 +18,14 @@
       <div class="card config-card">
         <div class="card-header py-3"><i class="bi bi-envelope-at me-2"></i>Sending account for <span th:text="${session.school != null ? session.school.schoolName : 'your school'}">your school</span></div>
         <div class="card-body">
-          <p class="text-muted small">Set this up once. Database backups, attendance reminders and absence reports are all sent from this account. Each of them only needs its own receiver email.</p>
+          <div class="border rounded p-3 mb-3" style="background:#f6f8fc">
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="acUseShared" checked>
+              <label class="form-check-label fw-semibold" for="acUseShared">Use the shared email account</label>
+            </div>
+            <div class="form-text mt-0">Tick this when all branches can send from one account (recommended). Untick it only if this branch needs its own email account.</div>
+          </div>
+          <div id="acModeBanner" class="alert alert-primary small"></div>
           <div id="acKeyWarning" class="alert alert-warning small d-none">
             The server's encryption key (SMS_CONFIG_ENCRYPTION_KEY) is not configured, so a new password cannot be saved.
           </div>
@@ -57,9 +64,9 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold" for="acName">Sender name <span class="text-muted fw-normal">(optional)</span></label>
+              <label class="form-label fw-semibold" for="acName">Sender name for this branch <span class="text-muted fw-normal">(optional)</span></label>
               <input type="text" class="form-control" id="acName" maxlength="100" autocomplete="off">
-              <div class="form-text">Shown as the sender in the inbox.</div>
+              <div class="form-text">Shown as the sender in the inbox. Each branch can have its own name, even on the shared account.</div>
             </div>
           </div>
 
@@ -80,7 +87,7 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-            <span class="text-muted small">Applies to your school only</span>
+            <span class="text-muted small" id="acScopeText">Applies to your branch only</span>
             <button type="button" class="btn btn-primary" id="acSaveBtn"><i class="bi bi-check-lg me-1"></i>Save account</button>
           </div>
         </div>
@@ -93,7 +100,7 @@
         <div class="card-body">
           <label class="form-label fw-semibold" for="acTestTo">Send test to</label>
           <input type="email" class="form-control" id="acTestTo" placeholder="you@example.com" autocomplete="off">
-          <div class="form-text mb-3">Uses the saved account, so save first.</div>
+          <div class="form-text mb-3">Tests the account this branch sends through, so save first.</div>
           <button type="button" class="btn btn-outline-primary" id="acTestBtn"><i class="bi bi-send me-1"></i>Send test email</button>
         </div>
       </div>
@@ -101,6 +108,7 @@
       <div class="card config-card" style="height:auto">
         <div class="card-header py-3">Where this account is used</div>
         <div class="card-body py-2">
+          <div class="small text-muted pb-2 border-bottom" id="acVia">-</div>
           <div class="acc-use"><div><strong>Database backup</strong><small id="acUseBackup">-</small></div><span id="acUseBackupBadge"></span></div>
           <div class="acc-use"><div><strong>Attendance reminder</strong><small id="acUseReminder">-</small></div><span id="acUseReminderBadge"></span></div>
           <div class="acc-use"><div><strong>Absence report</strong><small id="acUseReport">-</small></div><span id="acUseReportBadge"></span></div>
@@ -116,6 +124,9 @@
     var pane = document.getElementById('pane-email');
     var url = pane.dataset.url, testUrl = pane.dataset.testUrl;
     var loaded = false;
+    var state = null;                      // last data from the server
+    var mode = 'shared';                   // which set of account fields the form shows: 'shared' or 'own'
+    var drafts = { shared: null, own: null }; // unsaved edits, kept while the box is switched back and forth
     function el(id) { return document.getElementById(id); }
     function err(xhr, fallback) { return (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : fallback; }
 
@@ -125,28 +136,68 @@
       b.className = 'badge ' + (receivers && ready ? 'text-bg-success' : 'text-bg-warning');
       b.textContent = receivers && ready ? 'Set' : (receivers ? 'Needs account' : 'Needs receiver');
     }
+    function readForm() {
+      return { sender: el('acSender').value, host: el('acHost').value, port: el('acPort').value, security: el('acSecurity').value,
+               auth: el('acAuth').checked, timeout: el('acTimeout').value };
+    }
+    function fillForm(a) {
+      el('acSender').value = a.sender || '';
+      el('acHost').value = a.host || '';
+      el('acPort').value = a.port;
+      el('acSecurity').value = a.security;
+      el('acAuth').checked = !!a.auth;
+      el('acTimeout').value = a.timeout;
+      el('acPassword').value = '';
+    }
+    function showMode() {
+      var saved = mode === 'shared' ? state.shared : state.own;
+      fillForm(drafts[mode] || saved);
+      el('acPasswordHint').textContent = saved.hasPassword ? 'A password is saved (encrypted). Leave blank to keep it.' : 'No password saved yet.';
+      var banner = el('acModeBanner');
+      if (mode === 'shared') {
+        banner.className = 'alert small ' + (state.sharedConfigured ? 'alert-primary' : 'alert-warning');
+        banner.textContent = state.sharedConfigured
+          ? 'Shared account: used by every branch that ticks the box above and by the database backup. Changing these details changes them for all of them.'
+          : 'The shared email account is not set up yet. Fill it in and save: all branches that share it and the database backup will then send through it.';
+        el('acScopeText').textContent = 'Applies to all branches (the sender name applies to this branch only)';
+      } else {
+        banner.className = 'alert alert-info small';
+        banner.textContent = 'This branch only. Other branches and the database backup keep using the shared account.'
+          + (state.sharedConfigured ? '' : ' The shared account is not set up yet.');
+        el('acScopeText').textContent = 'Applies to this branch only';
+      }
+    }
     function load() {
       if (loaded) { return; }
       $.ajax({
         type: 'GET', url: url,
         success: function (d) {
           loaded = true;
-          el('acSender').value = d.sender || '';
+          state = d;
+          drafts = { shared: null, own: null };
+          mode = d.useShared ? 'shared' : 'own';
+          el('acUseShared').checked = !!d.useShared;
           el('acName').value = d.fromName || '';
-          el('acHost').value = d.host || '';
-          el('acPort').value = d.port;
-          el('acSecurity').value = d.security;
-          el('acAuth').checked = !!d.auth;
-          el('acTimeout').value = d.timeout;
-          el('acPasswordHint').textContent = d.hasPassword ? 'A password is saved (encrypted). Leave blank to keep it.' : 'No password saved yet.';
           el('acKeyWarning').classList.toggle('d-none', !!d.keyConfigured);
-          badge('acUseBackupBadge', 'acUseBackup', d.backupReceivers || (d.accountReady ? d.sender : ''), d.accountReady);
+          showMode();
+          var sharedReady = !!(d.shared && d.shared.ready);
+          el('acVia').textContent = d.useShared
+            ? 'This branch sends through the shared account' + (d.shared.sender ? ' (' + d.shared.sender + ').' : '.')
+            : 'This branch sends through its own account' + (d.own.sender ? ' (' + d.own.sender + ')' : '') + '. The database backup still uses the shared account.';
+          badge('acUseBackupBadge', 'acUseBackup', d.backupReceivers || (sharedReady ? d.shared.sender : ''), sharedReady);
           badge('acUseReminderBadge', 'acUseReminder', d.reminderReceivers, d.accountReady);
           badge('acUseReportBadge', 'acUseReport', d.reportReceivers, d.accountReady);
         },
         error: function (xhr) { toastr.error(err(xhr, 'Could not load the email account.'), 'Error'); }
       });
     }
+
+    el('acUseShared').addEventListener('change', function () {
+      if (!state) { return; }
+      drafts[mode] = readForm();                 // keep what was typed for the set we are leaving
+      mode = this.checked ? 'shared' : 'own';
+      showMode();
+    });
 
     var tabBtn = document.getElementById('tab-email-btn');
     if (tabBtn) { tabBtn.addEventListener('click', load); }
@@ -163,13 +214,16 @@
     });
 
     el('acSaveBtn').addEventListener('click', function () {
-      var btn = this; btn.disabled = true;
+      var btn = this;
+      var shared = el('acUseShared').checked;
+      if (shared && state && state.sharedConfigured && !window.confirm('These details are shared by all branches and the database backup. Save the changes for all of them?')) { return; }
+      btn.disabled = true;
       $.ajax({
         type: 'POST', url: url,
         data: {
           sender: el('acSender').value, password: el('acPassword').value, fromName: el('acName').value,
           host: el('acHost').value, port: el('acPort').value, security: el('acSecurity').value,
-          auth: el('acAuth').checked, timeout: el('acTimeout').value
+          auth: el('acAuth').checked, timeout: el('acTimeout').value, useShared: shared
         },
         success: function (d) { toastr.success(d.message || 'Saved.', 'Saved'); el('acPassword').value = ''; loaded = false; load(); },
         error: function (xhr) { toastr.error(err(xhr, 'Could not save - please try again.'), 'Error'); },

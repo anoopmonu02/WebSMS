@@ -6,6 +6,7 @@ import com.smsweb.sms.services.globalaccess.EmailService;
 import com.smsweb.sms.services.automation.AutomationMailService;
 import com.smsweb.sms.services.automation.AutomationSettings;
 import com.smsweb.sms.services.automation.AutomationSettingsService;
+import com.smsweb.sms.services.automation.BackupNoticeService;
 import com.smsweb.sms.services.security.SecretCipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,10 +92,13 @@ public class DbBackupService {
     private final SecretCipher secretCipher;
     private final AutomationSettingsService automationSettingsService;
     private final AutomationMailService automationMailService;
+    private final BackupNoticeService backupNoticeService;
     private final java.util.concurrent.atomic.AtomicBoolean backupRunning = new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public DbBackupService(SystemConfigRepository systemConfigRepository, EmailService emailService, SecretCipher secretCipher,
-                           AutomationSettingsService automationSettingsService, AutomationMailService automationMailService) {
+                           AutomationSettingsService automationSettingsService, AutomationMailService automationMailService,
+                           BackupNoticeService backupNoticeService) {
+        this.backupNoticeService = backupNoticeService;
         this.automationSettingsService = automationSettingsService;
         this.automationMailService = automationMailService;
         this.systemConfigRepository = systemConfigRepository;
@@ -108,6 +112,14 @@ public class DbBackupService {
      * path either way, so there's exactly one place this logic can go wrong.
      */
     public Map<String, Object> runBackupNow() {
+        return runBackupNow(false);
+    }
+
+    /**
+     * @param notifyBranches true for SCHEDULED runs (cron, second daily slot, missed-backup catch-up): branches that switched
+     *                       on the backup notice are told the outcome. The manual "Backup now" button passes false.
+     */
+    public Map<String, Object> runBackupNow(boolean notifyBranches) {
         // Run guard: the scheduled cron, the second daily slot, the missed-backup catch-up and the
         // "Backup Now" button can all arrive close together. Two dumps at once would only waste I/O.
         if (!backupRunning.compareAndSet(false, true)) {
@@ -115,11 +127,17 @@ public class DbBackupService {
             busy.put("error", "A backup is already running. Please wait for it to finish.");
             return busy;
         }
+        Map<String, Object> result;
         try {
-            return doRunBackup();
+            result = doRunBackup();
         } finally {
             backupRunning.set(false);
         }
+        if (notifyBranches) {
+            // Queued on its own thread and never throws, so it cannot change the backup result.
+            backupNoticeService.notifyBranches(BackupNoticeService.Outcome.from(result, java.time.LocalDateTime.now()));
+        }
+        return result;
     }
 
     public boolean isBackupRunning() {
@@ -334,14 +352,13 @@ public class DbBackupService {
 
     // ── Internals ────────────────────────────────────────────────────────────────
 
-    /** The school email account chosen for backups (DB_BACKUP_MAIL_SCHOOL_ID), or null when none is set up. */
+    /**
+     * The shared email account that sends the backup (the same for every branch), or null when none is set up.
+     * Until a shared account is saved, the account of the school in DB_BACKUP_MAIL_SCHOOL_ID is used, as before.
+     */
     private AutomationSettings backupMailAccount() {
         try {
-            String id = configValue(CONFIG_MAIL_SCHOOL_ID);
-            if (id == null || id.isBlank()) {
-                return null;
-            }
-            AutomationSettings account = automationSettingsService.load(Long.parseLong(id.trim()));
+            AutomationSettings account = automationSettingsService.loadShared();
             return account.isAccountReady() ? account : null;
         } catch (RuntimeException e) {
             log.warn("Could not read the backup email account, using the legacy settings: {}", e.getMessage());

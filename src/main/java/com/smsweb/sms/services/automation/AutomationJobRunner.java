@@ -222,7 +222,7 @@ public class AutomationJobRunner {
         log.info("Running backup for slot {} (no backup file newer than it was found)", slot);
         backupExecutor.submit(() -> {
             try {
-                Map<String, Object> result = dbBackupService.runBackupNow();
+                Map<String, Object> result = dbBackupService.runBackupNow(true);
                 if (result.containsKey("error")) {
                     log.error("Backup for slot {} failed: {}", slot, result.get("error"));
                 } else {

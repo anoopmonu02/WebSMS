@@ -11,6 +11,16 @@
   .config-card .card-header { background: #f8fafc; border-radius: 14px 14px 0 0; font-weight: 700; }
   .form-switch .form-check-input { width: 3em; height: 1.6em; cursor: pointer; margin: 0; }
   .form-switch .form-check-input:checked { background-color: #198754; border-color: #198754; }
+  /* Switch rows in the Email Account and Notifications tabs. The rule above removes Bootstrap's negative left margin,
+     but the row keeps its 2.5em left padding, so the switch sat to the right of the card text and its floated box pushed
+     the fields below it sideways. A flex row puts the switch and its label on one line, flush left. The Mobile Access
+     switch in the page header is not in these tabs and is left as it was. */
+  #pane-email .form-switch,
+  #pane-notifications .form-switch { display: flex; align-items: center; gap: .65rem; padding-left: 0; min-height: 1.6em; }
+  #pane-email .form-switch .form-check-input,
+  #pane-notifications .form-switch .form-check-input { float: none; flex: none; }
+  #pane-email .form-switch .form-check-label,
+  #pane-notifications .form-switch .form-check-label { margin: 0; }
   .status-text-on  { color: #198754; font-weight: 700; white-space: nowrap; }
   .status-text-off { color: #b02a37; font-weight: 700; white-space: nowrap; }
   .save-spinner { display: none; }

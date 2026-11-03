@@ -8,6 +8,8 @@
      th:data-report-url="@{/admin/app-config/notifications/report}"
      th:data-reminder-test-url="@{/admin/app-config/notifications/reminder/test}"
      th:data-report-now-url="@{/admin/app-config/notifications/report/send-now}"
+     th:data-backup-notice-url="@{/admin/app-config/notifications/backup-notice}"
+     th:data-backup-notice-test-url="@{/admin/app-config/notifications/backup-notice/test}"
      th:data-clear-url="@{/admin/app-config/notifications/all-clear}"
      th:data-clear-update-url="@{/admin/app-config/notifications/all-clear/update}"
      th:data-clear-active-url="@{/admin/app-config/notifications/all-clear/active}"
@@ -51,7 +53,7 @@
           <p class="text-muted small">Until attendance is confirmed, parents cannot see it in the mobile app. Skipped on Sundays, holidays and when it is already confirmed.</p>
           <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="ntReminderOn">
-            <label class="form-check-label ms-2 fw-semibold" for="ntReminderOn">Send a reminder</label>
+            <label class="form-check-label fw-semibold" for="ntReminderOn">Send a reminder</label>
           </div>
           <div class="row g-3">
             <div class="col-md-6">
@@ -87,7 +89,7 @@
           <p class="text-muted small">Students absent several school days in a row (Sundays and holidays are not counted). If nobody is on the list, a cheerful "all clear" email is sent instead.</p>
           <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="ntReportOn">
-            <label class="form-check-label ms-2 fw-semibold" for="ntReportOn">Send the report</label>
+            <label class="form-check-label fw-semibold" for="ntReportOn">Send the report</label>
           </div>
           <div class="row g-3">
             <div class="col-md-4">
@@ -131,6 +133,28 @@
     </div>
   </div>
 
+  <div class="row g-3 mt-0 mb-3">
+    <div class="col-lg-6">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-hdd-network me-2"></i>Backup notice</div>
+        <div class="card-body">
+          <p class="text-muted small">A short email after each <strong>scheduled</strong> database backup, telling you whether it worked or failed. It has no file and no student data. The backup file itself goes only to the main backup receiver in the Database Backup tab. The "Backup now" button does not send a notice.</p>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="ntBackupOn">
+            <label class="form-check-label fw-semibold" for="ntBackupOn">Send a backup notice</label>
+          </div>
+          <label class="form-label fw-semibold" for="ntBackupTo">Send to <span class="text-muted fw-normal">(up to 5 emails, comma separated)</span></label>
+          <input type="text" class="form-control" id="ntBackupTo" maxlength="255" autocomplete="off">
+          <div class="form-text">A failure notice is sent once a day, even if the backup is retried.</div>
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-primary" id="ntBackupTestBtn"><i class="bi bi-send me-1"></i>Send test notice</button>
+            <button type="button" class="btn btn-primary" id="ntBackupSaveBtn"><i class="bi bi-check-lg me-1"></i>Save notice</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-3 mt-0">
     <div class="col-lg-7">
       <div class="card config-card">
@@ -161,12 +185,14 @@
             <li><b>Every minute</b>The system checks whether a notification of your school is due.</li>
             <li><b>Attendance reminder</b>Skips Sundays, holidays and days already confirmed. Otherwise it emails "not marked yet" or "saved but not confirmed", and once more after the gap you chose.</li>
             <li><b>Long absence report</b>Finds students absent the chosen number of school days in a row, then sends the list, or an all-clear message.</li>
+            <li><b>Backup notice</b>After a scheduled backup finishes, the receivers you chose get a short "completed" or "failed" email.</li>
             <li><b>If sending fails</b>It retries up to 3 times, 5 minutes apart, then stops for the day.</li>
             <li><b>Once a day</b>Each notification goes out once a day, even after a server restart (a missed one still runs within 30 minutes).</li>
           </ul>
           <div class="d-flex gap-2 flex-wrap border-top pt-3">
             <span class="badge text-bg-light border" id="ntLastReminder">Reminder: -</span>
             <span class="badge text-bg-light border" id="ntLastReport">Report: -</span>
+            <span class="badge text-bg-light border" id="ntLastBackup">Backup notice: -</span>
           </div>
         </div>
       </div>
@@ -200,7 +226,7 @@
           var strip = el('ntStrip');
           if (d.accountReady) {
             strip.className = 'alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2';
-            el('ntStripText').textContent = 'Emails are sent from ' + d.accountSender + '. Here you only choose who receives them.';
+            el('ntStripText').textContent = 'Emails are sent from ' + d.accountSender + (d.accountShared ? ' (shared account)' : ' (this branch\'s own account)') + '. Here you only choose who receives them.';
           } else {
             strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
             el('ntStripText').textContent = 'The email account is not set up yet. Set it up first, then switch these on.';
@@ -216,6 +242,8 @@
           el('ntReportDow').value = d.reportDayOfWeek;
           el('ntReportDom').value = d.reportDayOfMonth;
           el('ntReportTo').value = d.reportReceivers || '';
+          el('ntBackupOn').checked = !!d.backupNoticeOn;
+          el('ntBackupTo').value = d.backupNoticeReceivers || '';
           syncFreq();
           renderSteps(d);
         },
@@ -235,6 +263,7 @@
       setStep(3, on > 0, 'Reminder ' + (d.reminderOn ? 'on' : 'off') + ', report ' + (d.reportOn ? 'on' : 'off'));
       el('ntLastReminder').textContent = 'Reminder last sent: ' + (d.reminderLastSent || 'never');
       el('ntLastReport').textContent = 'Report last sent: ' + (d.reportLastSent || 'never');
+      el('ntLastBackup').textContent = 'Backup notice last sent: ' + (d.backupNoticeLastSent || 'never');
     }
 
     // ── All-clear messages ──
@@ -341,6 +370,10 @@
         dayOfWeek: el('ntReportDow').value, dayOfMonth: el('ntReportDom').value, receivers: el('ntReportTo').value
       }, this, 'Saved', function () { loaded = false; load(); });
     });
+    el('ntBackupSaveBtn').addEventListener('click', function () {
+      post(d0.backupNoticeUrl, { on: el('ntBackupOn').checked, receivers: el('ntBackupTo').value }, this, 'Saved', function () { loaded = false; load(); });
+    });
+    el('ntBackupTestBtn').addEventListener('click', function () { post(d0.backupNoticeTestUrl, {}, this, 'Sent'); });
     el('ntReminderTestBtn').addEventListener('click', function () { post(d0.reminderTestUrl, {}, this, 'Sent'); });
     el('ntReportNowBtn').addEventListener('click', function () { post(d0.reportNowUrl, {}, this, 'Done'); });
   });
