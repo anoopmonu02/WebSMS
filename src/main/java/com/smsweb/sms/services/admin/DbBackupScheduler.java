@@ -25,7 +25,7 @@ public class DbBackupScheduler {
 
     public void runScheduledBackup() {
         log.info("Scheduled database backup starting");
-        Map<String, Object> result = dbBackupService.runBackupNow();
+        Map<String, Object> result = dbBackupService.runBackupNow(true);
         if (result.containsKey("error")) {
             log.error("Scheduled database backup failed: {}", result.get("error"));
         } else {

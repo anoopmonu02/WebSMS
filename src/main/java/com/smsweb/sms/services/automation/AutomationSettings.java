@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * One school's automation settings: the sending email account (shared by every notification of the
- * school) plus the receivers and schedule of each notification. Plain value object, built from
+ * One school's automation settings: the sending email account (the shared installation account, or the
+ * school's own when it has chosen that) plus the receivers and schedule of each notification. Plain value object, built from
  * system_config by {@link AutomationSettingsService}.
  */
 public class AutomationSettings {
@@ -28,6 +28,14 @@ public class AutomationSettings {
     private String mailSecurity = SECURITY_STARTTLS;
     private boolean mailAuth = true;
     private int mailTimeoutSeconds = 30;
+    /** True when the mail fields above come from the shared (installation-wide) account, false when from this school's own. */
+    private boolean usesSharedAccount = true;
+    /** True when a shared account exists (saved, or inherited from the older backup email account). */
+    private boolean sharedAccountConfigured;
+
+    // Backup notice: a short "backup done / failed" email, no file attached
+    private boolean backupNoticeOn;
+    private List<String> backupNoticeRecipients = new ArrayList<>();
 
     // Attendance confirmation reminder
     private boolean reminderOn;
@@ -71,6 +79,15 @@ public class AutomationSettings {
     public void setMailAuth(boolean v) { this.mailAuth = v; }
     public int getMailTimeoutSeconds() { return mailTimeoutSeconds; }
     public void setMailTimeoutSeconds(int v) { this.mailTimeoutSeconds = v; }
+
+    public boolean isUsesSharedAccount() { return usesSharedAccount; }
+    public void setUsesSharedAccount(boolean v) { this.usesSharedAccount = v; }
+    public boolean isSharedAccountConfigured() { return sharedAccountConfigured; }
+    public void setSharedAccountConfigured(boolean v) { this.sharedAccountConfigured = v; }
+    public boolean isBackupNoticeOn() { return backupNoticeOn; }
+    public void setBackupNoticeOn(boolean v) { this.backupNoticeOn = v; }
+    public List<String> getBackupNoticeRecipients() { return backupNoticeRecipients; }
+    public void setBackupNoticeRecipients(List<String> v) { this.backupNoticeRecipients = v == null ? new ArrayList<>() : v; }
 
     public boolean isReminderOn() { return reminderOn; }
     public void setReminderOn(boolean v) { this.reminderOn = v; }

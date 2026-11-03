@@ -17,8 +17,10 @@ import java.util.Optional;
  * time is stored as DB_BACKUP_TIME_2 ("HH:mm") and run by the automation tick. Daily or weekly only, at
  * most 2 times a day, at least 10 minutes apart.
  *
- * The backup email is sent from the Email Account of the school whose admin saved the schedule
- * (DB_BACKUP_MAIL_SCHOOL_ID) to DB_BACKUP_RECEIVER (empty = the sending account itself).
+ * One schedule and one database copy for the whole installation. The backup email is sent through the
+ * shared Email Account (see AutomationSettingsService.loadShared) to DB_BACKUP_RECEIVER (empty = the sending
+ * account itself). DB_BACKUP_MAIL_SCHOOL_ID is only a fallback for installations that have not saved a shared
+ * account yet; it is written once, the first time, and never changed by a later save.
  */
 @Service
 public class BackupScheduleService {
@@ -33,7 +35,7 @@ public class BackupScheduleService {
         this.settingsService = settingsService;
     }
 
-    /** @param schoolId the logged-in school, used to show whether its email account is ready (may be null) */
+    /** @param schoolId the logged-in school (not needed any more: the backup account is the same for every branch; may be null) */
     public Map<String, Object> get(Long schoolId) {
         String cron = value(DbBackupService.CONFIG_CRON).orElse(DbBackupService.DEFAULT_CRON);
         AutomationScheduleUtil.BackupCron parsed = AutomationScheduleUtil.parseBackupCron(cron);
@@ -47,13 +49,9 @@ public class BackupScheduleService {
         m.put("time2", AutomationScheduleUtil.isValidTime(t2) ? t2 : "");
         m.put("receivers", value(DbBackupService.CONFIG_RECEIVER).orElse(""));
 
-        // Which email account sends the backup: the chosen school's, else the school of this login if nothing is chosen yet.
-        Long accountSchool = parseLong(value(DbBackupService.CONFIG_MAIL_SCHOOL_ID).orElse(null));
-        if (accountSchool == null) {
-            accountSchool = schoolId;
-        }
-        AutomationSettings account = accountSchool == null ? null : settingsService.load(accountSchool);
-        boolean ready = account != null && account.isAccountReady();
+        // The backup is sent through the shared email account, the same for every branch.
+        AutomationSettings account = settingsService.loadShared();
+        boolean ready = account.isAccountReady();
         m.put("accountReady", ready);
         m.put("accountSender", ready ? account.getMailSender() : "");
         m.put("legacyEmail", value(DbBackupService.CONFIG_EMAIL_TO).orElse(""));
@@ -63,7 +61,7 @@ public class BackupScheduleService {
     /** @return null on success, otherwise a message for the admin. Nothing is saved when validation fails. */
     public String save(Long schoolId, String frequency, String dayOfWeek, String time, String time2, String receivers) {
         if (schoolId == null) {
-            return "No school is linked to your login, so the backup email account cannot be chosen.";
+            return "No school is linked to your login, so these settings can't be saved.";
         }
         boolean weekly;
         if ("DAILY".equalsIgnoreCase(frequency)) {
@@ -109,8 +107,12 @@ public class BackupScheduleService {
         }
         upsert(DbBackupService.CONFIG_RECEIVER, String.join(", ", AutomationSettingsService.splitRecipients(receivers)),
                 "Receiver emails of the database backup (empty = the sending account itself). Set from App Config - Database Backup.");
-        upsert(DbBackupService.CONFIG_MAIL_SCHOOL_ID, String.valueOf(schoolId),
-                "School whose Email Account sends the database backup email.");
+        // Fallback anchor only: remembered the first time, when no shared account exists yet, so an installation whose
+        // school already has its own account keeps emailing backups. A later save by another branch never changes it.
+        if (value(DbBackupService.CONFIG_MAIL_SCHOOL_ID).isEmpty() && !settingsService.loadShared().isAccountReady()) {
+            upsert(DbBackupService.CONFIG_MAIL_SCHOOL_ID, String.valueOf(schoolId),
+                    "Fallback only: school whose Email Account sends the database backup email until a shared account is saved.");
+        }
         return null;
     }
 
@@ -118,14 +120,6 @@ public class BackupScheduleService {
         return systemConfigRepository.findByConfigName(key)
                 .map(SystemConfig::getConfigValue)
                 .filter(v -> v != null && !v.isBlank());
-    }
-
-    private static Long parseLong(String v) {
-        try {
-            return v == null ? null : Long.parseLong(v.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     private void upsert(String key, String value, String description) {

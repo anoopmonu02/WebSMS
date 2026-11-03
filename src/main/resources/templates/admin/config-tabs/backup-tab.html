@@ -24,7 +24,7 @@
 
   <div class="alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2" id="bkStrip">
     <span id="bkStripText">Loading the email account...</span>
-    <a href="#email" id="bkStripLink" class="fw-semibold">Change email account</a>
+    <a href="#email" id="bkStripLink" class="fw-semibold">Change shared email account</a>
   </div>
 
   <div class="row g-3 mb-3">
@@ -68,7 +68,7 @@
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-            <span class="text-muted small">Saving uses your school's email account for backups.</span>
+            <span class="text-muted small">One schedule and one backup for the whole installation, sent through the shared email account.</span>
             <button type="button" class="btn btn-primary" id="bkSaveBtn"><i class="bi bi-check-lg me-1"></i>Save schedule</button>
           </div>
         </div>
@@ -87,7 +87,7 @@
           <p class="text-muted small mt-3 mb-0">Large databases can take a few minutes. You will see a confirmation here when it is done.</p>
         </div>
       </div>
-      <div class="alert alert-primary small mb-0">Backups stay on the server until you delete them below. The email contains the zip file (up to 20 MB).</div>
+      <div class="alert alert-primary small mb-0">Backups stay on the server until you delete them below. The email contains the zip file (up to 20 MB). A backup holds the data of <strong>all branches</strong>, so the file goes only to the receivers above. A branch can ask for a short "backup done" notice, without the file, in its Notifications tab.</div>
     </div>
   </div>
 
@@ -133,13 +133,13 @@
           var strip = el('bkStrip');
           if (d.accountReady) {
             strip.className = 'alert alert-primary small d-flex justify-content-between align-items-center flex-wrap gap-2';
-            el('bkStripText').textContent = 'Backups are emailed from ' + d.accountSender + '.';
+            el('bkStripText').textContent = 'Backups are emailed from the shared account ' + d.accountSender + '.';
           } else if (d.legacyEmail) {
             strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
-            el('bkStripText').textContent = 'No email account is set up yet, so backups still use the older backup email (' + d.legacyEmail + ').';
+            el('bkStripText').textContent = 'No shared email account is set up yet, so backups still use the older backup email (' + d.legacyEmail + ').';
           } else {
             strip.className = 'alert alert-warning small d-flex justify-content-between align-items-center flex-wrap gap-2';
-            el('bkStripText').textContent = 'No email account is set up yet, so backups are created but not emailed.';
+            el('bkStripText').textContent = 'No shared email account is set up yet, so backups are created but not emailed.';
           }
           syncDow();
         },

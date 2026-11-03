@@ -2,6 +2,7 @@ package com.smsweb.sms.services.automation;
 
 import com.smsweb.sms.models.admin.SystemConfig;
 import com.smsweb.sms.repositories.admin.SystemConfigRepository;
+import com.smsweb.sms.services.admin.DbBackupService;
 import com.smsweb.sms.services.security.SecretCipher;
 import org.springframework.stereotype.Service;
 
@@ -49,12 +50,21 @@ public class AutomationSettingsService {
     static final String K_REPORT_TIME = "ABS_REPORT_TIME_";
     static final String K_REPORT_DOW = "ABS_REPORT_DOW_";
     static final String K_REPORT_DOM = "ABS_REPORT_DOM_";
+    /** Per school: "true" = send through the shared account, "false" = through the school's own. Absent = not chosen yet. */
+    static final String K_USE_SHARED = "AUTO_MAIL_USE_SHARED_";
+    static final String K_BACKUP_NOTICE_ON = "BACKUP_NOTICE_ON_";
+    static final String K_BACKUP_NOTICE_TO = "BACKUP_NOTICE_TO_";
+    /** Key suffix of the shared (installation-wide) account rows, e.g. AUTO_MAIL_SENDER_SHARED. */
+    static final String SHARED = "SHARED";
     static final String K_DONE = "AUTO_DONE_";
     static final String K_SENT = "AUTO_SENT_";
 
     public static final String JOB_REMINDER_1 = "ATT_REMINDER_1";
     public static final String JOB_REMINDER_2 = "ATT_REMINDER_2";
     public static final String JOB_REPORT = "ABS_REPORT";
+    /** "Last sent" note of the backup notice, and the once-a-day mark that stops repeated failure notices. */
+    public static final String JOB_BACKUP_NOTICE = "BACKUP_NOTICE";
+    public static final String JOB_BACKUP_NOTICE_FAIL = "BACKUP_NOTICE_FAIL";
     /** Used only for the "last sent" note (first and second reminder share it). */
     public static final String JOB_REMINDER = "ATT_REMINDER";
 
@@ -93,26 +103,101 @@ public class AutomationSettingsService {
         return fromSnapshot(snapshot(), schoolId);
     }
 
+    /**
+     * The shared (installation-wide) email account. Until someone saves it, an installation that already sends
+     * backups through a school's account keeps using that account (DB_BACKUP_MAIL_SCHOOL_ID), so nothing stops working.
+     * Only the mail fields are filled; there are no receivers or schedules on it.
+     */
+    public AutomationSettings loadShared() {
+        return sharedFromSnapshot(snapshot());
+    }
+
+    AutomationSettings sharedFromSnapshot(Map<String, String> cfg) {
+        AutomationSettings s = new AutomationSettings();
+        String suffix = sharedSuffix(cfg);
+        s.setSharedAccountConfigured(suffix != null);
+        applyAccount(s, cfg, suffix);
+        if (suffix != null) {
+            s.setMailFromName(get(cfg, K_MAIL_NAME, suffix, ""));
+        }
+        return s;
+    }
+
+    /** A school's own account details, whether or not the school currently uses them (for the Email Account screen). */
+    public AutomationSettings loadOwnAccount(Long schoolId) {
+        Map<String, String> cfg = snapshot();
+        AutomationSettings s = new AutomationSettings();
+        s.setSchoolId(schoolId);
+        s.setUsesSharedAccount(false);
+        applyAccount(s, cfg, String.valueOf(schoolId));
+        s.setMailFromName(get(cfg, K_MAIL_NAME, schoolId, ""));
+        return s;
+    }
+
+    /** True when the school sends through the shared account. No choice saved yet: a school that already has its own account keeps it. */
+    static boolean usesShared(Map<String, String> cfg, Long schoolId) {
+        String flag = cfg.get(K_USE_SHARED + schoolId);
+        if (flag != null && !flag.isBlank()) {
+            return !"false".equalsIgnoreCase(flag.trim());
+        }
+        String ownSender = cfg.get(K_MAIL_SENDER + schoolId);
+        return ownSender == null || ownSender.isBlank();
+    }
+
+    /** Key suffix of the shared account: SHARED, else the school behind the older backup email setting, else null (none). */
+    static String sharedSuffix(Map<String, String> cfg) {
+        String sender = cfg.get(K_MAIL_SENDER + SHARED);
+        if (sender != null && !sender.isBlank()) {
+            return SHARED;
+        }
+        String legacy = cfg.get(DbBackupService.CONFIG_MAIL_SCHOOL_ID);
+        if (legacy != null && !legacy.isBlank()) {
+            String id = legacy.trim();
+            String legacySender = cfg.get(K_MAIL_SENDER + id);
+            if (legacySender != null && !legacySender.isBlank()) {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    /** Fills the mail fields from the rows with this suffix. A null suffix (no account anywhere) leaves the defaults, i.e. not ready. */
+    private void applyAccount(AutomationSettings s, Map<String, String> cfg, String suffix) {
+        if (suffix == null) {
+            return;
+        }
+        s.setMailSender(get(cfg, K_MAIL_SENDER, suffix, ""));
+        s.setMailPasswordEncrypted(get(cfg, K_MAIL_PASSWORD, suffix, ""));
+        String host = get(cfg, K_MAIL_HOST, suffix, "").trim();
+        if (!host.isEmpty()) {
+            s.setMailHost(host);
+        }
+        int port = parseIntOr(get(cfg, K_MAIL_PORT, suffix, ""), 587);
+        s.setMailPort(port >= 1 && port <= 65535 ? port : 587);
+        String security = get(cfg, K_MAIL_SECURITY, suffix, "").trim().toUpperCase();
+        if (isValidSecurity(security)) {
+            s.setMailSecurity(security);
+        }
+        s.setMailAuth(!"false".equalsIgnoreCase(get(cfg, K_MAIL_AUTH, suffix, "true")));
+        int timeout = parseIntOr(get(cfg, K_MAIL_TIMEOUT, suffix, ""), 30);
+        s.setMailTimeoutSeconds(timeout >= MIN_TIMEOUT && timeout <= MAX_TIMEOUT ? timeout : 30);
+    }
+
     /** Builds a school's settings from a snapshot. Anything missing or malformed falls back to its default. */
     public AutomationSettings fromSnapshot(Map<String, String> cfg, Long schoolId) {
         AutomationSettings s = new AutomationSettings();
         s.setSchoolId(schoolId);
-        s.setMailSender(get(cfg, K_MAIL_SENDER, schoolId, ""));
-        s.setMailPasswordEncrypted(get(cfg, K_MAIL_PASSWORD, schoolId, ""));
+        // Which account sends this school's emails: the shared one (default) or the school's own.
+        String sharedSuffix = sharedSuffix(cfg);
+        boolean shared = schoolId != null && usesShared(cfg, schoolId);
+        s.setUsesSharedAccount(shared);
+        s.setSharedAccountConfigured(sharedSuffix != null);
+        applyAccount(s, cfg, shared ? sharedSuffix : String.valueOf(schoolId));
+        // The sender name always belongs to the school, even when the account itself is shared.
         s.setMailFromName(get(cfg, K_MAIL_NAME, schoolId, ""));
-        String host = get(cfg, K_MAIL_HOST, schoolId, "").trim();
-        if (!host.isEmpty()) {
-            s.setMailHost(host);
-        }
-        int port = parseIntOr(get(cfg, K_MAIL_PORT, schoolId, ""), 587);
-        s.setMailPort(port >= 1 && port <= 65535 ? port : 587);
-        String security = get(cfg, K_MAIL_SECURITY, schoolId, "").trim().toUpperCase();
-        if (isValidSecurity(security)) {
-            s.setMailSecurity(security);
-        }
-        s.setMailAuth(!"false".equalsIgnoreCase(get(cfg, K_MAIL_AUTH, schoolId, "true")));
-        int timeout = parseIntOr(get(cfg, K_MAIL_TIMEOUT, schoolId, ""), 30);
-        s.setMailTimeoutSeconds(timeout >= MIN_TIMEOUT && timeout <= MAX_TIMEOUT ? timeout : 30);
+
+        s.setBackupNoticeRecipients(splitRecipients(get(cfg, K_BACKUP_NOTICE_TO, schoolId, "")));
+        s.setBackupNoticeOn("true".equalsIgnoreCase(get(cfg, K_BACKUP_NOTICE_ON, schoolId, "false")));
 
         s.setReminderRecipients(splitRecipients(get(cfg, K_REMINDER_TO, schoolId, "")));
         s.setReminderOn("true".equalsIgnoreCase(get(cfg, K_REMINDER_ON, schoolId, "false")));
@@ -193,6 +278,11 @@ public class AutomationSettingsService {
         public String recipients;
     }
 
+    public static class BackupNoticeRequest {
+        public boolean on;
+        public String recipients;
+    }
+
     public static class ReportRequest {
         public boolean on;
         public int days;
@@ -203,8 +293,20 @@ public class AutomationSettingsService {
         public String recipients;
     }
 
-    /** @return null on success, otherwise a message for the user. Nothing is saved unless everything is valid. */
+    /** Saves the school's OWN account (kept for existing callers). */
     public String saveAccount(Long schoolId, AccountRequest r) {
+        return saveAccount(schoolId, false, r);
+    }
+
+    /**
+     * Saves the account shown on the Email Account screen.
+     * {@code useShared == true}: the details are written to the shared account (every branch that uses it is affected).
+     * {@code useShared == false}: they are written to this school's own account.
+     * Either way the sender name and the choice itself are remembered for this school only.
+     *
+     * @return null on success, otherwise a message for the user. Nothing is saved unless everything is valid.
+     */
+    public String saveAccount(Long schoolId, boolean useShared, AccountRequest r) {
         if (schoolId == null) {
             return NO_SCHOOL;
         }
@@ -234,22 +336,34 @@ public class AutomationSettingsService {
         if (newPassword && !secretCipher.isConfigured()) {
             return KEY_MISSING;
         }
-        boolean hasPassword = newPassword || !get(snapshot(), K_MAIL_PASSWORD, schoolId, "").isBlank();
-        if (r.auth && !hasPassword) {
+        Map<String, String> cfg = snapshot();
+        String target = useShared ? SHARED : String.valueOf(schoolId);
+        // Saving the shared account for the first time on an installation that still uses a school's account for backups:
+        // a blank password then means "keep that account's password", so it is carried over below.
+        String existingSuffix = useShared ? sharedSuffix(cfg) : target;
+        String existingPassword = existingSuffix == null ? "" : get(cfg, K_MAIL_PASSWORD, existingSuffix, "");
+        if (r.auth && !newPassword && existingPassword.isBlank()) {
             return "Please enter the password, or untick 'Server requires login'.";
         }
 
-        upsert(K_MAIL_SENDER + schoolId, sender, "Sender email account of school " + schoolId + " (used by all its automatic emails).", schoolId);
-        upsert(K_MAIL_HOST + schoolId, host, "SMTP server of the sender account, school " + schoolId + ".", schoolId);
-        upsert(K_MAIL_PORT + schoolId, String.valueOf(r.port), "SMTP port of the sender account, school " + schoolId + ".", schoolId);
-        upsert(K_MAIL_SECURITY + schoolId, security, "SMTP security (STARTTLS/SSL/NONE) of the sender account, school " + schoolId + ".", schoolId);
-        upsert(K_MAIL_NAME + schoolId, fromName, "Display name of the sender, school " + schoolId + ".", schoolId);
-        upsert(K_MAIL_AUTH + schoolId, String.valueOf(r.auth), "Whether the SMTP server needs a login, school " + schoolId + ".", schoolId);
-        upsert(K_MAIL_TIMEOUT + schoolId, String.valueOf(r.timeoutSeconds), "SMTP timeout in seconds, school " + schoolId + ".", schoolId);
+        Long scope = useShared ? null : schoolId;
+        String who = useShared ? "the shared account" : "school " + schoolId;
+        upsert(K_MAIL_SENDER + target, sender, "Sender email of " + who + " (used by all its automatic emails).", scope);
+        upsert(K_MAIL_HOST + target, host, "SMTP server of the sender account, " + who + ".", scope);
+        upsert(K_MAIL_PORT + target, String.valueOf(r.port), "SMTP port of the sender account, " + who + ".", scope);
+        upsert(K_MAIL_SECURITY + target, security, "SMTP security (STARTTLS/SSL/NONE) of the sender account, " + who + ".", scope);
+        upsert(K_MAIL_AUTH + target, String.valueOf(r.auth), "Whether the SMTP server needs a login, " + who + ".", scope);
+        upsert(K_MAIL_TIMEOUT + target, String.valueOf(r.timeoutSeconds), "SMTP timeout in seconds, " + who + ".", scope);
         if (newPassword) {
-            upsert(K_MAIL_PASSWORD + schoolId, secretCipher.encrypt(r.password),
-                    "Password of the sender account for school " + schoolId + " (encrypted).", schoolId);
+            upsert(K_MAIL_PASSWORD + target, secretCipher.encrypt(r.password),
+                    "Password of the sender account, " + who + " (encrypted).", scope);
+        } else if (useShared && !SHARED.equals(existingSuffix) && !existingPassword.isBlank()) {
+            upsert(K_MAIL_PASSWORD + target, existingPassword,
+                    "Password of the sender account, " + who + " (encrypted).", scope);
         }
+        upsert(K_MAIL_NAME + schoolId, fromName, "Display name of the sender, school " + schoolId + ".", schoolId);
+        upsert(K_USE_SHARED + schoolId, String.valueOf(useShared),
+                "Whether school " + schoolId + " sends its automatic emails through the shared account (true) or its own (false).", schoolId);
         return null;
     }
 
@@ -326,6 +440,27 @@ public class AutomationSettingsService {
         return null;
     }
 
+    /** The branch's short "backup done / failed" notice (no file). Same rules as the other notifications. */
+    public String saveBackupNotice(Long schoolId, BackupNoticeRequest r) {
+        if (schoolId == null) {
+            return NO_SCHOOL;
+        }
+        String recipientsError = validateRecipients(r.recipients);
+        if (recipientsError != null) {
+            return recipientsError;
+        }
+        List<String> recipients = splitRecipients(r.recipients);
+        if (r.on) {
+            String why = notReadyToSwitchOn(schoolId, recipients);
+            if (why != null) {
+                return why;
+            }
+        }
+        upsert(K_BACKUP_NOTICE_TO + schoolId, String.join(", ", recipients), "Receiver emails of the backup done/failed notice, school " + schoolId + ".", schoolId);
+        upsert(K_BACKUP_NOTICE_ON + schoolId, String.valueOf(r.on), "Backup done/failed notice on/off, school " + schoolId + ".", schoolId);
+        return null;
+    }
+
     /** A notification can only be switched on when the school's email account works and it has a receiver. */
     private String notReadyToSwitchOn(Long schoolId, List<String> recipients) {
         if (!load(schoolId).isAccountReady()) {
@@ -371,7 +506,11 @@ public class AutomationSettingsService {
     }
 
     private static String get(Map<String, String> cfg, String prefix, Long schoolId, String fallback) {
-        String v = cfg.get(prefix + schoolId);
+        return get(cfg, prefix, String.valueOf(schoolId), fallback);
+    }
+
+    private static String get(Map<String, String> cfg, String prefix, String suffix, String fallback) {
+        String v = cfg.get(prefix + suffix);
         return v == null ? fallback : v;
     }
 
