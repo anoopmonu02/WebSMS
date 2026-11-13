@@ -198,6 +198,9 @@ public class AppConfigAutomationController {
         m.put("backupNoticeOn", s.isBackupNoticeOn());
         m.put("backupNoticeReceivers", String.join(", ", s.getBackupNoticeRecipients()));
         m.put("backupNoticeLastSent", settingsService.lastSent(cfg, AutomationSettingsService.JOB_BACKUP_NOTICE, schoolId));
+        m.put("securityAlertOn", s.isSecurityAlertOn());
+        m.put("securityAlertReceivers", String.join(", ", s.getSecurityAlertRecipients()));
+        m.put("securityAlertLastSent", settingsService.lastSent(cfg, AutomationSettingsService.JOB_SECURITY_ALERT, schoolId));
         return ResponseEntity.ok(m);
     }
 
@@ -266,6 +269,40 @@ public class AppConfigAutomationController {
         } catch (Exception e) {
             log.error("Test backup notice failed for school {}", schoolId, e);
             return fail(HttpStatus.BAD_GATEWAY, "Could not send the test notice: " + describeMailFailure(e));
+        }
+    }
+
+    @PostMapping("/notifications/security-alert")
+    public ResponseEntity<Map<String, Object>> saveSecurityAlert(@RequestParam(defaultValue = "false") boolean on,
+                                                                 @RequestParam(required = false) String receivers,
+                                                                 HttpSession session) {
+        Long schoolId = schoolId(session);
+        AutomationSettingsService.SecurityAlertRequest r = new AutomationSettingsService.SecurityAlertRequest();
+        r.on = on;
+        r.recipients = receivers;
+        return saved(schoolId, () -> settingsService.saveSecurityAlert(schoolId, r), "Security alert settings saved.");
+    }
+
+    /** Sends a sample security alert to the saved receivers (nothing is locked). */
+    @PostMapping("/notifications/security-alert/test")
+    public ResponseEntity<Map<String, Object>> testSecurityAlert(HttpSession session) {
+        Long schoolId = schoolId(session);
+        if (schoolId == null) {
+            return fail(HttpStatus.BAD_REQUEST, "No school is linked to your login.");
+        }
+        AutomationSettings s = settingsService.load(schoolId);
+        if (!s.isAccountReady() || s.getSecurityAlertRecipients().isEmpty()) {
+            return fail(HttpStatus.BAD_REQUEST, "Please save the email account and the receiver email first.");
+        }
+        try {
+            mailService.send(s, s.getSecurityAlertRecipients(), "Test: security alert",
+                    "This is a test of the security alert. When a staff sign-in is locked a second time within 24 hours, "
+                            + "or one address tries many different accounts, you will get a short email like this with the "
+                            + "masked username, the time and when the lock ends. No password is ever included. Nothing is locked now.", false);
+            return ok("Test alert sent to " + String.join(", ", s.getSecurityAlertRecipients()) + ".");
+        } catch (Exception e) {
+            log.error("Test security alert failed for school {}", schoolId, e);
+            return fail(HttpStatus.BAD_GATEWAY, "Could not send the test alert: " + describeMailFailure(e));
         }
     }
 

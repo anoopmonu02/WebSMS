@@ -37,6 +37,10 @@ public class AutomationSettings {
     private boolean backupNoticeOn;
     private List<String> backupNoticeRecipients = new ArrayList<>();
 
+    // Security alert: staff sign-in locked a second time / password-guessing address blocked
+    private boolean securityAlertOn;
+    private List<String> securityAlertRecipients = new ArrayList<>();
+
     // Attendance confirmation reminder
     private boolean reminderOn;
     private LocalTime reminderTime = LocalTime.of(11, 0);
@@ -88,6 +92,10 @@ public class AutomationSettings {
     public void setBackupNoticeOn(boolean v) { this.backupNoticeOn = v; }
     public List<String> getBackupNoticeRecipients() { return backupNoticeRecipients; }
     public void setBackupNoticeRecipients(List<String> v) { this.backupNoticeRecipients = v == null ? new ArrayList<>() : v; }
+    public boolean isSecurityAlertOn() { return securityAlertOn; }
+    public void setSecurityAlertOn(boolean v) { this.securityAlertOn = v; }
+    public List<String> getSecurityAlertRecipients() { return securityAlertRecipients; }
+    public void setSecurityAlertRecipients(List<String> v) { this.securityAlertRecipients = v == null ? new ArrayList<>() : v; }
 
     public boolean isReminderOn() { return reminderOn; }
     public void setReminderOn(boolean v) { this.reminderOn = v; }

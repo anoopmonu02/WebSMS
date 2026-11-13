@@ -1,11 +1,10 @@
 package com.smsweb.sms.services.users;
 
+import com.smsweb.sms.services.security.ExpiringStore;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Throttles POST /auth/forgot-password per email address. Previously a
@@ -26,7 +25,12 @@ public class PasswordResetAttemptService {
 
     private record Attempts(int count, Instant windowStart) {}
 
-    private final Map<String, Attempts> byEmail = new ConcurrentHashMap<>();
+    private static final int MAX_ENTRIES = 50_000;
+
+    // Bounded, and entries are dropped once their window is over (behaviour is unchanged: 3 per email per 15 min).
+    private final ExpiringStore<Attempts> byEmail = new ExpiringStore<>(MAX_ENTRIES,
+            a -> a.windowStart().toEpochMilli(),
+            (a, now) -> now > a.windowStart().plus(WINDOW).toEpochMilli());
 
     /** True if this email has already hit the request limit within the current window. */
     public boolean isLocked(String email) {
@@ -40,7 +44,7 @@ public class PasswordResetAttemptService {
     public void recordAttempt(String email) {
         String key = normalize(email);
         Instant now = Instant.now();
-        byEmail.compute(key, (k, existing) -> {
+        byEmail.compute(key, now.toEpochMilli(), (k, existing) -> {
             if (existing == null || now.isAfter(existing.windowStart().plus(WINDOW))) {
                 return new Attempts(1, now);
             }

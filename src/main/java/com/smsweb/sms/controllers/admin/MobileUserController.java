@@ -6,6 +6,9 @@ import com.smsweb.sms.dto.MobileUserStatsDto;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.FamilyAccount;
 import com.smsweb.sms.services.mobile.FamilyAccountService;
+import com.smsweb.sms.services.mobile.LoginAttemptService;
+import com.smsweb.sms.services.security.LoginThrottleService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -49,6 +52,12 @@ public class MobileUserController {
     private static final Logger log = LoggerFactory.getLogger(MobileUserController.class);
 
     private final FamilyAccountService familyAccountService;
+
+    // After an admin password reset the parent must be able to sign in at once, so the sign-in locks are cleared.
+    @Autowired
+    private LoginAttemptService loginAttemptService;
+    @Autowired
+    private LoginThrottleService loginThrottleService;
 
     public MobileUserController(FamilyAccountService familyAccountService) {
         this.familyAccountService = familyAccountService;
@@ -107,6 +116,12 @@ public class MobileUserController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Family account not found."));
             }
             familyAccountService.adminResetPassword(account, newPassword.trim());
+            try {
+                loginAttemptService.clear(account.getMobile());
+                loginThrottleService.clear(LoginThrottleService.Channel.CHANGE_PASSWORD, "fa" + account.getId());
+            } catch (RuntimeException e) {
+                log.warn("Password was reset but the sign-in lock could not be cleared: {}", e.getMessage());
+            }
             return ResponseEntity.ok(Map.of("success", true));
         } catch (Exception e) {
             log.error("Failed to reset password for familyAccountId={}", id, e);

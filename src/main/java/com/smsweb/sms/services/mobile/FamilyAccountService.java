@@ -54,6 +54,12 @@ public class FamilyAccountService {
     private final MobileRefreshTokenService refreshTokenService;
 
     private static final SecureRandom RNG = new SecureRandom();
+
+    /** The exact message {@link #changePassword} returns for a wrong current password (the controller counts it). */
+    public static final String ERR_CURRENT_PASSWORD = "Current password is incorrect.";
+
+    /** A valid BCrypt hash of a throw-away value, made once on first use (see {@link #burnPasswordCheck}). */
+    private volatile String dummyHash;
     // Excludes ambiguous characters (0/O, 1/l/I) so a temp password is easy to
     // read aloud or copy off a slip of paper without a parent mistyping it.
     private static final String TEMP_PASSWORD_CHARS =
@@ -237,7 +243,7 @@ public class FamilyAccountService {
                                   String newPassword) {
         log.info("Inside changePassword");
         if (!encoder.matches(currentPassword, account.getPasswordHash())) {
-            return "Current password is incorrect.";
+            return ERR_CURRENT_PASSWORD;
         }
         if (newPassword.length() < 6) {
             return "New password must be at least 6 characters.";
@@ -246,6 +252,23 @@ public class FamilyAccountService {
         account.setMustChangePassword(false);
         repo.save(account);
         return null;
+    }
+
+    /**
+     * Spends about the same time as a real password check. The sign-in calls this when the mobile number is unknown,
+     * so "unknown number" and "wrong password" cannot be told apart by how long the answer takes.
+     */
+    public void burnPasswordCheck(String rawPassword) {
+        try {
+            String hash = dummyHash;
+            if (hash == null) {
+                hash = encoder.encode("not-a-real-password-" + UUID.randomUUID());
+                dummyHash = hash;
+            }
+            encoder.matches(rawPassword == null ? "" : rawPassword, hash);
+        } catch (RuntimeException e) {
+            log.debug("Dummy password check failed (ignored)", e);
+        }
     }
 
     /**
