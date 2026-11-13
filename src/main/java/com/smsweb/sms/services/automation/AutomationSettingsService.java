@@ -54,6 +54,8 @@ public class AutomationSettingsService {
     static final String K_USE_SHARED = "AUTO_MAIL_USE_SHARED_";
     static final String K_BACKUP_NOTICE_ON = "BACKUP_NOTICE_ON_";
     static final String K_BACKUP_NOTICE_TO = "BACKUP_NOTICE_TO_";
+    static final String K_SECURITY_ALERT_ON = "SECURITY_ALERT_ON_";
+    static final String K_SECURITY_ALERT_TO = "SECURITY_ALERT_TO_";
     /** Key suffix of the shared (installation-wide) account rows, e.g. AUTO_MAIL_SENDER_SHARED. */
     static final String SHARED = "SHARED";
     static final String K_DONE = "AUTO_DONE_";
@@ -65,6 +67,8 @@ public class AutomationSettingsService {
     /** "Last sent" note of the backup notice, and the once-a-day mark that stops repeated failure notices. */
     public static final String JOB_BACKUP_NOTICE = "BACKUP_NOTICE";
     public static final String JOB_BACKUP_NOTICE_FAIL = "BACKUP_NOTICE_FAIL";
+    /** "Last sent" note of the security alert. */
+    public static final String JOB_SECURITY_ALERT = "SECURITY_ALERT";
     /** Used only for the "last sent" note (first and second reminder share it). */
     public static final String JOB_REMINDER = "ATT_REMINDER";
 
@@ -198,6 +202,8 @@ public class AutomationSettingsService {
 
         s.setBackupNoticeRecipients(splitRecipients(get(cfg, K_BACKUP_NOTICE_TO, schoolId, "")));
         s.setBackupNoticeOn("true".equalsIgnoreCase(get(cfg, K_BACKUP_NOTICE_ON, schoolId, "false")));
+        s.setSecurityAlertRecipients(splitRecipients(get(cfg, K_SECURITY_ALERT_TO, schoolId, "")));
+        s.setSecurityAlertOn("true".equalsIgnoreCase(get(cfg, K_SECURITY_ALERT_ON, schoolId, "false")));
 
         s.setReminderRecipients(splitRecipients(get(cfg, K_REMINDER_TO, schoolId, "")));
         s.setReminderOn("true".equalsIgnoreCase(get(cfg, K_REMINDER_ON, schoolId, "false")));
@@ -279,6 +285,11 @@ public class AutomationSettingsService {
     }
 
     public static class BackupNoticeRequest {
+        public boolean on;
+        public String recipients;
+    }
+
+    public static class SecurityAlertRequest {
         public boolean on;
         public String recipients;
     }
@@ -458,6 +469,27 @@ public class AutomationSettingsService {
         }
         upsert(K_BACKUP_NOTICE_TO + schoolId, String.join(", ", recipients), "Receiver emails of the backup done/failed notice, school " + schoolId + ".", schoolId);
         upsert(K_BACKUP_NOTICE_ON + schoolId, String.valueOf(r.on), "Backup done/failed notice on/off, school " + schoolId + ".", schoolId);
+        return null;
+    }
+
+    /** The branch's security alert (staff sign-in locked again / password-guessing address). Same rules as the others. */
+    public String saveSecurityAlert(Long schoolId, SecurityAlertRequest r) {
+        if (schoolId == null) {
+            return NO_SCHOOL;
+        }
+        String recipientsError = validateRecipients(r.recipients);
+        if (recipientsError != null) {
+            return recipientsError;
+        }
+        List<String> recipients = splitRecipients(r.recipients);
+        if (r.on) {
+            String why = notReadyToSwitchOn(schoolId, recipients);
+            if (why != null) {
+                return why;
+            }
+        }
+        upsert(K_SECURITY_ALERT_TO + schoolId, String.join(", ", recipients), "Receiver emails of the security alert, school " + schoolId + ".", schoolId);
+        upsert(K_SECURITY_ALERT_ON + schoolId, String.valueOf(r.on), "Security alert on/off, school " + schoolId + ".", schoolId);
         return null;
     }
 

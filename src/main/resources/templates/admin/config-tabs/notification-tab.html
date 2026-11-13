@@ -10,6 +10,9 @@
      th:data-report-now-url="@{/admin/app-config/notifications/report/send-now}"
      th:data-backup-notice-url="@{/admin/app-config/notifications/backup-notice}"
      th:data-backup-notice-test-url="@{/admin/app-config/notifications/backup-notice/test}"
+     th:data-security-alert-url="@{/admin/app-config/notifications/security-alert}"
+     th:data-security-alert-test-url="@{/admin/app-config/notifications/security-alert/test}"
+     th:data-security-activity-url="@{/admin/app-config/security-activity}"
      th:data-clear-url="@{/admin/app-config/notifications/all-clear}"
      th:data-clear-update-url="@{/admin/app-config/notifications/all-clear/update}"
      th:data-clear-active-url="@{/admin/app-config/notifications/all-clear/active}"
@@ -153,6 +156,51 @@
         </div>
       </div>
     </div>
+    <div class="col-lg-6">
+      <div class="card config-card">
+        <div class="card-header py-3"><i class="bi bi-shield-lock me-2"></i>Security alert</div>
+        <div class="card-body">
+          <p class="text-muted small">An email when a <strong>staff</strong> sign-in is locked a <strong>second time within 24 hours</strong> (repeated wrong passwords), or when one address tries many different accounts. The first lock is not emailed, so ordinary typing mistakes stay quiet. It shows a masked username, the time and when the lock ends. No password is ever included.</p>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="ntSecurityOn">
+            <label class="form-check-label fw-semibold" for="ntSecurityOn">Send a security alert</label>
+          </div>
+          <label class="form-label fw-semibold" for="ntSecurityTo">Send to <span class="text-muted fw-normal">(up to 5 emails, comma separated)</span></label>
+          <input type="text" class="form-control" id="ntSecurityTo" maxlength="255" autocomplete="off">
+          <div class="form-text">At most one email per account per day for each lock level. A locked account unlocks by itself, or at once when you use Reset Password on the Employee screen.</div>
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-outline-primary" id="ntSecurityTestBtn"><i class="bi bi-send me-1"></i>Send test alert</button>
+            <button type="button" class="btn btn-primary" id="ntSecuritySaveBtn"><i class="bi bi-check-lg me-1"></i>Save alert</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-0">
+    <div class="col-12">
+      <div class="card config-card">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-activity me-2"></i>Security activity - last 24 hours</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="ntActivityRefresh"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning small py-2 d-none" id="ntActivityLogMode">The system is in <strong>log mode</strong>: these events were detected but nobody was really locked.</div>
+          <div class="row g-2 mb-3 text-center">
+            <div class="col-4"><div class="border rounded p-2"><div class="fs-4 fw-bold" id="ntActLocked">0</div><div class="small text-muted">Locked sign-ins</div></div></div>
+            <div class="col-4"><div class="border rounded p-2"><div class="fs-4 fw-bold" id="ntActIp">0</div><div class="small text-muted">Address blocks</div></div></div>
+            <div class="col-4"><div class="border rounded p-2"><div class="fs-4 fw-bold" id="ntActApi">0</div><div class="small text-muted">App requests held</div></div></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr><th>Time</th><th>Who</th><th>What happened</th><th class="text-end">Lock no.</th></tr></thead>
+              <tbody id="ntActivityBody"><tr><td colspan="4" class="text-muted small">Loading...</td></tr></tbody>
+            </table>
+          </div>
+          <p class="text-muted small mt-3 mb-0">Masked names only; no passwords are ever shown. A locked user is unlocked by itself when the time ends, or at once with Reset Password (Employee or Mobile Users screen). The list is kept in memory and starts again when the server restarts.</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="row g-3 mt-0">
@@ -193,6 +241,7 @@
             <span class="badge text-bg-light border" id="ntLastReminder">Reminder: -</span>
             <span class="badge text-bg-light border" id="ntLastReport">Report: -</span>
             <span class="badge text-bg-light border" id="ntLastBackup">Backup notice: -</span>
+            <span class="badge text-bg-light border" id="ntLastSecurity">Security alert: -</span>
           </div>
         </div>
       </div>
@@ -216,9 +265,46 @@
       el('ntDowWrap').style.display = f === 'WEEKLY' ? '' : 'none';
       el('ntDomWrap').style.display = f === 'MONTHLY' ? '' : 'none';
     }
+    function loadActivity() {
+      $.ajax({
+        type: 'GET', url: d0.securityActivityUrl,
+        success: function (d) {
+          el('ntActLocked').textContent = String(d.lockedSignIns || 0);
+          el('ntActIp').textContent = String(d.addressBlocks || 0);
+          el('ntActApi').textContent = String(d.apiHeld || 0);
+          el('ntActivityLogMode').classList.toggle('d-none', d.mode !== 'log');
+          var body = el('ntActivityBody');
+          body.textContent = '';
+          var rows = d.events || [];
+          if (!rows.length) {
+            var tr0 = document.createElement('tr');
+            var td0 = document.createElement('td');
+            td0.colSpan = 4; td0.className = 'text-muted small';
+            td0.textContent = 'Nothing to report in the last 24 hours.';
+            tr0.appendChild(td0); body.appendChild(tr0);
+            return;
+          }
+          rows.forEach(function (r) {
+            var tr = document.createElement('tr');
+            [r.time, r.who, r.what].forEach(function (t) {
+              var td = document.createElement('td'); td.textContent = t; tr.appendChild(td);
+            });
+            var tdl = document.createElement('td'); tdl.className = 'text-end';
+            if (r.level > 0) {
+              var b = document.createElement('span');
+              b.className = 'badge ' + (r.level >= 3 ? 'text-bg-danger' : (r.level === 2 ? 'text-bg-warning' : 'text-bg-secondary'));
+              b.textContent = String(r.level); tdl.appendChild(b);
+            }
+            tr.appendChild(tdl); body.appendChild(tr);
+          });
+        },
+        error: function (xhr) { toastr.error(err(xhr, 'Could not load the security activity.'), 'Error'); }
+      });
+    }
     function load() {
       if (loaded) { return; }
       loadClear();
+      loadActivity();
       $.ajax({
         type: 'GET', url: d0.url,
         success: function (d) {
@@ -244,6 +330,8 @@
           el('ntReportTo').value = d.reportReceivers || '';
           el('ntBackupOn').checked = !!d.backupNoticeOn;
           el('ntBackupTo').value = d.backupNoticeReceivers || '';
+          el('ntSecurityOn').checked = !!d.securityAlertOn;
+          el('ntSecurityTo').value = d.securityAlertReceivers || '';
           syncFreq();
           renderSteps(d);
         },
@@ -264,6 +352,7 @@
       el('ntLastReminder').textContent = 'Reminder last sent: ' + (d.reminderLastSent || 'never');
       el('ntLastReport').textContent = 'Report last sent: ' + (d.reportLastSent || 'never');
       el('ntLastBackup').textContent = 'Backup notice last sent: ' + (d.backupNoticeLastSent || 'never');
+      el('ntLastSecurity').textContent = 'Security alert last sent: ' + (d.securityAlertLastSent || 'never');
     }
 
     // ── All-clear messages ──
@@ -374,6 +463,11 @@
       post(d0.backupNoticeUrl, { on: el('ntBackupOn').checked, receivers: el('ntBackupTo').value }, this, 'Saved', function () { loaded = false; load(); });
     });
     el('ntBackupTestBtn').addEventListener('click', function () { post(d0.backupNoticeTestUrl, {}, this, 'Sent'); });
+    el('ntSecuritySaveBtn').addEventListener('click', function () {
+      post(d0.securityAlertUrl, { on: el('ntSecurityOn').checked, receivers: el('ntSecurityTo').value }, this, 'Saved', function () { loaded = false; load(); });
+    });
+    el('ntSecurityTestBtn').addEventListener('click', function () { post(d0.securityAlertTestUrl, {}, this, 'Sent'); });
+    el('ntActivityRefresh').addEventListener('click', loadActivity);
     el('ntReminderTestBtn').addEventListener('click', function () { post(d0.reminderTestUrl, {}, this, 'Sent'); });
     el('ntReportNowBtn').addEventListener('click', function () { post(d0.reportNowUrl, {}, this, 'Done'); });
   });

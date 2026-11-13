@@ -1,10 +1,15 @@
 package com.smsweb.sms.config;
 
 
+import com.smsweb.sms.config.mobile.ApiRateLimitFilter;
 import com.smsweb.sms.config.mobile.JwtAuthenticationFilter;
 import com.smsweb.sms.config.mobile.JwtTokenProvider;
 import com.smsweb.sms.config.mobile.MaintenanceModeFilter;
 import com.smsweb.sms.services.admin.MaintenanceModeService;
+import com.smsweb.sms.services.security.ApiRateLimitService;
+import com.smsweb.sms.services.security.ClientIpResolver;
+import com.smsweb.sms.services.security.LoginThrottleService;
+import com.smsweb.sms.services.security.TurnstileService;
 import com.smsweb.sms.services.users.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -53,6 +58,16 @@ public class WebSecurityConfig {
     @Autowired
     private MaintenanceModeService maintenanceModeService;
 
+    // Login / API throttling (default mode "log": counts and logs, never blocks). See application.properties.
+    @Autowired
+    private LoginThrottleService loginThrottleService;
+    @Autowired
+    private ApiRateLimitService apiRateLimitService;
+    @Autowired
+    private ClientIpResolver clientIpResolver;
+    @Autowired
+    private TurnstileService turnstileService;
+
     // ── Shared beans ──────────────────────────────────────────────────────────
 
     @Bean
@@ -100,6 +115,11 @@ public class WebSecurityConfig {
             .addFilterBefore(
                 new JwtAuthenticationFilter(jwtTokenProvider),
                 UsernamePasswordAuthenticationFilter.class
+            )
+            // Request-rate limit for signed-in users / IPs: runs after the JWT filter so the user is known.
+            .addFilterAfter(
+                new ApiRateLimitFilter(apiRateLimitService, clientIpResolver),
+                JwtAuthenticationFilter.class
             )
             // Maintenance-mode gate — runs before the JWT filter so a DISABLED mobile
             // app blocks every request (including login) with a 503, not just authenticated ones.
@@ -150,6 +170,10 @@ public class WebSecurityConfig {
                 // on every response (not lazily). Without this, Firefox can miss the cookie
                 // on the very first page load and the first form POST silently fails CSRF.
                 .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
+                // Refuses sign-in POSTs for a locked account / blocked IP before the password is checked.
+                // Acts only on POST /login; in the default "log" mode it never blocks anyone.
+                .addFilterBefore(new WebLoginThrottleFilter(loginThrottleService, clientIpResolver, turnstileService),
+                        UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(requests -> requests
                         // Public assets (classpath:/static/images — logos, icons, etc.)
                         // NOTE: student/employee photos are NOT under here — they're served
@@ -247,7 +271,7 @@ public class WebSecurityConfig {
 
     @Bean
     public CustomAuthenticationFailureHandler customAuthenticationFailureHandler() {
-        return new CustomAuthenticationFailureHandler();
+        return new CustomAuthenticationFailureHandler(loginThrottleService, clientIpResolver);
     }
 
 

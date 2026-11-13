@@ -3,6 +3,8 @@ package com.smsweb.sms.controllers.student;
 import com.smsweb.sms.models.Users.PasswordResetToken;
 import com.smsweb.sms.models.Users.UserEntity;
 import com.smsweb.sms.services.globalaccess.EmailService;
+import com.smsweb.sms.services.security.ClientIpResolver;
+import com.smsweb.sms.services.security.LoginThrottleService;
 import com.smsweb.sms.services.users.PasswordResetAttemptService;
 import com.smsweb.sms.services.users.PasswordResetTokenService;
 import com.smsweb.sms.services.users.UserService;
@@ -36,6 +38,12 @@ public class AuthController {
     private EmailService emailService;
 
     @Autowired
+    private LoginThrottleService loginThrottleService;
+
+    @Autowired
+    private ClientIpResolver clientIpResolver;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @GetMapping("/forgot-password")
@@ -58,6 +66,14 @@ public class AuthController {
             model.addAttribute("error", "Please enter your email address.");
             return "forgot-password";
         }
+
+        // Per-address limit (one address cannot spam reset mails to many different people). Log mode: never blocks.
+        String ip = clientIpResolver.resolve(request);
+        if (loginThrottleService.shouldBlockForgotPassword(ip)) {
+            model.addAttribute("error", "Too many requests. Please try again later.");
+            return "forgot-password";
+        }
+        loginThrottleService.recordForgotPassword(ip);
 
         // Throttle — previously unlimited reset requests were possible for the
         // same email with no slowdown (mailbox-spam risk).
@@ -134,6 +150,11 @@ public class AuthController {
 
         UserEntity user = resetToken.getUser();
         userService.updatePassword(user, password);
+        try {
+            loginThrottleService.clear(LoginThrottleService.Channel.WEB, user.getUsername()); // the owner proved the email
+        } catch (RuntimeException e) {
+            log.warn("Password was reset but the sign-in lock could not be cleared: {}", e.getMessage());
+        }
 
         // Invalidate the token after successful password reset
         passwordResetTokenService.invalidateToken(resetToken);

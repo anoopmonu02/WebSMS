@@ -371,6 +371,18 @@
                 Invalid username or password. Please try again.
             </div>
 
+            <!-- Too many attempts (account locked or address blocked for a while) -->
+            <div th:if="${param.blocked}" class="alert-error" role="alert">
+                <i class="bi bi-lock-fill"></i>
+                Too many sign-in attempts. Please wait a few minutes and try again.
+            </div>
+
+            <!-- Security check required (CAPTCHA shown after several wrong attempts) -->
+            <div th:if="${param.captcha != null and param.error == null and param.blocked == null}" class="alert-error" role="alert">
+                <i class="bi bi-shield-check"></i>
+                Please complete the security check below, then sign in.
+            </div>
+
             <!-- Logout message -->
             <div th:if="${param.logout}" class="alert-logout">
                 <i class="bi bi-check-circle-fill"></i>
@@ -397,6 +409,13 @@
                 </div>
 
                 <a th:href="@{/auth/forgot-password}" class="forgot-link">Forgot Password?</a>
+
+                <!-- Cloudflare Turnstile: rendered only after several wrong attempts, when switched on -->
+                <div th:if="${captchaSiteKey != null}" class="mb-3 d-flex justify-content-center">
+                    <div class="cf-turnstile" th:data-sitekey="${captchaSiteKey}" data-theme="auto"></div>
+                </div>
+                <script th:if="${captchaSiteKey != null}"
+                        src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
                 <button type="submit" class="btn-signin">
                     <i class="bi bi-box-arrow-in-right me-1"></i> Sign In

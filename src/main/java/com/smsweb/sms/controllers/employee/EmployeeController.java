@@ -50,6 +50,10 @@ import java.util.UUID;
 @RequestMapping("/employee")
 public class EmployeeController extends BaseController {
     Logger log = LoggerFactory.getLogger(EmployeeController.class);
+
+    // Lets an admin password reset unlock the account at once (see resetPassword below).
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.smsweb.sms.services.security.LoginThrottleService loginThrottleService;
     private final String FORMAT_PREFIX = "ddMMyyyyhhmmss";
     private final UserService userService;
     @Value("${employee.image.storage.path}")
@@ -284,6 +288,14 @@ public class EmployeeController extends BaseController {
                         "You can't reset your own password here — use Change Password from your profile menu instead."));
             }
             employeeService.adminResetPassword(employee, newPassword.trim());
+            try {
+                if (employee.getUserEntity() != null) {
+                    loginThrottleService.clear(com.smsweb.sms.services.security.LoginThrottleService.Channel.WEB,
+                            employee.getUserEntity().getUsername());
+                }
+            } catch (RuntimeException e) {
+                log.warn("Password was reset but the sign-in lock could not be cleared: {}", e.getMessage());
+            }
             return ResponseEntity.ok(Map.of("success", true));
         } catch (Exception e) {
             log.error("Failed to reset password for employee uuid={}", uuid, e);

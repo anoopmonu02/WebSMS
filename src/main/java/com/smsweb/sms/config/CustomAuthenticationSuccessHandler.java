@@ -8,6 +8,7 @@ import com.smsweb.sms.repositories.admin.AcademicyearRepository;
 import com.smsweb.sms.repositories.employee.EmployeeRepository;
 import com.smsweb.sms.repositories.users.UserRepository;
 import com.smsweb.sms.services.admin.AcademicyearService;
+import com.smsweb.sms.services.security.LoginThrottleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,11 +37,20 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     private UserRepository userRepository;
     @Autowired
     private AcademicyearService academicYearService;
+    @Autowired
+    private LoginThrottleService loginThrottleService;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
         log.info("Inside onAuthenticationSuccess");
+
+        // A correct sign-in forgets the account's wrong-attempt count (throttle must never break login).
+        try {
+            loginThrottleService.recordSuccess(LoginThrottleService.Channel.WEB, authentication.getName());
+        } catch (RuntimeException e) {
+            log.error("Could not reset the sign-in throttle after a successful login", e);
+        }
 
         // ── STUDENT login → restricted portal only ────────────────────────────────
         boolean isStudent = authentication.getAuthorities().stream()
