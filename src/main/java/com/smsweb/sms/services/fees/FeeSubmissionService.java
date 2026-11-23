@@ -77,6 +77,11 @@ public class FeeSubmissionService {
     @Autowired
     private PushNotificationService pushNotificationService; // feature: push notification on fee submission
 
+    // Mid Session Migration: read-only view of fees already paid at the previous branch(es).
+    // Returns nothing for a student without a link, so every other student is unaffected.
+    @Autowired
+    private LinkedFeeHistoryService linkedFeeHistoryService;
+
     @Autowired
     public FeeSubmissionService(FeeSubmissionRepository feeSubmissionRepository, MonthmappingRepository monthmappingRepository, GradeRepository gradeRepository, AcademicStudentRepository academicStudentRepository,
                                 FullpaymentRepository fullpaymentRepository, FeemonthmapRepository feemonthmapRepository, FeeclassmapRepository feeclassmapRepository, DiscountclassmapRepository discountclassmapRepository,
@@ -200,6 +205,28 @@ public class FeeSubmissionService {
         }
 
         return submissions;
+    }
+
+    /**
+     * Mid Session Migration (mobile): the active receipts the student paid at the previous
+     * branch(es), oldest branch first, each loaded like any other year's receipts so the caller can
+     * map them the same way. Empty for a student without a link. Throws if the linked data cannot be
+     * read: the mobile caller catches that and shows the student's own receipts only.
+     */
+    @Transactional(readOnly = true)
+    public List<FeeSubmission> getPreviousBranchSubmissions(Long academicStudentId) {
+        List<Long> chain = new ArrayList<>(linkedFeeHistoryService.getChainIds(academicStudentId));
+        if (chain.isEmpty()) return new ArrayList<>();
+        Collections.reverse(chain);   // chain is nearest first; list oldest first
+        List<FeeSubmission> all = new ArrayList<>();
+        for (Long previousId : chain) {
+            AcademicStudent previous = academicStudentRepository.findById(previousId).orElse(null);
+            if (previous == null || previous.getSchool() == null || previous.getAcademicYear() == null) continue;
+            List<FeeSubmission> receipts = getActiveFeeSubmissionsForYear(
+                    previous.getSchool().getId(), previous.getAcademicYear().getId(), previous.getId());
+            if (receipts != null) all.addAll(receipts);
+        }
+        return all;
     }
 
     /**
@@ -340,6 +367,13 @@ public class FeeSubmissionService {
             }
         }
 
+        // Mid Session Migration: months already paid at the previous branch(es), by MonthMaster
+        // id. Empty for every student without a link, so nothing below changes for them. If the
+        // linked data cannot be read this throws, so the callers (migration gate, mobile table)
+        // never show a paid month as unpaid or the other way round.
+        Map<Long, LinkedFeeHistoryService.LinkedPaidMonth> linkedPaidByMonthId =
+                linkedFeeHistoryService.getLinkedPaidMonths(academicStudentId);
+
         // Configured due date per month (school/academic-year specific admin
         // setting) — used to tell "genuinely overdue" apart from "not billed
         // yet". Batched once instead of one query per month.
@@ -397,10 +431,19 @@ public class FeeSubmissionService {
             }
             row.put("dueDate", effectiveDueDate);
 
+            LinkedFeeHistoryService.LinkedPaidMonth linkedMonth = fs == null ? linkedPaidByMonthId.get(mId) : null;
+
             if (fs != null) {
                 row.put("receiptNo",      fs.getReceiptNo());
                 row.put("submissionDate", fs.getFeeSubmissionDate());
                 row.put("status",         "PAID");
+            } else if (linkedMonth != null) {
+                // Paid at the previous branch: PAID here too, with that branch's receipt.
+                row.put("receiptNo",      linkedMonth.getReceiptNo());
+                row.put("submissionDate", linkedMonth.getSubmissionDate());
+                row.put("status",         "PAID");
+                row.put("previousBranch", true);
+                row.put("paidAt",         linkedMonth.getBranchName());
             } else {
                 row.put("receiptNo",      null);
                 row.put("submissionDate", null);
@@ -534,6 +577,21 @@ public class FeeSubmissionService {
                     });
                 });
                 paidMonths.put("paidMonths", monthsList);
+            }
+            // Mid Session Migration: months already paid at the previous branch count as paid here
+            // too (the fee screen ticks and locks them). Empty for students without a link.
+            Set<String> linkedMonthNames = linkedFeeHistoryService.getLinkedPaidMonthNames(academic_student_id);
+            if(!linkedMonthNames.isEmpty()){
+                List<String> allPaidMonths = (List<String>) paidMonths.get("paidMonths");
+                if(allPaidMonths == null){
+                    allPaidMonths = new ArrayList<>();
+                    paidMonths.put("paidMonths", allPaidMonths);
+                }
+                for(String linkedName : linkedMonthNames){
+                    if(!allPaidMonths.contains(linkedName)){
+                        allPaidMonths.add(linkedName);
+                    }
+                }
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -925,6 +983,35 @@ public class FeeSubmissionService {
                                 resultMap.put("fee_submission_not_allowed",
                                         "Fee for " + String.join(", ", duplicateMonthNames) + " has already been submitted for this student. Please refresh the page and try again.");
                                 return resultMap;
+                            }
+
+                            // Mid Session Migration: months already paid at the previous branch cannot be
+                            // collected again here. Authoritative server-side check, same as above (the page
+                            // only greys them out). Empty map for a student without a link. If the linked
+                            // data cannot be read this throws and the outer catch rejects the submission.
+                            Map<Long, LinkedFeeHistoryService.LinkedPaidMonth> linkedPaidMonths =
+                                    linkedFeeHistoryService.getLinkedPaidMonths(studentForMonthCheck.getId());
+                            if (!linkedPaidMonths.isEmpty()) {
+                                List<String> previousBranchMonthNames = new ArrayList<>();
+                                String previousBranchName = null;
+                                for (Map.Entry<String, MonthMaster> monthEntry : feeMonMapCheck.entrySet()) {
+                                    MonthMaster requestedMonth = monthEntry.getValue();
+                                    if (requestedMonth == null) continue;
+                                    LinkedFeeHistoryService.LinkedPaidMonth linked = linkedPaidMonths.get(requestedMonth.getId());
+                                    if (linked != null) {
+                                        previousBranchMonthNames.add(monthEntry.getKey());
+                                        if (previousBranchName == null) previousBranchName = linked.getBranchName();
+                                    }
+                                }
+                                if (!previousBranchMonthNames.isEmpty()) {
+                                    log.warn("Rejected fee submission for academicStudentId={} - months already paid at previous branch: {}",
+                                            studentForMonthCheck.getId(), previousBranchMonthNames);
+                                    resultMap.put("fee_submission_not_allowed",
+                                            "Fee for " + String.join(", ", previousBranchMonthNames) + " was already paid at "
+                                                    + (previousBranchName != null ? previousBranchName : "the previous branch")
+                                                    + " (previous branch) for this student. Please refresh the page and try again.");
+                                    return resultMap;
+                                }
                             }
                         }
 
@@ -1333,10 +1420,16 @@ public class FeeSubmissionService {
                         }
                     }
 
+                    // Mid Session Migration: months already paid at the previous branch count as paid
+                    // here too. One school-wide lookup; empty for a school with no migrated-in student.
+                    Map<Long, Set<Long>> linkedPaidMonthIdsByStudent =
+                            linkedFeeHistoryService.getLinkedPaidMonthIdsForSchoolYear(school.getId(), academicYear.getId());
+
                     for(AcademicStudent academicStudent: academicStudentList){
                         Map stuMap = new HashMap<>();
                         BigDecimal balanceAmount = BigDecimal.ZERO;
-                        boolean hasAnySubmission = studentsWithAnySubmission.contains(academicStudent.getId());
+                        Set<Long> linkedPaidMonthIds = linkedPaidMonthIdsByStudent.getOrDefault(academicStudent.getId(), Collections.emptySet());
+                        boolean hasAnySubmission = studentsWithAnySubmission.contains(academicStudent.getId()) || !linkedPaidMonthIds.isEmpty();
                         if(hasAnySubmission){
                             //Atleast 1 feesubmission happen for this student
                             //Get all submitted months
@@ -1356,7 +1449,20 @@ public class FeeSubmissionService {
                             // same source of truth the Fee Submission screen's "Previous Balance"
                             // field uses). Absent from the map simply means their latest submission's
                             // balance is 0 (fully paid off), which is exactly what BigDecimal.ZERO means here.
-                            balanceAmount = latestBalanceById.getOrDefault(academicStudent.getId(), BigDecimal.ZERO);
+                            // A student whose only "submissions" are months paid at the previous branch has
+                            // no receipt of their own yet: their balance is the opening balance, exactly as
+                            // for any student without a submission.
+                            balanceAmount = studentsWithAnySubmission.contains(academicStudent.getId())
+                                    ? latestBalanceById.getOrDefault(academicStudent.getId(), BigDecimal.ZERO)
+                                    : (academicStudent.getOpeningBalance() != null ? academicStudent.getOpeningBalance() : BigDecimal.ZERO);
+                            if(!linkedPaidMonthIds.isEmpty()){
+                                // Reuse the selected months' own objects so the contains() checks below behave the same.
+                                for(MonthMaster selectedMonth : selectedMonthsList){
+                                    if(linkedPaidMonthIds.contains(selectedMonth.getId())){
+                                        submittedMonthsList.add(selectedMonth);
+                                    }
+                                }
+                            }
                             log.debug("submittedMonthsList size={}", submittedMonthsList == null ? 0 : submittedMonthsList.size());
                             if(submittedMonthsList!=null && !submittedMonthsList.isEmpty()){
                                 if(submittedMonthsList.containsAll(selectedMonthsList)){
@@ -1689,7 +1795,17 @@ public class FeeSubmissionService {
                 modelData.put("hasFeeSubmission", true);
 
                 HashMap<MonthMaster, Date> submittedMonthMap = new LinkedHashMap<>();
-                List<MonthMapping> monthMappingList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(academicYear.getId(), school.getId());
+                // Mid Session Migration: a receipt of the previous branch printed from the new branch must
+                // use ITS OWN branch/year for the month grid and fee heads. Same branch (every normal
+                // case) keeps the caller's school and year exactly as before.
+                School gridSchool = school;
+                AcademicYear gridYear = academicYear;
+                if (feeSchool != null && school != null && feeSchool.getId() != null
+                        && !feeSchool.getId().equals(school.getId())) {
+                    gridSchool = feeSchool;
+                    if (academicStudent.getAcademicYear() != null) gridYear = academicStudent.getAcademicYear();
+                }
+                List<MonthMapping> monthMappingList = monthmappingRepository.findAllByAcademicYear_IdAndSchool_IdOrderByPriorityAsc(gridYear.getId(), gridSchool.getId());
                 List<FeeSubmission> feeSubmissionList = getAllActiveFeeSubmissionByAcademicStudent(academicStudent.getId());
 
                 if (feeSubmissionList != null) {
@@ -1700,17 +1816,33 @@ public class FeeSubmissionService {
                     }
                 }
 
+                // Mid Session Migration: months paid at the previous branch print as PAID too, with that
+                // receipt's date and a "(prev. branch)" marker. Empty for a student without a link.
+                Map<Long, LinkedFeeHistoryService.LinkedPaidMonth> linkedPaidByMonthId =
+                        linkedFeeHistoryService.getLinkedPaidMonths(academicStudent.getId());
+
                 int i = 1;
                 for (MonthMapping mm : monthMappingList) {
                     String dateString = "Month-" + i + " ####(" + mm.getMonthMaster().getMonthName().toUpperCase() + "): ####";
                     if (submittedMonthMap.containsKey(mm.getMonthMaster())) {
                         dateString += "PAID " + sf.format(submittedMonthMap.get(mm.getMonthMaster()));
+                    } else {
+                        LinkedFeeHistoryService.LinkedPaidMonth linkedMonth = linkedPaidByMonthId.get(mm.getMonthMaster().getId());
+                        if (linkedMonth != null && linkedMonth.getSubmissionDate() != null) {
+                            dateString += "PAID " + sf.format(linkedMonth.getSubmissionDate());
+                        }
                     }
                     slipDateList.add(dateString);
                     i++;
                 }
                 modelData.put("feeSubmittedMonths", slipDateList);
-                modelData.put("feesublist", buildFeeHeadBreakdownForReceipt(feeSubmission, academicStudent, school, academicYear));
+                // Mid Session Migration: one line per previous branch, "April \u2013 October fees paid at <branch>".
+                // Absent for a receipt whose student has no linked months.
+                List<String> previousBranchNotes = buildPreviousBranchNotes(monthMappingList, linkedPaidByMonthId, submittedMonthMap);
+                if (!previousBranchNotes.isEmpty()) {
+                    modelData.put("previousBranchNotes", previousBranchNotes);
+                }
+                modelData.put("feesublist", buildFeeHeadBreakdownForReceipt(feeSubmission, academicStudent, gridSchool, gridYear));
             } else {
                 modelData.put("feeSubmissionError", "Fee not found for: " + academicStudent.getStudent().getStudentName() + "!");
             }
@@ -1720,6 +1852,50 @@ public class FeeSubmissionService {
         }
         log.debug("getFeeReceiptDataForModel result keys={}", modelData.keySet());
         return modelData;
+    }
+
+    /**
+     * Lines for the receipt strip: for each previous branch, the months it collected as a range in
+     * the receipt's own month order ("April \u2013 October fees paid at <branch>"). Months this
+     * branch collected itself are left out. Empty when nothing was paid at a previous branch.
+     */
+    private List<String> buildPreviousBranchNotes(List<MonthMapping> monthMappingList,
+                                                  Map<Long, LinkedFeeHistoryService.LinkedPaidMonth> linkedPaidByMonthId,
+                                                  Map<MonthMaster, Date> ownSubmittedMonths) {
+        List<String> notes = new ArrayList<>();
+        if (monthMappingList == null || linkedPaidByMonthId == null || linkedPaidByMonthId.isEmpty()) return notes;
+
+        List<String> monthNames = new ArrayList<>();
+        Map<String, List<Integer>> positionsByBranch = new LinkedHashMap<>();
+        for (MonthMapping mm : monthMappingList) {
+            int position = monthNames.size();
+            monthNames.add(mm.getMonthMaster().getMonthName());
+            if (ownSubmittedMonths != null && ownSubmittedMonths.containsKey(mm.getMonthMaster())) continue;
+            LinkedFeeHistoryService.LinkedPaidMonth linked = linkedPaidByMonthId.get(mm.getMonthMaster().getId());
+            if (linked == null) continue;
+            String branch = (linked.getBranchName() != null && !linked.getBranchName().trim().isEmpty())
+                    ? linked.getBranchName() : "the previous branch";
+            positionsByBranch.computeIfAbsent(branch, k -> new ArrayList<>()).add(position);
+        }
+
+        for (Map.Entry<String, List<Integer>> entry : positionsByBranch.entrySet()) {
+            List<Integer> positions = entry.getValue();
+            List<String> ranges = new ArrayList<>();
+            int start = positions.get(0);
+            int previous = start;
+            for (int k = 1; k <= positions.size(); k++) {
+                boolean end = (k == positions.size());
+                int current = end ? -1 : positions.get(k);
+                if (end || current != previous + 1) {
+                    ranges.add(start == previous ? monthNames.get(start)
+                            : monthNames.get(start) + " \u2013 " + monthNames.get(previous));
+                    start = current;
+                }
+                previous = current;
+            }
+            notes.add(String.join(", ", ranges) + " fees paid at " + entry.getKey());
+        }
+        return notes;
     }
 
     /**
@@ -2584,6 +2760,11 @@ public class FeeSubmissionService {
             long grandTotalPendingStudents = 0;
             long grandTotalStudents        = 0;
 
+            // Mid Session Migration: months already paid at the previous branch count as paid here
+            // too. One school-wide lookup; empty for a school with no migrated-in student.
+            Map<Long, Set<Long>> linkedPaidMonthIdsByStudent =
+                    linkedFeeHistoryService.getLinkedPaidMonthIdsForSchoolYear(school.getId(), academicYear.getId());
+
             for (Object[] row : gradeSectionRows) {
                 String gradeName   = (String) row[0];
                 String sectionName = (String) row[1];
@@ -2619,6 +2800,17 @@ public class FeeSubmissionService {
                         Long stuId  = ((Number) p[0]).longValue();
                         Long mId    = ((Number) p[1]).longValue();
                         studentPaidMonths.computeIfAbsent(stuId, k -> new HashSet<>()).add(mId);
+                    }
+                }
+                if (!linkedPaidMonthIdsByStudent.isEmpty()) {
+                    for (Long stuId : studentIds) {
+                        Set<Long> linkedMonths = linkedPaidMonthIdsByStudent.get(stuId);
+                        if (linkedMonths == null) continue;
+                        for (Long mId : linkedMonths) {
+                            if (selectedMonthIds.contains(mId)) {
+                                studentPaidMonths.computeIfAbsent(stuId, k -> new HashSet<>()).add(mId);
+                            }
+                        }
                     }
                 }
 

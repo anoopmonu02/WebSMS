@@ -485,4 +485,26 @@ public interface AcademicStudentRepository extends JpaRepository<AcademicStudent
 
     List<AcademicStudent> findAllBySchool_IdAndGrade_IdAndSection_IdAndMedium_IdAndStatus(
             Long school, Long grade, Long section, Long medium, String status);
+
+    /**
+     * Mid Session Migration link: id of the enrollment row this student was moved out of at the
+     * previous branch, or null when there is none (every ordinary student). Selects the id only
+     * (no entity load, no join). Used by LinkedFeeHistoryService.
+     */
+    @Query("SELECT a.carriedFromAcademicStudent.id FROM AcademicStudent a WHERE a.id = :id")
+    Long findCarriedFromAcademicStudentId(@Param("id") Long id);
+
+    /**
+     * Mid Session Migration links of one school + academic year: [academic_student_id,
+     * carried_from_academic_student_id] for every student that was migrated in. Normally a handful
+     * of rows (none for most schools). Used by LinkedFeeHistoryService for list-style reports.
+     */
+    @Query("SELECT a.id, a.carriedFromAcademicStudent.id FROM AcademicStudent a " +
+           "WHERE a.school.id = :schoolId AND a.academicYear.id = :academicYearId AND a.carriedFromAcademicStudent IS NOT NULL")
+    List<Object[]> findCarriedFromPairsForSchoolYear(@Param("schoolId") Long schoolId, @Param("academicYearId") Long academicYearId);
+
+    /** Same, for an explicit set of rows (used to follow a chain one step further). Never call with an empty set. */
+    @Query("SELECT a.id, a.carriedFromAcademicStudent.id FROM AcademicStudent a " +
+           "WHERE a.id IN :ids AND a.carriedFromAcademicStudent IS NOT NULL")
+    List<Object[]> findCarriedFromPairs(@Param("ids") java.util.Collection<Long> ids);
 }

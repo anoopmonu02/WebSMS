@@ -56,7 +56,8 @@ public class MobileFeesController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Requested student record is not accessible"));
         }
-        AcademicStudent resolved = target.get();
+        // Mid Session Migration: a session opened before the move still carries the old row; use the current one.
+        AcademicStudent resolved = academicYearService.followMidSessionMigration(target.get());
 
         List<FeeSubmission> submissions =
                 feeSubmissionService.getActiveFeeSubmissionsForYear(
@@ -65,6 +66,14 @@ public class MobileFeesController {
                         resolved.getId());
 
         List<Map<String, Object>> result = new ArrayList<>();
+        // Receipts paid at the previous branch(es) come first (oldest), tagged; empty for any other student.
+        for (FeeSubmission fs : previousBranchSubmissions(resolved)) {
+            Map<String, Object> entry = toSubmissionMap(fs);
+            entry.put("previousBranch", true);
+            entry.put("branchName", fs.getSchool() != null && fs.getSchool().getSchoolName() != null
+                    ? fs.getSchool().getSchoolName() : "");
+            result.add(entry);
+        }
         for (FeeSubmission fs : submissions) {
             result.add(toSubmissionMap(fs));
         }
@@ -87,13 +96,21 @@ public class MobileFeesController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Requested student record is not accessible"));
         }
-        AcademicStudent resolved = target.get();
+        // Mid Session Migration: a session opened before the move still carries the old row; use the current one.
+        AcademicStudent resolved = academicYearService.followMidSessionMigration(target.get());
 
         List<FeeSubmission> submissions =
                 feeSubmissionService.getActiveFeeSubmissionsForYear(
                         resolved.getSchool().getId(),
                         resolved.getAcademicYear().getId(),
                         resolved.getId());
+        // Receipts paid at the previous branch(es) count in the totals too (empty for any other student).
+        List<FeeSubmission> previousBranch = previousBranchSubmissions(resolved);
+        if (!previousBranch.isEmpty()) {
+            List<FeeSubmission> combined = new ArrayList<>(previousBranch);
+            combined.addAll(submissions);
+            submissions = combined;
+        }
 
         BigDecimal totalPaid     = BigDecimal.ZERO;
         BigDecimal totalBalance  = BigDecimal.ZERO;
@@ -156,7 +173,8 @@ public class MobileFeesController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Requested student record is not accessible"));
         }
-        AcademicStudent resolved = target.get();
+        // Mid Session Migration: a session opened before the move still carries the old row; use the current one.
+        AcademicStudent resolved = academicYearService.followMidSessionMigration(target.get());
 
         if (resolved.getSchool() == null || resolved.getAcademicYear() == null || resolved.getGrade() == null) {
             log.warn("getMonthlyTable: academicStudentId={} missing school/academicYear/grade — returning empty table",
@@ -207,6 +225,23 @@ public class MobileFeesController {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Receipts paid at the previous branch(es) of a mid-session migration, oldest first. Empty for a
+     * student without a link. If they cannot be read the parent still gets the student's own receipts
+     * (a shorter list, never anyone else's data), and the failure is logged.
+     */
+    private List<FeeSubmission> previousBranchSubmissions(AcademicStudent resolved) {
+        // No link on the row itself (every student who never changed branch): nothing to read, no query.
+        if (resolved.getCarriedFromAcademicStudent() == null) return new ArrayList<>();
+        try {
+            List<FeeSubmission> list = feeSubmissionService.getPreviousBranchSubmissions(resolved.getId());
+            return list != null ? list : new ArrayList<>();
+        } catch (Exception e) {
+            log.warn("Previous-branch receipts not loaded for academicStudentId={}: {}", resolved.getId(), e.toString());
+            return new ArrayList<>();
+        }
+    }
 
     private Map<String, Object> toSubmissionMap(FeeSubmission fs) {
         Map<String, Object> entry = new LinkedHashMap<>();

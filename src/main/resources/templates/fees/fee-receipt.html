@@ -65,6 +65,16 @@
               <div class="fee-detail-box row">
                   <!--Fees List-->
                   <div class="col-md-12 text-bg-light feedetailslistbox">
+                      <!-- Mid Session Migration: fees already paid at the previous branch (hidden unless the student was migrated) -->
+                      <div id="prevBranchBanner" class="alert alert-info d-none py-2 mb-3" role="status">
+                          <div class="d-flex align-items-center gap-2">
+                              <i class="bi bi-lock-fill fs-5"></i>
+                              <div>
+                                  <div class="fw-semibold" id="prevBranchText"></div>
+                                  <div class="small text-muted" id="prevBranchMonths"></div>
+                              </div>
+                          </div>
+                      </div>
                       <div class="card-body">
                           <h5 class="card-subtitle mb-2 text-muted">Fee Detail(s)</h5>
                       </div>
@@ -322,6 +332,7 @@
             // icon on a specific row is clicked, so without this it kept showing whichever
             // previous student's receipt was last printed, even after switching students.
             $('#disp-receipt').empty();
+            showPreviousBranchBanner(null);
             let url = `${contextPath}getStudentFeeDetails/${id}`;
             fetch(url).then(response => {
                 return response.json();
@@ -342,6 +353,7 @@
                                 setDiscountData(data.assignedDiscount);*/
                                 setFeeRelatedData(data, 1);
                                 setFeeDetails(data.feeSubmissions);
+                                showPreviousBranchBanner(data);
                             }
                         }
                         //setFeeRelatedData(data, 1);
@@ -357,8 +369,44 @@
               console.log("value-----"+value);
               let formatDateVal = formatDate(value.feeSubmissionDate);
               //+value.academicStudent.id+'_'
-              $('#feetable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ formatDateVal+'</td><td>'+ value.receiptNo +'</td><td>&#8377; '+value.totalAmount+'</td><td>&#8377; '+ value.paidAmount +'</td><td>&#8377; '+ value.balanceAmount +'</td><td><a onclick="loadStudentReceiptData('+value.id+')" href="#" class="btn btn-success"><i class="bi bi-printer-fill"></i></a></td></tr>');
+              // Mid Session Migration: a receipt paid at the previous branch is tagged with that branch's name.
+              let branchTag = value.previousBranch
+                  ? ' <span class="badge bg-info text-dark">Paid at ' + $('<div>').text(value.branchName || 'previous branch').html() + '</span>'
+                  : '';
+              $('#feetable > tbody').append('<tr><td>'+ (i+1) +'</td><td>'+ formatDateVal+'</td><td>'+ value.receiptNo + branchTag +'</td><td>&#8377; '+value.totalAmount+'</td><td>&#8377; '+ value.paidAmount +'</td><td>&#8377; '+ value.balanceAmount +'</td><td><a onclick="loadStudentReceiptData('+value.id+')" href="#" class="btn btn-success"><i class="bi bi-printer-fill"></i></a></td></tr>');
           }
+      }
+
+      // Mid Session Migration: message above the receipt list, "Paid at <previous branch>" with the month range.
+      // The receipts themselves are in the list below (each tagged with its branch). Shown only when the
+      // server sends PreviousBranchMonths (a migrated student); hidden otherwise.
+      function showPreviousBranchBanner(data){
+          $('#prevBranchBanner').addClass('d-none');
+          $('#prevBranchText').text('');
+          $('#prevBranchMonths').text('');
+          const months = data && data.PreviousBranchMonths;
+          if(!months || !months.length) return;
+
+          // Collapse consecutive months (academic order April to March) into ranges.
+          const order = ["April","May","June","July","August","September","October","November","December","January","February","March"];
+          const known = months.map(m => order.indexOf(m)).filter(i => i >= 0).sort((a, b) => a - b);
+          const unknown = months.filter(m => order.indexOf(m) < 0);
+          const parts = [];
+          let start = null, prev = null;
+          known.forEach(i => {
+              if(start === null){ start = i; prev = i; }
+              else if(i === prev + 1){ prev = i; }
+              else { parts.push(start === prev ? order[start] : order[start] + ' \u2013 ' + order[prev]); start = i; prev = i; }
+          });
+          if(start !== null){ parts.push(start === prev ? order[start] : order[start] + ' \u2013 ' + order[prev]); }
+          unknown.forEach(m => parts.push(m));
+
+          const branch = data.PreviousBranchName || 'the previous branch';
+          $('#prevBranchText').text('Paid at ' + branch);
+          $('#prevBranchMonths').text(parts.join(', ')
+              + ' (' + months.length + (months.length === 1 ? ' month)' : ' months)')
+              + ' \u00B7 receipts are listed below');
+          $('#prevBranchBanner').removeClass('d-none');
       }
 
       function formatDate(inputDate) {
@@ -484,6 +532,7 @@
 
                   </div>
                   <hr/>
+                  ${createPreviousBranchNoteHTML(data.previousBranchNotes)}
                   <div class="row fee-month-detail">
                       <div class="row fee-month-detail">
                             ${createFeeMonthDetailHTML(data.feeSubmittedMonths)}
@@ -556,6 +605,16 @@
 
               </div>`
       }
+
+      // Mid Session Migration: one bordered line per previous branch above the month grid (empty for other students).
+      const createPreviousBranchNoteHTML = (notes) => {
+          if(!notes || !notes.length) return '';
+          let html = '<div class="row"><div class="col-md-12">';
+          notes.forEach(n => {
+              html += '<div style="border:1px solid #6c757d;padding:4px 10px;margin-bottom:6px;font-size:13px;">' + $('<div>').text(n).html() + '</div>';
+          });
+          return html + '</div></div>';
+      };
 
       const createFeeMonthDetailHTML = (feeSubmittedMonths) => {
           let feeMonthHTML = '';

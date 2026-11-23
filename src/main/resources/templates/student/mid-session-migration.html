@@ -60,8 +60,43 @@
                     <input type="hidden" id="currentSchoolId" th:value="${currentSchoolId}">
                 </div>
 
+                <!-- Fee Clearance (current branch): every month before the current month must be paid here first -->
+                <div class="card mb-3 d-none" id="feeClearanceCard">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h5 class="mb-0">Fee Clearance (current branch)</h5>
+                        <span class="badge fs-6" id="fcBadge"></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-muted" id="fcLoading"><span class="spinner-border spinner-border-sm me-2"></span>Checking fees&hellip;</div>
+                        <div class="alert alert-danger mb-0 d-none" id="fcError" role="alert"></div>
+                        <div class="d-none" id="fcContent">
+                            <div class="alert d-flex align-items-start mb-3" id="fcAlert" role="alert">
+                                <i class="bi me-2 fs-5" id="fcIcon"></i>
+                                <div>
+                                    <div class="fw-bold" id="fcTitle"></div>
+                                    <div class="small" id="fcText"></div>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-4 mb-3" id="fcSummary"></div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-3">
+                                    <thead class="table-light">
+                                    <tr><th>Month</th><th>Fee</th><th>Fine</th><th>Status</th><th>Details</th></tr>
+                                    </thead>
+                                    <tbody id="fcRows"></tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a class="btn btn-success" th:href="@{/fees/fee-submit-form}" target="_blank" rel="noopener"><i class="bi bi-cash-coin"></i> Open Fee Submission</a>
+                                <button type="button" class="btn btn-outline-secondary" id="fcRefreshBtn"><i class="bi bi-arrow-repeat"></i> Refresh status</button>
+                            </div>
+                            <div class="small text-muted mt-3" id="fcFootnote">Fine is calculated as of today. The current month and later months are not required here; they are collected at the new branch. Months already paid in advance stay paid at the new branch.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <hr/>
-                <h5 class="mb-0">Destintion: Migrate Student</h5>
+                <h5 class="mb-0">Destination: Migrate Student</h5>
                 <hr/>
                 <div class="col-12 mt-2 mb-3">&nbsp;</div>
 
@@ -101,13 +136,20 @@
                         </select>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-success" id="saveBtn">
+                        <button type="button" class="btn btn-success" id="saveBtn" disabled>
                             <span class="normal-state"><i class="bi bi-check-lg"></i> Save</span>
                             <span class="loading-state d-none">
                                 <span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;
                             </span>
                         </button>
                     </div>
+                </div>
+                <div class="mb-3 d-none" id="fcConfirmWrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="fcConfirm" disabled>
+                        <label class="form-check-label" for="fcConfirm" id="fcConfirmLabel">I confirm fee clearance.</label>
+                    </div>
+                    <div class="small text-danger mt-1 d-none" id="fcSaveHint"><i class="bi bi-lock-fill"></i> Save is locked until the fee dues are cleared at this branch.</div>
                 </div>
                 <div class="col-12" id="destSessionError" style="display:none;">
                     <div class="alert alert-danger py-2 small" id="destSessionErrorText"></div>
@@ -145,8 +187,8 @@
                         </div>
                         <hr class="my-1"/>
                         <div class="d-flex justify-content-between align-items-center py-1">
-                            <span class="text-muted">Pending Dues Carried Forward</span>
-                            <span class="fw-bold" id="migrateConfirmPending">Calculating&hellip;</span>
+                            <span class="text-muted">Fee Status</span>
+                            <span class="fw-bold text-end" id="migrateConfirmFees">-</span>
                         </div>
                     </div>
                     <div class="alert alert-danger py-2 mb-0 small d-flex align-items-start">
@@ -177,6 +219,7 @@
         let _searchMore  = false;
         let _searchLoading = false;
         let selectedStudentName = '';
+        let fcState = null;   // last fee-clearance result for the selected student (null = unknown / not loaded)
 
         function showMsg(msgType, msg, headerValue){
             toastr.options = {
@@ -254,6 +297,7 @@
             $(".search-result").hide();
             $("#search-input").val('');
             $('#academicStudentId').val(id);
+            loadFeeClearance(id);
             // Reuses the existing getStudentDetailForFee endpoint (already scoped to the
             // admin's current school/session) purely to fetch the card display fields -
             // no new endpoint needed for this.
@@ -272,6 +316,140 @@
                 }
             });
         };
+
+        // ---- Fee clearance (current branch) --------------------------------------------------
+        const fcMoney = (v) => '\u20B9' + Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+        function fcStatusBadge(m){
+            switch(m.status){
+                case 'PAID':     return `<span class="badge bg-success">Paid${m.advance ? ' (advance)' : ''}</span>`;
+                case 'UNPAID':   return '<span class="badge bg-danger">Unpaid &middot; blocks migration</span>';
+                case 'NO_FEE':   return '<span class="badge bg-light text-dark border">No fee</span>';
+                case 'CURRENT':  return '<span class="badge bg-primary">Current month &middot; not required</span>';
+                default:         return '<span class="badge bg-secondary">Upcoming</span>';
+            }
+        }
+
+        function fcDetails(m){
+            if(m.status === 'PAID'){
+                const parts = [];
+                if(m.receiptNo) parts.push('Receipt ' + m.receiptNo);
+                if(m.submissionDate) parts.push(m.submissionDate);
+                return escapeHtml(parts.join(' \u00B7 ')) || '&mdash;';
+            }
+            if(m.status === 'UNPAID') return 'Collect at this branch';
+            if(m.status === 'CURRENT') return 'Collected at new branch';
+            return '&mdash;';
+        }
+
+        function updateSaveState(){
+            const cb = document.getElementById('fcConfirm');
+            const ok = !!fcState && fcState.canMigrate === true;
+            cb.disabled = !ok;
+            if(!ok) cb.checked = false;
+            document.getElementById('saveBtn').disabled = !(ok && cb.checked);
+            document.getElementById('fcSaveHint').classList.toggle('d-none', ok || !fcState);
+        }
+
+        function resetFeeClearanceUi(){
+            fcState = null;
+            document.getElementById('feeClearanceCard').classList.add('d-none');
+            document.getElementById('fcConfirmWrap').classList.add('d-none');
+            document.getElementById('fcConfirm').checked = false;
+            updateSaveState();
+        }
+
+        function showFeeClearanceError(message){
+            fcState = null;
+            document.getElementById('fcLoading').classList.add('d-none');
+            document.getElementById('fcContent').classList.add('d-none');
+            const err = document.getElementById('fcError');
+            err.textContent = 'Fee clearance could not be checked: ' + message + ' Migration stays locked until the check succeeds.';
+            err.classList.remove('d-none');
+            document.getElementById('fcBadge').className = 'badge fs-6 bg-danger';
+            document.getElementById('fcBadge').textContent = 'Check failed';
+            updateSaveState();
+        }
+
+        function renderFeeClearance(d){
+            fcState = d;
+            document.getElementById('fcLoading').classList.add('d-none');
+            document.getElementById('fcError').classList.add('d-none');
+            document.getElementById('fcContent').classList.remove('d-none');
+
+            const total = Number(d.totalDue || 0);
+            let alertCls, icon, title, badgeCls, badgeText;
+            if(d.cleared){
+                alertCls = 'alert-success'; icon = 'bi-check-circle-fill';
+                title = d.message; badgeCls = 'bg-success'; badgeText = 'Cleared \u00B7 \u20B90 due';
+            } else {
+                alertCls = 'alert-danger'; icon = 'bi-exclamation-octagon-fill';
+                title = d.checkFailed ? 'Fee clearance could not be verified' : 'Migration blocked';
+                badgeCls = 'bg-danger'; badgeText = d.checkFailed ? 'Check failed' : 'Migration blocked \u00B7 ' + fcMoney(total) + ' due';
+            }
+            const alertEl = document.getElementById('fcAlert');
+            alertEl.className = 'alert d-flex align-items-start mb-3 ' + alertCls;
+            document.getElementById('fcIcon').className = 'bi me-2 fs-5 ' + icon;
+            document.getElementById('fcTitle').textContent = d.cleared ? d.message : title;
+            document.getElementById('fcText').textContent = d.cleared
+                ? 'The current month (' + (d.currentMonth || '') + ') is collected at the new branch, with the fine calculated from the submission date there.'
+                : d.message;
+            const badge = document.getElementById('fcBadge');
+            badge.className = 'badge fs-6 ' + badgeCls;
+            badge.textContent = badgeText;
+
+            const item = (label, value, cls) => `<div><span class="text-muted small d-block">${label}</span><span class="fw-bold ${cls || ''}">${value}</span></div>`;
+            document.getElementById('fcSummary').innerHTML =
+                item('Paid up to', escapeHtml(d.paidUpTo || '-')) +
+                item('Required up to', escapeHtml(d.requiredUpTo || '-')) +
+                item('Fee due', fcMoney(d.feeDue)) +
+                item('Fine' + (d.fineCapped ? ' (capped)' : ''), fcMoney(d.fineDue)) +
+                item('Previous balance', fcMoney(d.balance)) +
+                item('Total due', fcMoney(total), total > 0 ? 'text-danger' : 'text-success');
+
+            const rows = (d.months || []).map(m => {
+                const fine = Number(m.fine || 0) > 0 ? `<span class="badge bg-warning text-dark">${fcMoney(m.fine)}</span>` : '&mdash;';
+                const cls = m.status === 'UNPAID' ? 'table-danger' : '';
+                return `<tr class="${cls}"><td class="fw-semibold">${escapeHtml(m.monthName)}</td><td>${fcMoney(m.fee)}</td><td>${fine}</td><td>${fcStatusBadge(m)}</td><td class="small text-muted">${fcDetails(m)}</td></tr>`;
+            }).join('');
+            document.getElementById('fcRows').innerHTML = rows || '<tr><td colspan="5" class="text-muted">Month-wise fee details are not available.</td></tr>';
+
+            document.getElementById('fcConfirmLabel').textContent = d.confirmText || 'I confirm fee clearance.';
+            document.getElementById('fcConfirmWrap').classList.remove('d-none');
+            document.getElementById('fcConfirm').checked = false;
+            updateSaveState();
+        }
+
+        function loadFeeClearance(id){
+            fcState = null;
+            document.getElementById('feeClearanceCard').classList.remove('d-none');
+            document.getElementById('fcLoading').classList.remove('d-none');
+            document.getElementById('fcContent').classList.add('d-none');
+            document.getElementById('fcError').classList.add('d-none');
+            document.getElementById('fcBadge').className = 'badge fs-6 bg-secondary';
+            document.getElementById('fcBadge').textContent = 'Checking\u2026';
+            document.getElementById('fcConfirmWrap').classList.add('d-none');
+            document.getElementById('fcConfirm').checked = false;
+            updateSaveState();
+            const stale = () => String($('#academicStudentId').val()) !== String(id);
+            fetch(`${contextPath}student/mid-session-migration/fee-clearance/${id}`)
+                .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                .then(({ ok, data }) => {
+                    if(stale()) return;
+                    if(!ok) throw new Error((data && data.error) ? data.error : 'Unable to check fee clearance.');
+                    renderFeeClearance(data);
+                })
+                .catch(err => {
+                    if(stale()) return;
+                    showFeeClearanceError((err && err.message) ? err.message : 'Unexpected error.');
+                });
+        }
+
+        document.getElementById('fcConfirm').addEventListener('change', updateSaveState);
+        document.getElementById('fcRefreshBtn').addEventListener('click', function(){
+            const id = $('#academicStudentId').val();
+            if(id) loadFeeClearance(id);
+        });
 
         const destSchoolEl = document.getElementById('destSchool');
         if (destSchoolEl) {
@@ -328,7 +506,16 @@
                     return;
                 }
 
-                pendingMigrationPayload = { academicStudentId, destSchoolId, destAcademicYearId, destMediumId, destGradeId, destSectionId };
+                if(!fcState || fcState.canMigrate !== true){
+                    showMsg('error','Fee clearance is not complete, so this student cannot be migrated yet.',"Warning");
+                    return;
+                }
+                if(!document.getElementById('fcConfirm').checked){
+                    showMsg('error','Please tick the fee clearance confirmation first.',"Warning");
+                    return;
+                }
+
+                pendingMigrationPayload = { academicStudentId, destSchoolId, destAcademicYearId, destMediumId, destGradeId, destSectionId, clearanceConfirmed: true };
 
                 const destSchoolText = $('#destSchool option:selected').text();
                 const destSessionText = $('#destSession option:selected').text();
@@ -341,26 +528,14 @@
                 document.getElementById('migrateConfirmSchool').textContent = destSchoolText;
                 document.getElementById('migrateConfirmYear').textContent = destSessionText;
                 document.getElementById('migrateConfirmClass').textContent = `${destMediumText} / ${destGradeText} / ${destSectionText}`;
-                document.getElementById('migrateConfirmPending').textContent = 'Calculating…';
+                document.getElementById('migrateConfirmFees').textContent = fcState.cleared
+                    ? ('Cleared up to ' + (fcState.requiredUpTo || 'this month') + ' (no dues)')
+                    : ('Dues pending (' + fcMoney(fcState.totalDue) + ')');
 
                 if(!migrateConfirmModalInstance){
                     migrateConfirmModalInstance = new bootstrap.Modal(document.getElementById('migrateConfirmModal'));
                 }
                 migrateConfirmModalInstance.show();
-
-                fetch(`${contextPath}student/mid-session-migration/calculate-pending-fee`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ academicStudentId })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    const amt = (data && data.pendingDue != null) ? Number(data.pendingDue) : 0;
-                    document.getElementById('migrateConfirmPending').textContent = '₹' + amt.toFixed(2);
-                })
-                .catch(() => {
-                    document.getElementById('migrateConfirmPending').textContent = 'Unable to calculate';
-                });
             };
         }
 
@@ -395,7 +570,14 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    if(migrateConfirmModalInstance){
+                        migrateConfirmModalInstance.hide();
+                    }
                     showMsg('error', (error && error.message) ? error.message : 'An error occurred while saving the migration', 'Error');
+                    // Dues may have changed (or still exist): refresh the card so the user sees the real status.
+                    if(pendingMigrationPayload && pendingMigrationPayload.academicStudentId){
+                        loadFeeClearance(pendingMigrationPayload.academicStudentId);
+                    }
                 })
                 .finally(() => setLoading('confirmSaveBtn', false));
             };
@@ -422,6 +604,7 @@
             $('#destMedium').val('');
             $('#destGrade').val('');
             $('#destSection').val('');
+            resetFeeClearanceUi();
         }
     </script>
 </section>

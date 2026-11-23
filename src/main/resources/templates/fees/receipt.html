@@ -95,6 +95,11 @@
 
                         </div>
                         <hr/>
+                        <div class="row" th:if="${previousBranchNotes != null and !#lists.isEmpty(previousBranchNotes)}">
+                            <div class="col-md-12">
+                                <div th:each="note : ${previousBranchNotes}" th:text="${note}" style="border:1px solid #6c757d;padding:4px 10px;margin-bottom:6px;font-size:13px;"></div>
+                            </div>
+                        </div>
                         <div class="row fee-month-detail">
                             <div class="col-md-6" th:each="feelist,iterStat : ${feeSubmittedMonths}">
                                 <strong><label class="col-md-3" th:text="${feelist.split('####')[0]}"></label></strong>
