@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * NEW repository (feature #7), brand-new package (repositories.mobile).
@@ -33,6 +34,13 @@ public interface MobileAcademicStudentRepository extends JpaRepository<AcademicS
            "WHERE a.student.id = :studentId " +
            "ORDER BY ay.id DESC")
     List<AcademicStudent> findAllByStudentIdOrderByYearDesc(@Param("studentId") Long studentId);
+
+    /**
+     * Mid Session Migration: the enrollment row a student was moved INTO, found through the link
+     * written at migration time (carried_from_academic_student_id, unique). Empty for every row
+     * that was not the source of a mid-session migration.
+     */
+    Optional<AcademicStudent> findByCarriedFromAcademicStudent_Id(Long carriedFromAcademicStudentId);
 
     // findById(Long) is already inherited from JpaRepository — used directly
     // by MobileAcademicYearService, no extra method needed here.

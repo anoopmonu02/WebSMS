@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * NEW service (feature #7), brand-new package (services.mobile). Does NOT
@@ -19,6 +21,9 @@ import java.util.Optional;
 @Service
 public class MobileAcademicYearService {
 
+    private static final Logger log = LoggerFactory.getLogger(MobileAcademicYearService.class);
+    private static final int MAX_SUCCESSOR_DEPTH = 5;
+
     @Autowired
     private MobileAcademicStudentRepository academicStudentRepository;
 
@@ -27,6 +32,35 @@ public class MobileAcademicYearService {
      * student as `academicStudentId`, newest year first. Powers the "switch
      * academic year" picker on Attendance / Fees / Results.
      */
+    /**
+     * Mid Session Migration: a parent's app session opened before the student was moved to another
+     * branch still carries the OLD enrollment row. For the Fees endpoints that row must show the
+     * student's current record, so this follows the migration link to the row the student was moved
+     * into (and on, if that one was moved again) and returns the first Active one.
+     *
+     * Ownership is unchanged: the caller has already verified the parent owns {@code resolved};
+     * the successor is reached only through the link written by the migration of that same row.
+     * Only a row flagged as migrated is looked at, so an ordinary student costs no extra query.
+     * A year-end migration writes no link and is not affected. If nothing is found, or the lookup
+     * fails, {@code resolved} is returned unchanged (the previous behaviour).
+     */
+    public AcademicStudent followMidSessionMigration(AcademicStudent resolved) {
+        if (resolved == null || !Boolean.TRUE.equals(resolved.getIsMigrated())) return resolved;
+        try {
+            AcademicStudent cursor = resolved;
+            for (int depth = 0; depth < MAX_SUCCESSOR_DEPTH; depth++) {
+                Optional<AcademicStudent> next = academicStudentRepository.findByCarriedFromAcademicStudent_Id(cursor.getId());
+                if (next.isEmpty()) return resolved;
+                cursor = next.get();
+                if (AcademicStudent.STATUS_ACTIVE.equalsIgnoreCase(cursor.getStatus())) return cursor;
+            }
+        } catch (Exception e) {
+            log.warn("followMidSessionMigration failed for academicStudentId={}, using the original row: {}",
+                    resolved.getId(), e.toString());
+        }
+        return resolved;
+    }
+
     public List<AcademicStudent> getAcademicYearsForStudent(Long academicStudentId) {
         Optional<AcademicStudent> current = academicStudentRepository.findById(academicStudentId);
         if (current.isEmpty()) {

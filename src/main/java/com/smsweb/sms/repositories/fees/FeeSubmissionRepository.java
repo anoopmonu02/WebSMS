@@ -372,6 +372,20 @@ public interface FeeSubmissionRepository extends JpaRepository<FeeSubmission, Lo
                                 @Param("academicId") Long academicId);
 
     /**
+     * Mid Session Migration: months (MonthMaster ids) paid by the given enrollment rows, from their
+     * own active receipts. [academic_student_id, month_master_id]. Used to read what a migrated
+     * student already paid at the previous branch. Never call with an empty set.
+     */
+    @Query(value = """
+        SELECT DISTINCT fs.academic_student_id, fsm.month_master_id
+        FROM fee_submission fs
+        JOIN fee_submission_months fsm ON fsm.fee_submission_id = fs.id
+        WHERE fs.academic_student_id IN (:studentIds)
+          AND LOWER(fs.status) = 'active'
+    """, nativeQuery = true)
+    List<Object[]> getSubmittedMonthIdsForStudentRows(@Param("studentIds") java.util.Collection<Long> studentIds);
+
+    /**
      * Pending Fee Summary Report — aggregate query.
      * Returns [academic_student_id, submitted_month_count] for students who have submitted
      * at least one of the given months. Students absent from result have submitted 0 months.

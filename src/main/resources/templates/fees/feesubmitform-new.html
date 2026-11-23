@@ -129,6 +129,23 @@
                     <input type="hidden" id="gradeId" value="" name="gradeId">
                     <input type="hidden" id="submissionToken" name="submissionToken" th:value="${submissionToken}">
 
+                    <!-- Mid Session Migration: fees already paid at the previous branch (hidden unless the student was migrated) -->
+                    <div id="prevBranchBanner" class="alert alert-info d-none py-2 mb-3" role="status">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <i class="bi bi-lock-fill fs-5"></i>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold" id="prevBranchText"></div>
+                                <div class="small text-muted" id="prevBranchMonths"></div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="prevBranchToggle" aria-expanded="false" aria-controls="prevBranchReceipts">
+                                <i class="bi bi-receipt"></i> View receipts (<span id="prevBranchCount">0</span>) <i class="bi bi-chevron-down" id="prevBranchChevron"></i>
+                            </button>
+                        </div>
+                        <div id="prevBranchReceipts" class="d-none mt-2 bg-white border rounded p-2"></div>
+                        <!-- present only when the user may print receipts (removed by the permission dialect otherwise) -->
+                        <span id="canPrintReceipt" class="d-none" sms:access="FEE_RECEIPT_PRINT:VIEW"></span>
+                    </div>
+
                     <!--Other Fee Detail-->
                     <div class="row">
                         <div class="col-lg-7">
@@ -478,6 +495,7 @@
             $(".search-result").hide();
             $("#search-input").val('');
             resetMonthsSelection();
+            showPreviousBranchBanner(null);
             if(id>0){
                 resetMonthCheckBoxes();
                 resetFeeFields(0);
@@ -499,6 +517,7 @@
                         } else{
                             setFeeRelatedData(data, 1);
                         }
+                        showPreviousBranchBanner(data);
                         if('Paid_Month_Error' in data){
                             //toastr["info"](data.Paid_Month_Error,"Message");
                         } else{
@@ -519,6 +538,60 @@
                 });
             }
         }
+
+        // Mid Session Migration: strip above the month list, "Paid at <previous branch>" + a "View receipts" table.
+        // Shown only when the server sends PreviousBranchMonths (a migrated student); hidden otherwise.
+        function showPreviousBranchBanner(data){
+            $('#prevBranchBanner').addClass('d-none');
+            $('#prevBranchText').text('');
+            $('#prevBranchMonths').text('');
+            $('#prevBranchReceipts').addClass('d-none').empty();
+            $('#prevBranchToggle').attr('aria-expanded', 'false');
+            $('#prevBranchChevron').attr('class', 'bi bi-chevron-down');
+            const months = data && data.PreviousBranchMonths;
+            if(!months || !months.length) return;
+
+            // Collapse consecutive months (in the order of the month list on this page) into ranges.
+            const order = $('.monthcheckbox').map(function(){ return $(this).attr('id'); }).get();
+            const known = months.map(m => order.indexOf(m)).filter(i => i >= 0).sort((a, b) => a - b);
+            const unknown = months.filter(m => order.indexOf(m) < 0);
+            const parts = [];
+            let start = null, prev = null;
+            known.forEach(i => {
+                if(start === null){ start = i; prev = i; }
+                else if(i === prev + 1){ prev = i; }
+                else { parts.push(start === prev ? order[start] : order[start] + ' \u2013 ' + order[prev]); start = i; prev = i; }
+            });
+            if(start !== null){ parts.push(start === prev ? order[start] : order[start] + ' \u2013 ' + order[prev]); }
+            unknown.forEach(m => parts.push(m));
+
+            const branch = data.PreviousBranchName || 'the previous branch';
+            $('#prevBranchText').text('Paid at ' + branch);
+            $('#prevBranchMonths').text(parts.join(', ')
+                + ' (' + months.length + (months.length === 1 ? ' month)' : ' months)') + ' \u00B7 locked here');
+
+            const receipts = data.PreviousBranchReceipts || [];
+            const canPrint = $('#canPrintReceipt').length > 0;
+            const esc = v => $('<div>').text(v == null ? '' : v).html();
+            let rows = '';
+            receipts.forEach(r => {
+                const printBtn = (canPrint && r.id)
+                    ? '<a class="btn btn-sm btn-outline-success py-0" target="_blank" rel="noopener" href="' + contextPath + 'fees/receipt-print/' + encodeURIComponent(r.id) + '"><i class="bi bi-printer-fill"></i> Print</a>'
+                    : '';
+                rows += '<tr><td>' + esc(r.receiptNo) + '</td><td>' + esc((r.months || []).join(', ')) + '</td><td>' + esc(r.date) + '</td><td class="text-end">' + printBtn + '</td></tr>';
+            });
+            $('#prevBranchReceipts').html('<table class="table table-sm mb-0"><thead><tr><th>Receipt no</th><th>Months</th><th>Date</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>');
+            $('#prevBranchCount').text(receipts.length);
+            $('#prevBranchToggle').toggle(receipts.length > 0);
+            $('#prevBranchBanner').removeClass('d-none');
+        }
+
+        $(document).on('click', '#prevBranchToggle', function(){
+            const open = $('#prevBranchReceipts').hasClass('d-none');
+            $('#prevBranchReceipts').toggleClass('d-none', !open);
+            $(this).attr('aria-expanded', open ? 'true' : 'false');
+            $('#prevBranchChevron').attr('class', open ? 'bi bi-chevron-up' : 'bi bi-chevron-down');
+        });
 
         const resetMonthsSelection = ()=>{
             let month_checkboxes = $('.monthcheckbox');

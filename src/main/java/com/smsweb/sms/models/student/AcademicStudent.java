@@ -155,6 +155,18 @@ public class AcademicStudent {
     @Size(max = 500)
     private String openingBalanceRemark;
 
+    /**
+     * Set only by the Students > Mid Session Migration flow: points to the enrollment row this
+     * student was moved out of at the previous branch. It lets the new branch (and the mobile
+     * app) read the fees already paid there (read-only). Never copied, never edited later, and
+     * null for every other record. At most one new row can point to a given old row (unique
+     * key uk_academic_students_carried_from, see db/add_carried_from_to_academic_students.sql).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @JoinColumn(name = "carried_from_academic_student_id")
+    private AcademicStudent carriedFromAcademicStudent;
+
     public static final String STATUS_ACTIVE = "Active";
     public static final String STATUS_INACTIVE = "Inactive";
 }

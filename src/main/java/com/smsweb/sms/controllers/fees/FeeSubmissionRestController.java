@@ -17,6 +17,7 @@ import com.smsweb.sms.services.admin.FeedateService;
 import com.smsweb.sms.services.admin.FineService;
 import com.smsweb.sms.services.admin.MonthmappingService;
 import com.smsweb.sms.services.fees.FeeSubmissionService;
+import com.smsweb.sms.services.fees.LinkedFeeHistoryService;
 import com.smsweb.sms.services.mobile.FamilyAppStatusService;
 import com.smsweb.sms.services.reports.FeeReceiptService;
 import com.smsweb.sms.services.student.AcademicStudentService;
@@ -75,6 +76,10 @@ public class FeeSubmissionRestController extends BaseController {
     // Safe contact (mobile1) change with confirmation + audit
     @Autowired
     private StudentContactChangeService studentContactChangeService;
+
+    // Mid Session Migration: read-only view of fees already paid at the previous branch(es)
+    @Autowired
+    private LinkedFeeHistoryService linkedFeeHistoryService;
 
     @Autowired
     public FeeSubmissionRestController(StudentService studentService, AcademicyearService academicyearService, AcademicStudentService academicStudentService,
@@ -379,6 +384,16 @@ public class FeeSubmissionRestController extends BaseController {
                     }
                 } else {
                     result.put("Paid_Month_Error", "No fee submission data found.");
+                }
+
+                // Mid Session Migration: fees already paid at the previous branch, for the banner
+                // strip on the fee screen. Display only (the months are already locked through
+                // PaidMonths above), so a failure here only leaves the strip out. Nothing is added
+                // for a student without a link.
+                try {
+                    result.putAll(linkedFeeHistoryService.getFeeScreenSummary(academicStudent.getId()));
+                } catch (Exception linkedError) {
+                    log.warn("Unable to read previous-branch fee summary for the fee screen", linkedError);
                 }
 
             } else {
@@ -795,8 +810,19 @@ public class FeeSubmissionRestController extends BaseController {
                 result.put("student", studentService.toLeanAcademicStudentMap(academicStudent));
                 //collect student fee details if any?
                 List<FeeSubmission> feeSubmissionList = feeSubmissionService.getAllFeeSubmissionByAcademicStudent(id);
-                if(feeSubmissionList!=null && !feeSubmissionList.isEmpty()){
-                    List<Map<String, Object>> leanFees = new java.util.ArrayList<>();
+                // Mid Session Migration: receipts paid at the previous branch(es) are listed too (display only;
+                // empty for a student without a link). If they cannot be read, the own receipts still show.
+                List<Map<String, Object>> previousBranchFees = new java.util.ArrayList<>();
+                try {
+                    previousBranchFees.addAll(linkedFeeHistoryService.getChainReceipts(academicStudent.getId()));
+                    result.putAll(linkedFeeHistoryService.getFeeScreenSummary(academicStudent.getId()));
+                } catch (Exception ex) {
+                    previousBranchFees.clear();
+                    log.warn("Previous-branch receipts not loaded for academicStudentId={}: {}", academicStudent.getId(), ex.toString());
+                }
+                if((feeSubmissionList!=null && !feeSubmissionList.isEmpty()) || !previousBranchFees.isEmpty()){
+                    List<Map<String, Object>> leanFees = new java.util.ArrayList<>(previousBranchFees);
+                    if(feeSubmissionList==null){ feeSubmissionList = new java.util.ArrayList<>(); }
                     for (FeeSubmission fs : feeSubmissionList) {
                         Map<String, Object> fsMap = new HashMap<>();
                         fsMap.put("id", fs.getId());

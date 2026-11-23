@@ -8,6 +8,7 @@ import com.smsweb.sms.models.admin.School;
 import com.smsweb.sms.models.permission.AccessType;
 import com.smsweb.sms.models.student.AcademicStudent;
 import com.smsweb.sms.services.student.AcademicStudentService;
+import com.smsweb.sms.services.student.MidSessionFeeClearanceService;
 import com.smsweb.sms.services.student.MidSessionMigrationService;
 import com.smsweb.sms.services.student.StudentService;
 import com.smsweb.sms.services.users.UserService;
@@ -19,7 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,16 +44,19 @@ public class MidSessionMigrationRestController extends BaseController {
     private final AcademicStudentService academicStudentService;
     private final StudentService studentService;
     private final MidSessionMigrationService midSessionMigrationService;
+    private final MidSessionFeeClearanceService feeClearanceService;
     private final UserService userService;
 
     @Autowired
     public MidSessionMigrationRestController(AcademicStudentService academicStudentService,
                                               StudentService studentService,
                                               MidSessionMigrationService midSessionMigrationService,
+                                              MidSessionFeeClearanceService feeClearanceService,
                                               UserService userService) {
         this.academicStudentService = academicStudentService;
         this.studentService = studentService;
         this.midSessionMigrationService = midSessionMigrationService;
+        this.feeClearanceService = feeClearanceService;
         this.userService = userService;
     }
 
@@ -87,25 +90,35 @@ public class MidSessionMigrationRestController extends BaseController {
     }
 
     /**
-     * Pending-dues preview shown in the confirmation modal before save - same figure that will
-     * be carried forward as the destination AcademicStudent's opening balance.
+     * Fee clearance status for the selected student, shown as the "Fee Clearance" card on the
+     * page: every month before the current month must be paid at this branch (late fine
+     * included) and the previous balance must be 0. Read-only. The same check runs again,
+     * server side, inside /save - this endpoint only fills the card.
      */
     @CheckAccess(screen = "STUDENT_MIDSESSION_MIGRATE", type = AccessType.VIEW)
-    @PostMapping("/calculate-pending-fee")
-    public ResponseEntity<?> calculatePendingFee(@RequestBody Map<String, Object> body, Model model) {
-        log.info("Inside calculatePendingFee (mid session migration)");
+    @GetMapping("/fee-clearance/{academicStudentId}")
+    public ResponseEntity<?> getFeeClearance(@PathVariable("academicStudentId") Long academicStudentId, Model model) {
+        log.info("Inside getFeeClearance (mid session migration)");
         try {
-            Long academicStudentId = Long.valueOf(String.valueOf(body.get("academicStudentId")));
+            School currentSchool = (School) model.getAttribute("school");
+            if (currentSchool == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Unable to resolve your school"));
+            }
             AcademicStudent sourceRecord = academicStudentService.findById(academicStudentId).orElse(null);
             if (sourceRecord == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Student record not found"));
             }
-            BigDecimal pending = midSessionMigrationService.calculatePendingDueAsOfToday(
-                    sourceRecord, sourceRecord.getSchool(), sourceRecord.getAcademicYear());
-            return ResponseEntity.ok(Map.of("pendingDue", pending));
+            if (sourceRecord.getSchool() == null || !currentSchool.getId().equals(sourceRecord.getSchool().getId())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "This student does not belong to your current school"));
+            }
+            if (Boolean.TRUE.equals(sourceRecord.getIsMigrated())
+                    || AcademicStudent.STATUS_INACTIVE.equalsIgnoreCase(sourceRecord.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "This student has already been migrated"));
+            }
+            return ResponseEntity.ok(feeClearanceService.check(sourceRecord).toMap());
         } catch (Exception e) {
-            log.error("Error calculating pending due for mid session migration", e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "Unable to calculate pending due: " + e.getMessage()));
+            log.error("Error checking fee clearance for mid session migration", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "Unable to check fee clearance: " + e.getMessage()));
         }
     }
 
@@ -124,12 +137,13 @@ public class MidSessionMigrationRestController extends BaseController {
             Long destMediumId = Long.valueOf(String.valueOf(body.get("destMediumId")));
             Long destGradeId = Long.valueOf(String.valueOf(body.get("destGradeId")));
             Long destSectionId = Long.valueOf(String.valueOf(body.get("destSectionId")));
+            Boolean clearanceConfirmed = Boolean.valueOf(String.valueOf(body.get("clearanceConfirmed")));
 
             UserEntity loggedInUser = userService.getLoggedInUser();
 
             Map<String, Object> result = midSessionMigrationService.migrateStudentMidSession(
                     academicStudentId, currentSchool.getId(), destSchoolId, destAcademicYearId,
-                    destMediumId, destGradeId, destSectionId, loggedInUser);
+                    destMediumId, destGradeId, destSectionId, clearanceConfirmed, loggedInUser);
 
             return ResponseEntity.ok(result);
         } catch (IllegalArgumentException | IllegalStateException e) {
